@@ -73,7 +73,7 @@ export function PlanDebugView() {
       <h2 id="plan-debug-title">Debug view (temporary)</h2>
       <p className="plan-debug-note">Minutes per day straight from <code>/api/plan</code>. This is a check of the numbers, not the final timeline.</p>
       <div className="plan-debug-bar">
-        <button type="button" className="btn btn-secondary" aria-label="Previous week" onClick={() => go({ week: addDays(weekStart, -7) })}>
+        <button type="button" className="btn btn-secondary" aria-label="Prev week" onClick={() => go({ week: addDays(weekStart, -7) })}>
           <span aria-hidden="true">← Prev</span>
         </button>
         <span className="plan-debug-week" aria-live="polite">Week of {weekStart}</span>

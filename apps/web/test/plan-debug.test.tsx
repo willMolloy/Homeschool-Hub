@@ -101,8 +101,8 @@ describe("Plan debug view", () => {
     await user.click(screen.getByRole("button", { name: /Next week/ }));
     expect(await screen.findByText("Week of 2026-11-02")).toBeInTheDocument();
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
-    await user.click(screen.getByRole("button", { name: /Previous week/ }));
-    await user.click(screen.getByRole("button", { name: /Previous week/ }));
+    await user.click(screen.getByRole("button", { name: "Prev week" }));
+    await user.click(screen.getByRole("button", { name: "Prev week" }));
     expect(await screen.findByText("Week of 2026-10-19")).toBeInTheDocument();
     renderAt("/?week=2026-10-26&asOf=2026-10-19");
     await screen.findAllByRole("table", { name: "Frank" });
