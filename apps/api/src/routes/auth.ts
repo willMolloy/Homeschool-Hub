@@ -12,7 +12,7 @@ const getDummyHash = () => (dummyHash ??= hashPassword("not-a-real-password-" + 
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post("/api/auth/login", {
-    config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    config: { public: true, rateLimit: { max: 10, timeWindow: "1 minute" } },
   }, async (req, reply) => {
     const parsed = LoginBody.safeParse(req.body);
     if (!parsed.success) throw new HttpError(400, "invalid_request", "Email and password are required.");

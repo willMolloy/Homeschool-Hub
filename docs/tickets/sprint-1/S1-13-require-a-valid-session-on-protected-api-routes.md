@@ -17,7 +17,7 @@ Every family-owned query must filter by family_id, and the family id must come f
 5. Found → set `request.familyId` (add a TypeScript declaration merge for `FastifyRequest`) and update `last_seen_at` at most once per hour (sliding expiry: also push `expires_at` to now()+30d).
 
 ## Done when
-- [ ] A protected test route returns 401 without the cookie and 200 with it.
+- [x] A protected test route returns 401 without the cookie and 200 with it.
 
 ## Tests
 - no cookie → 401

@@ -5,6 +5,7 @@ import { ENGINE_VERSION } from "@hh/engine";
 import type { Config } from "./config";
 import { createPool, type Db } from "./db";
 import { authRoutes } from "./routes/auth";
+import { registerSessionAuth } from "./auth/session";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -59,8 +60,10 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
     errorResponseBuilder: () => new HttpError(429, "rate_limited", "Too many attempts. Wait a minute and try again."),
   });
 
+  registerSessionAuth(app);
+
   // Always 200 so the web app can show a "database down" banner instead of an error page.
-  app.get("/api/health", async () => {
+  app.get("/api/health", { config: { public: true } }, async () => {
     let dbStatus: "ok" | "down" = "ok";
     try {
       await db.query("select 1");

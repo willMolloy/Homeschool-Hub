@@ -8,7 +8,7 @@ import { hasDb } from "./helpers/db";
 // Port 1 refuses connections immediately: a deterministic "database down".
 const deadPool = createPool({ DATABASE_URL: "postgres://hh:hh@127.0.0.1:1/none" });
 const app = buildApp(testConfig(), { db: deadPool });
-app.get("/api/test-throws", async () => {
+app.get("/api/test-throws", { config: { public: true } }, async () => {
   throw new Error("boom");
 });
 afterAll(async () => {
