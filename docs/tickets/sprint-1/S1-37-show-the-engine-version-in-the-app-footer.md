@@ -15,7 +15,7 @@ The engine is shared code. If the web bundle and the API ever run different engi
 3. If they differ, show a small banner: 'App update available — reload.' with a Reload button (`location.reload()`).
 
 ## Done when
-- [ ] Footer shows the version. Faking a different API version (in a test) shows the banner.
+- [x] Footer shows the version. Faking a different API version (in a test) shows the banner.
 
 ## Tests
 - render test: same version → no banner; different → banner

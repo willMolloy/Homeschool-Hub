@@ -145,3 +145,27 @@
     padding-bottom: 16px;
   }
 }
+
+/* engine-version mismatch (S1-37) */
+.shell-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 16px;
+  background: #fff4d6;
+  border-bottom: 1px solid #e8c766;
+  color: #4a3a00;
+}
+.shell-banner button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #4a3a00;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+.shell-banner-detail {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+}

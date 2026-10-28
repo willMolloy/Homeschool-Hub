@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useMe } from "../auth/AuthProvider";
 import { AppShell } from "./AppShell";
+import { EngineFooter, EngineMismatchBanner, useApiEngineVersion } from "./EngineVersion";
 
 /** The app shell filled in with the signed-in family and a Sign out button. */
 export function SignedInShell() {
@@ -9,6 +10,7 @@ export function SignedInShell() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const apiEngineVersion = useApiEngineVersion();
 
   async function onSignOut() {
     setBusy(true);
@@ -20,6 +22,8 @@ export function SignedInShell() {
     <AppShell
       familyName={me.name}
       headerActions={<button type="button" onClick={() => void onSignOut()} disabled={busy}>Sign out</button>}
+      banner={<EngineMismatchBanner apiVersion={apiEngineVersion} />}
+      footer={<EngineFooter />}
     />
   );
 }
