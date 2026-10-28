@@ -7,7 +7,7 @@
 `PATCH /api/children/:id` changes a child's name, color, sort order, or archived state, but only for the signed-in family's rows.
 
 ## Context
-Archive instead of delete. Childs are referenced by assignments, logs and events, and history must survive. `archived: true` sets `archived_at = now()`; `false` clears it.
+Archive instead of delete. Children are referenced by assignments, logs and events, and history must survive. `archived: true` sets `archived_at = now()`; `false` clears it.
 
 ## Steps
 1. Body: any of `{ name?, color?, sortOrder?, archived? }` (at least one). Same validation as create.

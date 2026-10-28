@@ -25,7 +25,7 @@ npm workspaces link `@hh/engine` into both apps, so there is no build step for t
 ## Done when
 - [ ] All commands above succeed on your machine.
 - [ ] The health endpoint returns `{"ok":true,"engineVersion":"0.1.0"}`.
-- [ ] The web page loads and shows `Engine 0.1.0`.
+- [ ] The web page loads and shows `Engine v0.1.0` (the placeholder text; S1-37 later moves it to the footer as `Engine 0.1.0`).
 
 ## Tests
 - No new tests. This ticket runs the existing ones.
