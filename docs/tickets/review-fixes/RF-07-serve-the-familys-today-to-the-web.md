@@ -16,7 +16,7 @@ The plan screen's default week uses the device's local date while the server pla
 3. Fake API `DEMO_ME` gets a fixed `today`.
 
 ## Done when
-- [ ] With the device clock and the family's zone on different dates, the plan screen opens on the family's week.
+- [x] With the device clock and the family's zone on different dates, the plan screen opens on the family's week.
 
 ## Tests
 - API: fixed clock 2026-11-02T10:30Z → Chicago `today` 2026-11-02, Kiritimati 2026-11-03; a bad stored zone → the default zone's date, 200.

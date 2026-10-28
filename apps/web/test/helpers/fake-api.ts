@@ -18,6 +18,7 @@ export const DEMO_ME: Me = {
   weekStart: "mon",
   schoolDays: [1, 2, 3, 4, 5],
   timeZone: "America/Chicago",
+  today: "2026-10-28",
 };
 
 class FakeApi {

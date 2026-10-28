@@ -11,7 +11,7 @@ import "./plan.css";
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** The device's local date as YYYY-MM-DD. */
+/** The device's local date as YYYY-MM-DD. Only a fallback: the family's `me.today` decides the default week. */
 export function deviceToday(now: Date = new Date()): LocalDate {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
@@ -36,7 +36,9 @@ export function PlanDebugView() {
   const weekParam = params.get("week");
   const asOfParam = params.get("asOf");
   const asOf = asOfParam && isValidLocalDate(asOfParam) ? asOfParam : null;
-  const weekStart = weekStartOf(weekParam && isValidLocalDate(weekParam) ? weekParam : deviceToday(), me.weekStart);
+  // The family's today (server clock, family zone), so a device in another zone still opens on the plan's week.
+  const today = isValidLocalDate(me.today) ? me.today : deviceToday();
+  const weekStart = weekStartOf(weekParam && isValidLocalDate(weekParam) ? weekParam : today, me.weekStart);
   const weekEnd = addDays(weekStart, 6);
 
   const plan = useApi<PlanResponse>(`/api/plan?from=${weekStart}&to=${weekEnd}${asOf ? `&asOf=${asOf}` : ""}`);

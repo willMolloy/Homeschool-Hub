@@ -1,10 +1,10 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChildPlan, DayLoad } from "@hh/engine";
 import type { PlanResponse } from "../src/api/types";
 import { buildDebugTables } from "../src/features/plan/debugTable";
-import { fakeApi } from "./helpers/fake-api";
+import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
 const WEEK = ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"];
@@ -91,6 +91,33 @@ describe("Plan debug view", () => {
     const list = await screen.findByRole("list", { name: "Warnings for Margaret" });
     expect(list).toHaveTextContent("Math: the end date has passed with work left past-end");
     expect(screen.queryByRole("list", { name: "Warnings for Frank" })).not.toBeInTheDocument();
+  });
+
+  describe("default week (no ?week)", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("follows the family's today from /api/me, not the device date", async () => {
+      // Device thinks it is mid-December; the family's zone says Wednesday 2026-11-04.
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-12-16T12:00:00"));
+      setup();
+      fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-11-04" });
+      renderAt("/");
+      await screen.findByRole("table", { name: "Frank" });
+      expect(screen.getByText("Week of 2026-11-02")).toBeInTheDocument();
+      expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
+      expect(fakeApi.calls.some((c) => c.path.includes("2026-12-14"))).toBe(false);
+    });
+
+    it("a family a day ahead of the device (Sunday device, Monday family) opens on the family's week", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-11-01T20:00:00"));
+      setup();
+      fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-11-02" });
+      renderAt("/");
+      await screen.findByRole("table", { name: "Frank" });
+      expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
+    });
   });
 
   it("Previous / Next week move by 7 days; 'Plan as of' passes asOf", async () => {

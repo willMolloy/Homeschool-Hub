@@ -17,10 +17,12 @@ export interface Me {
   schoolDays: number[];
   /** IANA zone, e.g. "America/Chicago" (S2a-02). */
   timeZone: string;
+  /** Today (YYYY-MM-DD) in the family's zone, from the server clock (RF-07). */
+  today: string;
 }
 
 /** GET/PATCH /api/family */
-export type FamilySettings = Omit<Me, "familyId">;
+export type FamilySettings = Omit<Me, "familyId" | "today">;
 
 /** POST /api/auth/login */
 export interface LoginResponse {
