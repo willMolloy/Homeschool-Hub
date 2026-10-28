@@ -2,10 +2,13 @@
  * Settings-style list of named, colored, archivable things (children, subjects).
  * KidsPage and SubjectsPage are thin wrappers around this.
  */
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
+import { apiPost } from "../../api/client";
 import { useApi } from "../../api/useApi";
 import { ColorDot } from "../../ui/ColorDot";
 import "../../ui/forms.css";
+import { nextUnusedColor } from "./palette";
+import { RosterForm, type RosterValues } from "./RosterForm";
 import "./roster.css";
 
 export interface RosterItem {
@@ -22,13 +25,44 @@ export interface RosterConfig {
   endpoint: string;
   /** e.g. "No children yet." */
   emptyText: string;
+  /** Singular noun for buttons and form labels, e.g. "child". */
+  noun: string;
 }
 
-export function RosterPage({ title, endpoint, emptyText }: RosterConfig) {
+export function RosterPage({ title, endpoint, emptyText, noun }: RosterConfig) {
   const [showArchived, setShowArchived] = useState(false);
   const path = showArchived ? `${endpoint}?includeArchived=true` : endpoint;
-  const { data, error, loading, reload } = useApi<RosterItem[]>(path);
+  const { data, error, loading, reload, setData } = useApi<RosterItem[]>(path);
   const toggleId = useId();
+  const [adding, setAdding] = useState(false);
+  const addBtn = useRef<HTMLButtonElement>(null);
+
+  function closeAdd() {
+    setAdding(false);
+    // Return focus to the Add button once it's rendered again.
+    requestAnimationFrame(() => addBtn.current?.focus());
+  }
+
+  async function create(values: RosterValues) {
+    const created = await apiPost<RosterItem>(endpoint, values);
+    setData((prev) => [...(prev ?? []), created]);
+    closeAdd();
+  }
+
+  const items = data ?? [];
+  const addArea = adding ? (
+    <RosterForm
+      label={`Add ${noun}`}
+      submitLabel="Add"
+      initial={{ name: "", color: nextUnusedColor(items.filter((i) => !i.archived).map((i) => i.color)) }}
+      onSave={create}
+      onCancel={closeAdd}
+    />
+  ) : (
+    <div className="roster-actions">
+      <button ref={addBtn} className="btn" type="button" onClick={() => setAdding(true)}>Add {noun}</button>
+    </div>
+  );
 
   return (
     <section className="roster">
@@ -67,9 +101,9 @@ export function RosterPage({ title, endpoint, emptyText }: RosterConfig) {
       ) : (
         <div className="roster-empty">
           <p>{emptyText}</p>
-          <div className="roster-empty-actions" data-slot="add" />
         </div>
       )}
+      {!loading && !error ? addArea : null}
     </section>
   );
 }

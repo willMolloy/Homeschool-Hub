@@ -16,7 +16,7 @@ Uses `POST /api/children`. Keep it one small inline form or a bottom sheet on ph
 4. Button disabled while saving.
 
 ## Done when
-- [ ] Adding a child works at 360 px and with keyboard only.
+- [x] Adding a child works at 360 px and with keyboard only.
 
 ## Tests
 - render tests: success appends; validation error shown; escape closes

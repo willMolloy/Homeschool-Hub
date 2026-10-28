@@ -96,3 +96,52 @@
 .roster-error p {
   margin: 0 0 10px;
 }
+.roster-form {
+  margin: 8px 0 16px;
+}
+.swatches {
+  border: 0;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.swatches legend {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+  padding: 0;
+}
+.swatch {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.swatch input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.swatch-chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.swatch input:checked + .swatch-chip {
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--brand);
+}
+.swatch input:focus-visible + .swatch-chip {
+  outline: 3px solid var(--brand);
+  outline-offset: 4px;
+}
+.roster-actions {
+  margin: 0 0 16px;
+}
