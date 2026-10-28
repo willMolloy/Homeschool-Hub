@@ -1,13 +1,25 @@
 /**
- * Pure grouping for the temporary plan debug table (S1-36): child → subject → minutes per date.
- * Cells are rounded to whole minutes and the totals are sums of the rounded cells, so they visibly add up.
+ * Pure grouping for the temporary plan debug table (S1-36): child → subject → thickness per date.
+ * Thickness is relative effort (units × weight, S2b-12). Cells are rounded to 1 decimal and the totals
+ * are sums of the rounded cells, so they visibly add up.
  */
-import { mergeLane, sumByDate, type ChildPlan, type DisplayDay, type LocalDate, type PlanWarning } from "@hh/engine";
+import { mergeLane, type ChildPlan, type DisplayDay, type LocalDate, type PlanWarning, type WeightSource } from "@hh/engine";
+
+/** A weight that didn't come from the assignment itself: the cell's number rests on a default. */
+export type DefaultSource = Exclude<WeightSource, "assignment">;
+
+export interface DebugCell {
+  date: LocalDate;
+  /** Thickness rounded to 1 decimal. */
+  value: number;
+  /** Defaults behind this cell's work, in a fixed order (built-in, then subject); empty when all weights are the assignments' own. */
+  defaults: DefaultSource[];
+}
 
 export interface DebugRow {
   subjectId: string;
-  /** Rounded minutes per date, one per column. */
-  cells: { date: LocalDate; minutes: number; estimated: boolean }[];
+  /** One per column. */
+  cells: DebugCell[];
   total: number;
 }
 
@@ -18,6 +30,20 @@ export interface DebugTable {
   columnTotals: DisplayDay[];
   total: number;
   warnings: { assignmentId: string; subjectId: string; warning: PlanWarning }[];
+}
+
+const DEFAULT_ORDER: readonly DefaultSource[] = ["default", "subject"];
+
+/** 1 decimal, and sums of 1-decimal values stay clean (0.1 + 0.2 shows 0.3). */
+export const round1 = (n: number): number => Math.round(n * 10) / 10;
+
+const sum = (xs: number[]): number => round1(xs.reduce((s, x) => s + x, 0));
+
+function defaultsOn(group: ChildPlan[], date: LocalDate): DefaultSource[] {
+  const used = new Set(group
+    .filter((p) => p.days.some((d) => d.date === date && d.thickness > 0))
+    .map((p) => p.weightSource));
+  return DEFAULT_ORDER.filter((s) => used.has(s));
 }
 
 /**
@@ -43,20 +69,16 @@ export function buildDebugTables(
 
   return sortBy([...byChild.entries()], ([id]) => id, childOrder).map(([childId, subjects]) => {
     const rows = sortBy([...subjects.entries()], ([id]) => id, subjectOrder).map(([subjectId, group]): DebugRow => {
-      const lane = new Map(mergeLane(group).map((d) => [d.date, d.minutes]));
-      const cells = dates.map((date) => {
-        const minutes = Math.round(lane.get(date) ?? 0);
-        const estimated = minutes > 0 && group.some((p) => p.minutesPerUnitEstimated && p.days.some((d) => d.date === date && d.minutes > 0));
-        return { date, minutes, estimated };
+      const lane = new Map(mergeLane(group).map((d) => [d.date, d.thickness]));
+      const cells = dates.map((date): DebugCell => {
+        const value = round1(lane.get(date) ?? 0);
+        return { date, value, defaults: value > 0 ? defaultsOn(group, date) : [] };
       });
-      return { subjectId, cells, total: cells.reduce((s, c) => s + c.minutes, 0) };
+      return { subjectId, cells, total: sum(cells.map((c) => c.value)) };
     });
-    const columnTotals = sumByDate([
-      dates.map((date) => ({ date, value: 0 })),
-      ...rows.map((r) => r.cells.map((c) => ({ date: c.date, value: c.minutes }))),
-    ]);
+    const columnTotals = dates.map((date, i): DisplayDay => ({ date, value: sum(rows.map((r) => r.cells[i]!.value)) }));
     const warnings = [...subjects.values()].flat().flatMap((p) =>
       p.warnings.map((warning) => ({ assignmentId: p.assignmentId, subjectId: p.subjectId, warning })));
-    return { childId, rows, columnTotals, total: rows.reduce((s, r) => s + r.total, 0), warnings };
+    return { childId, rows, columnTotals, total: sum(rows.map((r) => r.total)), warnings };
   });
 }

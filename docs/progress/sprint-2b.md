@@ -22,7 +22,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-10 weight field on the assignment form | b7f48ec | |
 | S2b-34 thickness picker with preview bar | bcded18 | |
 | S2b-35 default weight on the subject form | 238ef3a | |
-| S2b-11 prefill the weight and show its source | (this commit) | |
+| S2b-11 prefill the weight and show its source | 4068ed6 | |
+| S2b-12 thickness in the plan debug view | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -50,6 +51,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-35 — a SubjectForm, not a bigger RosterForm.** `RosterForm` is shared with kids, so it only gained a `children` slot; `SubjectForm` wraps it and adds `DefaultWeightSection`. `RosterPage` takes an optional `extension` (extra initial values, the form to render, a row badge) and now diffs every value key for its PATCH, so kids behave exactly as before. Creating a subject always sends `defaultWeight` (null for None), as the ticket says. The affected-assignments note counts live assignments in that subject **and the unit currently chosen** with no weight of their own (S2b-32: a default only applies to the same unit). It loads `/api/assignments` only while editing, since the subjects page doesn't otherwise have that list, and says nothing if the list fails to load. A 400 whose message names `defaultWeight` is shown inside the section; other errors still show under Name. The section starts open when the subject has a default. Unit labels moved to `components/unitLabels.ts` so the assignment and subject forms share them.
 
 - **S2b-11 — the wording and states the ticket left open.** The field shows the suggestion until the parent types; only then is the text theirs. Unwritten hint cases follow the given pattern: built-in override "Your weight (2). The default for pages is 1."; several children without history "Ada and Bo have no history yet."; a cleared field shows the S2b-10 "Blank = …" text with the Use button (and sends null). A typed number equal to the suggestion is sent explicitly ("any typed value is sent explicitly") but shows the normal hint. Child ids are sorted in the request so ticking order doesn't refetch the same answer; while a new answer loads the last one for the same unit stays shown. The null-weight placeholder reads "20 from Math" for a subject default and just the number for the built-in. The fake API answers the endpoint with the built-in by default, and the existing add tests now wait for that prefill before typing.
+
+- **S2b-12 — markers per cell, from the plans that add work that day.** A cell is marked only when an assignment with a default weight has thickness on that date, so a mixed lane marks just those days. A cell resting on both kinds shows "~s" (built-in first). The legend lists only the markers in use. The engine's source is named `default`; the UI says "built-in". Sums are re-rounded to 1 decimal so 0.1 + 0.2 shows 0.3.
 
 ## Deferred
 

@@ -27,3 +27,4 @@
   margin: 8px 0 16px;
   overflow-wrap: anywhere; /* a long unbroken name must not widen the page at 360 px */
 }
+.plan-debug-legend { list-style: none; padding: 0; }

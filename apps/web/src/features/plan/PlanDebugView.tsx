@@ -5,7 +5,7 @@ import { addDays, isValidLocalDate, weekStartOf, weekdayOf, type LocalDate } fro
 import { useMe } from "../../auth/AuthProvider";
 import { useApi } from "../../api/useApi";
 import type { Child, PlanResponse, Subject } from "../../api/types";
-import { buildDebugTables } from "./debugTable";
+import { buildDebugTables, type DebugCell, type DefaultSource } from "./debugTable";
 import "../roster/roster.css";
 import "./plan.css";
 
@@ -29,6 +29,21 @@ const WARNING_TEXT: Record<string, string> = {
   "push-horizon-exceeded": "pushing the end date ran past the limit",
   "keep-no-free-capacity": "no room left to catch up before the end date",
 };
+
+/** Cell markers for weights that came from a default rather than the assignment (S2b-12). */
+const MARKERS: Record<DefaultSource, { mark: string; label: string; legend: string }> = {
+  default: { mark: "~", label: "built-in weight", legend: "~ uses the built-in weight for its unit" },
+  subject: { mark: "s", label: "subject default weight", legend: "s uses the subject's default weight" },
+};
+
+function Cell({ cell }: { cell: DebugCell }) {
+  return (
+    <td>
+      {cell.value}
+      {cell.defaults.map((d) => <sup key={d} aria-label={MARKERS[d].label}>{MARKERS[d].mark}</sup>)}
+    </td>
+  );
+}
 
 export function PlanDebugView() {
   const me = useMe();
@@ -59,7 +74,8 @@ export function PlanDebugView() {
   const subjectName = (id: string) => subjects.data?.find((s) => s.id === id)?.name ?? id;
   // Active children with nothing in the plan still get a line, so nobody silently disappears.
   const unplanned = (children.data ?? []).filter((c) => !c.archived && !tables.some((t) => t.childId === c.id));
-  const anyEstimated = tables.some((t) => t.rows.some((r) => r.cells.some((c) => c.estimated)));
+  const usedDefaults = (Object.keys(MARKERS) as DefaultSource[])
+    .filter((d) => tables.some((t) => t.rows.some((r) => r.cells.some((c) => c.defaults.includes(d)))));
 
   const go = (next: Record<string, string | null>) => {
     const p = new URLSearchParams(params);
@@ -73,7 +89,7 @@ export function PlanDebugView() {
   return (
     <section className="plan-debug" aria-labelledby="plan-debug-title">
       <h2 id="plan-debug-title">Debug view (temporary)</h2>
-      <p className="plan-debug-note">Minutes per day straight from <code>/api/plan</code>. This is a check of the numbers, not the final timeline.</p>
+      <p className="plan-debug-note">Effort (units × weight) per day, straight from <code>/api/plan</code>. This is a check of the numbers, not the final timeline.</p>
       <div className="plan-debug-bar">
         <button type="button" className="btn btn-secondary" aria-label="Prev week" onClick={() => go({ week: addDays(weekStart, -7) })}>
           <span aria-hidden="true">← Prev</span>
@@ -118,8 +134,7 @@ export function PlanDebugView() {
                       <tr key={r.subjectId}>
                         <th scope="row">{subjectName(r.subjectId)}</th>
                         {dates.map((d) => {
-                          const c = r.cells[col(d)]!;
-                          return <td key={d}>{c.minutes}{c.estimated ? <sup aria-label="estimated">*</sup> : null}</td>;
+                          return <Cell key={d} cell={r.cells[col(d)]!} />;
                         })}
                         <td className="plan-debug-total">{r.total}</td>
                       </tr>
@@ -146,8 +161,12 @@ export function PlanDebugView() {
           {unplanned.map((c) => (
             <p key={c.id} className="plan-debug-unplanned">{c.name}: nothing planned this week.</p>
           ))}
-          {anyEstimated ? <p className="plan-debug-note">* estimated: default minutes per unit</p> : null}
-          <p className="plan-debug-note">Engine {plan.data?.engineVersion}, as of {plan.data?.asOf}. Minutes are rounded; totals add the rounded cells.</p>
+          {usedDefaults.length > 0 ? (
+            <ul className="plan-debug-note plan-debug-legend" aria-label="Markers">
+              {usedDefaults.map((d) => <li key={d}>{MARKERS[d].legend}</li>)}
+            </ul>
+          ) : null}
+          <p className="plan-debug-note">Engine {plan.data?.engineVersion}, as of {plan.data?.asOf}. Effort is units × weight, rounded to 1 decimal; totals add the rounded cells.</p>
         </>
       )}
     </section>

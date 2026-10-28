@@ -8,8 +8,12 @@ import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
 const WEEK = ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"];
-const days = (minutes: number[]): DayLoad[] =>
-  WEEK.map((date, i) => ({ date, capacity: 1, schoolDay: i < 5, units: (minutes[i] ?? 0) / 2, minutes: minutes[i] ?? 0, thickness: (minutes[i] ?? 0) / 2, kind: "planned" }));
+/** Day series from thickness per day; units = thickness / weight. */
+const days = (thickness: number[], weight = 1): DayLoad[] =>
+  WEEK.map((date, i) => {
+    const t = thickness[i] ?? 0;
+    return { date, capacity: 1, schoolDay: i < 5, units: t / weight, minutes: 0, thickness: t, kind: "planned" };
+  });
 
 const plan = (over: Partial<ChildPlan>): ChildPlan => ({
   engineVersion: ENGINE_VERSION, assignmentId: "a1", childId: "c1", subjectId: "lit", unitType: "pages",
@@ -19,11 +23,14 @@ const plan = (over: Partial<ChildPlan>): ChildPlan => ({
 });
 
 const PLANS: ChildPlan[] = [
-  // Literature for Frank = two assignments merged into one row: 30.4+14.6 = 45 on Mon, 0 on Tue...
-  plan({ assignmentId: "ti", days: days([30.4, 0, 30.4, 30.4, 30.4]) }),
-  plan({ assignmentId: "poems", days: days([14.6, 0, 14.6, 14.6, 14.6]) }),
-  plan({ assignmentId: "math5", subjectId: "math", unitType: "lessons", minutesPerUnitEstimated: true, days: days([40.4, 40.4, 0, 40.4, 40.4]) }),
+  // Literature for Frank = two assignments merged into one row: 15.24 + 7.33 = 22.57 → 22.6 on Mon, 0 on Tue...
+  plan({ assignmentId: "ti", days: days([15.24, 0, 15.24, 15.24, 15.24]) }),
+  plan({ assignmentId: "poems", days: days([7.33, 0, 7.33, 7.33, 7.33]) }),
+  // Math for Frank: lessons at the built-in 15.
+  plan({ assignmentId: "math5", subjectId: "math", unitType: "lessons", weightPerUnit: 15, weightSource: "default", days: days([15, 15, 0, 15, 15], 15) }),
+  // Math for Margaret mixes a pages book (its own weight) with practice minutes at the subject default.
   plan({ assignmentId: "math3", childId: "c2", subjectId: "math", days: days([20, 20, 20, 20, 20]), warnings: ["past-end"] }),
+  plan({ assignmentId: "drill", childId: "c2", subjectId: "math", unitType: "minutes", weightPerUnit: 0.5, weightSource: "subject", days: days([0, 15, 0, 15, 0], 0.5) }),
 ];
 const RESPONSE: PlanResponse = { engineVersion: ENGINE_VERSION, asOf: "2026-10-26", from: WEEK[0]!, to: WEEK[6]!, plans: PLANS };
 
@@ -40,15 +47,45 @@ function setup() {
 }
 
 const cellsOf = (row: HTMLElement) => within(row).getAllByRole("cell").map((c) => c.textContent);
+const rowOf = (table: HTMLElement, name: string) => within(table).getByRole("rowheader", { name }).closest("tr")!;
 
 describe("buildDebugTables", () => {
-  it("rounds cells and makes totals the sum of the rounded cells", () => {
-    const [frank] = buildDebugTables(PLANS, WEEK, ["c1", "c2"], ["lit", "math"]);
+  const [frank, margaret] = buildDebugTables(PLANS, WEEK, ["c1", "c2"], ["lit", "math"]);
+
+  it("cells are thickness rounded to 1 decimal; totals are the sum of the rounded cells", () => {
+    const lit = frank!.rows.find((r) => r.subjectId === "lit")!;
+    expect(lit.cells.map((c) => c.value)).toEqual([22.6, 0, 22.6, 22.6, 22.6, 0, 0]);
+    expect(lit.total).toBe(90.4);
+    expect(frank!.columnTotals.map((d) => d.value)).toEqual([37.6, 15, 22.6, 37.6, 37.6, 0, 0]);
+    expect(frank!.total).toBe(150.4);
+  });
+
+  it("marks cells by the source of their weight; empty cells and own weights have no marker", () => {
+    const lit = frank!.rows.find((r) => r.subjectId === "lit")!;
     const math = frank!.rows.find((r) => r.subjectId === "math")!;
-    expect(math.cells.map((c) => c.minutes)).toEqual([40, 40, 0, 40, 40, 0, 0]);
-    expect(math.total).toBe(160);
-    expect(frank!.columnTotals.map((d) => d.value)).toEqual([85, 40, 45, 85, 85, 0, 0]);
-    expect(frank!.total).toBe(180 + 160);
+    expect(lit.cells.every((c) => c.defaults.length === 0)).toBe(true);
+    expect(math.cells.map((c) => c.defaults)).toEqual([["default"], ["default"], [], ["default"], ["default"], [], []]);
+  });
+
+  it("a mixed minutes and pages lane sums thickness and marks only the days the default contributes", () => {
+    const math = margaret!.rows[0]!;
+    expect(math.cells.map((c) => c.value)).toEqual([20, 35, 20, 35, 20, 0, 0]);
+    expect(math.cells.map((c) => c.defaults)).toEqual([[], ["subject"], [], ["subject"], [], [], []]);
+    expect(math.total).toBe(130);
+  });
+
+  it("lists built-in before subject when one cell uses both", () => {
+    const both = buildDebugTables([
+      plan({ assignmentId: "x", weightSource: "subject", days: days([2]) }),
+      plan({ assignmentId: "y", weightSource: "default", days: days([1]) }),
+    ], WEEK);
+    expect(both[0]!.rows[0]!.cells[0]!.defaults).toEqual(["default", "subject"]);
+  });
+
+  it("sums of 1-decimal cells stay at 1 decimal", () => {
+    const [t] = buildDebugTables([plan({ days: days([0.1, 0.2, 0.04]) })], WEEK);
+    expect(t!.rows[0]!.cells.slice(0, 3).map((c) => c.value)).toEqual([0.1, 0.2, 0]);
+    expect(t!.rows[0]!.total).toBe(0.3);
   });
 });
 
@@ -59,9 +96,10 @@ describe("Plan debug view", () => {
     await screen.findByRole("table", { name: "Frank" });
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01");
     expect(screen.getByRole("heading", { name: "Debug view (temporary)" })).toBeInTheDocument();
+    expect(screen.getByText(/Effort \(units × weight\) per day/)).toBeInTheDocument();
   });
 
-  it("one table per child; Literature merges both assignments: 45 Mon/Wed/Thu/Fri, 0 Tue; totals add up", async () => {
+  it("one table per child; Literature merges both assignments: 22.6 Mon/Wed/Thu/Fri, 0 Tue; totals add up", async () => {
     setup();
     renderAt("/?week=2026-10-28");
     const frank = await screen.findByRole("table", { name: "Frank" });
@@ -69,20 +107,37 @@ describe("Plan debug view", () => {
     // weekend columns hidden: nothing planned on them and they aren't school days
     expect(within(frank).getAllByRole("columnheader").map((h) => h.textContent))
       .toEqual(["Subject", "Mon10-26", "Tue10-27", "Wed10-28", "Thu10-29", "Fri10-30", "Total"]);
-    const lit = within(frank).getByRole("rowheader", { name: "Literature" }).closest("tr")!;
-    expect(cellsOf(lit)).toEqual(["45", "0", "45", "45", "45", "180"]);
-    const math = within(frank).getByRole("rowheader", { name: "Math" }).closest("tr")!;
-    expect(cellsOf(math)).toEqual(["40*", "40*", "0", "40*", "40*", "160"]);
-    const total = within(frank).getByRole("rowheader", { name: "Total" }).closest("tr")!;
-    expect(cellsOf(total)).toEqual(["85", "40", "45", "85", "85", "340"]);
+    expect(cellsOf(rowOf(frank, "Literature"))).toEqual(["22.6", "0", "22.6", "22.6", "22.6", "90.4"]);
+    expect(cellsOf(rowOf(frank, "Math"))).toEqual(["15~", "15~", "0", "15~", "15~", "60"]);
+    expect(cellsOf(rowOf(frank, "Total"))).toEqual(["37.6", "15", "22.6", "37.6", "37.6", "150.4"]);
   });
 
-  it("estimated cells get an asterisk and the footnote", async () => {
+  it("the mixed lane shows the subject-default marker only where the default adds work", async () => {
+    setup();
+    renderAt("/?week=2026-10-28");
+    const margaret = await screen.findByRole("table", { name: "Margaret" });
+    expect(cellsOf(rowOf(margaret, "Math"))).toEqual(["20", "35s", "20", "35s", "20", "130"]);
+    expect(within(margaret).getAllByLabelText("subject default weight")).toHaveLength(2);
+  });
+
+  it("default cells get a labelled marker and the legend names each marker used", async () => {
     setup();
     renderAt("/?week=2026-10-28");
     const frank = await screen.findByRole("table", { name: "Frank" });
-    expect(within(frank).getAllByLabelText("estimated")).toHaveLength(4);
-    expect(screen.getByText("* estimated: default minutes per unit")).toBeInTheDocument();
+    expect(within(frank).getAllByLabelText("built-in weight")).toHaveLength(4);
+    const legend = screen.getByRole("list", { name: "Markers" });
+    expect(within(legend).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "~ uses the built-in weight for its unit",
+      "s uses the subject's default weight",
+    ]);
+  });
+
+  it("no defaults in the week → no legend", async () => {
+    setup();
+    fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: PLANS.filter((p) => p.weightSource === "assignment") });
+    renderAt("/?week=2026-10-28");
+    await screen.findByRole("table", { name: "Frank" });
+    expect(screen.queryByRole("list", { name: "Markers" })).not.toBeInTheDocument();
   });
 
   it("lists plan warnings under the child's table", async () => {
