@@ -115,6 +115,18 @@ describe("LastWeekCard", () => {
     expect(puts().map((p) => p.body)).toEqual([{ status: "reviewed", items: [] }]);
   });
 
+  it("each row has its own progress control (S2b-36); changing one leaves the others as planned", async () => {
+    const c = await showCard();
+    await userEvent.click(within(c).getByRole("button", { name: "Adjust" }));
+    const frankHist = within(c).getByRole("group", { name: "Progress on Story of the World for Frank" });
+    await userEvent.click(within(frankHist).getByRole("button", { name: "Didn't start" }));
+    expect(within(frankHist).getByText("Got to chapter 3 of 5 planned (2 behind)")).toBeInTheDocument();
+    const margaretHist = within(c).getByRole("group", { name: "Progress on Story of the World for Margaret" });
+    expect(within(margaretHist).getByText("✓ Done as planned")).toBeInTheDocument();
+    expect(within(c).getAllByText("✓ Done as planned")).toHaveLength(3);
+    expect(puts()).toEqual([]);
+  });
+
   it("keyboard: every control is reachable and labelled", async () => {
     const c = await showCard();
     const user = userEvent.setup();

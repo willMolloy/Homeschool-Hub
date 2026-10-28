@@ -1,11 +1,12 @@
 /**
  * "How did last week go?" (S2b-25). Presentational: the week and callbacks come in as props, so it never
  * fetches. Collapsed it is one line with three controls; Adjust lists each assignment × child, grouped by
- * child. Untouched rows count as done.
+ * child. Untouched rows count as done; each row's ProgressAdjuster (S2b-36) sets where the child got to.
  */
 import { useId, useState } from "react";
 import type { CheckInItem, WeekCheckIn } from "../../api/types";
 import { plannedCountText, plannedRangeText } from "./checkinText";
+import { ProgressAdjuster } from "./ProgressAdjuster";
 import "./checkin.css";
 
 export interface LastWeekCardProps {
@@ -16,6 +17,8 @@ export interface LastWeekCardProps {
   onConfirm: () => void;
   onSkip: () => void;
 }
+
+export const itemKey = (i: Pick<CheckInItem, "assignmentId" | "childId">) => `${i.assignmentId}/${i.childId}`;
 
 /** Items grouped by child, in the API's order (child, then subject, then title). */
 export function groupByChild(items: readonly CheckInItem[]): { childId: string; childName: string; items: CheckInItem[] }[] {
@@ -30,6 +33,8 @@ export function groupByChild(items: readonly CheckInItem[]): { childId: string; 
 
 export function LastWeekCard({ week, busy, error, onConfirm, onSkip }: LastWeekCardProps) {
   const [expanded, setExpanded] = useState(false);
+  /** Positions the parent changed, by itemKey; rows not here are done as planned. */
+  const [positions, setPositions] = useState<Record<string, number>>({});
   const titleId = useId();
   const listId = useId();
   const confirm = (
@@ -64,11 +69,15 @@ export function LastWeekCard({ week, busy, error, onConfirm, onSkip }: LastWeekC
                 <h3>{g.childName}</h3>
                 <ul className="checkin-rows">
                   {g.items.map((item) => (
-                    <li key={`${item.assignmentId}/${item.childId}`} className="checkin-row">
+                    <li key={itemKey(item)} className="checkin-row">
                       <span className="checkin-row-title">
                         {item.title} — {plannedRangeText(item.unitType, item.plannedFrom, item.plannedTo)} planned
                       </span>
-                      <span className="checkin-row-state">✓ Done as planned</span>
+                      <ProgressAdjuster plannedFrom={item.plannedFrom} plannedTo={item.plannedTo}
+                        totalUnits={item.totalUnits} unitType={item.unitType}
+                        position={positions[itemKey(item)] ?? item.plannedTo}
+                        name={`${item.title} for ${item.childName}`}
+                        onChange={(n) => setPositions((p) => ({ ...p, [itemKey(item)]: n }))} />
                     </li>
                   ))}
                 </ul>

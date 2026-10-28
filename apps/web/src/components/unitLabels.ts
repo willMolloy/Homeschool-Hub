@@ -14,3 +14,16 @@ export const unitTitle = (t: UnitType) => UNIT_LABELS[t].many[0]!.toUpperCase() 
 /** 20, lessons → "20 / lesson" */
 export const perUnitText = (weight: number, t: UnitType) =>
   `${weight.toLocaleString("en-US", { maximumFractionDigits: 2 })} / ${UNIT_LABELS[t].one}`;
+
+/** 22.5 → "22.5", 80 → "80" */
+export const unitNumber = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+
+/**
+ * A position as a parent says it: pages → "p. 65", chapters → "chapter 4", lessons → "lesson 9";
+ * minutes are an amount → "650 minutes" (S2b-36).
+ */
+export function formatUnits(t: UnitType, n: number): string {
+  if (t === "pages") return `p. ${unitNumber(n)}`;
+  if (t === "minutes") return `${unitNumber(n)} ${n === 1 ? UNIT_LABELS.minutes.one : UNIT_LABELS.minutes.many}`;
+  return `${UNIT_LABELS[t].one} ${unitNumber(n)}`;
+}

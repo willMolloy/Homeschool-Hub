@@ -9,6 +9,20 @@
 .checkin-rows { list-style: none; margin: 0; padding: 0; }
 .checkin-row { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); }
 .checkin-row-title { overflow-wrap: anywhere; }
-.checkin-row-state { color: var(--muted); white-space: nowrap; }
 .checkin-footer { margin-top: 12px; }
 .checkin-thanks { color: var(--muted); margin: 0 0 12px; }
+
+/* One row's progress control (S2b-36). */
+.progress-adjuster { flex-basis: 100%; display: grid; gap: 6px; margin-top: 6px; }
+.progress-chips { flex-wrap: wrap; align-items: center; gap: 6px; }
+.chip { border: 1px solid var(--line); border-radius: 999px; background: transparent; padding: 4px 12px; cursor: pointer; font: inherit; color: inherit; min-height: 32px; }
+.chip[aria-pressed="true"] { border-color: currentColor; font-weight: 600; }
+.progress-bar { position: relative; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.progress-bar span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+.progress-bar-planned { background: color-mix(in srgb, currentColor 25%, transparent); }
+.progress-bar .progress-bar-actual { background: currentColor; opacity: 0.7; top: 2px; bottom: 2px; }
+.progress-slider { width: 100%; }
+.progress-field { display: flex; align-items: center; gap: 8px; }
+.progress-field input { width: 7em; }
+.progress-error { color: var(--danger); margin: 0; }
+.progress-label { color: var(--muted); margin: 0; }
