@@ -1,3 +1,5 @@
+import { RosterPage } from "../features/roster/RosterPage";
+
 export function SubjectsPage() {
-  return <h1>Subjects</h1>;
+  return <RosterPage title="Subjects" endpoint="/api/subjects" emptyText="No subjects yet." noun="subject" />;
 }

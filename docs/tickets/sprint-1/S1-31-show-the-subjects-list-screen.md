@@ -16,7 +16,7 @@ Read-only list in this ticket. Add/edit come next. This is a settings-style scre
 4. Checkbox 'Show archived' re-fetches with `?includeArchived=true`. Archived rows are greyed with an 'Archived' tag.
 
 ## Done when
-- [ ] Seeded family shows its rows. Empty family shows the empty state.
+- [x] Seeded family shows its rows. Empty family shows the empty state.
 
 ## Tests
 - render tests with mocked api: list, empty, error+retry, show-archived toggle
