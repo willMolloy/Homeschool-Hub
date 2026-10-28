@@ -17,8 +17,8 @@ The rate is never stored. Every request recomputes it from rows. The response is
 5. Add the `PlanResponse` type to `apps/web/src/api/types.ts`. Import `ChildPlan` from `@hh/engine` so it can't drift.
 
 ## Done when
-- [ ] curl with the demo cookie returns plans for both kids for Oct 2026.
-- [ ] Response contains `engineVersion: '0.1.0'`.
+- [x] curl with the demo cookie returns plans for both kids for Oct 2026.
+- [x] Response contains `engineVersion: '0.1.0'`.
 
 ## Tests
 - integration: seeded family, from=2026-10-26 to=2026-10-30 asOf=2026-10-26 → TI/frank days sum to 90

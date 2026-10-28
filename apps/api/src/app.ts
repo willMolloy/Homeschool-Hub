@@ -8,6 +8,7 @@ import { authRoutes } from "./routes/auth";
 import { meRoutes } from "./routes/me";
 import { childrenRoutes } from "./routes/children";
 import { subjectsRoutes } from "./routes/subjects";
+import { planRoutes } from "./routes/plan";
 import { registerSessionAuth } from "./auth/session";
 
 declare module "fastify" {
@@ -80,6 +81,7 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
   app.register(meRoutes);
   app.register(childrenRoutes);
   app.register(subjectsRoutes);
+  app.register(planRoutes);
 
   return app;
 }
