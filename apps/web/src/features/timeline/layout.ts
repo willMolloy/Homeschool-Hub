@@ -14,6 +14,7 @@
 import { weekdayOf } from "@hh/engine";
 import { PX_PER_THICKNESS } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
+import { estimateTextWidth, placeName, type MeasureText } from "./names";
 import { bandPath, rectsPath, type BandColumn } from "./paths";
 import { packRows } from "./rows";
 import { makeXScale, type XScale } from "./xscale";
@@ -51,6 +52,8 @@ export interface LayoutOptions {
   detail?: Detail;
   /** Pixels per thickness point; defaults to the shared scale (`PX_PER_THICKNESS`). */
   pxPerPoint?: number;
+  /** T-06: text width for in-bar names; defaults to an over-estimate (the page passes a canvas measure). */
+  measureText?: MeasureText;
 }
 
 /** One row: a child's sub-lane has one or more, each with its own fixed centerline. */
@@ -98,6 +101,22 @@ export interface LaneBand {
   cy: number;
 }
 
+/** T-06: a name drawn inside its bar, on a solid patch of the bar's swatch. */
+export interface BarName {
+  rowKey: string;
+  assignmentId: string;
+  /** The full title, or a prefix with "…". */
+  text: string;
+  paletteSlot: number;
+  step: ChildStep;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  textX: number;
+  textY: number;
+}
+
 export interface BreakRect {
   breakId: string;
   label: string | null;
@@ -136,6 +155,8 @@ export interface TimelineLayout {
   rows: LaneRow[];
   labels: LaneLabel[];
   bands: LaneBand[];
+  /** T-06: names that fit inside their bars (at most one per bar). */
+  names: BarName[];
   breaks: BreakRect[];
   events: EventStrip[];
   ticks: Tick[];
@@ -231,6 +252,8 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   const rows: LaneRow[] = [];
   const labels: LaneLabel[] = [];
   const bands: LaneBand[] = [];
+  const names: BarName[] = [];
+  const measure = options.measureText ?? estimateTextWidth;
   const childSpans = new Map<string, { childId: string; top: number; bottom: number }>();
   let y = lanesTop;
   model.lanes.forEach((subject, s) => {
@@ -256,6 +279,8 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
             rowKey: key, laneKey: child.key, assignmentId: a.assignmentId, childId: a.childId, title: a.title,
             paletteSlot: subject.paletteSlot, step: child.step, d: bandPath(columns), runs: runsOf(columns), cy,
           });
+          const name = placeName(a.title, columns, cy, measure);
+          if (name) names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...name });
         }
         y += height;
       });
@@ -310,6 +335,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     rows,
     labels,
     bands,
+    names,
     breaks,
     events,
     ticks,

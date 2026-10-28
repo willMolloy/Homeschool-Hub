@@ -11,7 +11,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-03 Layout function | a0a1a77 | `features/timeline/{zoom,xscale,paths,rows,layout,hit}.ts`: no-overlap rows, labels above lanes (no label column), 44 px tap targets, shared scale 2.8 px/pt, `--tl-bar-opacity: 0.82`. Pure; nothing renders yet |
 | T-03b This Week: "Make an adjustment" | a8a43a0, f04a4f5 | A "Make an adjustment" button per active child opens a Drawer (phones) or Dialog (≥ 640 px) with that child's check-in rows on subject pastels; collapsed rows; one week switcher replaces Prev/Next and "Review a past week"; debug items and the engine footer only in a dev build with `?debug=1`; borders replaced by spacing; quiet Skip |
 | T-04 Static SVG timeline at Year zoom | ed51f34 | `/timeline` route and a Timeline nav item; `Timeline.tsx` draws the T-03 layout (hatched breaks, month lines, labels above lanes, one path per band, Total strip, event strips, Today line and pill); Aug 1 – Jun 30 school year trimmed to planned weeks; screen-reader lane list; +5.6 KB gzip |
-| T-05 Zoom presets Year / Fall / Spring | (this commit) | Text toggle buttons beside the title; 200 ms opacity crossfade (old zoom on top, aria-hidden), instant with reduced motion; Today at its date in every zoom; no control when the grid doesn't cross New Year |
+| T-05 Zoom presets Year / Fall / Spring | db0db98 | Text toggle buttons beside the title; 200 ms opacity crossfade (old zoom on top, aria-hidden), instant with reduced motion; Today at its date in every zoom; no control when the grid doesn't cross New Year |
+| T-06 Names inside the bars | (this commit) | Name inside each bar where it fits, pinned left, cut with "…" (at least 4 characters) or left out; solid patch of the bar's swatch with its AA label colour; canvas `measureText` (cached) injected into the layout; fades with the zoom |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -175,3 +176,11 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **No control** when the planned weeks don't cross New Year (both halves would repeat Year).
 - **Text buttons, not chips**, because chips have borders.
 - Screenshots: `screens/t05-timeline-fall-390.png`, `screens/t05-timeline-fall-1280.png`.
+
+## T-06 — Names decisions
+
+- **Threshold is the fit rule**, applied at every zoom. A name shows wherever the bar is at least 13 px thick and long enough for 4 characters plus "…". At Fall and Spring, the daily bars break at non-school days, so only long unbroken runs get names.
+- **Solid patch, full bar thickness, square corners.** At 0.82 opacity, 5 light-theme swatches miss AA for their label colour, so the name sits on its swatch at opacity 1. Filled to the bar's height, it reads as part of the bar rather than a badge.
+- **Measuring:** the layout takes an injected `measureText`. The page passes a cached `OffscreenCanvas` measure in the page font. Tests and old browsers use an over-estimate, so names may be cut early but never overflow.
+- **Accessibility:** names are `aria-hidden`. The full titles are already in the screen-reader lane list.
+- Screenshots: `screens/t06-timeline-390.png`, `screens/t06-timeline-1280.png`, `screens/t06-timeline-fall-1280.png`.

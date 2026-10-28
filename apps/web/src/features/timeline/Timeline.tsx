@@ -16,6 +16,8 @@ const LABEL_BASELINE = LABEL_ROW_PX - 4;
 
 const STEP_SUFFIX: Record<ChildStep, string> = { base: "", light: "-light", dark: "-dark" };
 export const bandFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]})`;
+/** T-06: the AA label colour picked for each swatch (light or dark text, from the tokens). */
+export const nameFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]}-label)`;
 
 export interface TimelineProps {
   layout: TimelineLayout;
@@ -68,6 +70,15 @@ export function Timeline({ layout, label }: TimelineProps) {
             data-assignment={b.assignmentId} />
         ) : null))}
         {layout.totals.d ? <path className="tl-totals" d={layout.totals.d} /> : null}
+      </g>
+
+      <g className="tl-names" aria-hidden="true">
+        {layout.names.map((n) => (
+          <g key={`${n.rowKey}-${n.assignmentId}`} data-name-for={n.assignmentId}>
+            <rect className="tl-name-patch" x={n.x} y={n.y} width={n.width} height={n.height} style={{ fill: bandFill(n.paletteSlot, n.step) }} />
+            <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step) }}>{n.text}</text>
+          </g>
+        ))}
       </g>
 
       <g className="tl-events">
