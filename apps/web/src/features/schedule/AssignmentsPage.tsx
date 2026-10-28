@@ -6,17 +6,12 @@ import type { Assignment, UnitType } from "../../api/types";
 import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet } from "./formBits";
 import { WithLookups, type Lookups } from "./lookups";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
+import { UNIT_LABELS, unitTitle } from "../../components/unitLabels";
 import { formatWeight, weightCardText, weightHint } from "./weightText";
 
 /** Mirrors apps/api/src/http/scheduleLimits.ts; weight bounds come from the engine (D2). */
 export const LIMITS = { title: 120, totalUnits: 100_000, weightPerUnit: MAX_WEIGHT_PER_UNIT, days: 1096 } as const;
 
-const UNIT_LABELS: Record<UnitType, { one: string; many: string }> = {
-  lessons: { one: "lesson", many: "lessons" },
-  pages: { one: "page", many: "pages" },
-  chapters: { one: "chapter", many: "chapters" },
-  minutes: { one: "minute", many: "minutes" },
-};
 const units = (n: number, t: UnitType) => `${n.toLocaleString("en-US")} ${n === 1 ? UNIT_LABELS[t].one : UNIT_LABELS[t].many}`;
 
 const byStart = (a: Assignment, b: Assignment) => a.startDate.localeCompare(b.startDate) || a.title.localeCompare(b.title);
@@ -157,7 +152,7 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
         {field(ids.unit, "Unit", undefined,
           <select id={ids.unit} value={unitType} onChange={(e) => changeUnit(e.target.value as UnitType)}>
             {UNIT_TYPES.map((u) => (
-              <option key={u} value={u}>{UNIT_LABELS[u].many[0]!.toUpperCase() + UNIT_LABELS[u].many.slice(1)}</option>
+              <option key={u} value={u}>{unitTitle(u)}</option>
             ))}
           </select>)}
         {field(ids.total, "Total", errors.totalUnits,

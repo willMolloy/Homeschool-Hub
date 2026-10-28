@@ -36,7 +36,7 @@ describe("Add subject", () => {
     await user.click(screen.getByRole("radio", { name: "Purple" }));
     await user.click(screen.getByRole("button", { name: "Add" }));
     await screen.findByText("Art");
-    expect(fakeApi.calls.at(-1)?.body).toEqual({ name: "Art", color: "#7a5cc2" });
+    expect(fakeApi.calls.at(-1)?.body).toEqual({ name: "Art", color: "#7a5cc2", defaultWeight: null });
   });
 
   it("empty name is caught before any request", async () => {

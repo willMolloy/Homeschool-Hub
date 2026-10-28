@@ -7,7 +7,7 @@ export interface RosterValues {
   color: string | null;
 }
 
-interface Props {
+export interface RosterFormProps {
   /** Accessible name of the form, e.g. "Add child". */
   label: string;
   initial: RosterValues;
@@ -19,6 +19,8 @@ interface Props {
   extra?: ReactNode;
   /** An error from an action outside the form (e.g. Unarchive). */
   externalError?: string | null;
+  /** Extra fields rendered after Color (e.g. the subject's default bar width). */
+  children?: ReactNode;
 }
 
 /** Server messages look like "name: Name is required." — the field is already obvious here. */
@@ -26,7 +28,7 @@ function cleanMessage(m: string): string {
   return m.replace(/^[a-zA-Z.]+: /, "");
 }
 
-export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extra, externalError }: Props) {
+export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extra, externalError, children }: RosterFormProps) {
   const [name, setName] = useState(initial.name);
   const [color, setColor] = useState<string | null>(initial.color);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -91,6 +93,7 @@ export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extr
           </label>
         ))}
       </fieldset>
+      {children}
       <div className="btn-row">
         <button className="btn" type="submit" disabled={saving}>{saving ? "Saving…" : submitLabel}</button>
         <button className="btn btn-secondary" type="button" onClick={onCancel} disabled={saving}>Cancel</button>

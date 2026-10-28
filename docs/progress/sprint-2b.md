@@ -20,7 +20,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-32 subject default weight in the engine (0.2.1) | 2a42df0 | |
 | S2b-33 load subject default weights into the plan | b5b9bc4 | |
 | S2b-10 weight field on the assignment form | b7f48ec | |
-| S2b-34 thickness picker with preview bar | (this commit) | |
+| S2b-34 thickness picker with preview bar | bcded18 | |
+| S2b-35 default weight on the subject form | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -44,6 +45,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-10 — unit change and card text.** Changing the unit in the form clears the weight (blank → null) rather than keeping a number meant for another unit; S2b-11 will put the suggestion there. The PATCH always carries `weightPerUnit` when the unit changes. The card resolves the weight with the engine's `weightPerUnitOf` against the subject's `defaultWeight` from `/api/subjects`, so it says "(subject)" only when the default is for the same unit (D23). `Subject.defaultWeight` was added to the web types now (the API has returned it since S2b-31). `minutesPerUnit` stays on the web type as optional and is never sent; `BODY_KEYS` keeps it until S2b-13 because the API still accepts it.
 
 - **S2b-34 — scale and Custom.** No plan timeline exists yet, so `thicknessToPx` lives in `features/plan/scale.ts`: 2 px per thickness point, clamped to 0–100 px ("clamped at 100" read as the 100 px maximum bar). The preview bar's height is the thickness, next to a faint 20-pages-at-normal reference (40 px). Choosing Custom… starts the field at the current value (or the built-in) and emits it; an invalid custom number shows an error and emits nothing. Custom stays selected while typing even if the number equals a preset, and is tied to the unit so a unit change closes it. The control is in `src/components/` (the ticket's path) with its preset math in `weightPresets.ts`; it doesn't import from the schedule feature.
+
+- **S2b-35 — a SubjectForm, not a bigger RosterForm.** `RosterForm` is shared with kids, so it only gained a `children` slot; `SubjectForm` wraps it and adds `DefaultWeightSection`. `RosterPage` takes an optional `extension` (extra initial values, the form to render, a row badge) and now diffs every value key for its PATCH, so kids behave exactly as before. Creating a subject always sends `defaultWeight` (null for None), as the ticket says. The affected-assignments note counts live assignments in that subject **and the unit currently chosen** with no weight of their own (S2b-32: a default only applies to the same unit). It loads `/api/assignments` only while editing, since the subjects page doesn't otherwise have that list, and says nothing if the list fails to load. A 400 whose message names `defaultWeight` is shown inside the section; other errors still show under Name. The section starts open when the subject has a default. Unit labels moved to `components/unitLabels.ts` so the assignment and subject forms share them.
 
 ## Deferred
 

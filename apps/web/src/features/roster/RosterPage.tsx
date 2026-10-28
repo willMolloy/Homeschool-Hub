@@ -2,14 +2,14 @@
  * Settings-style list of named, colored, archivable things (children, subjects).
  * KidsPage and SubjectsPage are thin wrappers around this.
  */
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { ApiError, apiPatch, apiPost } from "../../api/client";
 import { useApi } from "../../api/useApi";
 import { ColorDot } from "../../ui/ColorDot";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import "../../ui/forms.css";
 import { nextUnusedColor } from "./palette";
-import { RosterForm, type RosterValues } from "./RosterForm";
+import { RosterForm, type RosterFormProps, type RosterValues } from "./RosterForm";
 import "./roster.css";
 
 export interface RosterItem {
@@ -20,7 +20,27 @@ export interface RosterItem {
   archived: boolean;
 }
 
-export interface RosterConfig {
+/** What a custom form receives: RosterForm's props, typed to the page's values, plus the row being edited. */
+export interface RosterFormSlotProps<T extends RosterItem, V extends RosterValues> extends Omit<RosterFormProps, "initial" | "onSave" | "children"> {
+  initial: V;
+  onSave: (values: V) => Promise<void>;
+  /** null when adding. */
+  item: T | null;
+}
+
+/** Optional per-page extensions, so pages that need more fields (subjects) don't push them onto the others (kids). */
+export interface RosterExtension<T extends RosterItem, V extends RosterValues> {
+  /** Initial values for the extra fields; the page adds name and color. */
+  initialExtra: (item: T | null) => Omit<V, keyof RosterValues>;
+  renderForm: (props: RosterFormSlotProps<T, V>) => ReactNode;
+  /** Shown after the name on a row, e.g. a chip. */
+  renderBadge?: (item: T) => ReactNode;
+}
+
+/** Values are equal for PATCH purposes; a missing key counts as null. */
+const sameValue = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+export interface RosterConfig<T extends RosterItem = RosterItem, V extends RosterValues = RosterValues> {
   title: string;
   /** e.g. "/api/children" */
   endpoint: string;
@@ -28,6 +48,7 @@ export interface RosterConfig {
   emptyText: string;
   /** Singular noun for buttons and form labels, e.g. "child". */
   noun: string;
+  extension?: RosterExtension<T, V>;
 }
 
 function messageFor(err: unknown): string {
@@ -39,14 +60,16 @@ function messageFor(err: unknown): string {
   return "Couldn't save. Please try again.";
 }
 
-export function RosterPage({ title, endpoint, emptyText, noun }: RosterConfig) {
+export function RosterPage<T extends RosterItem = RosterItem, V extends RosterValues = RosterValues>({
+  title, endpoint, emptyText, noun, extension,
+}: RosterConfig<T, V>) {
   const [showArchived, setShowArchived] = useState(false);
   const path = showArchived ? `${endpoint}?includeArchived=true` : endpoint;
-  const { data, error, loading, reload, setData } = useApi<RosterItem[]>(path);
+  const { data, error, loading, reload, setData } = useApi<T[]>(path);
   const toggleId = useId();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [archiving, setArchiving] = useState<RosterItem | null>(null);
+  const [archiving, setArchiving] = useState<T | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const addBtn = useRef<HTMLButtonElement>(null);
@@ -75,32 +98,32 @@ export function RosterPage({ title, endpoint, emptyText, noun }: RosterConfig) {
   }
 
   /** Replace a row, or drop it when it's now archived and archived rows are hidden. */
-  function applyUpdate(updated: RosterItem) {
+  function applyUpdate(updated: T) {
     setData((prev) =>
       (prev ?? []).flatMap((i) => (i.id !== updated.id ? [i] : updated.archived && !showArchived ? [] : [updated])),
     );
   }
 
-  async function create(values: RosterValues) {
-    const created = await apiPost<RosterItem>(endpoint, values);
+  async function create(values: V) {
+    const created = await apiPost<T>(endpoint, values);
     setData((prev) => [...(prev ?? []), created]);
     closeAdd();
   }
 
-  async function save(item: RosterItem, values: RosterValues) {
-    const patch: Partial<RosterValues> = {};
-    if (values.name !== item.name) patch.name = values.name;
-    if (values.color !== item.color) patch.color = values.color;
+  /** Only the changed fields are sent. */
+  async function save(item: T, values: V) {
+    const row = item as unknown as Record<string, unknown>;
+    const patch = Object.fromEntries(Object.entries(values).filter(([k, v]) => !sameValue(v, row[k])));
     if (Object.keys(patch).length === 0) return closeEdit(item.id);
-    applyUpdate(await apiPatch<RosterItem>(`${endpoint}/${item.id}`, patch));
+    applyUpdate(await apiPatch<T>(`${endpoint}/${item.id}`, patch));
     closeEdit(item.id);
   }
 
-  async function setArchived(item: RosterItem, archived: boolean) {
+  async function setArchived(item: T, archived: boolean) {
     setBusy(true);
     setActionError(null);
     try {
-      const updated = await apiPatch<RosterItem>(`${endpoint}/${item.id}`, { archived });
+      const updated = await apiPatch<T>(`${endpoint}/${item.id}`, { archived });
       setArchiving(null);
       applyUpdate(updated);
       if (archived && !showArchived) {
@@ -114,14 +137,19 @@ export function RosterPage({ title, endpoint, emptyText, noun }: RosterConfig) {
     }
   }
 
+  const initialFor = (item: T | null, base: RosterValues): V => ({ ...base, ...extension?.initialExtra(item) }) as V;
+  const renderForm = (props: RosterFormSlotProps<T, V>) =>
+    extension ? extension.renderForm(props) : <RosterForm {...(props as unknown as RosterFormProps)} />;
+
   const addArea = adding ? (
-    <RosterForm
-      label={`Add ${noun}`}
-      submitLabel="Add"
-      initial={{ name: "", color: nextUnusedColor(items.filter((i) => !i.archived).map((i) => i.color)) }}
-      onSave={create}
-      onCancel={closeAdd}
-    />
+    renderForm({
+      label: `Add ${noun}`,
+      submitLabel: "Add",
+      initial: initialFor(null, { name: "", color: nextUnusedColor(items.filter((i) => !i.archived).map((i) => i.color)) }),
+      onSave: create,
+      onCancel: closeAdd,
+      item: null,
+    })
   ) : (
     <div className="roster-actions">
       <button
@@ -167,38 +195,38 @@ export function RosterPage({ title, endpoint, emptyText, noun }: RosterConfig) {
           {items.map((item) =>
             item.id === editingId ? (
               <li key={item.id} className="roster-row is-editing">
-                <RosterForm
-                  label={`Edit ${item.name}`}
-                  submitLabel="Save"
-                  initial={{ name: item.name, color: item.color }}
-                  onSave={(v) => save(item, v)}
-                  onCancel={() => closeEdit(item.id)}
-                  externalError={archiving ? null : actionError}
-                  extra={
-                    item.archived ? (
-                      <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => setArchived(item, false)}>
-                        Unarchive
-                      </button>
-                    ) : (
-                      <button
-                        className="btn btn-secondary btn-danger"
-                        type="button"
-                        onClick={() => {
-                          setActionError(null);
-                          setArchiving(item);
-                        }}
-                      >
-                        Archive
-                      </button>
-                    )
-                  }
-                />
+                {renderForm({
+                  label: `Edit ${item.name}`,
+                  submitLabel: "Save",
+                  initial: initialFor(item, { name: item.name, color: item.color }),
+                  onSave: (v) => save(item, v),
+                  onCancel: () => closeEdit(item.id),
+                  externalError: archiving ? null : actionError,
+                  item,
+                  extra: item.archived ? (
+                    <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => setArchived(item, false)}>
+                      Unarchive
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-secondary btn-danger"
+                      type="button"
+                      onClick={() => {
+                        setActionError(null);
+                        setArchiving(item);
+                      }}
+                    >
+                      Archive
+                    </button>
+                  ),
+                })}
               </li>
             ) : (
               <li key={item.id} className={`roster-row${item.archived ? " is-archived" : ""}`}>
                 <button type="button" className="roster-row-btn" data-row-id={item.id} onClick={() => openEdit(item.id)}>
                   <ColorDot color={item.color} />
                   <span className="roster-name">{item.name}</span>
+                  {extension?.renderBadge?.(item)}
                   {item.archived ? <span className="tag">Archived</span> : null}
                 </button>
               </li>
