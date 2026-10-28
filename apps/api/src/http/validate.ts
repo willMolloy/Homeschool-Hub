@@ -18,3 +18,6 @@ export function parseBody<S extends z.ZodTypeAny>(schema: S, body: unknown): z.i
   }
   return r.data;
 }
+
+/** List position: a non-negative integer. */
+export const SortOrder = z.number().int("sortOrder must be a whole number.").min(0).max(100000);
