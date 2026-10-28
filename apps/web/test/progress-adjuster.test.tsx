@@ -122,6 +122,19 @@ describe("ProgressAdjuster", () => {
     expect(field).toHaveAccessibleDescription("Enter a number from 0 to 270.");
   });
 
+  it("S2c-02: the field's minimum is the slider's (where the week started); below it is an inline error", () => {
+    const { field, slider, onChange } = setup({ plannedFrom: 63.85, plannedTo: 80 });
+    expect(field).toHaveAttribute("min", "63.85");
+    expect(slider).toHaveAttribute("min", "63.85");
+    fireEvent.change(field, { target: { value: "5" } });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field).toHaveAccessibleDescription("Enter a number from 63.85 to 270.");
+    fireEvent.change(field, { target: { value: "63.85" } });
+    expect(onChange).toHaveBeenLastCalledWith(63.85);
+    expect(field).not.toHaveAttribute("aria-invalid");
+  });
+
   it("a chip clears a field error", async () => {
     const { field } = setup();
     fireEvent.change(field, { target: { value: "999" } });

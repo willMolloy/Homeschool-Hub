@@ -208,9 +208,14 @@ export interface SaveWeekRequest {
  * Check one reported item against the week's plan (S2b-24, D11) and say whether it is stored:
  * as planned (within the tolerance) is not, anything else is. Throws 400 for a bad position or mode.
  */
-export function checkItem(item: CheckInWrite, planned: Pick<CheckInItemJson, "plannedTo" | "totalUnits">, where: string): boolean {
+export function checkItem(
+  item: CheckInWrite, planned: Pick<CheckInItemJson, "plannedFrom" | "plannedTo" | "totalUnits">, where: string,
+): boolean {
   if (item.position > planned.totalUnits + 1e-9)
     throw new HttpError(400, "invalid_request", `${where}.position: can't be more than the total (${planned.totalUnits}).`);
+  // D26 (S2c-02): the week can't end before it started; repeated work isn't recorded as going backwards.
+  if (item.position < planned.plannedFrom - 1e-9)
+    throw new HttpError(400, "invalid_request", `${where}.position: can't be below where the week started (${planned.plannedFrom}).`);
   const asPlanned = Math.abs(item.position - planned.plannedTo) <= AS_PLANNED_TOLERANCE;
   const finishes = item.position >= planned.totalUnits - 1e-9;
   if (asPlanned || finishes) {

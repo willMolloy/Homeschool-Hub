@@ -5,7 +5,8 @@ Tickets: `docs/tickets/sprint-2c-fixes/`. Findings: `docs/reviews/sprint-2b-veri
 | Ticket | Commit | Notes |
 |--------|--------|-------|
 | Tickets S2c-01..06 | f16760d | |
-| S2c-01 Block a week-start change once weeks are checked in (M1) | (this commit) | 409 `week_start_locked`; `weekStartLocked` on GET/PATCH; UI hint + inline error |
+| S2c-01 Block a week-start change once weeks are checked in (M1) | ce2980e | 409 `week_start_locked`; `weekStartLocked` on GET/PATCH; UI hint + inline error |
+| S2c-02 Reject a check-in position below the week's start (M2) | (this commit) | 400 below `plannedFrom`; number field min = slider min |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -15,3 +16,5 @@ Tickets: `docs/tickets/sprint-2c-fixes/`. Findings: `docs/reviews/sprint-2b-veri
 - **S2c-01 UI.** When locked, the Week starts on choices are disabled with the hint (rather than only failing on Save). A 409 from a stale page shows the message under the choices, resets the selection and switches to the locked state.
 - **S2c-01 web types.** `FamilySettings` (responses) carries `weekStartLocked`; the PATCH body uses the separate `FamilySettingsPatch`, so the flag can never be sent (the API body schema is strict).
 - **S2c-01 tester test.** `apps/api/test/tester2.schedule.test.ts` had an exact `toEqual` on GET /api/family; it now includes `weekStartLocked: false` (the only change to that file).
+- **S2c-02 the bound is the rounded `plannedFrom`.** `checkItem` compares against the same 2-decimal `plannedFrom` the GET returns, so the client's minimum and the API's always agree (a position equal to it saves).
+- **S2c-02 stale stored rows.** A stored week whose position is now below its `plannedFrom` (after an earlier week was edited) is left as stored; re-saving it with that value is refused with the new minimum named, so the parent sees it when they edit that week. Re-validating later weeks automatically is out of scope (ticket).

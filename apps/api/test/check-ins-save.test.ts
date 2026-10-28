@@ -10,7 +10,7 @@ import { seedFamily } from "./helpers/seed";
 import { signedInFamily } from "./helpers/session";
 
 describe("checkItem (D11)", () => {
-  const p = { plannedTo: 80, totalUnits: 184 };
+  const p = { plannedFrom: 0, plannedTo: 80, totalUnits: 184 };
   const it_ = (position: number, mode: "keepEndDate" | "pushEndDate" | null) => () => checkItem({ assignmentId: "a", childId: "c", position, mode }, p, "items.0");
   it("as planned (within 0.5) is not stored and takes no mode", () => {
     expect(it_(80, null)()).toBe(false);
@@ -25,6 +25,13 @@ describe("checkItem (D11)", () => {
     expect(it_(184, null)()).toBe(true);
     expect(it_(184, "pushEndDate")).toThrow(/leave it empty/);
     expect(it_(184.01, null)).toThrow(/more than the total \(184\)/);
+  });
+  it("below where the week started → 400; at the start is fine (S2c-02, D26)", () => {
+    const from = { plannedFrom: 63.85, plannedTo: 80, totalUnits: 184 };
+    const at = (position: number, mode: "keepEndDate" | null) => () => checkItem({ assignmentId: "a", childId: "c", position, mode }, from, "items.2");
+    expect(at(5, "keepEndDate")).toThrow(/^items\.2\.position: can't be below where the week started \(63\.85\)\.$/);
+    expect(at(63.84, "keepEndDate")).toThrow(/below where the week started/);
+    expect(at(63.85, "keepEndDate")()).toBe(true);
   });
 });
 
@@ -187,6 +194,27 @@ describe.skipIf(!hasDb)("PUT /api/check-ins/:weekStart (integration)", () => {
     ["junk", /weekStart/],
   ])("week %s → 400", async (week, msg) => {
     await bad({ status: "reviewed", items: [] }, "invalid_request", msg, week);
+  });
+
+  it("S2c-02 (the tester's M2 repro): a position below the week's start → 400 and nothing stored; at the start saves", async () => {
+    const hist = fam.ids.assignment.hist!;
+    const getWeek = async (week: string) => (await app.inject({ method: "GET", url: `/api/check-ins?weekStart=${week}`, cookies })).json<{
+      items: { assignmentId: string; childId: string; plannedFrom: number; plannedTo: number }[] }>();
+    const histOf = async (week: string) => (await getWeek(week)).items.find((i) => i.assignmentId === hist && i.childId === frank)!;
+    const prev = await histOf("2026-10-12");
+    expect(prev).toBeDefined();
+    // An earlier week adjusted, so this week starts where that check-in left it.
+    const r1 = await put({ status: "reviewed", items: [{ assignmentId: hist, childId: frank, position: Math.round(prev.plannedFrom + (prev.plannedTo - prev.plannedFrom) / 2), mode: "keepEndDate" }] }, "2026-10-12");
+    expect(r1.statusCode, r1.body).toBe(200);
+    const cur = await histOf(W);
+    expect(cur.plannedFrom).toBeGreaterThan(5);
+    const before = await rows();
+    const res = await put({ status: "reviewed", items: [{ assignmentId: hist, childId: frank, position: 5, mode: "keepEndDate" }] });
+    expect(res.statusCode, res.body).toBe(400);
+    expect(res.json()).toMatchObject({ error: "invalid_request", message: `items.0.position: can't be below where the week started (${cur.plannedFrom}).` });
+    expect(await rows()).toEqual(before);
+    const atStart = await put({ status: "reviewed", items: [{ assignmentId: hist, childId: frank, position: cur.plannedFrom, mode: cur.plannedTo - cur.plannedFrom > 0.5 ? "keepEndDate" : null }] });
+    expect(atStart.statusCode, atStart.body).toBe(200);
   });
 
   it("a failure part-way through writes nothing", async () => {

@@ -35,8 +35,9 @@ export function ProgressAdjuster(props: ProgressAdjusterProps) {
   const onField = (text: string) => {
     setDraft(text);
     const n = Number(text);
-    if (text.trim() === "" || !Number.isFinite(n) || n < 0 || n > totalUnits) {
-      setFieldError(`Enter a number from 0 to ${unitNumber(totalUnits)}.`);
+    // S2c-02 (D26): the same floor as the slider: where the week started.
+    if (text.trim() === "" || !Number.isFinite(n) || n < min - 1e-9 || n > totalUnits) {
+      setFieldError(`Enter a number from ${unitNumber(min)} to ${unitNumber(totalUnits)}.`);
       return;
     }
     setFieldError(null);
@@ -71,7 +72,7 @@ export function ProgressAdjuster(props: ProgressAdjusterProps) {
         onChange={(e) => set(Number(e.target.value))} onKeyDown={onSliderKey} />
       <div className="progress-field">
         <label htmlFor={fieldId}>{fieldLabel(unitType)}</label>
-        <input id={fieldId} type="number" inputMode="decimal" min={0} max={totalUnits} step="any"
+        <input id={fieldId} type="number" inputMode="decimal" min={min} max={totalUnits} step="any"
           value={draft ?? String(position)} aria-invalid={fieldError ? true : undefined}
           aria-describedby={fieldError ? errorId : undefined}
           onChange={(e) => onField(e.target.value)} onBlur={() => { if (!fieldError) setDraft(null); }} />
