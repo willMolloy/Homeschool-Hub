@@ -10,11 +10,22 @@
  * The API rejects unknown body keys (RF-09), so the fake records any body key not in
  * BODY_KEYS as a violation and test/setup.ts fails the test.
  */
-import { ENGINE_VERSION } from "@hh/engine";
+import { DEFAULT_WEIGHT_PER_UNIT, ENGINE_VERSION, isLearnedUnit, type UnitType } from "@hh/engine";
 import type { Me } from "../../src/api/types";
 
 type Reply = [status: number, body?: unknown];
-type Handler = Reply | ((body: unknown, path: string) => Reply | Promise<Reply>);
+type Handler = Reply | ((body: unknown, path: string, query: URLSearchParams) => Reply | Promise<Reply>);
+
+/** The answer the real endpoint gives with no history and no subject default. */
+export function builtinSuggestionFor(q: URLSearchParams) {
+  const unitType = (q.get("unitType") ?? "pages") as UnitType;
+  const childIds = q.get("childIds")?.split(",") ?? [];
+  return {
+    unitType, weightPerUnit: DEFAULT_WEIGHT_PER_UNIT[unitType], source: "builtin", builtInDefault: DEFAULT_WEIGHT_PER_UNIT[unitType],
+    subjectDefault: null, learned: isLearnedUnit(unitType),
+    children: childIds.map((childId) => ({ childId, name: childId, usual: null, choices: 0 })),
+  };
+}
 
 export const DEMO_ME: Me = {
   familyId: "00000000-0000-4000-8000-000000000001",
@@ -69,6 +80,8 @@ class FakeApi {
     this.on("POST /api/auth/logout", 204);
     this.on("GET /api/timezones", 200, { zones: ["America/Chicago", "America/New_York", "Asia/Kolkata", "Europe/London", "UTC"] });
     this.on("GET /api/health", 200, { ok: true, engineVersion: ENGINE_VERSION, db: "ok" });
+    // S2b-11: no history and no subject default, so the built-in. Tests override it for learned/subject cases.
+    this.on("GET /api/weights/suggestion", (_b, _p, q) => [200, builtinSuggestionFor(q)]);
   }
 
   on(key: string, statusOrFn: number | Handler, body?: unknown) {
@@ -90,7 +103,7 @@ class FakeApi {
     const handler = this.routes.get(`${method} ${url.pathname}${url.search}`) ?? this.routes.get(`${method} ${url.pathname}`);
     const [status, resBody] = handler === undefined
       ? [404, { error: "not_found", message: `fake-api: no route for ${method} ${url.pathname}` }]
-      : typeof handler === "function" ? await handler(body, url.pathname) : handler;
+      : typeof handler === "function" ? await handler(body, url.pathname, url.searchParams) : handler;
     return new Response(resBody === undefined || status === 204 ? null : JSON.stringify(resBody), {
       status,
       headers: { "content-type": "application/json" },

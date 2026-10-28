@@ -1,7 +1,7 @@
 /** Response shapes of the API. Kept in sync with apps/api by hand (Sprint 1). */
-import type { BlockedKind, ChildPlan, SubjectDefaultWeight, SubjectRule, UnitType, WeekStart } from "@hh/engine";
+import type { BlockedKind, ChildPlan, SubjectDefaultWeight, SubjectRule, SuggestionSource, UnitType, WeekStart } from "@hh/engine";
 
-export type { BlockedKind, SubjectDefaultWeight, UnitType, WeekStart };
+export type { BlockedKind, SubjectDefaultWeight, SuggestionSource, UnitType, WeekStart };
 
 /** `{ error, message? }` from every non-2xx response. */
 export interface ApiErrorBody {
@@ -55,6 +55,18 @@ export interface Health {
   ok: boolean;
   engineVersion: string;
   db: "ok" | "down";
+}
+
+/** GET /api/weights/suggestion (S2b-09) */
+export interface WeightSuggestion {
+  unitType: UnitType;
+  weightPerUnit: number;
+  source: SuggestionSource;
+  builtInDefault: number;
+  subjectDefault: SubjectDefaultWeight | null;
+  /** Whether this unit type learns from history (pages, chapters). */
+  learned: boolean;
+  children: { childId: string; name: string; usual: number | null; choices: number }[];
 }
 
 /** GET /api/plan. ChildPlan comes from the engine so it can't drift. */

@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { Assignment, Subject } from "../src/api/types";
@@ -74,6 +74,9 @@ describe("Assignments screen", () => {
     await user.type(within(form).getByLabelText("Title"), "  Fractions ");
     await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
     await user.type(within(form).getByLabelText("Total"), "45.5");
+    // The built-in suggestion arrives first (S2b-11); typing replaces it.
+    await waitFor(() => expect(within(form).getByLabelText("Weight per page")).toHaveValue(1));
+    await user.clear(within(form).getByLabelText("Weight per page"));
     await user.type(within(form).getByLabelText("Weight per page"), "1.4");
     date("Start", "2026-11-02", form);
     date("End", "2026-12-04", form);
@@ -87,7 +90,7 @@ describe("Assignments screen", () => {
     expect(screen.queryByRole("form")).toBeNull();
   });
 
-  it("weight blank → null (built-in shown as the hint)", async () => {
+  it("an untouched built-in suggestion → null (S2b-11: follows the subject default live)", async () => {
     const user = await setup();
     fakeApi.on("POST /api/assignments", (body) => [201, { ...(body as object), id: rowId(9), archived: false }]);
     await user.click(screen.getByRole("button", { name: "Add assignment" }));
@@ -96,7 +99,8 @@ describe("Assignments screen", () => {
     await user.type(within(form).getByLabelText("Title"), "Poems");
     await user.type(within(form).getByLabelText("Total"), "12");
     expect(within(form).getByLabelText("Weight per lesson")).toHaveAttribute("placeholder", "15");
-    expect(within(form).getByText("Relative effort; 1 point ≈ 2 minutes. Blank = the subject's default or the built-in (15).")).toBeInTheDocument();
+    expect(await within(form).findByText("Using the default weight for lessons (15).")).toBeInTheDocument();
+    expect(within(form).getByLabelText("Weight per lesson")).toHaveValue(15);
     date("Start", "2026-11-02", form);
     date("End", "2026-11-02", form);
     await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
@@ -115,7 +119,8 @@ describe("Assignments screen", () => {
     await user.type(within(form).getByLabelText("Title"), "Piano");
     await user.selectOptions(within(form).getByLabelText("Unit"), "minutes");
     await user.type(within(form).getByLabelText("Total"), "600");
-    expect(within(form).getByText(/the built-in \(0\.5\)/)).toBeInTheDocument();
+    expect(await within(form).findByText("Using the default weight for minutes (0.5).")).toBeInTheDocument();
+    await user.clear(within(form).getByLabelText("Weight per minute"));
     await user.type(within(form).getByLabelText("Weight per minute"), "0.75");
     date("Start", "2026-11-02", form);
     date("End", "2026-11-26", form);
@@ -195,12 +200,12 @@ describe("Assignments screen", () => {
     expect(await screen.findByText("184 pages · weight 2.25")).toBeInTheDocument();
   });
 
-  it("a unit change clears the weight and sends both fields (D7)", async () => {
+  it("a unit change resets the weight to the new unit's suggestion and sends both fields (D7)", async () => {
     const user = await setup();
     await user.click(screen.getByRole("button", { name: /Charlotte's Web/ }));
     const form = screen.getByRole("form", { name: "Edit Charlotte's Web" });
     await user.selectOptions(within(form).getByLabelText("Unit"), "minutes");
-    expect(within(form).getByLabelText("Weight per minute")).toHaveValue(null);
+    await waitFor(() => expect(within(form).getByLabelText("Weight per minute")).toHaveValue(0.5));
     await user.click(within(form).getByRole("button", { name: "Save" }));
     expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "minutes", weightPerUnit: null } }]);
   });
@@ -210,6 +215,8 @@ describe("Assignments screen", () => {
     await user.click(screen.getByRole("button", { name: /Charlotte's Web/ }));
     const form = screen.getByRole("form", { name: "Edit Charlotte's Web" });
     await user.selectOptions(within(form).getByLabelText("Unit"), "chapters");
+    await waitFor(() => expect(within(form).getByLabelText("Weight per chapter")).toHaveValue(10));
+    await user.clear(within(form).getByLabelText("Weight per chapter"));
     await user.type(within(form).getByLabelText("Weight per chapter"), "12");
     await user.click(within(form).getByRole("button", { name: "Save" }));
     expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "chapters", weightPerUnit: 12 } }]);
@@ -277,5 +284,142 @@ describe("Assignments screen", () => {
     fakeApi.on("GET /api/subjects", 200, []);
     renderAt("/schedule/assignments");
     expect(await screen.findByText("Couldn't load your children and subjects.")).toBeInTheDocument();
+  });
+});
+
+describe("Assignment weight suggestion (S2b-11)", () => {
+  const MATH_20: Subject = { ...MATH, defaultWeight: { unitType: "lessons", weightPerUnit: 20 } };
+
+  /** Maggie has a usual pages/chapters weight of 1.4; Frank has no history; Math has 20 per lesson. */
+  function suggestions(_b: unknown, _p: string, q: URLSearchParams): [number, unknown] {
+    const unitType = q.get("unitType") as Assignment["unitType"];
+    const learned = unitType === "pages" || unitType === "chapters";
+    const ids = q.get("childIds")?.split(",") ?? [];
+    const children = ids.map((id) => ({
+      childId: id, name: id === MAGGIE.id ? "Maggie" : "Frank", usual: learned && id === MAGGIE.id ? 1.4 : null, choices: 0,
+    }));
+    const builtIn = { pages: 1, chapters: 10, lessons: 15, minutes: 0.5 }[unitType];
+    const subjectDefault = q.get("subjectId") === MATH.id ? MATH_20.defaultWeight : null;
+    const common = { unitType, builtInDefault: builtIn, subjectDefault, learned, children };
+    if (children.some((c) => c.usual != null)) return [200, { ...common, weightPerUnit: 1.4, source: "child" }];
+    if (subjectDefault?.unitType === unitType) return [200, { ...common, weightPerUnit: 20, source: "subject" }];
+    return [200, { ...common, weightPerUnit: builtIn, source: "builtin" }];
+  }
+
+  async function openAdd() {
+    const user = await setup([SAXON, NOVEL], [MATH_20, READING, LATIN]);
+    fakeApi.on("GET /api/weights/suggestion", suggestions);
+    fakeApi.on("POST /api/assignments", (body) => [201, { ...(body as object), id: rowId(9), archived: false }]);
+    await user.click(screen.getByRole("button", { name: "Add assignment" }));
+    const form = screen.getByRole("form", { name: "Add assignment" });
+    await user.type(within(form).getByLabelText("Title"), "Fractions");
+    await user.type(within(form).getByLabelText("Total"), "10");
+    date("Start", "2026-11-02", form);
+    date("End", "2026-11-26", form);
+    return { user, form };
+  }
+  const add = async (user: ReturnType<typeof userEvent.setup>, form: HTMLElement) => {
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    return writes()[0]!.body as Record<string, unknown>;
+  };
+  const suggestionCalls = () => fakeApi.calls.filter((c) => c.path.startsWith("/api/weights/suggestion"));
+
+  it("Maggie + pages → her usual 1.4 is pre-filled, hinted and sent explicitly", async () => {
+    const { user, form } = await openAdd();
+    await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+    await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
+    await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
+    expect(await within(form).findByText("Using Maggie's usual weight for pages (1.4).")).toBeInTheDocument();
+    expect(within(form).getByLabelText("Weight per page")).toHaveValue(1.4);
+    expect(suggestionCalls().at(-1)?.path).toBe(`/api/weights/suggestion?unitType=pages&childIds=${MAGGIE.id}&subjectId=${READING.id}`);
+    expect((await add(user, form)).weightPerUnit).toBe(1.4);
+  });
+
+  it("adding Frank → the mixed hint; the request carries both children", async () => {
+    const { user, form } = await openAdd();
+    await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
+    await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
+    await within(form).findByText("Using Maggie's usual weight for pages (1.4).");
+    await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
+    expect(await within(form).findByText("Using Maggie's usual weight (1.4). Frank has no history yet.")).toBeInTheDocument();
+    const ids = [FRANK.id, MAGGIE.id].sort().join(",");
+    expect(suggestionCalls().at(-1)?.path).toContain(`childIds=${encodeURIComponent(ids)}`);
+  });
+
+  it("a typed 2 holds across child changes; Use restores the suggestion", async () => {
+    const { user, form } = await openAdd();
+    await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+    await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
+    await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
+    const input = within(form).getByLabelText("Weight per page");
+    await waitFor(() => expect(input).toHaveValue(1.4));
+    await user.clear(input);
+    await user.type(input, "2");
+    expect(within(form).getByText(/Your weight \(2\)\. Maggie's usual is 1\.4\./)).toBeInTheDocument();
+    await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
+    await waitFor(() => expect(suggestionCalls().at(-1)?.path).toContain(FRANK.id));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(input).toHaveValue(2);
+    await user.click(within(form).getByRole("button", { name: "Use 1.4" }));
+    expect(input).toHaveValue(1.4);
+    expect(within(form).getByText("Using Maggie's usual weight (1.4). Frank has no history yet.")).toBeInTheDocument();
+    expect((await add(user, form)).weightPerUnit).toBe(1.4);
+  });
+
+  it("Math (lessons, subject default 20) → the hint shows 20 and null is sent", async () => {
+    const { user, form } = await openAdd();
+    await user.selectOptions(within(form).getByLabelText("Subject"), MATH.id);
+    await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
+    expect(await within(form).findByText("Using the Math default (20 per lesson).")).toBeInTheDocument();
+    expect(within(form).getByLabelText("Weight per lesson")).toHaveValue(20);
+    expect(within(form).getByLabelText("Weight per lesson")).toHaveAttribute("placeholder", "20 from Math");
+    expect((await add(user, form)).weightPerUnit).toBeNull();
+  });
+
+  it("a typed value equal to the suggestion is still sent explicitly", async () => {
+    const { user, form } = await openAdd();
+    await user.selectOptions(within(form).getByLabelText("Subject"), MATH.id);
+    await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
+    const input = within(form).getByLabelText("Weight per lesson");
+    await waitFor(() => expect(input).toHaveValue(20));
+    await user.clear(input);
+    await user.type(input, "20");
+    expect(within(form).getByText("Using the Math default (20 per lesson).")).toBeInTheDocument();
+    expect((await add(user, form)).weightPerUnit).toBe(20);
+  });
+
+  it("built-in → null", async () => {
+    const { user, form } = await openAdd();
+    await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+    await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
+    expect(await within(form).findByText("Using the default weight for lessons (15).")).toBeInTheDocument();
+    expect((await add(user, form)).weightPerUnit).toBeNull();
+  });
+
+  it("a suggestion error → the built-in hint, and save still works", async () => {
+    const { user, form } = await openAdd();
+    fakeApi.on("GET /api/weights/suggestion", 500, { error: "internal" });
+    await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+    await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
+    await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
+    expect(await within(form).findByText("Using the default weight for pages (1).")).toBeInTheDocument();
+    expect((await add(user, form)).weightPerUnit).toBeNull();
+  });
+
+  it("edit makes no request until the unit changes; a null weight shows its effective value", async () => {
+    const user = await setup([SAXON, NOVEL], [MATH_20, READING, LATIN]);
+    fakeApi.on("GET /api/weights/suggestion", suggestions);
+    await user.click(screen.getByRole("button", { name: /Saxon 5\/4/ }));
+    const form = screen.getByRole("form", { name: "Edit Saxon 5/4" });
+    const input = within(form).getByLabelText("Weight per lesson");
+    expect(input).toHaveValue(null);
+    expect(input).toHaveAttribute("placeholder", "20 from Math");
+    await new Promise((r) => setTimeout(r, 300));
+    expect(suggestionCalls()).toEqual([]);
+    await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
+    expect(await within(form).findByText("Using Maggie's usual weight (1.4). Frank has no history yet.")).toBeInTheDocument();
+    expect(within(form).getByLabelText("Weight per page")).toHaveValue(1.4);
+    expect(suggestionCalls()).toHaveLength(1);
   });
 });
