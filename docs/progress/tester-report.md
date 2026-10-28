@@ -267,3 +267,32 @@ Written by the developer as the tester ticket's suites (DeeDee's brief); a separ
 | ID | Severity | What | Status |
 |---|---|---|---|
 | T4-1 | Info | Like T3-1: `subject.default_weight` is `numeric(6,2)`, so the DB rounds `1.234` to `1.23` instead of rejecting it. The API rejects it. | Not fixed; pinned by a test. |
+
+## Round 5 (Sprint 2b check-ins): S2b-28 check-in edge cases
+
+Written by the developer as the tester ticket's suites (DeeDee's brief); a separate tester verifies afterwards.
+
+**Suites:**
+- `packages/engine/test/tester.checkins.test.ts` (16): plans on a 300-page, four-week fixture (75 a week).
+- `apps/api/test/tester3.checkins.test.ts` (32): the same edges end to end on the sample family through `/api/check-ins`, `/api/plan`, `/api/children`, `/api/assignments` and `/api/blocked-ranges`, with clocks injected at Oct 27, 28 and 30 and Nov 4.
+- Web: the existing `last-week-card`, `checkin-absorb` and `past-week-review` suites already cover the card side (hidden once skipped/reviewed, no question when finished, editing a skipped week), so no new web file.
+
+| Case | Where | Result |
+|---|---|---|
+| 1 No logging | engine + API | Pass: Treasure Island is 90 pages the week of Oct 26 with the clock on Oct 27, 28 or 30, and every day's units are identical across them; inserting `log_entry` + `log_child_progress` rows changes no plan. |
+| 2 Multi-child | engine + API | Pass in both modes: on History (shared), Margaret at the total is `finishedEarly` with no work after it, Frank's plan changes, and every other plan is byte-for-byte the same. Archiving Frank drops his plans and his rows in other weeks; the stored row stays in the DB and still shows (with its value) in the week it was entered, per S2b-23's "archived, unless checked in that week" rule. |
+| 3 Finished early | engine + API | Pass: position = total → no units after it, `finishedEarly`, no item for it the next week; saving the week back to as planned restores the original days exactly. Reaching the total in the last planned week is on plan, not "early". |
+| 4 Ahead | engine + API | Pass: keep and push both give an end earlier than or equal to before (keep: equal, thinner; push: earlier) and units + unplaced = the total. |
+| 5 Vacation | engine + API | Pass: a fully blocked last week → `items: []`; a Wed–Sun block → the planned range equals the Mon–Tue units; behind + push across a future vacation week → no units in it and the end after it. |
+| 6 Editing a past check-in | engine + API | Pass with a note: after week 1 → 65 (keep), week 2 → 140 (push), editing week 1 to 80 leaves week 2's anchor (140 at the end of week 2, the same 130 pages after it). The bars after week 2 are **not** identical, though: push keeps "the same pace", and that pace is the one week 1's check-in set (235/15 vs 220/15 a day on the engine fixture), so they differ slightly. With keep at week 2 they are identical. Clearing week 2 → only week 1's check-in applies, back to the original end. **T5-2** below. |
+| 7 No planned work | engine + API | Pass: a week before any start, and the week after everything was checked in at its total → `items: []`. Reporting progress on a pair with nothing planned is refused by the API (400 `invalid_reference`, S2b-24), so `unplanned-progress` is reached end to end by storing a check-in and then blocking that week: the plan warns, keeps the stored position, and stays whole; the week still lists the row so it can be fixed. |
+| 8 Skip | API | Pass: `planChanged: false`, the same plans, `status: "skipped"` on reload and from a second session; a later PUT with items re-reviews it. |
+| 9 Bad input | API | Pass: -1, > total, 3 decimals, a string, null, 1e308, a missing or unknown mode, literal `NaN` (invalid JSON), the current and a future week, a mid-week date, an impossible date, another family's assignment or child → 400 and nothing stored. |
+| 10 Total edited below a stored position | engine + API | **Failed, then fixed (T5-1):** the plan clamped with `checkin-clamped`, but `GET /api/check-ins` showed the raw stored 150 against a total of 120. |
+
+### Findings
+
+| ID | Severity | What | Status |
+|---|---|---|---|
+| T5-1 | Low | `GET /api/check-ins` returned a stored position above an edited-down total (150 of 120), so the card would show a position the plan doesn't use and its slider would sit past the end. | **Fixed** in the S2b-28 commit: `actual` is clamped to the current total in `weekView` (the row itself is kept, so raising the total again restores it). |
+| T5-2 | Info (question) | Editing an earlier check-in still changes the bars after a later **push** check-in a little, because push keeps the pace the earlier one set. The later anchor and the work left are unchanged. Not changed: this matches the engine's documented push rule (`checkins.test.ts` uses keep twice for the same reason). If the intent is "a later check-in fully decides everything after it", push would need to take its pace from the original plan instead. | Open question for DeeDee; no code change. |

@@ -113,7 +113,8 @@ async function weekView(db: Queryable, familyId: string, inputs: PlanInputs, w0:
     items.push({
       assignmentId: a.id, childId: plan.childId, childName: childNames.get(plan.childId) ?? "", title: a.title ?? "", unitType: a.unitType,
       plannedFrom: round2(range.from), plannedTo: round2(range.to), totalUnits: a.totalUnits,
-      actual: s ? Number(s.position) : null, mode: s?.mode ?? null,
+      // A total edited below a stored position: show what the engine plans from (it clamps, S2b-28 case 10).
+      actual: s ? Math.min(Number(s.position), a.totalUnits) : null, mode: s?.mode ?? null,
       subjectName: subjectNames.get(a.subjectId) ?? "",
     });
   }
