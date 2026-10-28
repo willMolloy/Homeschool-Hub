@@ -1,0 +1,98 @@
+.roster-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.roster-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--muted);
+}
+.roster-toggle input {
+  width: 20px;
+  height: 20px;
+}
+.roster-list {
+  list-style: none;
+  margin: 8px 0 16px;
+  padding: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.roster-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-top: 1px solid var(--line);
+}
+.roster-row:first-child {
+  border-top: 0;
+}
+.roster-row.is-archived {
+  color: var(--muted);
+  background: #f6f7f9;
+}
+.roster-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.color-dot {
+  flex: none;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+.tag {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e8ebf0;
+  color: var(--muted);
+}
+.skeleton .color-dot {
+  background: #e8ebf0;
+  border-color: transparent;
+}
+.skeleton-bar {
+  height: 14px;
+  width: 40%;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #e8ebf0, #f3f5f8, #e8ebf0);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar {
+    animation: none;
+  }
+}
+.roster-empty {
+  margin: 16px 0;
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--muted);
+  background: #fff;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+.roster-error p {
+  margin: 0 0 10px;
+}
