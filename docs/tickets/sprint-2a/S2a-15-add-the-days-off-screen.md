@@ -14,7 +14,7 @@ Fields: label, kind, start, end, 'Whole family' or specific children. Delete ask
 2. Add/edit form; delete with confirm.
 
 ## Done when
-- [ ] A vacation added here shows as zeros on those days in the plan debug view.
+- [x] A vacation added here shows as zeros on those days in the plan debug view.
 
 ## Tests
 - list

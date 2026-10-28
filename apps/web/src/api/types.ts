@@ -76,3 +76,15 @@ export interface Assignment {
   childIds: string[];
   archived: boolean;
 }
+
+/** GET/POST/PATCH/DELETE /api/blocked-ranges (S2a-07) */
+export type BlockedKind = "vacation" | "holiday" | "sick" | "other";
+export interface BlockedRange {
+  id: string;
+  label: string | null;
+  kind: BlockedKind;
+  startDate: string;
+  endDate: string;
+  /** [] = the whole family. */
+  childIds: string[];
+}
