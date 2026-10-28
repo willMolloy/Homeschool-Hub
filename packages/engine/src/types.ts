@@ -27,6 +27,8 @@ export interface Assignment {
   end: LocalDate;
   /** Empty means "use the unitType default" and the UI shows it as estimated. */
   minutesPerUnit?: number | null;
+  /** Relative effort per unit. null = subject default, then built-in (S2b-01). */
+  weightPerUnit?: number | null;
 }
 
 /**
