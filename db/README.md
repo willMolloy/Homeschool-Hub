@@ -31,7 +31,7 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `event_subject_rule` | Per-subject `skip` / `lighter` / `normal` |
 | `blocked_range` + `blocked_range_child` | Vacation/holiday/sick days (no child rows = whole family) |
 | `week_override` | "This week do N units", `keepEndDate` / `pushEndDate`. **Added beyond the original table list** so overrides persist |
-| `log_entry` | One recorded thing, `kind` = `checkoff` or `session`. `id` is the **client-generated UUID** (no default) |
+| `log_entry` | One recorded thing, `kind` = `checkoff` or `session`. `id` is the **client-generated UUID** (no default). Feeds hours and exports only; never the plan (S2b-18). |
 | `log_child_progress` | Units per child for a log entry. Partial unique index: one `checkoff` per (assignment, date, child) |
 
 Design notes

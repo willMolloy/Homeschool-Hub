@@ -159,7 +159,7 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
     }
   });
 
-  it("maps blocked ranges, week overrides and logged progress (summed per day)", async () => {
+  it("maps blocked ranges and week overrides; log rows never reach the plan (S2b-19)", async () => {
     const ti = fam.ids.assignment.ti!;
     const frank = fam.ids.child.frank!;
     await pool.query(
@@ -175,8 +175,13 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
     try {
       const loaded = await loadPlanInputs(pool, fam.familyId);
       expect(loaded.ctx.overrides).toEqual([{ assignmentId: ti, childId: frank, weekStart: "2026-11-02", plannedUnits: 50, mode: "pushEndDate" }]);
-      expect(loaded.ctx.progress).toEqual([{ assignmentId: ti, childId: frank, date: "2026-10-26", units: 15.5 }]);
+      expect(loaded.ctx).not.toHaveProperty("progress");
       expect(loaded.ctx.blocked).toEqual(S.blocked.map((b) => expect.objectContaining({ start: b.start, end: b.end })));
+      const withLogs = planAll(loaded.assignments, { ...loaded.ctx, asOf: "2026-10-28" });
+      await pool.query("DELETE FROM log_entry WHERE assignment_id = $1", [ti]);
+      const after = await loadPlanInputs(pool, fam.familyId);
+      expect(after).toEqual(loaded);
+      expect(planAll(after.assignments, { ...after.ctx, asOf: "2026-10-28" })).toEqual(withLogs);
     } finally {
       await pool.query("DELETE FROM week_override WHERE assignment_id = $1", [ti]);
       await pool.query("DELETE FROM log_entry WHERE assignment_id = $1", [ti]);

@@ -1,12 +1,13 @@
 /** S2b-18: the plan assumes scheduled work was done; asOf only labels days and logs never move bars. */
 import { describe, expect, it } from "vitest";
-import { planAll, planChild, type ChildPlan, type PlanContext, type ProgressEntry } from "../src";
+import { planAll, planChild, type ChildPlan, type PlanContext } from "../src";
 import { addDays } from "../src/dates";
 import * as S from "./fixtures/sample-family";
 import { book, expectConserved, expectSane, MON_FRI, unitsBetween, unitsOn } from "./helpers";
 
 // 100 pages, Mon Sep 7 - Fri Sep 18 (10 days, 10/day)
-const log = (date: string, units: number, childId = "frank"): ProgressEntry => ({ assignmentId: "a1", childId, date, units });
+// S2b-19 removed PlanContext.progress; an old caller's stray key must still change nothing.
+const log = (date: string, units: number, childId = "frank") => ({ assignmentId: "a1", childId, date, units });
 const units = (p: ChildPlan) => p.days.map((d) => [d.date, d.units] as const);
 const kindOn = (p: ChildPlan, date: string) => p.days.find((d) => d.date === date)!.kind;
 const sampleCtx: PlanContext = { calendar: S.calendar, events: S.events, blocked: S.blocked };
@@ -57,10 +58,10 @@ describe("assumed progress (S2b-18)", () => {
     }
   });
 
-  it("progress entries have no effect", () => {
+  it("a legacy progress key (removed in S2b-19) has no effect", () => {
     const base = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14" });
     for (const progress of [[log("2026-09-07", 30)], [log("2026-09-07", 130)], [log("2026-09-08", -5)], [log("2026-09-04", 5)], [log("2026-09-08", 50, "margaret")]]) {
-      const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress });
+      const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress } as PlanContext);
       expect(p).toEqual(base);
     }
     expect(base.doneUnits).toBe(0);

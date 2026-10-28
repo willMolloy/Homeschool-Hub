@@ -72,14 +72,6 @@ export interface WeekOverride {
   mode: OverrideMode;
 }
 
-/** Logged progress for one child on one assignment on one date (summed from LogChildProgress). */
-export interface ProgressEntry {
-  assignmentId: string;
-  childId: string;
-  date: LocalDate;
-  units: number;
-}
-
 /** A subject's default weight for one unit type (S2b-32, D20, D23). */
 export interface SubjectWeight {
   subjectId: string;
@@ -92,8 +84,6 @@ export interface PlanContext {
   events?: RecurringEvent[];
   blocked?: BlockedPeriod[];
   overrides?: WeekOverride[];
-  /** @deprecated — ignored since S2b-18 (logs no longer move bars); removed in S2b-19. */
-  progress?: ProgressEntry[];
   /**
    * Usually today. Days before it are labelled assumed; it does not change the plan (S2b-18).
    * Default: the assignment's start.

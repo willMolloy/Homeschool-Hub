@@ -30,7 +30,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-16 tester pass: weight edge cases | 1cebc14 | |
 | S2b-37 tester pass: subject defaults and precedence | 89986ca | |
 | S2b-17 update docs for weights | cb7e0a6 | |
-| S2b-18 assume scheduled work was done (engine 0.4.0) | (this commit) | |
+| S2b-18 assume scheduled work was done (engine 0.4.0) | dbdaf7b | |
+| S2b-19 stop loading logs into the plan | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -74,6 +75,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-17 — where the decisions went, and the done-when check.** "Copy the README decisions table, with the dates decided" names no target, so the table went into a new "Weights" section of `docs/REVIEW-GUIDE.md` (next to the rules it explains), with D4 and the Oct 28 settled items added and every row dated Oct 28, 2026 (the day DeeDee settled D1/D5/D6/D14/D17 and approved the rest as written). The done-when `rg` is run as written but with `**/` globs (`--glob '!**/tickets/**'` etc.): with the ticket's `'!reviews/**'` form, ripgrep matches the globs against `docs/…` paths and still searches reviews and progress, which are history and stay as written. The guide's stale lines ("Sprint 1 and 2a", "CI has never run", the old `*` estimate marker) and `db/README.md`'s "no migration runner yet" were also brought up to date.
 
 - **S2b-18 — the 184 pages, doneUnits and past-end.** The ticket's regression names "the sample family's 184-page assignment starting 2026-10-19"; the only such assignment is Treasure Island, which is 270 pages (12 school days × 22.5), so the named test uses it and still checks the ticket's numbers (22.5/day, 90 pages in the week of Oct 26, not 135). With logs ignored, `doneUnits` is 0 and `remainingUnits` is the total (nothing is *reported* done; assumed days are not counted as done, since S2b-20's check-ins own that). `past-end` can no longer happen (the plan always starts at the start), so it is no longer emitted but stays in the `PlanWarning` union, marked deprecated, so the debug view's label and older API clients keep compiling. The returned range is now exactly start..effective end (logs outside it no longer widen it). Tests that pinned catch-up were rewritten to pin the new behaviour: `plan.progress.test.ts` (now the S2b-18 suite), one aggregate case, one multi-child case, the no-minutes kind set, two tester asOf-edge cases and the adversarial "planned days" filter. The proto BUG 3 "no free day left" check now uses a one-week assignment instead of a late asOf.
+
+- **S2b-19 — the engine's legacy-key test.** `ProgressEntry` and `PlanContext.progress` are gone (the type was exported through `export *`, so `index.ts` needed no edit). The S2b-18 "progress entries have no effect" test was kept as "a legacy progress key has no effect", passing the old shape through a cast, so a stale client sending it still gets the same plan. Randomised suites that generated logs (invariants, adversarial) simply stopped generating them, and the now-empty per-child-logs multichild case was deleted. The loader test inserts log rows, checks the loaded inputs and the plans are identical after deleting them, and that `ctx` has no `progress` key. Comments were worded so the done-when `rg` finds nothing.
 
 ## Deferred
 

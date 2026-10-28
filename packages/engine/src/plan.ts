@@ -70,7 +70,7 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   const E = toDayNumber(a.end);
   const total = a.totalUnits;
 
-  // Assumed progress (S2b-18): nothing is reported done, so the whole total is planned from the start.
+  // Assumed work (S2b-18): nothing is reported done, so the whole total is planned from the start.
   const done = 0;
   const remaining = Math.max(0, total);
   const complete = remaining <= EPS;

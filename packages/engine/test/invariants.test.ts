@@ -22,7 +22,6 @@ describe("randomized invariants (seeded, 400 cases)", () => {
         events: r() < 0.6 ? [{ id: "e", childIds: r() < 0.5 ? [] : ["frank"], weekdays: [pick([0, 1, 2, 3, 4, 5, 6] as Weekday[])], capacityFraction: r(), subjectRules: { lit: pick(["skip", "lighter", "normal"] as const) } }] : [],
         blocked: r() < 0.5 ? [{ id: "b", start: addDays(start, Math.floor(r() * 60)), end: addDays(start, Math.floor(r() * 90)) }] : [],
         asOf: r() < 0.4 ? addDays(start, Math.floor(r() * 140) - 10) : undefined,
-        progress: r() < 0.4 ? [{ assignmentId: "a1", childId: "frank", date: addDays(start, Math.floor(r() * 30)), units: Math.floor(r() * 150) - 20 }] : [],
       };
       const overrides: WeekOverride[] = [];
       const n = Math.floor(r() * 3);

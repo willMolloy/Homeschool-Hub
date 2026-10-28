@@ -6,9 +6,10 @@
  * Archived children, subjects, assignments and events are left out of planning. Subject default weights (S2b-33)
  * are read for every subject, archived ones included, and only matter for assignments that are planned.
  * `asOf` is not set here: the route decides it.
+ * The log tables are never read: they feed hours and exports only (S2b-18/19).
  */
 import type {
-  Assignment, BlockedPeriod, FamilyCalendar, PlanContext, ProgressEntry, RecurringEvent,
+  Assignment, BlockedPeriod, FamilyCalendar, PlanContext, RecurringEvent,
   SubjectRule, SubjectWeight, UnitType, WeekOverride, WeekStart, Weekday,
 } from "@hh/engine";
 import { query, withReadSnapshot, type Db, type Queryable } from "../db";
@@ -22,7 +23,6 @@ export interface PlanInputs {
     events: RecurringEvent[];
     blocked: BlockedPeriod[];
     overrides: WeekOverride[];
-    progress: ProgressEntry[];
     subjectWeights: SubjectWeight[];
   };
 }
@@ -89,13 +89,6 @@ async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInpu
   const overrideRows = await query<{ assignment_id: string; child_id: string | null; week_start: string; planned_units: number; mode: WeekOverride["mode"] }>(db,
     `SELECT assignment_id, child_id, week_start, planned_units, mode
        FROM week_override WHERE family_id = $1 ORDER BY week_start`, [familyId]);
-  // log_child_progress has no family_id of its own; it is scoped through its log_entry.
-  const progressRows = await query<{ assignment_id: string; child_id: string; log_date: string; units: number }>(db,
-    `SELECT p.assignment_id, p.child_id, p.log_date, sum(p.units) AS units
-       FROM log_child_progress p JOIN log_entry e ON e.id = p.log_entry_id
-      WHERE e.family_id = $1
-      GROUP BY p.assignment_id, p.child_id, p.log_date
-      ORDER BY p.log_date`, [familyId]);
 
   const activeChild = new Set(children.map((c) => c.id));
   const activeSubject = new Set(subjects.filter((s) => !s.archived).map((s) => s.id));
@@ -166,14 +159,10 @@ async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInpu
       mode: o.mode,
     }));
 
-  const progress: ProgressEntry[] = progressRows
-    .filter((p) => planned.has(p.assignment_id) && activeChild.has(p.child_id))
-    .map((p) => ({ assignmentId: p.assignment_id, childId: p.child_id, date: p.log_date, units: Number(p.units) }));
-
   // Both columns are set or both NULL (subject_default_weight_pair); a subject with none is simply not listed.
   const subjectWeights: SubjectWeight[] = subjects
     .filter((s) => s.default_weight_unit != null && s.default_weight != null)
     .map((s) => ({ subjectId: s.id, unitType: s.default_weight_unit!, weightPerUnit: Number(s.default_weight) }));
 
-  return { timeZone: family.time_zone, calendar, assignments, ctx: { calendar, events, blocked, overrides, progress, subjectWeights } };
+  return { timeZone: family.time_zone, calendar, assignments, ctx: { calendar, events, blocked, overrides, subjectWeights } };
 }

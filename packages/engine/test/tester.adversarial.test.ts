@@ -48,12 +48,8 @@ function randomCase(r: () => number) {
       plannedUnits: pick([0, 1, 10, 1e6, Number.NaN, -5, 3.3]), mode: pick(["keepEndDate", "pushEndDate"] as const),
     });
   }
-  const progress = [];
-  for (let k = 0, n = Math.floor(r() * 4); k < n; k += 1) {
-    progress.push({ assignmentId: "a1", childId: pick(kids), date: addDays(start, Math.floor(r() * 40) - 3), units: pick([1, 5, 0, -2, 1e4, 0.1]) });
-  }
   const ctx: PlanContext = {
-    calendar: { weekStart, schoolDays }, events: evs, blocked, overrides, progress,
+    calendar: { weekStart, schoolDays }, events: evs, blocked, overrides,
     asOf: r() < 0.5 ? addDays(start, Math.floor(r() * 80) - 10) : undefined,
   };
   const a: Assignment = book({
@@ -118,11 +114,11 @@ describe("tester: fuzz (600 seeded cases, 3 children)", () => {
     }
   });
 
-  it("order of events, blocked periods and progress entries doesn't change the plan", () => {
+  it("order of events and blocked periods doesn't change the plan", () => {
     const r = rng(7);
     for (let i = 0; i < 300; i += 1) {
       const { a, ctx } = randomCase(r);
-      const rev: PlanContext = { ...ctx, events: [...(ctx.events ?? [])].reverse(), blocked: [...(ctx.blocked ?? [])].reverse(), progress: [...(ctx.progress ?? [])].reverse() };
+      const rev: PlanContext = { ...ctx, events: [...(ctx.events ?? [])].reverse(), blocked: [...(ctx.blocked ?? [])].reverse() };
       const p1 = planAssignment(a, ctx), p2 = planAssignment(a, rev);
       p1.forEach((p, k) => {
         const q = p2[k]!;
@@ -284,18 +280,16 @@ describe("tester: overlapping events", () => {
 
 describe("tester: multi-child divergence", () => {
   const shared = book({ childIds: ["frank", "margaret"], totalUnits: 100 });
-  it("one child's logs, blocked days and override never move the other child's plan", () => {
+  it("one child's blocked days and override never move the other child's plan", () => {
     const alone = planChild(shared, "margaret", { calendar: MON_FRI });
     const ctx: PlanContext = {
       calendar: MON_FRI,
-      progress: [{ assignmentId: "a1", childId: "frank", date: "2026-09-07", units: 40 }],
       blocked: [{ id: "sick", start: "2026-09-08", end: "2026-09-10", childIds: ["frank"] }],
       overrides: [{ assignmentId: "a1", childId: "frank", weekStart: "2026-09-14", plannedUnits: 5, mode: "pushEndDate" }],
       asOf: "2026-09-08",
     };
     const [f, m] = planAssignment(shared, ctx);
     expect(f!.childId).toBe("frank");
-    expect(f!.doneUnits).toBe(0); // S2b-18: logs are ignored
     expect(f!.mode).toBe("pushEndDate");
     expect(m!.mode).toBe(null);
     expect(m!.doneUnits).toBe(0);

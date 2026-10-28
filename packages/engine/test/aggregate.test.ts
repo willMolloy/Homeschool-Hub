@@ -73,8 +73,8 @@ describe("semantic zoom aggregation", () => {
     expect(weeklySummary(p.days, "mon").at(-1)!.weekStart).toBe("2026-09-21");
   });
 
-  it("an assumed (past) week averages like any other; logs on a non-school day change nothing (S2b-18)", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [{ assignmentId: "a1", childId: "frank", date: "2026-09-12", units: 10 }] });
+  it("an assumed (past) week averages like any other (S2b-18)", () => {
+    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14" });
     const w = weeklySummary(p.days, "mon").find((x) => x.weekStart === "2026-09-07")!;
     expect(w.capacityDays).toBe(5);
     expect(w.totalThickness).toBeCloseTo(50);

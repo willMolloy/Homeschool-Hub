@@ -20,11 +20,6 @@ const minuteKeys = (v: unknown) => keysOf(JSON.parse(JSON.stringify(v))).filter(
 const ctx: PlanContext = {
   calendar: S.calendar, events: S.events, blocked: S.blocked, subjectWeights: S.subjectWeights,
   asOf: "2026-10-14",
-  progress: [
-    { assignmentId: "aesop", childId: "frank", date: "2026-09-01", units: 12 },
-    { assignmentId: "piano", childId: "frank", date: "2026-09-02", units: 30 },
-    { assignmentId: "violin", childId: "margaret", date: "2026-09-05", units: 20 }, // a Saturday
-  ],
   overrides: [{ assignmentId: "math3", weekStart: "2026-10-19", plannedUnits: 2, mode: "pushEndDate" }],
 };
 
