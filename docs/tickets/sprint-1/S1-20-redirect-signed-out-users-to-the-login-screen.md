@@ -17,8 +17,8 @@ Opening any shell page without a session sends you to `/login`, and you come bac
 5. Show the family name from `me` in the header.
 
 ## Done when
-- [ ] Fresh browser → /kids redirects to /login, and after login lands on /kids.
-- [ ] Sign out returns to /login.
+- [x] Fresh browser → /kids redirects to /login, and after login lands on /kids.
+- [x] Sign out returns to /login.
 
 ## Tests
 - Tests with mocked api: me=401 → redirected; me=200 → page renders; logout clears state

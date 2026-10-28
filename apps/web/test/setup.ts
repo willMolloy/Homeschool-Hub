@@ -1,8 +1,16 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
+import { fakeApi } from "./helpers/fake-api";
 
-afterEach(() => cleanup());
+beforeEach(() => {
+  fakeApi.reset();
+  vi.stubGlobal("fetch", fakeApi.fetch);
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 // React Router's data router builds `new Request(url, { signal })` with jsdom's AbortSignal,
 // which Node's (undici) Request rejects. Drop the signal in tests only.

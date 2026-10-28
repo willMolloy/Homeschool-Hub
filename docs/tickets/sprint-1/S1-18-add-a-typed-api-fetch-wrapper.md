@@ -16,7 +16,7 @@ One place to handle 401 (go to login), network failures (offline later), and JSO
 4. Put shared response types in `src/api/types.ts` (Child, Subject, Me, PlanResponse). Keep them in sync with the API by hand for now.
 
 ## Done when
-- [ ] Wrapper used by at least the Me call in S1-20.
+- [x] Wrapper used by at least the Me call in S1-20.
 
 ## Tests
 - Unit tests with a mocked fetch: 200 → parsed body; 404 JSON → ApiError with code; network error → status 0; 401 → onUnauthenticated called
