@@ -1,35 +1,114 @@
-// Generates the timeline design tokens (T-01): a 10-hue OKLCH subject palette with per-child
-// steps, plus light and dark chrome colours, written as plain CSS variables to
-// src/styles/tokens.css (read by the SVG timeline) and a Tailwind v4 `@theme inline` map to
-// src/styles/tokens.theme.css (read by the chrome). Run with `npm run tokens -w @hh/web`.
+// Generates the timeline design tokens (T-01, T-01b): two 10-subject palettes with per-child
+// steps, pastel tints, contrast-aware label colours and light and dark chrome colours, written
+// as plain CSS variables to src/styles/tokens.css (read by the SVG timeline) and a Tailwind v4
+// `@theme inline` map to src/styles/tokens.theme.css (read by the chrome).
+// Run with `npm run tokens -w @hh/web`.
+//   - "safe" (the default): Okabe–Ito plus three extra colours, with lightness varied by subject
+//     so lanes stay apart under protan, deutan and tritan simulation.
+//   - "vivid" (opt-in, data-palette="vivid"): the T-01 hues, fixed lightness and chroma.
 // culori is a dev-only dependency: nothing here ships to the browser, only the CSS it writes.
 import { clampChroma, converter, displayable, filterDeficiencyDeuter, filterDeficiencyProt, filterDeficiencyTrit, differenceEuclidean, wcagContrast, type Color, type Oklch } from "culori";
 
 export type ThemeName = "light" | "dark";
+export type PaletteName = "safe" | "vivid";
 export type StepName = "base" | "light" | "dark";
 
-/** Lightness of each per-child step, per theme. A child's sub-lane is one step of its subject's hue. */
-interface ThemeSpec {
-  steps: Record<StepName, number>;
-  /** Text drawn on top of every subject swatch in this theme. */
-  label: Oklch;
-  maxChroma: number;
-}
-
-export const HUE_COUNT = 10;
-/** First hue in degrees (a warm red); the rest are spaced 360 / HUE_COUNT apart. */
-export const HUE_START = 25;
+export const THEME_NAMES: readonly ThemeName[] = ["light", "dark"];
+export const PALETTE_NAMES: readonly PaletteName[] = ["safe", "vivid"];
+export const DEFAULT_PALETTE: PaletteName = "safe";
+export const SUBJECT_COUNT = 10;
 export const STEP_NAMES: readonly StepName[] = ["base", "light", "dark"];
 export const AA_TEXT = 4.5;
+/** The safe palette's floor: smallest OKLab distance between any two subjects under every vision simulation. Okabe–Ito itself is 0.086. */
+export const CVD_MIN_DISTANCE = 0.08;
 
 const oklch = (l: number, c: number, h: number): Oklch => ({ mode: "oklch", l, c, h });
+const toOklch = converter("oklch");
 
-export const THEMES: Record<ThemeName, ThemeSpec> = {
-  // Light theme: pale bars, near-black labels.
-  light: { steps: { base: 0.8, light: 0.87, dark: 0.73 }, label: oklch(0.22, 0.01, 260), maxChroma: 0.15 },
-  // Dark theme: deep bars, near-white labels.
-  dark: { steps: { base: 0.45, light: 0.52, dark: 0.38 }, label: oklch(0.97, 0.005, 85), maxChroma: 0.15 },
+/** The two label colours; each swatch takes whichever contrasts more with it. */
+export const LABEL_INK = oklch(0.2, 0.01, 260);
+export const LABEL_PAPER = oklch(0.985, 0.002, 250);
+
+/** How far the lighter and darker child steps sit from the subject's base lightness. */
+const SAFE_STEP = 0.07;
+
+/**
+ * Safe palette, subjects 1–7: Okabe–Ito's seven colours (black left out: it disappears on the
+ * dark theme), each nudged in lightness only where a ±SAFE_STEP child step would otherwise fall
+ * where neither label colour reaches 4.5:1. Subjects 8–10 were chosen by a search over sRGB
+ * (lightness 0.45–0.90) for the colour farthest from all the others under every simulation.
+ */
+const OKABE_ITO_BASE: ReadonlyArray<{ hex: string; name: string; dL: number }> = [
+  { hex: "#E69F00", name: "orange", dL: 0 },
+  { hex: "#56B4E9", name: "sky blue", dL: 0 },
+  { hex: "#009E73", name: "bluish green", dL: -0.01 },
+  { hex: "#F0E442", name: "yellow", dL: 0 },
+  { hex: "#0072B2", name: "blue", dL: 0 },
+  { hex: "#D55E00", name: "vermillion", dL: 0 },
+  { hex: "#CC79A7", name: "reddish purple", dL: 0.01 },
+];
+const SAFE_EXTRAS: readonly Oklch[] = [oklch(0.45, 0.18, 0), oklch(0.89, 0.12, 188), oklch(0.63, 0.24, 304)];
+
+function safeBase(): Oklch[] {
+  const oi = OKABE_ITO_BASE.map(({ hex, dL }) => {
+    const c = toOklch(hex);
+    if (!c) throw new Error(`Bad colour ${hex}`);
+    return roundOklch(clampChroma({ ...c, l: c.l + dL }, "oklch") as Oklch);
+  });
+  return [...oi, ...SAFE_EXTRAS];
+}
+
+/** Vivid palette (T-01): fixed lightness and chroma, hue evenly spaced, steps per theme. */
+export const VIVID_HUE_START = 25;
+export const VIVID: Record<ThemeName, { steps: Record<StepName, number>; maxChroma: number }> = {
+  light: { steps: { base: 0.8, light: 0.87, dark: 0.73 }, maxChroma: 0.15 },
+  dark: { steps: { base: 0.45, light: 0.52, dark: 0.38 }, maxChroma: 0.15 },
 };
+
+export const vividHues = (): number[] =>
+  Array.from({ length: SUBJECT_COUNT }, (_, i) => round((VIVID_HUE_START + (i * 360) / SUBJECT_COUNT) % 360, 2));
+
+/** Largest chroma that keeps oklch(l, c, h) inside sRGB, to 0.001. */
+export function maxChromaInGamut(l: number, h: number): number {
+  let lo = 0;
+  let hi = 0.4;
+  while (hi - lo > 0.0005) {
+    const mid = (lo + hi) / 2;
+    if (displayable(oklch(l, mid, h))) lo = mid;
+    else hi = mid;
+  }
+  return Math.floor(lo * 1000) / 1000;
+}
+
+/** The one chroma every vivid hue can reach at the theme's base lightness. */
+export function vividChroma(theme: ThemeName): number {
+  const spec = VIVID[theme];
+  return Math.min(spec.maxChroma, ...vividHues().map((h) => maxChromaInGamut(spec.steps.base, h)));
+}
+
+/** The base colour of every subject, 1–10, for a palette and theme. */
+export function baseColors(palette: PaletteName, theme: ThemeName): Oklch[] {
+  if (palette === "safe") return safeBase(); // the same colours on light and dark: separation doesn't depend on the background
+  const c = vividChroma(theme);
+  return vividHues().map((h) => oklch(VIVID[theme].steps.base, c, h));
+}
+
+function stepLightness(palette: PaletteName, theme: ThemeName, base: Oklch, step: StepName): number {
+  if (palette === "vivid") return VIVID[theme].steps[step];
+  return base.l + (step === "light" ? SAFE_STEP : step === "dark" ? -SAFE_STEP : 0);
+}
+
+/** Pastel tints (T-01b, for the This Week screens): the subject's hue, very light (or very deep in dark). */
+export const PASTEL: Record<ThemeName, { l: number; c: number }> = {
+  light: { l: 0.95, c: 0.035 },
+  dark: { l: 0.32, c: 0.035 },
+};
+
+export const pastel = (base: Oklch, theme: ThemeName): Oklch =>
+  roundOklch(clampChroma(oklch(PASTEL[theme].l, Math.min(PASTEL[theme].c, base.c), base.h ?? 0), "oklch") as Oklch);
+
+/** Text colour for a swatch: whichever label colour contrasts more. */
+export const labelFor = (bg: Oklch): Oklch => (contrast(LABEL_INK, bg) >= contrast(LABEL_PAPER, bg) ? LABEL_INK : LABEL_PAPER);
 
 /** Chrome colours (the shadcn/ui semantic set plus timeline extras), as foreground/background pairs where text sits on them. */
 export const CHROME: Record<ThemeName, Record<string, Oklch>> = {
@@ -107,42 +186,20 @@ export interface Swatch {
   subject: number; // 1-based
   step: StepName;
   color: Oklch;
-}
-
-export const hues = (): number[] => Array.from({ length: HUE_COUNT }, (_, i) => round((HUE_START + (i * 360) / HUE_COUNT) % 360, 2));
-
-/** Largest chroma that keeps oklch(l, c, h) inside sRGB, to 0.001. */
-export function maxChromaInGamut(l: number, h: number): number {
-  let lo = 0;
-  let hi = 0.4;
-  while (hi - lo > 0.0005) {
-    const mid = (lo + hi) / 2;
-    if (displayable(oklch(l, mid, h))) lo = mid;
-    else hi = mid;
-  }
-  return Math.floor(lo * 1000) / 1000;
-}
-
-/** The one chroma every hue can reach at the theme's base lightness (so chroma is held fixed across hues). */
-export function baseChroma(theme: ThemeName): number {
-  const spec = THEMES[theme];
-  return Math.min(spec.maxChroma, ...hues().map((h) => maxChromaInGamut(spec.steps.base, h)));
+  label: Oklch;
 }
 
 /**
- * Every swatch for a theme. Base swatches share lightness and chroma; the lighter and darker
- * child steps keep the same chroma unless a hue can't reach it there, in which case it is
- * reduced just enough to stay in sRGB (hue and lightness never move).
+ * Every swatch for a palette and theme. A lighter or darker child step keeps the subject's hue
+ * and chroma unless that hue can't reach it there, in which case chroma is reduced just enough
+ * to stay in sRGB (hue and lightness never move).
  */
-export function swatches(theme: ThemeName): Swatch[] {
-  const spec = THEMES[theme];
-  const c = baseChroma(theme);
-  return hues().flatMap((h, i) =>
-    STEP_NAMES.map((step) => ({
-      subject: i + 1,
-      step,
-      color: roundOklch(clampChroma(oklch(spec.steps[step], c, h), "oklch") as Oklch),
-    })),
+export function swatches(palette: PaletteName, theme: ThemeName): Swatch[] {
+  return baseColors(palette, theme).flatMap((base, i) =>
+    STEP_NAMES.map((step) => {
+      const color = roundOklch(clampChroma(oklch(stepLightness(palette, theme, base, step), base.c, base.h ?? 0), "oklch") as Oklch);
+      return { subject: i + 1, step, color, label: labelFor(color) };
+    }),
   );
 }
 
@@ -162,7 +219,6 @@ export function minPairwiseDistance(colors: ReadonlyArray<Oklch | string>, simul
 }
 
 type Simulation = (c: Color) => Color;
-const toOklch = converter("oklch");
 
 export const VISION: Record<string, Simulation | undefined> = {
   normal: undefined,
@@ -177,21 +233,33 @@ export const css = (c: Oklch): string => `oklch(${round(c.l, 4)} ${round(c.c, 4)
 
 const swatchVar = (s: Pick<Swatch, "subject" | "step">): string => `subject-${s.subject}${s.step === "base" ? "" : `-${s.step}`}`;
 
-function themeBlock(theme: ThemeName): string[] {
-  const lines = [`  --tl-subject-label: ${css(THEMES[theme].label)};`];
-  for (const s of swatches(theme)) lines.push(`  --tl-${swatchVar(s)}: ${css(s.color)};`);
-  for (const [name, c] of Object.entries(CHROME[theme])) lines.push(`  --tl-${name}: ${css(c)};`);
+/** The subject variables for one palette and theme. Both palettes declare the same names. */
+function subjectLines(palette: PaletteName, theme: ThemeName): string[] {
+  const lines: string[] = [];
+  for (const s of swatches(palette, theme)) {
+    lines.push(`  --tl-${swatchVar(s)}: ${css(s.color)};`, `  --tl-${swatchVar(s)}-label: ${css(s.label)};`);
+  }
+  baseColors(palette, theme).forEach((b, i) => lines.push(`  --tl-subject-${i + 1}-pastel: ${css(pastel(b, theme))};`));
   return lines;
 }
 
+const chromeLines = (theme: ThemeName): string[] => Object.entries(CHROME[theme]).map(([name, c]) => `  --tl-${name}: ${css(c)};`);
+
 const HEADER = "/* Generated by apps/web/scripts/palette.ts (npm run tokens -w @hh/web). Do not edit by hand. */";
 
-/** Plain CSS variables: light on :root, dark under [data-theme="dark"] (opt-in; nothing sets it yet). */
+/** Selectors for the vivid palette on the dark theme, whichever element carries which attribute. */
+const VIVID_DARK = '[data-theme="dark"][data-palette="vivid"],\n[data-theme="dark"] [data-palette="vivid"],\n[data-palette="vivid"] [data-theme="dark"]';
+
+/**
+ * Plain CSS variables. Light theme + safe palette on :root; [data-theme="dark"] and
+ * [data-palette="vivid"] are opt-in attributes (src/lib/timelinePalette.ts sets the palette one).
+ */
 export function renderTokensCss(): string {
   return [
     HEADER,
     ":root {",
-    ...themeBlock("light"),
+    ...chromeLines("light"),
+    ...subjectLines("safe", "light"),
     "  --tl-font: system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif;",
     "  --tl-text-sm: 12px;",
     "  --tl-text-md: 14px;",
@@ -200,19 +268,24 @@ export function renderTokensCss(): string {
     "  --tl-radius: 0.5rem;",
     "}",
     '[data-theme="dark"] {',
-    ...themeBlock("dark"),
+    ...chromeLines("dark"),
+    ...subjectLines("safe", "dark"),
+    "}",
+    '[data-palette="vivid"] {',
+    ...subjectLines("vivid", "light"),
+    "}",
+    `${VIVID_DARK} {`,
+    ...subjectLines("vivid", "dark"),
     "}",
     "",
   ].join("\n");
 }
 
-/** Tailwind v4 theme map: utilities such as bg-subject-3-light or text-muted-foreground resolve to the --tl-* variables. */
+/** Tailwind v4 theme map: utilities such as bg-subject-3-light, text-subject-3-light-label or bg-subject-3-pastel resolve to the --tl-* variables. */
 export function renderThemeCss(): string {
-  const colors = [
-    "subject-label",
-    ...swatches("light").map(swatchVar),
-    ...Object.keys(CHROME.light),
-  ];
+  const subjects = swatches(DEFAULT_PALETTE, "light").flatMap((s) => [swatchVar(s), `${swatchVar(s)}-label`]);
+  const pastels = Array.from({ length: SUBJECT_COUNT }, (_, i) => `subject-${i + 1}-pastel`);
+  const colors = [...subjects, ...pastels, ...Object.keys(CHROME.light)];
   return [
     HEADER,
     "@theme inline {",
@@ -230,15 +303,16 @@ export function renderThemeCss(): string {
   ].join("\n");
 }
 
-/** A plain-text distinctness report: our base hues against the reference palettes, per vision type. */
+const baseMin = (palette: PaletteName, theme: ThemeName, sim: Simulation | undefined): number => minPairwiseDistance(baseColors(palette, theme), sim);
+
+/** A plain-text distinctness report: both palettes against the reference palettes, per vision type. */
 export function renderReport(): string {
-  const rows = Object.keys(VISION).map((v) => {
-    const sim = VISION[v];
-    const ours = (["light", "dark"] as const).map((t) => minPairwiseDistance(swatches(t).filter((s) => s.step === "base").map((s) => s.color), sim).toFixed(3));
-    const refs = Object.values(REFERENCE_PALETTES).map((p) => minPairwiseDistance(p, sim).toFixed(3));
-    return `${v.padEnd(13)} ours light ${ours[0]}  ours dark ${ours[1]}  ${Object.keys(REFERENCE_PALETTES).map((k, i) => `${k} ${refs[i]}`).join("  ")}`;
+  const rows = Object.entries(VISION).map(([v, sim]) => {
+    const ours = PALETTE_NAMES.flatMap((p) => THEME_NAMES.map((t) => `${p} ${t} ${baseMin(p, t, sim).toFixed(3)}`));
+    const refs = Object.entries(REFERENCE_PALETTES).map(([k, pal]) => `${k} ${minPairwiseDistance(pal, sim).toFixed(3)}`);
+    return `${v.padEnd(13)} ${[...ours, ...refs].join("  ")}`;
   });
-  return ["Smallest OKLab distance between any two hues (higher = easier to tell apart):", ...rows].join("\n");
+  return ["Smallest OKLab distance between any two subjects (higher = easier to tell apart):", ...rows].join("\n");
 }
 
 async function main(): Promise<void> {

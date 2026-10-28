@@ -1,74 +1,121 @@
-// T-01: the generated timeline tokens. Colour maths only; nothing renders.
+// T-01 / T-01b: the generated timeline tokens. Colour maths only; nothing renders.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { compile } from "tailwindcss";
 import { converter, displayable } from "culori";
 import { describe, expect, it } from "vitest";
 import {
-  AA_TEXT, CHROME, CHROME_TEXT_PAIRS, HUE_COUNT, REFERENCE_PALETTES, STEP_NAMES, THEMES, VISION,
-  baseChroma, contrast, hues, minPairwiseDistance, renderThemeCss, renderTokensCss, swatches, type ThemeName,
+  AA_TEXT, CHROME, CHROME_TEXT_PAIRS, CVD_MIN_DISTANCE, DEFAULT_PALETTE, LABEL_INK, LABEL_PAPER, PALETTE_NAMES, REFERENCE_PALETTES,
+  STEP_NAMES, SUBJECT_COUNT, THEME_NAMES, VISION, VIVID, baseColors, contrast, minPairwiseDistance, pastel, renderThemeCss,
+  renderTokensCss, swatches, vividChroma, vividHues,
 } from "../scripts/palette";
 
-const THEME_NAMES: ThemeName[] = ["light", "dark"];
 const toRgb = converter("rgb");
 const styles = (name: string) => readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../src/styles", name), "utf8");
+/** Inside sRGB, allowing for the 4-decimal rounding of the emitted values. */
+const inGamut = (c: Parameters<typeof toRgb>[0]) => {
+  const rgb = toRgb(c);
+  return rgb !== undefined && [rgb.r, rgb.g, rgb.b].every((ch) => ch > -1e-3 && ch < 1 + 1e-3);
+};
+const COMBOS = PALETTE_NAMES.flatMap((p) => THEME_NAMES.map((t) => [p, t] as const));
+const SIMULATED = Object.entries(VISION).filter(([name]) => name !== "normal");
 
-describe("subject palette", () => {
-  it("has 10 hues spaced evenly around the wheel", () => {
-    const h = hues();
-    expect(h).toHaveLength(HUE_COUNT);
-    for (let i = 1; i < h.length; i++) expect((h[i]! - h[i - 1]! + 360) % 360).toBeCloseTo(360 / HUE_COUNT, 5);
+describe("safe palette (the default)", () => {
+  it("is the default", () => expect(DEFAULT_PALETTE).toBe("safe"));
+
+  it("starts from Okabe–Ito's seven colours, then adds three", () => {
+    const ref = REFERENCE_PALETTES["Okabe–Ito"]!.slice(0, 7);
+    const ours = baseColors("safe", "light").slice(0, 7);
+    // Lightness may be nudged by at most 0.01 (to keep child steps readable); hue is unchanged.
+    ours.forEach((c, i) => {
+      const r = converter("oklch")(ref[i]!)!;
+      expect(Math.abs(c.l - r.l)).toBeLessThanOrEqual(0.0101);
+      expect(Math.abs((c.h ?? 0) - (r.h ?? 0))).toBeLessThan(0.5);
+    });
+    expect(baseColors("safe", "light")).toHaveLength(SUBJECT_COUNT);
   });
 
-  it.each(THEME_NAMES)("%s: base swatches share one lightness and one chroma", (theme) => {
-    const base = swatches(theme).filter((s) => s.step === "base");
-    expect(base).toHaveLength(HUE_COUNT);
-    expect(new Set(base.map((s) => s.color.l))).toEqual(new Set([THEMES[theme].steps.base]));
-    expect(new Set(base.map((s) => s.color.c))).toEqual(new Set([baseChroma(theme)]));
-    expect(baseChroma(theme)).toBeGreaterThan(0.05);
+  it.each(THEME_NAMES)("%s: no two subjects get the same lightness band, so they differ in more than hue", (theme) => {
+    const ls = baseColors("safe", theme).map((c) => c.l);
+    expect(Math.max(...ls) - Math.min(...ls)).toBeGreaterThan(0.3);
   });
 
-  it.each(THEME_NAMES)("%s: each child step keeps its subject's hue at its own lightness", (theme) => {
-    const all = swatches(theme);
-    expect(all).toHaveLength(HUE_COUNT * STEP_NAMES.length);
-    for (const s of all) {
-      expect(s.color.h).toBe(hues()[s.subject - 1]);
-      expect(s.color.l).toBe(THEMES[theme].steps[s.step]);
-      expect(s.color.c).toBeLessThanOrEqual(baseChroma(theme));
+  it.each(THEME_NAMES.flatMap((t) => SIMULATED.map(([v, sim]) => [t, v, sim] as const)))(
+    `%s, %s: every pair of subjects stays at least ${CVD_MIN_DISTANCE} apart (OKLab)`,
+    (theme, _v, sim) => {
+      expect(minPairwiseDistance(baseColors("safe", theme), sim)).toBeGreaterThanOrEqual(CVD_MIN_DISTANCE);
+    },
+  );
+
+  it.each(THEME_NAMES)(`%s: normal vision is at least ${CVD_MIN_DISTANCE} apart too`, (theme) => {
+    expect(minPairwiseDistance(baseColors("safe", theme))).toBeGreaterThanOrEqual(CVD_MIN_DISTANCE);
+  });
+
+  it("is at least as far apart as the vivid set under every simulation", () => {
+    for (const [, sim] of SIMULATED) {
+      for (const t of THEME_NAMES) expect(minPairwiseDistance(baseColors("safe", t), sim)).toBeGreaterThan(minPairwiseDistance(baseColors("vivid", t), sim));
     }
   });
 
-  it.each(THEME_NAMES)("%s: every swatch is inside sRGB, so no browser has to gamut-map it", (theme) => {
-    for (const s of swatches(theme)) {
-      const rgb = toRgb(s.color);
-      // The emitted values are rounded to 4 places; allow that much drift.
-      for (const ch of [rgb.r, rgb.g, rgb.b]) {
-        expect(ch).toBeGreaterThan(-1e-3);
-        expect(ch).toBeLessThan(1 + 1e-3);
+  it("child steps sit 0.07 lighter and darker, same hue", () => {
+    for (const t of THEME_NAMES) {
+      const base = baseColors("safe", t);
+      for (const s of swatches("safe", t)) {
+        const b = base[s.subject - 1]!;
+        expect(s.color.h).toBeCloseTo(b.h ?? 0, 1);
+        expect(s.color.l).toBeCloseTo(b.l + (s.step === "light" ? 0.07 : s.step === "dark" ? -0.07 : 0), 3);
       }
     }
   });
+});
 
-  it.each(THEME_NAMES)("%s: the label colour meets WCAG AA (4.5:1) on every swatch", (theme) => {
-    const label = THEMES[theme].label;
-    const failures = swatches(theme)
-      .map((s) => ({ s: `${s.subject}/${s.step}`, ratio: contrast(label, s.color) }))
-      .filter((r) => r.ratio < AA_TEXT);
-    expect(failures).toEqual([]);
+describe("vivid palette (opt-in, the T-01 hues)", () => {
+  it("has 10 hues spaced evenly around the wheel", () => {
+    const h = vividHues();
+    expect(h).toHaveLength(SUBJECT_COUNT);
+    for (let i = 1; i < h.length; i++) expect((h[i]! - h[i - 1]! + 360) % 360).toBeCloseTo(360 / SUBJECT_COUNT, 5);
+  });
+
+  it.each(THEME_NAMES)("%s: base swatches share one lightness and one chroma; steps keep the hue", (theme) => {
+    const all = swatches("vivid", theme);
+    const base = all.filter((s) => s.step === "base");
+    expect(new Set(base.map((s) => s.color.l))).toEqual(new Set([VIVID[theme].steps.base]));
+    expect(new Set(base.map((s) => s.color.c))).toEqual(new Set([vividChroma(theme)]));
+    for (const s of all) {
+      expect(s.color.h).toBe(vividHues()[s.subject - 1]);
+      expect(s.color.l).toBe(VIVID[theme].steps[s.step]);
+    }
   });
 
   it.each(THEME_NAMES)("%s: hues stay distinguishable for normal vision (regression floor)", (theme) => {
-    const base = swatches(theme).filter((s) => s.step === "base").map((s) => s.color);
-    expect(minPairwiseDistance(base)).toBeGreaterThan(0.04);
+    expect(minPairwiseDistance(baseColors("vivid", theme))).toBeGreaterThan(0.04);
+  });
+});
+
+describe.each(COMBOS)("%s palette, %s theme", (palette, theme) => {
+  const all = swatches(palette, theme);
+
+  it(`has ${SUBJECT_COUNT} subjects × ${STEP_NAMES.length} steps, all inside sRGB`, () => {
+    expect(all).toHaveLength(SUBJECT_COUNT * STEP_NAMES.length);
+    expect(all.filter((s) => !inGamut(s.color)).map((s) => `${s.subject}/${s.step}`)).toEqual([]);
   });
 
-  it("compares against Okabe–Ito and Paul Tol under every vision simulation", () => {
-    // Reported, not gated: the Page fixes lightness, so colour-blind separation is lower than the
-    // reference palettes by design and labels carry the meaning (see docs/progress/timeline.md).
-    for (const sim of Object.values(VISION)) {
-      for (const ref of Object.values(REFERENCE_PALETTES)) expect(minPairwiseDistance(ref, sim)).toBeGreaterThan(0);
-    }
-    expect(Object.keys(REFERENCE_PALETTES)).toEqual(["Okabe–Ito", "Paul Tol bright"]);
+  it("each swatch's label colour is the better of ink and paper, and meets WCAG AA (4.5:1)", () => {
+    const failures = all.filter((s) => contrast(s.label, s.color) < AA_TEXT).map((s) => `${s.subject}/${s.step}`);
+    expect(failures).toEqual([]);
+    for (const s of all) expect([LABEL_INK, LABEL_PAPER]).toContainEqual(s.label);
+  });
+
+  it("pastel tints keep the subject's hue, and body text on them meets WCAG AA", () => {
+    const fg = CHROME[theme].foreground!;
+    baseColors(palette, theme).forEach((b) => {
+      const p = pastel(b, theme);
+      expect(inGamut(p)).toBe(true);
+      if (b.c > 0.02) expect(p.h).toBeCloseTo(b.h ?? 0, 1);
+      expect(contrast(fg, p)).toBeGreaterThanOrEqual(AA_TEXT);
+      expect(contrast(CHROME[theme]["muted-foreground"]!, p)).toBeGreaterThanOrEqual(AA_TEXT);
+    });
   });
 });
 
@@ -85,30 +132,69 @@ describe("chrome colours", () => {
     expect(Object.keys(CHROME.dark)).toEqual(Object.keys(CHROME.light));
     for (const t of THEME_NAMES) for (const v of Object.values(CHROME[t])) expect(displayable(v)).toBe(true);
   });
+
+  it("the reference palettes run through every vision simulation", () => {
+    for (const sim of Object.values(VISION)) for (const ref of Object.values(REFERENCE_PALETTES)) expect(minPairwiseDistance(ref, sim)).toBeGreaterThan(0);
+  });
 });
 
 describe("generated CSS", () => {
+  const css = renderTokensCss();
+  const block = (selector: string) => {
+    const start = css.indexOf(`${selector} {`);
+    expect(start).toBeGreaterThanOrEqual(0);
+    return css.slice(start, css.indexOf("}", start));
+  };
+  const names = (text: string) => [...text.matchAll(/^\s+(--tl-subject-[\w-]+):/gm)].map((m) => m[1]!).sort();
+
   it("tokens.css and tokens.theme.css match the script (run `npm run tokens -w @hh/web` after changing it)", () => {
     expect(styles("tokens.css")).toBe(renderTokensCss());
     expect(styles("tokens.theme.css")).toBe(renderThemeCss());
   });
 
-  it("light is on :root, dark is opt-in, and type sizes are 12 / 14 / 20 px with tabular numbers", () => {
-    const css = renderTokensCss();
+  it("safe is on :root; dark and vivid are opt-in attributes; nothing follows the OS setting", () => {
     expect(css).toMatch(/^:root \{$/m);
     expect(css).toMatch(/^\[data-theme="dark"\] \{$/m);
+    expect(css).toMatch(/^\[data-palette="vivid"\] \{$/m);
+    expect(css).toContain('[data-theme="dark"][data-palette="vivid"],\n[data-theme="dark"] [data-palette="vivid"],\n[data-palette="vivid"] [data-theme="dark"] {');
     expect(css).not.toMatch(/prefers-color-scheme/);
+  });
+
+  it("every palette block declares the same subject token names, so components don't change", () => {
+    const root = names(block(":root"));
+    expect(root).toHaveLength(SUBJECT_COUNT * (STEP_NAMES.length * 2 + 1)); // swatch + label per step, plus a pastel
+    for (const sel of ['[data-theme="dark"]', '[data-palette="vivid"]', '[data-palette="vivid"] [data-theme="dark"]']) expect(names(block(sel))).toEqual(root);
+    expect(root).toContain("--tl-subject-10-pastel");
+    expect(root).toContain("--tl-subject-10-dark-label");
+  });
+
+  it("the vivid blocks only override subject colours (chrome stays per theme)", () => {
+    for (const sel of ['[data-palette="vivid"]', '[data-palette="vivid"] [data-theme="dark"]']) {
+      const decls = [...block(sel).matchAll(/^\s+(--[\w-]+):/gm)].map((m) => m[1]!);
+      expect(decls.every((n) => n.startsWith("--tl-subject-"))).toBe(true);
+    }
+  });
+
+  it("type sizes are 12 / 14 / 20 px with tabular numbers", () => {
     for (const v of ["--tl-text-sm: 12px", "--tl-text-md: 14px", "--tl-text-lg: 20px", "--tl-numeric: tabular-nums"]) expect(css).toContain(v);
   });
 
   it("does not reuse the existing app's variable names", () => {
     // styles.css owns --muted (a text colour), --line, --danger…; everything new is --tl-*.
-    const declared = [...renderTokensCss().matchAll(/^\s+(--[\w-]+):/gm)].map((m) => m[1]!);
+    const declared = [...css.matchAll(/^\s+(--[\w-]+):/gm)].map((m) => m[1]!);
     expect(declared.every((n) => n.startsWith("--tl-"))).toBe(true);
   });
 
-  it("maps every swatch and chrome colour into Tailwind", () => {
+  it("Tailwind maps every token, and opacity modifiers still work (semi-transparent bars)", async () => {
     const theme = renderThemeCss();
-    for (const n of ["subject-1", "subject-10-light", "subject-10-dark", "muted-foreground", "hatch"]) expect(theme).toContain(`--color-${n}: var(--tl-${n});`);
+    for (const n of ["subject-1", "subject-10-light", "subject-10-dark-label", "subject-7-pastel", "muted-foreground", "hatch"]) {
+      expect(theme).toContain(`--color-${n}: var(--tl-${n});`);
+    }
+    const tw = await compile(`${theme}\n@tailwind utilities;`, { base: process.cwd() });
+    const out = tw.build(["bg-subject-1/50", "fill-subject-4/40", "bg-subject-2-pastel", "text-subject-3-label"]);
+    expect(out).toContain("color-mix(in oklab, var(--tl-subject-1) 50%, transparent)");
+    expect(out).toContain("color-mix(in oklab, var(--tl-subject-4) 40%, transparent)");
+    expect(out).toContain("background-color: var(--tl-subject-2-pastel)");
+    expect(out).toContain("color: var(--tl-subject-3-label)");
   });
 });
