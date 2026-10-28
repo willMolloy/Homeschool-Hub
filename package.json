@@ -23,6 +23,8 @@
     "db:migrate": "tsx db/migrate.ts",
     "db:reset": "tsx db/migrate.ts --reset",
     "db:seed": "tsx db/seed.ts",
+    "db:validate": "node db/test/validate.cjs --scratch",
+    "check": "bash scripts/check.sh",
     "demo": "tsx db/demo.ts"
   },
   "devDependencies": {

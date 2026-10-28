@@ -22,6 +22,8 @@ npm run test:tz     # engine tests under 7 time zones (engine must not depend on
 npm run lint
 npm run typecheck
 npm run build
+npm run db:validate # apply the migrations to a scratch hh_validate_test and run db/test/validate.sql
+npm run check       # the full gate (scripts/check.sh): run before every commit
 npm run dev:web     # Vite dev server on :5173 (proxies /api to :3000)
 npm run dev:api     # API on :3000
 ```
@@ -39,6 +41,6 @@ psql postgres://hh:hh@localhost:5432/hh_dev -c 'select 1'
 docker compose down                # stop (add -v to delete the data)
 ```
 
-Validate the schema: see `db/README.md` (`DATABASE_URL=... node db/test/validate.cjs`).
+Validate the schema: `npm run db:validate` (see `db/README.md`). The gate and the browser smoke scripts are in `scripts/` (see `scripts/README.md`).
 
 Reviewing? Start with `docs/REVIEW-GUIDE.md`.

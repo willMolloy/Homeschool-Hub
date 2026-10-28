@@ -1,0 +1,10 @@
+{
+  "name": "hh-smoke",
+  "private": true,
+  "description": "Browser smoke runner (puppeteer-core + axe-core). Not an npm workspace: install with `npm install` in this folder.",
+  "type": "module",
+  "dependencies": {
+    "axe-core": "^4.14.0",
+    "puppeteer-core": "^24.43.1"
+  }
+}

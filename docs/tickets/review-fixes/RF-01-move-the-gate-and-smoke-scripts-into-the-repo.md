@@ -17,8 +17,8 @@ The gate (`/workspace/check.sh`) and the puppeteer smoke runner (`/tmp/shots/flo
 4. Document both in `scripts/README.md` and link it from the root README.
 
 ## Done when
-- [ ] `scripts/check.sh` on the box is green with the same counts as `/workspace/check.sh`.
-- [ ] `cd scripts/smoke && npm install && node flow.mjs login` works against the dev servers.
+- [x] `scripts/check.sh` on the box is green with the same counts as `/workspace/check.sh`.
+- [x] `cd scripts/smoke && npm install && node flow.mjs login` works against the dev servers.
 
 ## Tests
 - The gate itself: `scripts/check.sh` runs green.

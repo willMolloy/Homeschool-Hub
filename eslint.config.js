@@ -26,6 +26,11 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.serviceworker } },
   },
   {
+    // Smoke scenarios run code inside the page via page.evaluate().
+    files: ["scripts/smoke/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
     files: ["**/*.cjs"],
     languageOptions: { sourceType: "commonjs", globals: { ...globals.node } },
     rules: { "@typescript-eslint/no-require-imports": "off" },

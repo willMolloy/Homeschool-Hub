@@ -1,0 +1,52 @@
+export default async function ({ page, shot, login, log, BASE }) {
+  await page.goto(`${BASE}/schedule/events`, { waitUntil: "networkidle0" });
+  await login();
+  await page.waitForFunction(() => location.pathname === "/schedule/events", { timeout: 5000 });
+  await page.waitForSelector(".schedule-list, .schedule-empty");
+  log("cards:", await page.$$eval(".schedule-card", (c) => c.map((x) => x.innerText.replace(/\n/g, " | ")).join(" // ")), "sw", await page.evaluate(() => document.documentElement.scrollWidth));
+  await shot("s2a-16-events-list-360");
+  const planText = async () => {
+    await page.goto(`${BASE}/?week=2026-11-16`, { waitUntil: "networkidle0" });
+    await page.waitForSelector("table");
+    return page.$eval("table", (t) => t.innerText);
+  };
+  const before = await planText();
+  await page.goto(`${BASE}/schedule/events`, { waitUntil: "networkidle0" });
+  await page.waitForSelector(".schedule-list, .schedule-empty");
+  await page.click(".schedule-actions .btn");
+  const form = "form[aria-label='Add event']";
+  await page.waitForSelector(form);
+  await (await page.$(`${form} input[type=text]`)).type("Smoke test event");
+  const tue = await page.$(`${form} input[aria-label=Tuesday]`);
+  await tue.evaluate((e) => e.scrollIntoView({ block: "center" }));
+  await tue.click();
+  await page.select(`${form} select`, "skip");
+  log("form sw", await page.evaluate(() => document.documentElement.scrollWidth));
+  await shot("s2a-16-events-add-360");
+  await page.$eval(`${form} button[type=submit]`, (b) => b.scrollIntoView({ block: "center" }));
+  await page.click(`${form} button[type=submit]`);
+  await page.waitForFunction(() => [...document.querySelectorAll(".card-title")].some((e) => e.textContent === "Smoke test event"), { timeout: 5000 });
+  log("added:", await page.$$eval(".schedule-card", (c) => c.map((x) => x.innerText.replace(/\n/g, " | ")).filter((t) => t.includes("Smoke")).join("")));
+  const after = await planText();
+  log("plan changed:", before !== after);
+  const tueCol = (t) => t.split("\n").filter((l) => /^(Math|Total|Literature|History)/.test(l)).slice(0, 4);
+  log("before rows:", JSON.stringify(tueCol(before)));
+  log("after rows:", JSON.stringify(tueCol(after)));
+  await shot("s2a-16-plan-after-add-360");
+  await page.goto(`${BASE}/schedule/events`, { waitUntil: "networkidle0" });
+  await page.waitForSelector(".schedule-list");
+  for (const b of await page.$$(".schedule-card-btn")) if ((await b.evaluate((e) => e.textContent)).includes("Smoke test event")) { await b.click(); break; }
+  await page.waitForSelector("form.schedule-form");
+  await shot("s2a-16-events-edit-360");
+  await page.click("form.schedule-form .btn-danger");
+  await page.waitForSelector("dialog[open]");
+  await page.click("dialog[open] .btn-danger, dialog[open] button.btn:not(.btn-secondary)");
+  await page.waitForFunction(() => ![...document.querySelectorAll(".card-title")].some((e) => e.textContent === "Smoke test event"), { timeout: 5000 });
+  log("archived; plan back:", (await planText()) === before);
+  await page.goto(`${BASE}/schedule/events`, { waitUntil: "networkidle0" });
+  await page.setViewport({ width: 1280, height: 800 });
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForSelector(".schedule-list, .schedule-empty");
+  log("1280 sw", await page.evaluate(() => document.documentElement.scrollWidth));
+  await shot("s2a-16-events-1280", 1280, 800);
+}

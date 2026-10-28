@@ -31,6 +31,8 @@ Design notes
 ## Validate
 
 ```bash
+# what the gate and CI run: creates hh_validate_test on the DATABASE_URL server, validates, drops it
+npm run db:validate
 # against any EMPTY database you own
 DATABASE_URL=postgres://user:pass@localhost:5432/hh_scratch node db/test/validate.cjs
 # or with a throwaway embedded Postgres (no install needed)
@@ -38,5 +40,5 @@ npm i --prefix /tmp/pgtest embedded-postgres pg
 NODE_PATH=/tmp/pgtest/node_modules node db/test/validate.cjs
 ```
 
-Last validated: PostgreSQL 18.4 (embedded-postgres), 25 behavioural checks, all passed.
+Validated on every gate run and in CI (PostgreSQL 16); also passed on PostgreSQL 18.4 (embedded-postgres).
 Not tested on older versions; it uses only features available since PostgreSQL 13 (`gen_random_uuid()` in core).
