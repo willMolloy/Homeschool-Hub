@@ -22,7 +22,8 @@
     "dev:api": "npm run dev -w @hh/api",
     "db:migrate": "tsx db/migrate.ts",
     "db:reset": "tsx db/migrate.ts --reset",
-    "db:seed": "tsx db/seed.ts"
+    "db:seed": "tsx db/seed.ts",
+    "demo": "tsx db/demo.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

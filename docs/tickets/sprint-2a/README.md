@@ -30,6 +30,7 @@ It also fixes two tester findings at the API boundary: **T-API-3** (a bad time z
 | S2a-15 | [Add the days-off screen](S2a-15-add-the-days-off-screen.md) | S2a-07, S2a-12 | S |
 | S2a-16 | [Add the events screen](S2a-16-add-the-events-screen.md) | S2a-10, S2a-12 | M |
 | S2a-17 | [Serve and canonicalize time zones](S2a-17-serve-and-canonicalize-time-zones.md) (tester T2-2, T2-3) | S2a-02, S2a-13 | S |
+| S2a-18 | [Add a one-command demo](S2a-18-add-a-one-command-demo.md) | Sprint 1 | XS |
 
 ### Tracks
 - **Family settings:** S2a-01 → S2a-02 → S2a-13 → S2a-17
@@ -38,4 +39,4 @@ It also fixes two tester findings at the API boundary: **T-API-3** (a bad time z
 - **Events:** S2a-03 → S2a-08 → S2a-09 → S2a-10 → S2a-16
 - **Contract:** S2a-11 after the API tickets; S2a-12 before any screen.
 
-Implementation order used: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, then 17 (added after tester round 2).
+Implementation order used: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, then 17 and 18 (added after tester round 2).
