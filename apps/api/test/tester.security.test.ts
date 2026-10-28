@@ -182,18 +182,18 @@ describe.skipIf(!hasDb)("tester: hostile input", () => {
     }
   });
 
-  it.fails.each(["children", "subjects"])("a NUL byte in a %s name is a 400, not a 500", async (kind) => {
+  it.each(["children", "subjects"])("a NUL byte in a %s name is a 400, not a 500", async (kind) => {
     const res = await post(kind, { name: "Ada\u0000" });
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe("invalid_request");
   });
 
-  it.fails("a NUL byte in the login email is a 401/400, not a 500", async () => {
+  it("a NUL byte in the login email is a 401/400, not a 500", async () => {
     const res = await app.inject({ method: "POST", url: "/api/auth/login", payload: { email: "a\u0000@example.com", password: "whatever-password" } });
     expect([400, 401]).toContain(res.statusCode);
   });
 
-  it.fails("a NUL byte in a PATCH name is a 400, not a 500", async () => {
+  it("a NUL byte in a PATCH name is a 400, not a 500", async () => {
     const id = (await post("children", { name: "Patchy" })).json().id;
     const res = await app.inject({ method: "PATCH", url: `/api/children/${id}`, payload: { name: "x\u0000y" }, cookies: a.cookies });
     expect(res.statusCode).toBe(400);

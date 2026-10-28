@@ -4,7 +4,7 @@ import { HttpError } from "../app";
 import { hashPassword, verifyPassword } from "../auth/password";
 import { SESSION_COOKIE, SESSION_DAYS, hashSessionToken, newSessionToken, sessionCookieOptions } from "../auth/session";
 
-const LoginBody = z.object({ email: z.string().trim().min(1).max(320), password: z.string().min(1).max(1000) });
+const LoginBody = z.object({ email: z.string().trim().min(1).max(320).refine((s) => !s.includes("\u0000")), password: z.string().min(1).max(1000) });
 
 // Verified against when the email is unknown, so response time doesn't reveal which emails exist.
 let dummyHash: Promise<string> | null = null;
