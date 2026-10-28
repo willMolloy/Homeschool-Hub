@@ -2,6 +2,7 @@
 import type { FastifyInstance } from "fastify";
 import { humanList, SUBJECT_RULES, type SubjectRule } from "@hh/engine";
 import { z } from "zod";
+import { assertNotDemo } from "../auth/demo";
 import { HttpError } from "../http/errors";
 import { withTransaction } from "../db";
 import { CapacityFraction, checkDateOrder, IdList, LocalDate, MAX_TITLE, Weekdays } from "../http/scheduleLimits";
@@ -91,6 +92,7 @@ export async function eventsRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/api/events", async (req, reply) => {
+    await assertNotDemo(app.db, req.familyId, "The demo family can't add events.");
     const b = parseBody(CreateBody, req.body);
     checkOrder(b.startDate, b.endDate);
     const subjectRules = b.subjectRules ?? (Object.create(null) as Record<string, SubjectRule>);

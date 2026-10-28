@@ -2,6 +2,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { SUBJECT_RULES } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
+import { useMe } from "../../auth/AuthProvider";
 import type { EventRule, ScheduleEvent } from "../../api/types";
 import { ChildPicker, dateRange, saveError, sameSet, shortDate, spanDays, WeekdayPicker, weekdaySummary } from "./formBits";
 import { WithLookups, type Lookups } from "./lookups";
@@ -39,6 +40,7 @@ export function parsePercent(raw: string): number | string {
 }
 
 export function EventsPage() {
+  const { demo } = useMe();
   return (
     <WithLookups title="Events">
       {(l) => (
@@ -53,6 +55,7 @@ export function EventsPage() {
           confirmText="The plan stops using it. You can unarchive it later from Show archived."
           renderCard={(e) => <EventCard e={e} l={l} />}
           renderForm={(p) => <EventForm {...p} l={l} />}
+          canAdd={!demo}
         />
       )}
     </WithLookups>

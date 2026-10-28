@@ -6,7 +6,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 |--------|--------|-------|
 | T-01 Generate the timeline design tokens | 9df15da | `scripts/palette.ts` → `src/styles/tokens.css` + `tokens.theme.css`; Tailwind v4 without Preflight; shadcn/ui `base-nova` config + `cn()`; no components yet |
 | T-01b Colour-blind-safe default palette | a58731e | Okabe–Ito-based "safe" palette is the default; T-01 hues kept as `data-palette="vivid"`; per-swatch label tokens; `--tl-subject-N-pastel` tints; `src/lib/timelinePalette.ts` helper (no UI) |
-| T-02 Timeline view model | (this commit) | `features/timeline/{grid,marks,model}.ts`: subject lanes → child sub-lanes, daily + weekly-smoothed thickness per assignment on one daily grid, breaks, event days, Today, totals. Pure; nothing renders yet |
+| T-02 Timeline view model | 13209a6 | `features/timeline/{grid,marks,model}.ts`: subject lanes → child sub-lanes, daily + weekly-smoothed thickness per assignment on one daily grid, breaks, event days, Today, totals. Pure; nothing renders yet |
+| T-02b Hand-test fixes | (this commit) | App declared light-only and native fields given explicit colours, with a CSS contrast test. The demo family can't add events (button hidden, `POST /api/events` → 403). The hide-until-selected rule for the adjust buttons is recorded for T-07 |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -75,3 +76,31 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **Breaks keep their children.** A family-wide break (`childIds: []`) will shade every lane; a per-child one only that child's sub-lanes (T-03/T-04).
 - **Thickness, never minutes.** The model carries the engine's thickness points; a test checks that no "minute" key appears.
 - **Unknown ids don't crash the view.** A plan whose subject, child or assignment is missing from the lists gets "Subject", "Child" or "Assignment" and sorts last.
+
+## Spec notes: design principles (DeeDee, 2026-10-28; every ticket from T-02b on)
+
+- The app is very simple and visually calm, never overwhelming.
+- Show only what's essential. Controls appear only when they're relevant: progressive disclosure, with sensible defaults.
+- No extra helper text, badges or borders.
+- Every ticket has an acceptance criterion that checks for anything shown that isn't essential.
+
+### Spec notes: layout rules for T-03 (DeeDee's hand test)
+
+- **No overlap.**
+  - Two bars never overlap horizontally on one row, even within one subject.
+  - Assignments that overlap in time go on separate sub-rows in the lane.
+  - Each row has its own fixed centerline, and spacing comes from each row's thickest point plus the same gap.
+  - Rows come from greedy interval packing, by start date, then id.
+- **Horizontal room.**
+  - Compact lane labels, minimal side padding, full-bleed on phones, nothing beside the timeline.
+  - Tap targets stay at 44 px or more.
+- **Bar opacity.** One token, `--tl-bar-opacity`, about 15–20 points lower than before. Colour-blind minimums and label contrast are re-checked at it.
+
+## T-02b — hand-test fixes
+
+- **Contrast: likely cause.** The rendered scan found no failing text in the app. It covered every signed-in screen with the demo login, at 390 and 1280 px, in light and dark `prefers-color-scheme` and in Chrome's forced-dark mode. The only cause the scan and the code point to is native fields and buttons, which a dark OS or browser theme can draw dark gray under our fixed dark text. Declaring the app light-only and giving fields explicit colours closes that path. If DeeDee saw it in the prototype on the Page (its controls come from the Page host), that needs a Page edit, which is outside this repo.
+- **The demo is found by its login email**, the only marker it has. The address now lives once, in `apps/api/src/auth/demo.ts`, and the seed imports it.
+- **Only adding events is blocked**, as asked. The demo can still edit or archive the seeded events. The check runs before the body is validated, so the demo gets the same 403 for any body.
+- **The adjust buttons are prototype-only.** "End one week earlier/later" and "Reset" don't exist in the app yet. The hide-until-selected rule is written into the T-07 requirements.
+- **Existing screens are flagged, not redesigned.** Things on the This Week screen that may break the design principles are listed in the T-02b report.
+

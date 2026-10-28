@@ -19,10 +19,12 @@ export interface Me {
   timeZone: string;
   /** Today (YYYY-MM-DD) in the family's zone, from the server clock (RF-07). */
   today: string;
+  /** The seeded demo family: it can look around but not add events (the API refuses too). */
+  demo: boolean;
 }
 
 /** GET/PATCH /api/family */
-export type FamilySettings = Omit<Me, "familyId" | "today"> & {
+export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */
   weekStartLocked: boolean;
 };

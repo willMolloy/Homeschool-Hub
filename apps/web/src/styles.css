@@ -8,9 +8,16 @@
   color: #1b1f24;
   background: #f6f7f9;
   line-height: 1.45;
+  /* Light-only app: no dark OS or browser theme may draw native controls dark under our dark text. */
+  color-scheme: light;
 }
 body {
   margin: 0;
+}
+/* Native fields get explicit colours rather than the browser's, so they always read. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea {
+  color: #1b1f24;
+  background-color: #fff;
 }
 /* >= 16px so iOS Safari doesn't zoom into inputs */
 input, select, textarea, button {

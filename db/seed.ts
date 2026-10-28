@@ -7,11 +7,13 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { DEMO_LOGIN_EMAIL } from "../apps/api/src/auth/demo";
 import { hashPassword } from "../apps/api/src/auth/password";
 import { assignments, blocked, calendar, events, subjectWeights } from "../packages/engine/test/fixtures/sample-family";
 import { databaseName, databaseUrlFromEnv } from "./migrate";
 
-export const DEMO_EMAIL = "demo@example.com";
+/** The API treats this login as the read-only demo (apps/api/src/auth/demo.ts). */
+export const DEMO_EMAIL = DEMO_LOGIN_EMAIL;
 export const DEMO_PASSWORD = "demo-password";
 
 const CHILDREN = [

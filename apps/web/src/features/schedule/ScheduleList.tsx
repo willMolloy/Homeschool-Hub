@@ -44,10 +44,12 @@ interface Props<T extends ListItem> {
   confirmText: string;
   /** Extra content above the list (e.g. a hint). */
   intro?: ReactNode;
+  /** false hides "Add {noun}" entirely (the demo family can't add events). Default true. */
+  canAdd?: boolean;
 }
 
 export function ScheduleList<T extends ListItem>(props: Props<T>) {
-  const { title, noun, endpoint, emptyText, removal, labelOf, sort, renderCard, renderForm, confirmText, intro } = props;
+  const { title, noun, endpoint, emptyText, removal, labelOf, sort, renderCard, renderForm, confirmText, intro, canAdd = true } = props;
   const archivable = removal === "archive";
   const [showArchived, setShowArchived] = useState(false);
   const path = archivable && showArchived ? `${endpoint}?includeArchived=true` : endpoint;
@@ -160,7 +162,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
         </div>
       ) : (
         <>
-          {adding ? (
+          {adding && canAdd ? (
             renderForm({
               item: null,
               onSaved: (created) => {
@@ -172,7 +174,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
               extra: null,
               externalError: null,
             })
-          ) : (
+          ) : canAdd ? (
             <div className="schedule-actions">
               <button
                 ref={addBtn}
@@ -186,7 +188,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
                 Add {noun}
               </button>
             </div>
-          )}
+          ) : null}
           {items.length > 0 ? (
             <ul className="schedule-list" aria-label={title}>
               {items.map((item) => (

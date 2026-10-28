@@ -25,7 +25,7 @@ describe.skipIf(!hasDb)("GET /api/me (integration)", () => {
   it("signed in → the seeded family, camelCase", async () => {
     const res = await app.inject({ method: "GET", url: "/api/me", cookies: { hh_session: token } });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ familyId, name: "Demo family", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", today: "2026-11-02" });
+    expect(res.json()).toEqual({ familyId, name: "Demo family", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", today: "2026-11-02", demo: false });
   });
 
   it("today follows the family's zone at the injected instant (2026-11-02T10:30Z)", async () => {

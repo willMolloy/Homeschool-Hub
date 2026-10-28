@@ -34,6 +34,7 @@ export const DEMO_ME: Me = {
   schoolDays: [1, 2, 3, 4, 5],
   timeZone: "America/Chicago",
   today: "2026-10-28",
+  demo: false,
 };
 
 const ROSTER_PATCH = ["name", "color", "sortOrder", "archived"];

@@ -2,7 +2,7 @@ import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { ScheduleEvent } from "../src/api/types";
-import { fakeApi } from "./helpers/fake-api";
+import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { FRANK, LATIN, MAGGIE, MATH, patchMerging, READING, rowId, withRoster, writes } from "./helpers/schedule-fixtures";
 import { renderAt } from "./render";
 
@@ -168,5 +168,19 @@ describe("Events screen", () => {
     await user.selectOptions(within(form).getByLabelText("Math"), "normal");
     await user.click(within(form).getByRole("button", { name: "Save" }));
     expect(await within(form).findByText("Unknown or archived subject.")).toBeInTheDocument();
+  });
+});
+
+describe("Events screen for the demo family", () => {
+  it("hides Add event (the API refuses it too) but still lists and opens events", async () => {
+    fakeApi.on("GET /api/me", 200, { ...DEMO_ME, demo: true });
+    await setup();
+    expect(screen.queryByRole("button", { name: "Add event" })).toBeNull();
+    expect(cards()).toHaveLength(2);
+  });
+
+  it("other families keep Add event", async () => {
+    await setup();
+    expect(screen.getByRole("button", { name: "Add event" })).toBeVisible();
   });
 });
