@@ -242,3 +242,28 @@ Written by the developer as the tester ticket's suites (DeeDee's brief); a separ
 |---|---|---|---|
 | T3-1 | Info | The DB doesn't **reject** 3 decimals: `numeric(6,2)` rounds `1.234` to `1.23` before the CHECK sees it (and `0.001` rounds to `0.00`, which the CHECK then rejects). Only the API and web stop 3 decimals. | Not fixed; pinned by a test. Writes only come through the API. A `CHECK (weight_per_unit = round(weight_per_unit, 2))` can't help either, since the cast rounds first; rejecting would need the column as unconstrained `numeric`. |
 | T3-2 | Info | The web parsers use `Number()`, so `"0x10"` or `"1e1"` would parse (16, 10). The `type="number"` input doesn't let those through in a browser. | Not fixed; noted. |
+
+## Round 4 (Sprint 2b weights): S2b-37 subject defaults and precedence
+
+Written by the developer as the tester ticket's suites (DeeDee's brief); a separate tester verifies afterwards.
+
+**Suites:**
+- `packages/engine/test/tester.subjects.test.ts` (22): plan and suggestion precedence per unit, lessons/minutes ignoring usual weights, live default, every unit mismatch pair, bad stored subject values, multi-child.
+- `apps/api/test/tester4.subjects.test.ts` (17): the same through `/api/subjects`, `/api/assignments`, `/api/weights/suggestion` and `/api/plan`, plus the DB CHECKs.
+- `apps/web/test/tester4.picker.test.ts` (18): every preset × unit planned through the engine.
+
+| Case | Where | Result |
+|---|---|---|
+| 1 Precedence matrix | engine + API | Pass for pages and chapters: explicit → `assignment` even with history and a subject default; history + subject → the suggestion is the child's learned value (D19); subject only → `subject` (suggestion and plan); nothing → built-in (`default`). Lessons and minutes with history rows faked in the DB (the CHECK dropped in a rolled-back transaction) → the history is ignored: built-in, or the subject default when there is one. The plan never reads history. |
+| 2 Live default (D20) | engine + API | Pass: a null-weight assignment follows a subject PATCH (2 → 3.5) on the next plan, and drops to the built-in when the default moves to another unit or is cleared. One that took the learned value (1.6) or an explicit one (4) stays put. |
+| 3 Unit mismatch | engine (all 12 pairs) + API | Pass: Math's lessons-20 default leaves a Math pages assignment at 1 (`default`) and the pages suggestion at `builtin` (the response still reports `subjectDefault`); a Math lessons assignment gets 20. |
+| 4 Bad values | API + DB | Pass: 0, -1, 101, 1.234, a missing or null unit, a string weight → 400 on create (nothing written) and PATCH (stored default unchanged). The DB CHECKs reject 0, -1, 101, a weight without a unit, a unit without a weight, and an unknown unit (23514). **T4-1** below. |
+| 5 Archived subject | API | Pass, with the existing rule: while archived, its assignments aren't planned (Sprint 1), but `loadPlanInputs` still loads its default (S2b-33) and a suggestion with it returns it; unarchived, they plan at it (`subject`). |
+| 6 Multi-child + subject | engine + API | Pass: neither child with history → the subject default, `source: "subject"`, both listed with `usual: null, choices: 0` (what the hint shows); the plan gives both children 2.5 `subject`. The hint text is in `weight-hint.test.tsx`. |
+| 7 Picker | web (engine plan) | Pass: Light ½, Normal 1, Heavy 1½, Very heavy 2 × each unit's built-in; each round-trips through `presetFor` and plans at `units × built-in × multiplier`; None saves null and falls to the subject default or built-in. The rendered picker and its preview bar are in `thickness-picker.test.tsx`. |
+
+### Findings
+
+| ID | Severity | What | Status |
+|---|---|---|---|
+| T4-1 | Info | Like T3-1: `subject.default_weight` is `numeric(6,2)`, so the DB rounds `1.234` to `1.23` instead of rejecting it. The API rejects it. | Not fixed; pinned by a test. |

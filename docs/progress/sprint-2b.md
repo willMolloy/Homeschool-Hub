@@ -27,7 +27,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-13 retire minutesPerUnit from the API and web | 87d4421 | |
 | S2b-14 remove minute outputs from the engine (0.3.0) | ddecdda | |
 | S2b-15 migration 007 drops minutes_per_unit | 57309e4 | |
-| S2b-16 tester pass: weight edge cases | (this commit) | |
+| S2b-16 tester pass: weight edge cases | 1cebc14 | |
+| S2b-37 tester pass: subject defaults and precedence | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -65,6 +66,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-15 — dropping the column.** `007_drop_minutes_per_unit.sql` drops 003's `assignment_minutes_unit_no_mpu` explicitly and then the column; 001–004 are history and keep their mentions (noted in `db/README.md`). With the column gone, S2b-13's `TODO(S2b-15)` line in `updateAssignment` was removed and `weight-rules.test.ts` lost its legacy-column tests (the D7/D21 behaviour tests stay). `validate.sql` lost RF-10's checks (section 10 and the negative-value check), and `minutes-unit.test.ts` still runs because it migrates only 001–003. New `drop-mpu.test.ts` covers 003 data → 006 → 007 (weights and subject defaults untouched, column and constraint gone, writing it fails with 42703) and runs `validate.sql` on a 003 → latest upgrade, checking its `assignment` columns equal a fresh database's.
 
 - **S2b-16 — tester suites written by the developer.** The four suites and the case table are in `tester-report.md` (round 3). Two findings, both Info and not fixed: T3-1 (the DB rounds 3-decimal weights instead of rejecting them; only the API/web reject) and T3-2 (the web parsers accept hex/exponent strings the number input never sends). Case 10's UI half is manual: the picker caption's "≈ N min of work" is S2b-34's requirement and comes from the weight, not the plan.
+
+- **S2b-37 — what "learned" and "archived" mean here.** The plan never reads history (S2b-05: assignment → subject → built-in), so case 1's "history + subject → learned" is checked where D19 applies, in the suggestion, and the saved prefilled value then plans as `assignment` (case 2 shows it doesn't follow a later subject change). Case 5's "its assignments still use its default" meets Sprint 1's rule that an archived subject's assignments aren't planned: the test pins that they drop out while archived, that `loadPlanInputs` still carries the default (S2b-33), that a suggestion with the subject uses it, and that unarchiving plans them at it. No behaviour was changed. One Info finding, T4-1 (the subject column rounds 3 decimals, like T3-1).
 
 ## Deferred
 
