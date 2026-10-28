@@ -4,22 +4,23 @@
 **Size:** S
 
 ## Goal
-The home screen (This Week, `/`) shows a dismissible "How did last week go?" card. Each row shows last week's planned range, pre-filled as done, so the parent can confirm it in one tap or correct any row.
+The home screen (This Week, `/`) shows an optional, quick "How did last week go?" card. One tap confirms **Last week went as planned**, **Adjust** opens a per-assignment list, and skipping counts as done.
 
 ## Behaviour
-- **When it shows** (never nag):
-  - Show it only if `GET /api/check-ins` (last week) has `status: null` and at least one item.
-  - Once reviewed or skipped, it's gone for that week, on every device.
-  - No reminders, badges or modals; older weeks never pop up on their own.
-- **Rows:** grouped by child, one row per assignment.
-  - "Story of the World — pp. 1–80" (with the unit word for chapters, lessons or minutes), and a ✓ "Done as planned" state.
-  - **Change** opens an inline number field "Got to page ___", pre-filled with `plannedTo` and limited to 0..total.
+- **When it shows (it never nags):**
+  - Only when `GET /api/check-ins` (last week) has `status: null` and at least one item.
+  - Once confirmed, saved or skipped, it's gone for that week on every device.
+  - No reminders, badges, modals or pop-ups for older weeks.
+- **Collapsed (the default, one line):** "How did last week go? 6 assignments were planned." with three controls:
+  - **Last week went as planned** (primary): one tap → a PUT `{status: "reviewed", items: []}` → "Thanks!" → the card goes away. The bars don't change, because the plan already assumes done.
+  - **Adjust**: expands the list.
+  - **Skip** (a quiet link, titled "Skipping counts as done"): a PUT `{status: "skipped", items: []}`.
+- **Expanded:**
+  - One row per child × assignment, grouped by child, with multi-child assignments shown per child.
+  - Each row: "Story of the World — pp. 1–80 planned" plus a ✓ "Done as planned" state.
+  - Each row has the adjust control from S2b-36.
   - Untouched rows count as done.
-- **Buttons:**
-  - **All done**: sends a `reviewed` PUT with no items.
-  - **Save** appears once a row was changed (wired in S2b-26).
-  - **Skip for this week** (a quiet link): sends a `skipped` PUT. Skipped work also counts as done.
-- Multi-child assignments show one row per child, so Margaret can be at 80 while Frank is at 65.
+  - The footer has **Save** (enabled once any row changed; the logic is in S2b-26) and **Last week went as planned**, which also resets any edits.
 - A loading or error state never blocks the plan underneath; on error, hide the card.
 
 ## Steps
@@ -28,12 +29,12 @@ The home screen (This Week, `/`) shows a dismissible "How did last week go?" car
 3. Fake-API handlers for GET and PUT.
 
 ## Tests (`apps/web/test/last-week-card.test.tsx`)
-- It renders rows with the planned ranges.
+- Collapsed by default with the count.
+- **Went as planned** → exactly one PUT (`reviewed`, no items) and the card is gone, with no other step.
+- **Skip** → `skipped`, and the card is gone.
 - Hidden when the status is set, when there are no items, and on error.
-- All done → the PUT body is `{status: "reviewed", items: []}` and the card disappears.
-- Skip → `skipped`.
-- Change shows the field, limited to 0..total, with a client error outside it.
-- Multi-child rows; accessibility (labelled inputs, buttons reachable by keyboard).
+- **Adjust** expands the rows, with the planned ranges and one row per child on multi-child assignments.
+- Keyboard: every control is reachable and labelled.
 
 ## Out of scope
-- The behind or ahead question (S2b-26) and editing past weeks (S2b-27).
+- The row control (S2b-36), the behind/ahead question and save (S2b-26), and past weeks (S2b-27).

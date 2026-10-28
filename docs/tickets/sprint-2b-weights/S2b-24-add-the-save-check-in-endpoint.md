@@ -19,7 +19,7 @@
   - `mode` is required (400 "mode: choose how to catch up or use the extra time") when the position differs from `plannedTo` by more than 0.5 units **and** the position < total (**D11**).
   - `mode` must be null when the position equals the plan or finishes the assignment.
 - **Semantics: PUT replaces the week.**
-  - Items equal to `plannedTo` (within 0.5) are **not** stored, and any old row for them is deleted. "All done" is the empty-items case.
+  - Items equal to `plannedTo` (within 0.5) are **not** stored, and any old row for them is deleted. "Last week went as planned" is the empty-items case.
   - Pairs missing from `items` lose their stored row, so un-editing a past check-in restores "as planned".
   - The `week_review` row is upserted.
 - **Week rules:** the same as GET (only finished weeks, which allows editing any past week). Editing an older week while later weeks have check-ins is allowed; later anchors win from their own week on (S2b-20).
@@ -30,7 +30,7 @@
 2. Route in `routes/checkIns.ts`.
 
 ## Tests (`apps/api/test/check-ins-save.test.ts`)
-- All done → 0 rows and `status: reviewed`.
+- Went as planned (no items) → 0 rows and `status: reviewed`.
 - 65 of a planned 80 with `keepEndDate` → a row, and `/api/plan` shows thicker bars after it.
 - The same with no mode → 400.
 - 100 of a planned 80 with `pushEndDate` → the plan's end moves earlier.

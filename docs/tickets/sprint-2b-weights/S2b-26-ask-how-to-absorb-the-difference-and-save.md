@@ -1,13 +1,13 @@
 # S2b-26 — Ask how to absorb the difference and save
 
-**Depends on:** S2b-25  
+**Depends on:** S2b-36  
 **Size:** S
 
 ## Goal
 When a changed row is behind or ahead of plan, the card asks how to absorb it, saves the check-in, and the bars update straight away.
 
 ## Behaviour
-- Per changed row (or once for all rows going the same way, with "apply to all" ticked by default):
+- Applies to rows changed with the S2b-36 control. Per changed row (or once for all rows going the same way, with "apply to all" ticked by default):
   - **Behind** (position < plannedTo − 0.5): "Margaret is 15 pages behind on Story of the World." The choices are **Thicken the remaining weeks** (`keepEndDate`) or **Push the end date** (`pushEndDate`). v1 shows no preview numbers such as "about 2 more pages a day" or "ends Dec 12 instead of Dec 5" (**open decision D12**).
   - **Ahead** (position > plannedTo + 0.5 and < total): "…is 20 pages ahead." The choices are **Thin the remaining bars** (`keepEndDate`) or **Pull the end date in** (`pushEndDate`).
   - **Finished** (position = total): "Finished early 🎉". No question.

@@ -11,4 +11,4 @@ The docs explain the new model: the plan assumes work was done, check-ins correc
    - A "Progress" section covering: no rollover; check-ins and the two absorb modes; skip = done; the API routes.
    - Remove the 135-vs-90 caveat.
 2. `docs/progress/overnight.md`: mark S1-35's deviation note as superseded by S2b-18.
-3. `db/README.md`: 007 and the "log tables feed hours and exports only" note.
+3. `db/README.md`: 008 and the "log tables feed hours and exports only" note.

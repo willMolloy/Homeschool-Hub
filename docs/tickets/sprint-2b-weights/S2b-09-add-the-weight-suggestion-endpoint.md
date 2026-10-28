@@ -1,40 +1,42 @@
 # S2b-09 — Add the weight-suggestion endpoint
 
-**Depends on:** S2b-07, S2b-08  
+**Depends on:** S2b-07, S2b-08, S2b-31  
 **Size:** S
 
 ## Goal
-`GET /api/weights/suggestion?unitType=pages&childIds=<uuid>,<uuid>` returns the default weight the form should start from, and where it came from.
+`GET /api/weights/suggestion?unitType=pages&childIds=<uuid>,<uuid>&subjectId=<uuid>` returns the default weight the form should start from, and where it came from. It follows the precedence learned (pages and chapters) → subject → built-in.
 
 ## Contract
-- **Query (strict, RF-09 style):**
-  - `unitType` is one of pages, chapters or lessons. Minutes or junk → 400 "unitType: weights apply to pages, chapters or lessons."
-  - `childIds`: 1–20 comma-separated UUIDs, de-duplicated. Empty, malformed or repeated params → 400.
+- **Query (strict):**
+  - `unitType` is any `UNIT_TYPES` value; junk → 400.
+  - `childIds`: 0–20 comma-separated UUIDs, de-duplicated. Malformed or repeated → 400. Zero children is allowed (the form before a child is picked).
+  - `subjectId` is optional; malformed → 400.
   - Unknown params → 400.
-- **Children (decision D8):** each id must belong to the session family, otherwise 400 `invalid_reference` (no existence leak across families). **Archived children are allowed.** It's a read, the edit form can need it for an assignment that still lists an archived child, and their history is real.
+- **References (D8):** children and the subject must belong to the session family, otherwise 400 `invalid_reference`. Archived children and archived subjects are allowed: it's a read, and the edit flow can need them.
 - **Response 200:**
   ```json
-  { "unitType": "pages", "weightPerUnit": 1.4, "source": "child",
-    "builtInDefault": 1,
-    "children": [{ "childId": "…", "name": "Margaret", "usual": 1.4, "choices": 3 }, { "childId": "…", "name": "Frank", "usual": null, "choices": 0 }] }
+  { "unitType": "pages", "weightPerUnit": 1.4, "source": "child", "builtInDefault": 1,
+    "subjectDefault": { "unitType": "pages", "weightPerUnit": 2 },
+    "learned": true,
+    "children": [{ "childId": "…", "name": "Margaret", "usual": 1.4, "choices": 5 }, { "childId": "…", "name": "Frank", "usual": null, "choices": 0 }] }
   ```
-  `source` is one of `builtin`, `child` or `children` (from `suggestWeight`). `choices` is the number of assignments that fed the median, capped at 5.
+  - `source` is one of child, children, subject or builtin.
+  - `learned` is false for lessons and minutes, and `children[].usual` is then null.
+  - `subjectDefault` is null when the subject has none.
+  - `choices` is the count used (≤ 5).
 
 ## Steps
-1. New `routes/weights.ts`, registered behind the session hook like the other schedule routes. Load the children (family-scoped, including archived), call `choicesFor` then `usualWeight`/`suggestWeight`, and shape the response.
-2. Add the query parser to `http/validate.ts`, beside `parseListQuery`.
-
-## Done when
-- [ ] The web can call it for 1..n children and render the hint from the response alone.
+1. `routes/weights.ts`, registered behind the session hook. A thin route; the logic lives in a `services/weightSuggestionService.ts` (load the children and the subject, `choicesFor` → `usualWeight` → `suggestWeight`), so it is unit-testable.
+2. Add the query parser to `http/validate.ts`.
 
 ## Tests (`apps/api/test/weights-suggestion.test.ts`)
-- A child with no history → the built-in default and `builtin` (each unit type).
-- Choices 1.2, 1.4 and 1.6 → 1.4 with `child` and `choices: 3`.
-- Two children → the combined rule from S2b-08.
-- An archived child with history → still used.
-- A foreign child id → 400 `invalid_reference`; a malformed id → 400; minutes → 400; `unitType` missing → 400; an extra param → 400.
-- Signed out → 401.
-- A plan request is unaffected (the endpoint writes nothing).
-
-## Out of scope
-- Caching; it's a single indexed query.
+- **No history:** built-in for each unit type (1, 10, 15, 0.5).
+- **History** 1, 1.2, 1.4, 1.6, 9 → 1.4 `child`.
+- Two children → the median of their usual weights.
+- **Subject default** pages 2:
+  - No history → 2 `subject`.
+  - With history → the learned value wins (D19).
+- Lessons with history rows faked in the DB → ignored (`learned: false`), giving the subject default or built-in.
+- Archived child or archived subject → used.
+- A foreign child or subject → 400 `invalid_reference`; malformed → 400; an extra param → 400; 401.
+- It writes nothing.

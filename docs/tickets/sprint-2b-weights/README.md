@@ -1,24 +1,27 @@
-# Sprint 2b — Weights, learned weights, and plan-assumes-done
+# Sprint 2b — Weights, learned weights, subject defaults, and plan-assumes-done
 
-Tickets only; there are no product-code changes in this folder's commit. They cover two decisions DeeDee made on Oct 28, 2026:
+These tickets have no product-code changes. They cover DeeDee's decisions from Oct 28, 2026, revised the same morning at 8:24 AM CT.
 
-1. **Weights (S2b-01…17).**
-   - Drop minutes-per-unit for pages, chapters and lessons. Each assignment gets an editable relative **weight per unit** (built-ins: page 1, chapter 10, lesson 15). Bar thickness = units/day × weight.
-   - Minutes assignments get thickness = minutes ÷ 3, on the same scale.
-   - The weights a parent sets are remembered per child and unit type, and a new assignment starts from the child's usual weight, with a hint saying so.
+1. **Weights.**
+   - Minutes-per-unit is dropped. Every assignment has a relative **weight per unit**, and bar thickness = units/day × weight.
+   - Built-ins: page 1, chapter 10, lesson 15, minute 0.5. **2 minutes = 1 point**, so a page at weight 1 ≈ 2 minutes.
    - Logged hours come only from real logs.
-2. **The plan assumes work was done (S2b-18…29).**
-   - Unlogged work no longer rolls forward (90, not 135, for the week of Oct 26).
-   - Logging is optional and feeds only hours and exports.
-   - Progress comes from an explicit weekly **"How did last week go?"** check-in. Untouched rows count as done.
-   - When behind, the parent chooses: thicken the remaining weeks or push the end date. When ahead: thin the bars or pull the end date in.
+2. **Learned weights** (pages, and chapters too).
+   - A new assignment starts from the child's usual weight: the latest weight on their 5 most recent assignments of that unit, with the highest and lowest dropped and the middle 3 averaged.
+   - A prolific child ends up with thin bars for 20 pages, a slower child with thick ones.
+3. **Subject defaults.** For non-objective work (math lessons, practice minutes), the parent sets a bar width on the subject with a simple thickness picker and a preview bar.
+   - **Precedence:** explicit assignment value → child's learned weight (pages and chapters) → subject default → built-in.
+4. **The plan assumes work was done.**
+   - Unlogged work no longer rolls forward (90, not 135, for the week of Oct 26), and logging is optional.
+   - An optional, quick **"How did last week go?"** card offers a one-tap **Last week went as planned**, an easy per-assignment adjust, and a skip that counts as done. It never nags.
+   - When behind: thicken the remaining weeks or push the end date. When ahead: thin the bars or pull the end date in.
 
-Every ticket follows the sprint-2a format: one component per ticket, Goal / Context / Steps / Done when / Tests / Out of scope.
+Each ticket is one component and uses the sprint-2a format: Goal / Context / Steps / Done when / Tests / Out of scope. Ticket numbers are IDs, not the order; **build in the order of the table below.**
 
 ## Order and dependencies
 
-| # | Ticket | Depends on | Size |
-|---|--------|------------|------|
+| Order | Ticket | Depends on | Size |
+|-------|--------|------------|------|
 | 1 | [S2b-01 — Add weight constants to the engine](S2b-01-add-weight-constants-to-the-engine.md) | none | XS |
 | 2 | [S2b-02 — Plan bar thickness from weight in the engine](S2b-02-plan-bar-thickness-from-weight-in-the-engine.md) | S2b-01 | M |
 | 3 | [S2b-03 — Write migration 004: weight_per_unit](S2b-03-write-migration-004-weight-per-unit.md) | none | S |
@@ -27,82 +30,95 @@ Every ticket follows the sprint-2a format: one component per ticket, Goal / Cont
 | 6 | [S2b-06 — Accept and return weightPerUnit on the assignment endpoints](S2b-06-accept-and-return-weightperunit-on-the-assignment-endpoints.md) | S2b-01, S2b-03 | S |
 | 7 | [S2b-07 — Record weight choices when assignments are saved](S2b-07-record-weight-choices-when-assignments-are-saved.md) | S2b-04, S2b-06 | S |
 | 8 | [S2b-08 — Compute a child's usual weight](S2b-08-compute-a-childs-usual-weight.md) | S2b-01, S2b-04 | S |
-| 9 | [S2b-09 — Add the weight-suggestion endpoint](S2b-09-add-the-weight-suggestion-endpoint.md) | S2b-07, S2b-08 | S |
-| 10 | [S2b-10 — Replace the minutes field with a weight field on the assignment form](S2b-10-replace-the-minutes-field-with-a-weight-field-on-the-assignment-form.md) | S2b-06 | S |
-| 11 | [S2b-11 — Prefill the weight from the child's usual and show its source](S2b-11-prefill-the-weight-from-the-childs-usual-and-show-its-source.md) | S2b-09, S2b-10 | S |
-| 12 | [S2b-12 — Show thickness in the plan debug view](S2b-12-show-thickness-in-the-plan-debug-view.md) | S2b-02, S2b-05 | XS |
-| 13 | [S2b-13 — Retire minutesPerUnit from the API and web](S2b-13-retire-minutesperunit-from-the-api-and-web.md) | S2b-10, S2b-11, S2b-12 | XS |
-| 14 | [S2b-14 — Remove minute outputs from the engine](S2b-14-remove-minute-outputs-from-the-engine.md) | S2b-13 | S |
-| 15 | [S2b-15 — Write migration 006: drop minutes_per_unit](S2b-15-write-migration-006-drop-minutes-per-unit.md) | S2b-13 | XS |
-| 16 | [S2b-16 — Tester pass: weight edge cases](S2b-16-tester-pass-weight-edge-cases.md) | S2b-15 | S |
-| 17 | [S2b-17 — Update docs for weights](S2b-17-update-docs-for-weights.md) | S2b-15 | XS |
-| 18 | [S2b-18 — Assume scheduled work was done in the engine](S2b-18-assume-scheduled-work-was-done-in-the-engine.md) | S2b-14 | M |
-| 19 | [S2b-19 — Stop loading logs into the plan](S2b-19-stop-loading-logs-into-the-plan.md) | S2b-18 | XS |
-| 20 | [S2b-20 — Replan from actual-progress check-ins in the engine](S2b-20-replan-from-actual-progress-check-ins-in-the-engine.md) | S2b-18 | M |
-| 21 | [S2b-21 — Write migration 007: progress check-ins](S2b-21-write-migration-007-progress-check-ins.md) | none | S |
-| 22 | [S2b-22 — Load check-ins into the plan](S2b-22-load-check-ins-into-the-plan.md) | S2b-20, S2b-21 | XS |
-| 23 | [S2b-23 — Add the week check-in read endpoint](S2b-23-add-the-week-check-in-read-endpoint.md) | S2b-22 | S |
-| 24 | [S2b-24 — Add the save check-in endpoint](S2b-24-add-the-save-check-in-endpoint.md) | S2b-23 | S |
-| 25 | [S2b-25 — Show the "How did last week go?" card](S2b-25-show-the-how-did-last-week-go-card.md) | S2b-24 | S |
-| 26 | [S2b-26 — Ask how to absorb the difference and save](S2b-26-ask-how-to-absorb-the-difference-and-save.md) | S2b-25 | S |
-| 27 | [S2b-27 — Edit a past week's check-in](S2b-27-edit-a-past-weeks-check-in.md) | S2b-26 | S |
-| 28 | [S2b-28 — Tester pass: check-in edge cases](S2b-28-tester-pass-check-in-edge-cases.md) | S2b-27 | S |
-| 29 | [S2b-29 — Update docs for assumed progress and check-ins](S2b-29-update-docs-for-assumed-progress-and-check-ins.md) | S2b-28 | XS |
+| 9 | [S2b-30 — Write migration 006: subject default weight](S2b-30-write-migration-006-subject-default-weight.md) | S2b-03 | XS |
+| 10 | [S2b-31 — Accept and return the subject default weight on the subject endpoints](S2b-31-accept-and-return-subject-default-weight-on-the-subject-endpoints.md) | S2b-30, S2b-01 | S |
+| 11 | [S2b-09 — Add the weight-suggestion endpoint](S2b-09-add-the-weight-suggestion-endpoint.md) | S2b-07, S2b-08, S2b-31 | S |
+| 12 | [S2b-32 — Use the subject default weight in the engine](S2b-32-use-the-subject-default-weight-in-the-engine.md) | S2b-02, S2b-01 | XS |
+| 13 | [S2b-33 — Load subject default weights into the plan](S2b-33-load-subject-default-weights-into-the-plan.md) | S2b-31, S2b-32 | XS |
+| 14 | [S2b-10 — Replace the minutes field with a weight field on the assignment form](S2b-10-replace-the-minutes-field-with-a-weight-field-on-the-assignment-form.md) | S2b-06 | S |
+| 15 | [S2b-34 — Build the thickness picker with preview bar](S2b-34-build-the-thickness-picker-with-preview-bar.md) | S2b-01 | S |
+| 16 | [S2b-35 — Set a default weight on the subject form](S2b-35-set-a-default-weight-on-the-subject-form.md) | S2b-31, S2b-34 | S |
+| 17 | [S2b-11 — Prefill the weight and show its source](S2b-11-prefill-the-weight-and-show-its-source.md) | S2b-09, S2b-10 | S |
+| 18 | [S2b-12 — Show thickness in the plan debug view](S2b-12-show-thickness-in-the-plan-debug-view.md) | S2b-02, S2b-05 | XS |
+| 19 | [S2b-13 — Retire minutesPerUnit from the API and web](S2b-13-retire-minutesperunit-from-the-api-and-web.md) | S2b-10, S2b-11, S2b-12 | XS |
+| 20 | [S2b-14 — Remove minute outputs from the engine](S2b-14-remove-minute-outputs-from-the-engine.md) | S2b-13 | S |
+| 21 | [S2b-15 — Write migration 007: drop minutes_per_unit](S2b-15-write-migration-007-drop-minutes-per-unit.md) | S2b-13, S2b-30 | XS |
+| 22 | [S2b-16 — Tester pass: weight edge cases](S2b-16-tester-pass-weight-edge-cases.md) | S2b-15 | S |
+| 23 | [S2b-37 — Tester pass: subject defaults and precedence](S2b-37-tester-pass-subject-defaults-and-precedence.md) | S2b-35, S2b-11, S2b-33 | S |
+| 24 | [S2b-17 — Update docs for weights](S2b-17-update-docs-for-weights.md) | S2b-16, S2b-37 | XS |
+| 25 | [S2b-18 — Assume scheduled work was done in the engine](S2b-18-assume-scheduled-work-was-done-in-the-engine.md) | S2b-14 | M |
+| 26 | [S2b-19 — Stop loading logs into the plan](S2b-19-stop-loading-logs-into-the-plan.md) | S2b-18 | XS |
+| 27 | [S2b-20 — Replan from actual-progress check-ins in the engine](S2b-20-replan-from-actual-progress-check-ins-in-the-engine.md) | S2b-18 | M |
+| 28 | [S2b-21 — Write migration 008: progress check-ins](S2b-21-write-migration-008-progress-check-ins.md) | none | S |
+| 29 | [S2b-22 — Load check-ins into the plan](S2b-22-load-check-ins-into-the-plan.md) | S2b-20, S2b-21 | XS |
+| 30 | [S2b-23 — Add the week check-in read endpoint](S2b-23-add-the-week-check-in-read-endpoint.md) | S2b-22 | S |
+| 31 | [S2b-24 — Add the save check-in endpoint](S2b-24-add-the-save-check-in-endpoint.md) | S2b-23 | S |
+| 32 | [S2b-25 — Show the "How did last week go?" card](S2b-25-show-the-how-did-last-week-go-card.md) | S2b-24 | S |
+| 33 | [S2b-36 — Adjust one assignment's progress on the card](S2b-36-adjust-one-assignments-progress-on-the-card.md) | S2b-25 | S |
+| 34 | [S2b-26 — Ask how to absorb the difference and save](S2b-26-ask-how-to-absorb-the-difference-and-save.md) | S2b-36 | S |
+| 35 | [S2b-27 — Edit a past week's check-in](S2b-27-edit-a-past-weeks-check-in.md) | S2b-26 | S |
+| 36 | [S2b-28 — Tester pass: check-in edge cases](S2b-28-tester-pass-check-in-edge-cases.md) | S2b-27 | S |
+| 37 | [S2b-29 — Update docs for assumed progress and check-ins](S2b-29-update-docs-for-assumed-progress-and-check-ins.md) | S2b-28 | XS |
 
 ## Tracks
 
 | Track | Tickets |
 |-------|---------|
-| Engine | 01, 02, 08, 14, 18, 20 |
-| DB | 03, 04, 15, 21 |
-| API | 05, 06, 07, 09, 13, 19, 22, 23, 24 |
-| Web | 10, 11, 12, 25, 26, 27 |
-| Tester | 16, 28 |
+| Engine | 01, 02, 08, 32, 14, 18, 20 |
+| DB | 03 (mig 004), 04 (005), 30 (006), 15 (007), 21 (008) |
+| API | 05, 06, 07, 31, 09, 33, 13, 19, 22, 23, 24 |
+| Web | 10, 34, 35, 11, 12, 25, 36, 26, 27 |
+| Tester | 16, 37, 28 |
 | Docs | 17, 29 |
 
-## Implementation order
-
-The work uses **expand / contract**, so the gate (`bash scripts/check.sh`) is green and the app works after every ticket.
+## Implementation order (expand / contract; the gate is green and the app works after every ticket)
 
 1. **Expand weights:**
-   - 01 → 02 (engine adds thickness; minutes kept, marked deprecated)
-   - 03 → 04 (DB adds `weight_per_unit` and `weight_choice`)
-   - 05 (plan reads the weight)
-   - 06 (API accepts `weightPerUnit`; the legacy `minutesPerUnit` is translated)
-2. **Learning:** 07 (record choices) → 08 (usual-weight rule) → 09 (suggestion endpoint).
-3. **Web:** 10 (weight field) → 11 (prefill + hint) → 12 (debug view).
-4. **Contract:** 13 (API and web drop `minutesPerUnit`) → 14 (engine drops minutes; 0.3.0) → 15 (migration 006 drops the column and RF-10's 003 constraint).
-5. **Verify weights:** 16 (tester) → 17 (docs).
-6. **Decouple from logs:** 18 (engine assumes done; 90 not 135; 0.4.0) → 19 (stop loading logs).
-7. **Check-ins:**
-   - 20 (engine anchors + replan; 0.5.0) and 21 (migration 007) can run in parallel.
-   - Then 22 (loader) → 23 (GET) → 24 (PUT).
-8. **Card:** 25 (card) → 26 (behind/ahead question + save) → 27 (edit past weeks).
-9. **Verify check-ins:** 28 (tester) → 29 (docs).
+   - 01 → 02 → 03 → 04 → 05 → 06 (the legacy `minutesPerUnit` is translated at ÷2).
+   - Then 07 → 08 (trimmed-mean rule).
+2. **Subject defaults:** 30 (migration 006) → 31 (subject API) → 32 (engine) → 33 (loader).
+3. **Suggestion:** 09 (needs 31 for the subject step).
+4. **Web:** 10 (weight field) → 34 (picker) → 35 (subject form) → 11 (prefill + hint) → 12 (debug view).
+5. **Contract:** 13 → 14 (engine drops minutes) → 15 (migration 007 drops `minutes_per_unit` and RF-10's 003 constraint). Never deploy 15 before 13.
+6. **Verify weights:** 16 → 37 → 17.
+7. **Decouple:** 18 (engine assumes done; 90, not 135) → 19 (stop loading logs).
+8. **Check-ins:**
+   - 20 (engine) and 21 (migration 008) can run in parallel.
+   - Then 22 → 23 (GET) → 24 (PUT).
+9. **Card:** 25 (card + one-tap confirm + skip) → 36 (per-row adjust control) → 26 (behind/ahead question + save) → 27 (past weeks).
+10. **Verify:** 28 → 29.
 
-Parallel options:
-- Track 6 depends on 14 only to avoid conflicting edits to `plan.ts`. If two developers are available, 18–21 can start right after 02, as long as they rebase on 14.
-- 21 has no code dependencies.
+## Decisions
 
-Never deploy 15 (migration 006) ahead of 13: 006 drops the column that the code before 13 still reads.
+**Settled by DeeDee (Oct 28):**
+- **D1:** 2 minutes = 1 point; migration 004 converts minutes ÷ 2, capped.
+- **D5:** latest weight on the 5 most recent assignments of that unit per child; drop the high and low, then average the middle 3.
+- **D6:** multi-child takes the median of the per-child usual weights.
+- **D17:** learning applies to pages; chapters are included pending confirmation (see below).
+- Precedence: assignment → learned → subject → built-in.
+- **D14:** skipping the card counts as done, and the card never nags.
 
-## Open decisions (defaults chosen in the tickets; DeeDee to confirm)
+**Defaults chosen in the tickets, still open:**
 
 | ID | Decision | Default in the tickets | Alternative |
 |----|----------|------------------------|-------------|
-| D1 | Minutes ↔ weight scale | 3 min = 1 point (a page at 1 ≈ 3 min; a lesson at 15 ≈ 45 min) | 2 min = 1 point (a lesson ≈ 30 min, closer to the old 20-min lesson default) |
-| D2 | Weight bounds | 0.01–100, 2 decimals; 0 rejected (use archive to "turn off") | Allow 0 |
-| D3 | Existing `minutes_per_unit` data | Converted to round(mpu/3, 2), clamped; 0 or NULL → built-in | Discard and start everyone at the built-ins |
-| D4 | Learned-weight store | Its own append-only `weight_choice` table (history, multi-child, unit changes; S2b-04) | Derived from current assignment rows |
-| D5 | "Usual weight" rule | Median of the latest weight on each of the 5 most recent assignments per child + unit; archived assignments count; a clear removes that vote; an accepted suggestion counts as a choice | Mean, the last 3, or only typed weights |
-| D6 | Multi-child | One weight per assignment; the suggestion is the median of the per-child usuals of children with history (else the built-in); saving records a choice for every child | A weight per child on a shared assignment |
-| D7 | Unit change on edit | A new weight (or null) must be sent → 400 otherwise; the form refills from the new unit's suggestion | Silently reset to the default |
-| D8 | Archived children in suggestions | Allowed (read-only, history used) | 400 like writes |
-| D9 | Past bars in a checked-in week | Scaled to show the actual progress | Keep showing the planned bars |
-| D10 | Default absorb choice when behind or ahead | Keep the end date (thicken or thin), preselected | Push or pull the end date; or no default |
-| D11 | "On plan" tolerance | Within 0.5 units → no question, nothing stored | Exact match |
-| D12 | Preview of each choice ("~2 more pages/day", "ends Dec 12") | Not in v1 | A dry-run plan endpoint |
-| D13 | Position meaning | Cumulative units since the assignment's start ("got to page 65" = 65 done); no start-page offset | Add a `start_at` (first page number) field |
-| D14 | Skipped card | Counts as done as planned; the card is hidden for that week on every device (`week_review`) | Ask again next visit |
-| D15 | Engine versions | 0.2.0 (thickness), 0.3.0 (no minutes), 0.4.0 (assume done), 0.5.0 (check-ins) | One bump per release instead of per ticket |
-| D16 | Hours and exports | Only from `log_entry.minutes_spent`; there is no UI for this in this sprint | — |
+| D17 | Chapters learned like pages | Yes | Pages only (chapter lengths vary a lot) |
+| D18 | Fewer than 5 assignments | 4 → drop high and low, average the middle 2; 1–3 → plain mean; 0 → fall back | Plain mean below 5 |
+| D19 | Subject default vs learned for pages and chapters | Learned wins (DeeDee's order); the subject default only fills in for children without history | Subject wins when set |
+| D20 | Subject default: snapshot or live | Live: assignments without their own weight follow subject edits. Learned values are stored on the assignment (snapshot) | Stamp the subject value onto new assignments |
+| D21 | Weights on lessons and minutes assignments | Allowed (minute built-in 0.5); explicit values are never learned | Subject-level only |
+| D22 | Picker presets | None / Light ×0.5 / Normal ×1 / Heavy ×1.5 / Very heavy ×2 / Custom | Other steps |
+| D23 | Subject default bound to one unit type | Yes (20 per lesson ≠ 20 per page) | One default per unit type per subject |
+| D2 | Weight bounds | 0.01–100, 2 decimals | Allow 0 |
+| D3 | Existing minute values | ÷ 2, capped; 0 or NULL → default | Discard |
+| D7 | Unit change on edit | Must resend a weight (400 otherwise) | Silent reset |
+| D8 | Archived children and subjects in suggestions | Allowed | 400 |
+| D9 | Past bars in a checked-in week | Scaled to actual | Keep the planned bars |
+| D10 | Default absorb choice | Keep the end date (thicken or thin) | Push or pull the end date |
+| D11 | On-plan tolerance | ±0.5 units | Exact |
+| D12 | Preview numbers on the absorb choices | Not in v1 | A dry-run endpoint |
+| D13 | Position meaning | Units done since the start; no start page | A `start_at` field |
+| D15 | Engine versions | 0.2.0, 0.3.0, 0.4.0, 0.5.0, with a patch bump for S2b-32 | One bump per release |
+| D16 | Hours and exports | Only from `log_entry.minutes_spent` | — |
+
+D4 (a separate `weight_choice` table) stands as written; see S2b-04.

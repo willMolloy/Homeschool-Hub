@@ -11,7 +11,7 @@
 2. `assignmentRepo`:
    - `toAssignmentJson` drops `minutesPerUnit`.
    - Stop selecting and writing `minutes_per_unit`.
-   - The column stays in the DB until S2b-15, so a rollback of this commit still works.
+   - The column stays in the DB until S2b-15 (migration 007), so a rollback of this commit still works.
 3. `loadPlanInputs` stops mapping `minutesPerUnit`.
 4. Web: remove `minutesPerUnit` from `api/types.ts`, `DEMO_*` fixtures and `BODY_KEYS`.
 5. `http/scheduleLimits.ts`: delete `MinutesPerUnit` and `MAX_MINUTES_PER_UNIT`.

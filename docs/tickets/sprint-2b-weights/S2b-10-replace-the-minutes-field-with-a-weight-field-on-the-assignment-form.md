@@ -4,36 +4,33 @@
 **Size:** S
 
 ## Goal
-The add and edit assignment form asks for "Weight per page/chapter/lesson" instead of "Minutes per …", and sends `weightPerUnit`.
+The add and edit assignment form asks for "Weight per page/chapter/lesson/minute" instead of "Minutes per …", and sends `weightPerUnit`.
 
 ## Context
-`apps/web/src/features/schedule/AssignmentsPage.tsx`:
-- The form has a minutes input (`LIMITS.minutesPerUnit = 600`), hidden for minutes.
-- The card reads "184 pages · 3 min each" or "~20 min each".
-- The patch includes `minutesPerUnit` when it changed.
+`AssignmentsPage.tsx` has a minutes input (`LIMITS.minutesPerUnit = 600`) that is hidden for minutes, and card text "· 3 min each" or "~20 min each".
 
 ## Steps
-1. `api/types.ts`: add `weightPerUnit: number | null` to `Assignment`. `minutesPerUnit` stays optional until S2b-13.
+1. `api/types.ts`: add `weightPerUnit: number | null` to `Assignment` (`minutesPerUnit` stays optional until S2b-13).
 2. **Form:**
-   - A number input labeled `Weight per {page|chapter|lesson}`, `step="0.01"`, min 0.01, max 100 (from the engine constants), hidden for minutes.
-   - A hint: "Relative effort. Default {1|10|15}. Bar thickness = {units} per day × weight."
-   - Blank → `null` (built-in).
-   - Client checks: > 0, ≤ 100, at most 2 decimals, with errors under the field like the other checks.
-3. **Unit change in the form (D7):** when the unit select changes, reset the weight field to blank (or to the suggestion once S2b-11 lands) and always include `weightPerUnit` in the PATCH, so the API's "send a weight when changing unitType" rule is met.
-4. **Card:** "184 pages · weight 1.4" or "· weight ~1 (default)". Minutes cards show nothing extra.
-5. Stop sending `minutesPerUnit`. Update the fake API `BODY_KEYS` (`test/helpers/fake-api.ts`) to add `weightPerUnit`; keep `minutesPerUnit` allowed until S2b-13.
-
-## Done when
-- [ ] No "Minutes per" text remains on the assignments screen.
+   - A number input labeled `Weight per {page|chapter|lesson|minute}`, step 0.01, bounds from the engine constants. It is shown for **every** unit type (D21).
+   - Hint: "Relative effort; 1 point ≈ 2 minutes. Blank = the subject's default or the built-in ({1|10|15|0.5})."
+   - Blank → null.
+   - Client checks: > 0, ≤ 100, at most 2 decimals.
+3. **Unit change in the form (D7):** reset the field to blank (or to the suggestion, S2b-11) and always include `weightPerUnit` in the PATCH.
+4. **Card:**
+   - "184 pages · weight 1.4"
+   - "· weight ~2 (subject)"
+   - "· weight ~1 (default)"
+5. Stop sending `minutesPerUnit`. Add `weightPerUnit` to the fake API `BODY_KEYS`.
 
 ## Tests (`assignments-screen.test.tsx`)
-- Add sends `weightPerUnit: 1.4`; blank sends null.
-- Edit changing only the weight sends `{weightPerUnit}` only.
-- Changing the unit sends `unitType` and `weightPerUnit`.
-- Switching to minutes hides the field and sends `weightPerUnit: null`.
+- Add sends 1.4; blank sends null.
+- Edit with only the weight changed sends `{weightPerUnit}`.
+- A unit change sends both fields.
+- Minutes shows "Weight per minute" and sends 0.75.
 - Client errors for 0, -1, 1.234 and 101, with no request sent.
-- Card text for explicit and default weights.
-- Server 400 text is shown in the form (reuses the existing pattern).
+- The three card variants.
+- The server's 400 text is shown.
 
 ## Out of scope
-- Prefilling from the child's history (S2b-11).
+- Pre-filling and the hint (S2b-11), and the picker (S2b-34; this form keeps a plain number field).
