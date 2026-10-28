@@ -14,7 +14,7 @@ Tester finding **T-ENG-2**: huge `totalUnits` × minutes can reach Infinity insi
 2. Helper `checkDateOrder(start, end, maxDays)` → 400 `invalid_range` message.
 
 ## Done when
-- [ ] Every limit has a unit test, including `Infinity`, `NaN`, `1e309` (parsed from JSON), `1e-3` on a 2-decimal field.
+- [x] Every limit has a unit test, including `Infinity`, `NaN`, `1e309` (parsed from JSON), `1e-3` on a 2-decimal field.
 
 ## Tests
 - accept/reject table per schema
