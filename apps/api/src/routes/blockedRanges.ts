@@ -1,7 +1,7 @@
 /** /api/blocked-ranges (S2a-07): vacations and other days off. */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { HttpError } from "../app";
+import { HttpError } from "../http/errors";
 import { withTransaction } from "../db";
 import { checkDateOrder, IdList, LocalDate, MAX_BLOCKED_DAYS } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";

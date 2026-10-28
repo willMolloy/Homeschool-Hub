@@ -2,7 +2,7 @@
  * Reference checks for schedule writes (S2a-05+): every subject/child id a body names must be one of the
  * session family's active rows. Checked up front so a foreign id is a clear 400, never an FK 500.
  */
-import { HttpError } from "../app";
+import { HttpError } from "../http/errors";
 import type { Queryable } from "../db";
 
 async function checkActive(db: Queryable, table: "child" | "subject", familyId: string, ids: string[], field: string): Promise<void> {

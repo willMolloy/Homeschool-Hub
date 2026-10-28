@@ -4,7 +4,7 @@ import { z } from "zod";
 import { withTransaction } from "../db";
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, MinutesPerUnit, Title, TotalUnits } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
-import { HttpError } from "../app";
+import { HttpError } from "../http/errors";
 import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment } from "../repos/assignmentRepo";
 import { checkRefs } from "../repos/refs";
 

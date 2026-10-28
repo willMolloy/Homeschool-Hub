@@ -1,7 +1,7 @@
 /** /api/events (S2a-08..10): recurring events such as co-op or piano. */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { HttpError } from "../app";
+import { HttpError } from "../http/errors";
 import { withTransaction } from "../db";
 import { CapacityFraction, checkDateOrder, IdList, LocalDate, MAX_TITLE, Weekdays } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";

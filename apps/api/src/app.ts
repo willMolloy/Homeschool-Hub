@@ -15,18 +15,12 @@ import { blockedRangesRoutes } from "./routes/blockedRanges";
 import { eventsRoutes } from "./routes/events";
 import { timeZonesRoutes } from "./routes/timezones";
 import { registerSessionAuth } from "./auth/session";
+import { HttpError } from "./http/errors";
 
 declare module "fastify" {
   interface FastifyInstance {
     db: Db;
     config: Config;
-  }
-}
-
-/** Error with an HTTP status and a stable machine-readable code, rendered as `{ error: code, message }`. */
-export class HttpError extends Error {
-  constructor(public statusCode: number, public code: string, message?: string) {
-    super(message ?? code);
   }
 }
 

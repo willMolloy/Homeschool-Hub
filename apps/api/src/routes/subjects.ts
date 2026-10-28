@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { HttpError } from "../app";
+import { HttpError } from "../http/errors";
 import { isUniqueViolation } from "../http/pgErrors";
 import { Color, Name, SortOrder, UUID_RE, parseBody } from "../http/validate";
 import { SUBJECT_NAME_INDEX, createSubject, listSubjects, toSubjectJson, updateSubject } from "../repos/subjectRepo";

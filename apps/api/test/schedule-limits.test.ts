@@ -1,6 +1,6 @@
 import { DEFAULT_MINUTES_PER_UNIT } from "@hh/engine";
 import { describe, expect, it } from "vitest";
-import { HttpError } from "../src/app";
+import { HttpError } from "../src/http/errors";
 import {
   CapacityFraction, checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, MAX_BLOCKED_DAYS, MAX_MINUTES_PER_UNIT,
   MAX_TOTAL_UNITS, MinutesPerUnit, Title, TotalUnits, Weekdays,

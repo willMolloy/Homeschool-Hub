@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { HttpError } from "../app";
+import { HttpError } from "../http/errors";
 import { Color, Name, SortOrder, UUID_RE, parseBody } from "../http/validate";
 import { createChild, listChildren, toChildJson, updateChild } from "../repos/childRepo";
 

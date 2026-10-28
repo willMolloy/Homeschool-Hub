@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { HttpError } from "../app";
+import { HttpError } from "../http/errors";
 import { hashPassword, verifyPassword } from "../auth/password";
 import { SESSION_COOKIE, SESSION_DAYS, hashSessionToken, newSessionToken, sessionCookieOptions } from "../auth/session";
 

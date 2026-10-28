@@ -15,8 +15,8 @@ There is a circular import: `app.ts` registers the routes, and the routes import
 2. Update every import. `app.ts` imports it from there too.
 
 ## Done when
-- [ ] `rg 'from "\.\./app"' apps/api/src` finds nothing.
-- [ ] The gate is green, with no test changes beyond imports.
+- [x] `rg 'from "\.\./app"' apps/api/src` finds nothing.
+- [x] The gate is green, with no test changes beyond imports.
 
 ## Tests
 - The existing suite (behavior is identical).

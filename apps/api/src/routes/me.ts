@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { HttpError } from "../app";
+import { HttpError } from "../http/errors";
 
 interface FamilyRow { id: string; name: string; week_start: "mon" | "sun"; school_days: number[]; time_zone: string }
 export interface MeResponse { familyId: string; name: string; weekStart: "mon" | "sun"; schoolDays: number[]; timeZone: string }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HttpError } from "../app";
+import { HttpError } from "./errors";
 
 /** Display names for children and subjects: trimmed, 1–60 characters. */
 export const Name = z.string().trim().min(1, "Name is required.").max(60, "Name must be 60 characters or fewer.")

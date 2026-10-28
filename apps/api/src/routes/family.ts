@@ -4,7 +4,7 @@
  */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { HttpError } from "../app";
+import { HttpError } from "../http/errors";
 import { TimeZone } from "../http/timeZone";
 import { Name, parseBody } from "../http/validate";
 

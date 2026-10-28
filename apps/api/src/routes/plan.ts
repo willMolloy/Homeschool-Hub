@@ -4,7 +4,7 @@
  */
 import type { FastifyInstance } from "fastify";
 import { ENGINE_VERSION, EngineInputError, planAll, toDayNumber, type ChildPlan } from "@hh/engine";
-import { HttpError } from "../app";
+import { HttpError } from "../http/errors";
 import { safeTimeZone } from "../http/timeZone";
 import { loadPlanInputs } from "../plan/loadPlanInputs";
 

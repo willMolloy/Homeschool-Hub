@@ -5,7 +5,7 @@
  */
 import { isValidLocalDate, toDayNumber } from "@hh/engine";
 import { z } from "zod";
-import { HttpError } from "../app";
+import { HttpError } from "./errors";
 import { UUID_RE } from "./validate";
 
 export const MIN_YEAR = 2000;
