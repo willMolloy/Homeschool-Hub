@@ -1,6 +1,6 @@
-import type { BlockedKind, OverrideMode, SubjectRule, UnitType, WeekStart } from "./enums";
+import type { BlockedKind, OverrideMode, SubjectRule, UnitType, WeekReviewStatus, WeekStart } from "./enums";
 import type { WeightSource } from "./weights";
-export type { BlockedKind, OverrideMode, SubjectRule, UnitType, WeekStart };
+export type { BlockedKind, OverrideMode, SubjectRule, UnitType, WeekReviewStatus, WeekStart };
 
 /** A local calendar date, "YYYY-MM-DD". Never a timestamp. */
 export type LocalDate = string;

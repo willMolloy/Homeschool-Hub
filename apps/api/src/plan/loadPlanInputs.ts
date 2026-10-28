@@ -52,8 +52,8 @@ export async function loadPlanInputs(pool: Db, familyId: string): Promise<PlanIn
   return withReadSnapshot(pool, (client) => readPlanInputs(client, familyId));
 }
 
-/** The reads themselves, sequential on `db` (one client: pg must not run two queries on it at once). */
-async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInputs> {
+/** The reads themselves, sequential on `db` (one client: pg must not run two queries on it at once). Callers that already hold a snapshot or transaction (check-ins, S2b-23/24) use this directly. */
+export async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInputs> {
   const [family] = await query<{ week_start: WeekStart; school_days: number[]; time_zone: string }>(db,
     "SELECT week_start, school_days, time_zone FROM family WHERE id = $1", [familyId]);
   if (!family) throw new FamilyNotFoundError(familyId);

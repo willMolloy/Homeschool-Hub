@@ -34,7 +34,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-19 stop loading logs into the plan | aba3df1 | |
 | S2b-20 replan from check-ins (engine 0.5.0) | e48e341 | |
 | S2b-21 migration 008: progress check-ins | eb424ad | |
-| S2b-22 load check-ins into the plan | (this commit) | |
+| S2b-22 load check-ins into the plan | 7185546 | |
+| S2b-23 GET /api/check-ins | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -90,6 +91,7 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
   - The test fixture is DeeDee's example, 184 pages from Sep 7 to a half-day Tue Sep 22, which gives exactly 16/day and week 1 = pp. 1–80. "Push, 65 of 80" moves the end from Tue Sep 22 to Wed Sep 23 (the 15 pages fit in one more day).
 - **S2b-21 — the status enum.** The RF-08 enum test needs an engine list for `week_review.status`, so `WEEK_REVIEW_STATUSES` (`reviewed`, `skipped`) joined `enums.ts` (no engine behaviour change, so no version bump); the API's zod schema will derive from it in S2b-24. The migration is the ticket's SQL as written. `db:validate` section 14 adds the four ticket errors plus a duplicate and a bad status for `week_review`; `checkin-migration.test.ts` also covers the child and family cascades. `drop-mpu.test.ts`'s "running the migrations again applies nothing" re-ran *all* migrations, so it now re-runs only through 007, like the other migration tests.
 - **S2b-22 — which check-ins load.** Like overrides, a check-in is loaded only for an assignment that is planned (not archived, subject not archived, an active child) and an active child. `/api/plan` already returns the whole `ChildPlan`, so `position`, `finishedEarly` and `checkInWeeks` pass through with no route change; `position` stays cumulative from the assignment's start even when `days` is trimmed to the requested window. The API has no write endpoint until S2b-24, so the tests insert rows directly.
+- **S2b-23 — the read endpoint.** `routes/checkIns.ts` only parses (`weekStart` optional, strict query); `services/checkInService.ts` does the work in one read snapshot, using the loader's `readPlanInputs` (now exported, injectable as a `PlanLoader`). The planned range counts only check-ins from *earlier* weeks (later ones are ignored too, since a later anchor can rescale the days before it), and is rounded to 2 decimals like stored positions. An archived assignment or child with a check-in that week is planned on its own from its row so it still shows. A sort tie falls back to the ids so the order is stable. The ticket's "Oct 19 week is 0–80, next week 90" doesn't match the sample family: Treasure Island (270 pages, Tuesdays are co-op) is 0–90 then 90–180, which is what the tests pin (same correction as S2b-18). `WeekReviewStatus` is now re-exported from the engine's `types.ts` like the other enum types.
 
 ## Deferred
 
