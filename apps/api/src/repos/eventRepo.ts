@@ -64,3 +64,50 @@ export async function getEvent(db: Queryable, familyId: string, id: string): Pro
   const { rows } = await db.query<EventRow>(`${SELECT} WHERE e.family_id = $1 AND e.id = $2`, [familyId, id]);
   return rows[0] ?? null;
 }
+
+export interface EventInput {
+  name: string;
+  weekdays: number[];
+  startDate: string | null;
+  endDate: string | null;
+  capacityFraction: number;
+  defaultRule: SubjectRule;
+  subjectRules: Record<string, SubjectRule>;
+  childIds: string[];
+}
+
+/** Call inside a transaction: locks the row until commit, then loads it. */
+export async function lockEvent(db: Queryable, familyId: string, id: string): Promise<EventRow | null> {
+  const { rowCount } = await db.query("SELECT 1 FROM event WHERE id = $1 AND family_id = $2 FOR UPDATE", [id, familyId]);
+  return rowCount ? getEvent(db, familyId, id) : null;
+}
+
+async function setChildren(db: Queryable, familyId: string, id: string, childIds: string[]): Promise<void> {
+  await db.query("DELETE FROM event_child WHERE event_id = $1 AND family_id = $2", [id, familyId]);
+  if (childIds.length) {
+    await db.query("INSERT INTO event_child (event_id, child_id, family_id) SELECT $1, unnest($2::uuid[]), $3", [id, childIds, familyId]);
+  }
+}
+
+async function setRules(db: Queryable, familyId: string, id: string, rules: Record<string, SubjectRule>): Promise<void> {
+  await db.query("DELETE FROM event_subject_rule WHERE event_id = $1 AND family_id = $2", [id, familyId]);
+  const subjects = Object.keys(rules);
+  if (subjects.length) {
+    await db.query(
+      `INSERT INTO event_subject_rule (event_id, subject_id, rule, family_id)
+       SELECT $1, s, r, $4 FROM unnest($2::uuid[], $3::text[]) AS t(s, r)`,
+      [id, subjects, subjects.map((s) => rules[s]), familyId]);
+  }
+}
+
+/** Call inside a transaction; references must already be checked. */
+export async function createEvent(db: Queryable, familyId: string, e: EventInput): Promise<string> {
+  const { rows } = await db.query<{ id: string }>(
+    `INSERT INTO event (family_id, name, weekdays, start_date, end_date, capacity_fraction, default_rule)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+    [familyId, e.name, e.weekdays, e.startDate, e.endDate, e.capacityFraction, e.defaultRule]);
+  const id = rows[0]!.id;
+  await setChildren(db, familyId, id, e.childIds);
+  await setRules(db, familyId, id, e.subjectRules);
+  return id;
+}

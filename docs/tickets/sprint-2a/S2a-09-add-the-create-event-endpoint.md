@@ -15,7 +15,7 @@ Body: `{ name, weekdays, startDate?, endDate?, capacityFraction?, defaultRule?, 
 3. Insert event, `event_child`, `event_subject_rule` in one transaction; 201 with the list shape.
 
 ## Done when
-- [ ] A created event changes `/api/plan` on its weekdays.
+- [x] A created event changes `/api/plan` on its weekdays.
 
 ## Tests
 - valid → 201 with rules and children
