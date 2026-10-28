@@ -17,8 +17,8 @@ Use plain SQL through `pg` (node-postgres), with no ORM. DeeDee knows SQL well, 
 5. Extend `/api/health` to run `select 1` and return `{ ok, engineVersion, db: 'ok' | 'down' }` (still 200 if the DB is down, so the web app can show a banner).
 
 ## Done when
-- [ ] With the Compose DB running, health shows `db: 'ok'`. With it stopped, `db: 'down'`.
-- [ ] A DATE column read through the pool comes back as a string.
+- [x] With the Compose DB running, health shows `db: 'ok'`. With it stopped, `db: 'down'`.
+- [x] A DATE column read through the pool comes back as a string.
 
 ## Tests
 - Integration test (skipped when `DATABASE_URL` is unset): `select '2026-11-01'::date as d` returns the string `'2026-11-01'`

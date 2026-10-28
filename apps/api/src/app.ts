@@ -1,6 +1,14 @@
 import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
 import { ENGINE_VERSION } from "@hh/engine";
 import type { Config } from "./config";
+import { createPool, type Db } from "./db";
+
+declare module "fastify" {
+  interface FastifyInstance {
+    db: Db;
+    config: Config;
+  }
+}
 
 /** Error with an HTTP status and a stable machine-readable code, rendered as `{ error: code, message }`. */
 export class HttpError extends Error {
@@ -9,7 +17,12 @@ export class HttpError extends Error {
   }
 }
 
-export function buildApp(config: Config): FastifyInstance {
+export interface BuildOptions {
+  /** Use an existing pool (tests share one). Otherwise one is created from config and closed with the app. */
+  db?: Db;
+}
+
+export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstance {
   const app = Fastify({ logger: config.NODE_ENV === "development" ? { level: "warn" } : false });
 
   app.setNotFoundHandler((_req, reply) => {
@@ -31,7 +44,21 @@ export function buildApp(config: Config): FastifyInstance {
     });
   });
 
-  app.get("/api/health", async () => ({ ok: true, engineVersion: ENGINE_VERSION }));
+  const db = opts.db ?? createPool(config);
+  app.decorate("db", db);
+  app.decorate("config", config);
+  if (!opts.db) app.addHook("onClose", async () => db.end());
+
+  // Always 200 so the web app can show a "database down" banner instead of an error page.
+  app.get("/api/health", async () => {
+    let dbStatus: "ok" | "down" = "ok";
+    try {
+      await db.query("select 1");
+    } catch {
+      dbStatus = "down";
+    }
+    return { ok: true, engineVersion: ENGINE_VERSION, db: dbStatus };
+  });
 
   return app;
 }

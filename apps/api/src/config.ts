@@ -4,8 +4,8 @@ import { z } from "zod";
 
 const schema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-  DATABASE_URL: z.string({ required_error: "is required" }).url("must be a URL like postgres://user:pass@host:5432/db"),
-  SESSION_SECRET: z.string({ required_error: "is required" }).min(32, "must be at least 32 characters (try: openssl rand -hex 32)"),
+  DATABASE_URL: z.string({ error: (i) => (i.input === undefined ? "is required" : "must be a string") }).url({ message: "must be a URL like postgres://user:pass@host:5432/db" }),
+  SESSION_SECRET: z.string({ error: (i) => (i.input === undefined ? "is required" : "must be a string") }).min(32, { message: "must be at least 32 characters (try: openssl rand -hex 32)" }),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 

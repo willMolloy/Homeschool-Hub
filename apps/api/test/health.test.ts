@@ -1,19 +1,32 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import { buildApp } from "../src/app";
+import { createPool } from "../src/db";
 import { testConfig } from "./helpers/config";
+import { hasDb } from "./helpers/db";
 
-const app = buildApp(testConfig());
+// Port 1 refuses connections immediately: a deterministic "database down".
+const deadPool = createPool({ DATABASE_URL: "postgres://hh:hh@127.0.0.1:1/none" });
+const app = buildApp(testConfig(), { db: deadPool });
 app.get("/api/test-throws", async () => {
   throw new Error("boom");
 });
-afterAll(() => app.close());
+afterAll(async () => {
+  await app.close();
+  await deadPool.end();
+});
 
 describe("GET /api/health", () => {
-  it("returns 200, ok and the engine version", async () => {
+  it("returns 200, ok and the engine version, db down when unreachable", async () => {
     const res = await app.inject({ method: "GET", url: "/api/health" });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ ok: true, engineVersion: ENGINE_VERSION });
+    expect(res.json()).toEqual({ ok: true, engineVersion: ENGINE_VERSION, db: "down" });
+  });
+  it.skipIf(!hasDb)("reports db ok when the database answers", async () => {
+    const live = buildApp(testConfig());
+    const res = await live.inject({ method: "GET", url: "/api/health" });
+    expect(res.json()).toMatchObject({ ok: true, db: "ok" });
+    await live.close();
   });
 });
 
