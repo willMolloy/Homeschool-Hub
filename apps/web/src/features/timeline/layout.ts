@@ -16,7 +16,7 @@ import { PX_PER_THICKNESS } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
 import { estimateTextWidth, placeName, type MeasureText } from "./names";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
-import { packRows } from "./rows";
+import { drawnExtent, packRows } from "./rows";
 import { smoothSeries } from "./smooth";
 import { makeXScale, type XScale } from "./xscale";
 import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, type Zoom } from "./zoom";
@@ -337,15 +337,26 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   const measure = options.measureText ?? estimateTextWidth;
   const childSpans = new Map<string, { childId: string; top: number; bottom: number }>();
   let y = lanesTop;
-  model.lanes.forEach((subject, s) => {
+  // T-07f: This month leaves out rows, lanes and subjects with nothing in the month. Rows are packed from every
+  // assignment first, so a bar keeps its row across zooms.
+  const inMonth = (a: TimelineAssignment) => {
+    const span = drawnExtent(a);
+    return span !== null && span[0] <= last && span[1] >= first;
+  };
+  const rowsOf = (assignments: readonly TimelineAssignment[]) =>
+    options.zoom === "month" ? packRows(assignments).map((m) => m.filter(inMonth)).filter((m) => m.length > 0) : packRows(assignments);
+  const shownLanes = model.lanes
+    .map((subject) => ({ subject, children: subject.children.map((child) => ({ child, packed: rowsOf(child.assignments) })).filter((c) => c.packed.length > 0) }))
+    .filter((l) => l.children.length > 0);
+  shownLanes.forEach(({ subject, children }, s) => {
     if (s > 0) y += SUBJECT_GAP_PX;
-    subject.children.forEach((child, c) => {
+    children.forEach(({ child, packed }, c) => {
       if (c > 0) y += LANE_GAP_PX;
       const text = c === 0 ? (manyChildren ? `${subject.name} · ${child.childName}` : subject.name) : child.childName;
       labels.push({ laneKey: child.key, text, x: plotX, y, height: LABEL_ROW_PX });
       y += LABEL_ROW_PX;
       const top = y;
-      packRows(child.assignments).forEach((members, r) => {
+      packed.forEach((members, r) => {
         if (r > 0) y += LANE_GAP_PX;
         const height = rowHeight(members, pxPerPoint);
         const cy = y + height / 2;

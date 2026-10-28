@@ -18,7 +18,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-07 Adjust sheet | 21158b1 | Tap a bar (44 px targets via `hitTest`) to select it: the other bars and names dim, and a sheet (Drawer on phones, Dialog ≥ 640 px) shows the title, subject · child, dates and "End one week earlier" / "End one week later" / "Reset". Those buttons don't exist in the DOM until something is selected (DeeDee's T-02b rule, tested). `PATCH /api/assignments/:id { endDate }`, then the plan is refetched. Keyboard path through the lanes list. Screens: `t07-sheet-390.png`, `t07-sheet-changed-390.png`, `t07-sheet-1280.png` |
 | T-07c Child filter | b24ba30 | DeeDee's request: one row of chips under the title (All, then each child with something planned), hidden with one child; one child's view keeps only their sub-lanes, breaks and events, and recomputes the All subjects bar for that child at 32 px over that view's peak; palette slots don't move; choice kept in `?child=<id>` (replace), unknown ids fall back to All |
 | T-07d Richer demo seed | 4bb9262 | DeeDee's request: the demo family is now `db/demo-family.ts`, a varied 2026–27 year (Treasure Island and Charlotte's Web in three weeks, back-to-back books, chapters beside pages, overlaps in one subject, lesson math all year, a January start, the science fair heavy for three weeks then lighter via week overrides, Labor Day, Thanksgiving week, Christmas, spring break, four events, one past check-in ahead and one behind); `seed()` takes the family to load, and tests keep the engine's sample family (`SAMPLE_FAMILY`) |
-| T-07e Edit bar at the bottom | (this commit) | DeeDee's request: the adjust sheet (a modal) is replaced by a slim edit bar fixed to the bottom of the viewport (above the tab bar on phones): move a week back or forward, Start and End date pickers, end a week earlier or later, Reset after a change, ×; the selected bar is kept above it; the API refuses date changes that would leave the latest check-in outside the assignment |
+| T-07e Edit bar at the bottom | e998596 | DeeDee's request: the adjust sheet (a modal) is replaced by a slim edit bar fixed to the bottom of the viewport (above the tab bar on phones): move a week back or forward, Start and End date pickers, end a week earlier or later, Reset after a change, ×; the selected bar is kept above it; the API refuses date changes that would leave the latest check-in outside the assignment |
+| T-07f This month shows only what is in the month | (this commit) | At This month, rows, lanes and subjects with nothing in the month are left out; rows are packed from the whole year first, so a bar keeps its row across zooms |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -252,4 +253,11 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **Reset** puts back the dates from before the first change in this visit (both fields), and disappears once the dates match them again.
 - **Layout:** on phones the order is moves, dates, then the end steps under the dates. From 640px the end steps sit beside the moves and the dates go under them.
 - **Never covering the bar:** the page gets empty room as tall as the edit bar, and on a new selection the selected bar is scrolled up above it if needed. Editing doesn't scroll again.
+
+## T-07f — This month rows decisions
+
+- **"Nothing in the visible range" means nothing drawn** (the assignment's drawn extent, daily or weekly, doesn't overlap the month), so a lane whose only work is in another month goes.
+- **Rows are not repacked.** Packing still uses the whole year, and empty rows are then dropped, so a bar never changes row when switching zoom (the T-03 rule).
+- **Only This month.** Year, Fall and Spring keep every lane, as asked. The screen-reader lanes list still lists everything.
+- **Labels keep the "Subject · Child" form** whenever the family has more than one child, even if only one child's lane is left in a subject that month, so the label doesn't change between months.
 
