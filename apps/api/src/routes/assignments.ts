@@ -4,7 +4,8 @@ import { z } from "zod";
 import { withTransaction } from "../db";
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, MinutesPerUnit, Title, TotalUnits } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
-import { createAssignment, getAssignment, listAssignments, toAssignmentJson } from "../repos/assignmentRepo";
+import { HttpError } from "../app";
+import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment } from "../repos/assignmentRepo";
 import { checkRefs } from "../repos/refs";
 
 const ListQuery = z.object({ includeArchived: z.enum(["true", "false"]).optional() });
@@ -25,6 +26,23 @@ const CreateBody = z.object({
   childIds: Children,
 });
 
+const PatchBody = z
+  .object({
+    subjectId: Id.optional(),
+    title: Title.optional(),
+    unitType: UnitTypeField.optional(),
+    totalUnits: TotalUnits.optional(),
+    // null clears the override (back to the unit default).
+    minutesPerUnit: MinutesPerUnit.nullable().optional(),
+    startDate: LocalDate.optional(),
+    endDate: LocalDate.optional(),
+    childIds: Children.optional(),
+    archived: z.boolean().optional(),
+  })
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.");
+
+const notFound = () => new HttpError(404, "not_found", "No such assignment.");
+
 export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/assignments", async (req) => {
     const q = ListQuery.safeParse(req.query);
@@ -41,5 +59,22 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       return (await getAssignment(c, req.familyId, id))!;
     });
     return reply.code(201).send(toAssignmentJson(row));
+  });
+
+  app.patch<{ Params: { id: string } }>("/api/assignments/:id", async (req) => {
+    // Malformed ids are "not found" too (never a 500 from the uuid cast).
+    if (!UUID_RE.test(req.params.id)) throw notFound();
+    const p = parseBody(PatchBody, req.body);
+    const row = await withTransaction(app.db, async (c) => {
+      const cur = await lockAssignment(c, req.familyId, req.params.id);
+      if (!cur) throw notFound();
+      // Dates are checked on the merged row, so moving only one end can't invert the range.
+      checkDateOrder(p.startDate ?? cur.start_date, p.endDate ?? cur.end_date, MAX_ASSIGNMENT_DAYS);
+      // Only newly named references are checked: an assignment may keep a subject that was archived later.
+      await checkRefs(c, req.familyId, { subjectIds: p.subjectId ? [p.subjectId] : [], childIds: p.childIds ?? [] });
+      await updateAssignment(c, req.familyId, cur.id, p);
+      return (await getAssignment(c, req.familyId, cur.id))!;
+    });
+    return toAssignmentJson(row);
   });
 }

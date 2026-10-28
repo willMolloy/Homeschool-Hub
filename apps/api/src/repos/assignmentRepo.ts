@@ -89,3 +89,30 @@ export async function createAssignment(db: Queryable, familyId: string, a: Assig
   await setChildren(db, familyId, id, a.childIds);
   return id;
 }
+
+export type AssignmentPatch = Partial<AssignmentInput> & { archived?: boolean };
+
+/** Lock one of the family's assignments for update and return it, or null. Call inside a transaction. */
+export async function lockAssignment(db: Queryable, familyId: string, id: string): Promise<AssignmentRow | null> {
+  const { rowCount } = await db.query("SELECT 1 FROM assignment WHERE id = $1 AND family_id = $2 FOR UPDATE", [id, familyId]);
+  return rowCount ? getAssignment(db, familyId, id) : null;
+}
+
+/** Apply the given fields (and replace children when `childIds` is sent). Call inside a transaction. */
+export async function updateAssignment(db: Queryable, familyId: string, id: string, p: AssignmentPatch): Promise<void> {
+  const cols: Record<string, unknown> = {
+    subject_id: p.subjectId, title: p.title, unit_type: p.unitType, total_units: p.totalUnits,
+    minutes_per_unit: p.minutesPerUnit, start_date: p.startDate, end_date: p.endDate,
+  };
+  const sets: string[] = [];
+  const params: unknown[] = [id, familyId];
+  for (const [col, v] of Object.entries(cols)) {
+    if (v === undefined) continue;
+    params.push(v);
+    sets.push(`${col} = $${params.length}`);
+  }
+  if (p.archived !== undefined) sets.push(p.archived ? "archived_at = COALESCE(archived_at, now())" : "archived_at = NULL");
+  sets.push("updated_at = now()");
+  await db.query(`UPDATE assignment SET ${sets.join(", ")} WHERE id = $1 AND family_id = $2`, params);
+  if (p.childIds) await setChildren(db, familyId, id, p.childIds);
+}

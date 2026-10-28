@@ -16,7 +16,7 @@ Partial body with the create fields (all optional; `minutesPerUnit: null` clears
 4. Return the list shape.
 
 ## Done when
-- [ ] Archiving an assignment removes it from `/api/plan`; unarchiving brings it back.
+- [x] Archiving an assignment removes it from `/api/plan`; unarchiving brings it back.
 
 ## Tests
 - each field alone → 200
