@@ -21,6 +21,8 @@ export interface RosterFormProps {
   externalError?: string | null;
   /** Extra fields rendered after Color (e.g. the subject's default bar width). */
   children?: ReactNode;
+  /** S2c-03: an extra field is invalid, so Save is disabled and submitting does nothing. */
+  blocked?: boolean;
 }
 
 /** Server messages look like "name: Name is required." — the field is already obvious here. */
@@ -28,7 +30,7 @@ function cleanMessage(m: string): string {
   return m.replace(/^[a-zA-Z.]+: /, "");
 }
 
-export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extra, externalError, children }: RosterFormProps) {
+export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extra, externalError, children, blocked = false }: RosterFormProps) {
   const [name, setName] = useState(initial.name);
   const [color, setColor] = useState<string | null>(initial.color);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extr
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (saving) return;
+    if (saving || blocked) return;
     const trimmed = name.trim();
     if (!trimmed) return setFieldError("Name is required.");
     if (trimmed.length > 60) return setFieldError("Name must be 60 characters or fewer.");
@@ -95,7 +97,7 @@ export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extr
       </fieldset>
       {children}
       <div className="btn-row">
-        <button className="btn" type="submit" disabled={saving}>{saving ? "Saving…" : submitLabel}</button>
+        <button className="btn" type="submit" disabled={saving || blocked}>{saving ? "Saving…" : submitLabel}</button>
         <button className="btn btn-secondary" type="button" onClick={onCancel} disabled={saving}>Cancel</button>
         {extra}
       </div>

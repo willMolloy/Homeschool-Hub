@@ -22,6 +22,32 @@ const EXPECTED: Record<UnitType, number[]> = {
 };
 
 describe("ThicknessPicker", () => {
+  it("S2c-03: onValidityChange reports an invalid Custom entry, and the caption asks for a weight", async () => {
+    const valid = vi.fn();
+    function V() {
+      const [v, setV] = useState<number | null>(20);
+      return <ThicknessPicker unitType="lessons" value={v} onChange={setV} onValidityChange={valid} />;
+    }
+    render(<V />);
+    const user = userEvent.setup();
+    expect(valid.mock.calls).toEqual([[true]]);
+    const custom = screen.getByLabelText("Custom weight");
+    await user.clear(custom);
+    expect(valid).toHaveBeenLastCalledWith(false);
+    expect(screen.getByText("Enter a weight to see the preview")).toBeInTheDocument();
+    await user.type(custom, "1.234");
+    expect(valid).toHaveBeenLastCalledWith(false);
+    await user.clear(custom);
+    await user.type(custom, "12");
+    expect(valid).toHaveBeenLastCalledWith(true);
+    expect(screen.queryByText("Enter a weight to see the preview")).not.toBeInTheDocument();
+    await user.clear(custom);
+    await user.click(screen.getByRole("radio", { name: "None" }));
+    expect(valid).toHaveBeenLastCalledWith(true);
+    // Only changes are reported (typing "1.234" passes through the valid "1" on the way).
+    expect(valid.mock.calls.map((c) => c[0])).toEqual([true, false, true, false, true, false, true]);
+  });
+
   it.each(UNIT_TYPES)("each preset emits built-in × multiplier for %s", async (unit) => {
     const spy = vi.fn();
     render(<Host unitType={unit} spy={spy} />);

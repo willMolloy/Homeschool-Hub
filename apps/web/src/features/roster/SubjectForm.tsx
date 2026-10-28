@@ -37,6 +37,7 @@ function AffectedNote({ subjectId, unitType }: { subjectId: string; unitType: st
 export function SubjectForm({ initial, onSave, item, ...rest }: RosterFormSlotProps<Subject, SubjectValues>) {
   const [draft, setDraft] = useState<DefaultWeightDraft>(() => draftFrom(initial.defaultWeight));
   const [weightError, setWeightError] = useState<string | null>(null);
+  const [weightValid, setWeightValid] = useState(true);
 
   async function save(values: RosterValues) {
     setWeightError(null);
@@ -50,7 +51,7 @@ export function SubjectForm({ initial, onSave, item, ...rest }: RosterFormSlotPr
   }
 
   return (
-    <RosterForm {...rest} initial={{ name: initial.name, color: initial.color }} onSave={save}>
+    <RosterForm {...rest} initial={{ name: initial.name, color: initial.color }} onSave={save} blocked={!weightValid}>
       <DefaultWeightSection
         value={draft}
         onChange={(d) => {
@@ -59,6 +60,7 @@ export function SubjectForm({ initial, onSave, item, ...rest }: RosterFormSlotPr
         }}
         note={item ? <AffectedNote subjectId={item.id} unitType={draft.unitType} /> : null}
         error={weightError}
+        onValidityChange={setWeightValid}
       />
     </RosterForm>
   );

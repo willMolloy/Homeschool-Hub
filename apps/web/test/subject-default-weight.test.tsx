@@ -105,6 +105,56 @@ describe("Subject default bar width", () => {
     expect(lastBody()).toEqual({ defaultWeight: null });
   });
 
+  describe("an invalid Custom width blocks Save (S2c-03)", () => {
+    const writes = () => fakeApi.calls.filter((c) => c.method === "PATCH" || c.method === "POST");
+    const openMath = async () => {
+      const user = await setup();
+      await user.click(screen.getByRole("button", { name: /Math/ }));
+      const form = screen.getByRole("form", { name: "Edit Math" });
+      return { user, form, custom: within(form).getByLabelText("Custom weight"), save: within(form).getByRole("button", { name: "Save" }) };
+    };
+
+    it("cleared Custom: Save is disabled, Enter sends nothing, the error stays", async () => {
+      const { user, form, custom, save } = await openMath();
+      await user.clear(custom);
+      expect(within(form).getByRole("alert")).toHaveTextContent("Enter a weight.");
+      expect(save).toBeDisabled();
+      await user.type(within(form).getByLabelText("Name"), "{Enter}");
+      expect(writes()).toEqual([]);
+      expect(within(form).getByText("Enter a weight to see the preview")).toBeInTheDocument();
+    });
+
+    it("a valid weight again enables Save and sends it", async () => {
+      const { user, custom, save } = await openMath();
+      await user.clear(custom);
+      await user.type(custom, "0");
+      expect(save).toBeDisabled();
+      await user.clear(custom);
+      await user.type(custom, "12");
+      expect(save).toBeEnabled();
+      await user.click(save);
+      await screen.findByRole("button", { name: /Math/ });
+      expect(lastBody()).toEqual({ defaultWeight: { unitType: "lessons", weightPerUnit: 12 } });
+    });
+
+    it("choosing a preset after an invalid entry enables Save", async () => {
+      const { user, form, custom, save } = await openMath();
+      await user.clear(custom);
+      await user.click(within(form).getByRole("radio", { name: /^Heavy/ }));
+      expect(save).toBeEnabled();
+      await user.click(save);
+      await screen.findByRole("button", { name: /Math/ });
+      expect(lastBody()).toEqual({ defaultWeight: { unitType: "lessons", weightPerUnit: 22.5 } });
+    });
+
+    it("a unit change after an invalid entry (picker back to None) enables Save", async () => {
+      const { user, form, custom, save } = await openMath();
+      await user.clear(custom);
+      await user.selectOptions(within(form).getByLabelText("Usually measured in"), "minutes");
+      expect(save).toBeEnabled();
+    });
+  });
+
   it("an unchanged default isn't sent; a rename sends only the name", async () => {
     const user = await setup();
     await user.click(screen.getByRole("button", { name: /Math/ }));

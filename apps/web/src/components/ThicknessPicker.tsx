@@ -2,7 +2,7 @@
  * Pick a bar width (weight per unit) with presets, a custom value and a live preview (S2b-34, D22).
  * Presets are native radios, so arrow keys move between them and the group is announced by its legend.
  */
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { DEFAULT_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, type UnitType } from "@hh/engine";
 import { thicknessToPx } from "../features/plan/scale";
 import {
@@ -16,11 +16,19 @@ export interface ThicknessPickerProps {
   value: number | null;
   onChange: (value: number | null) => void;
   legend?: string;
+  /**
+   * S2c-03: false while Custom is open with an empty or invalid entry (the value then still holds the last
+   * valid weight, so a caller must not save it); true otherwise. Called on mount and on every change.
+   */
+  onValidityChange?: (valid: boolean) => void;
 }
+
+/** The caption while the Custom entry can't be previewed (S2c-03). */
+export const INVALID_CAPTION = "Enter a weight to see the preview";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 
-export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width" }: ThicknessPickerProps) {
+export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width", onValidityChange }: ThicknessPickerProps) {
   const name = useId();
   const customId = useId();
   const errId = useId();
@@ -30,6 +38,11 @@ export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width
   const [customText, setCustomText] = useState(value != null ? String(value) : "");
   const [customError, setCustomError] = useState<string | null>(null);
   const selected: PresetKey = customFor === unitType ? "custom" : presetFor(unitType, value);
+  const invalid = selected === "custom" && customError !== null;
+  // Report on validity changes only; a new callback identity on each render isn't a change.
+  const report = useRef(onValidityChange);
+  report.current = onValidityChange;
+  useEffect(() => report.current?.(!invalid), [invalid]);
 
   const choose = (key: PresetKey) => {
     setCustomError(null);
@@ -88,7 +101,7 @@ export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width
         <div className="thickness-bar thickness-chosen" data-testid="preview-bar" style={{ height: `${thicknessToPx(thickness)}px` }}
           role="img" aria-label={`${TYPICAL_DAY[unitType].text} a day: thickness ${fmt(thickness)}`} />
       </div>
-      <p className="hint thickness-caption">{previewCaption(unitType, value)}</p>
+      <p className="hint thickness-caption">{invalid ? INVALID_CAPTION : previewCaption(unitType, value)}</p>
     </fieldset>
   );
 }

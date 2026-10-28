@@ -29,9 +29,11 @@ interface Props {
   note?: ReactNode;
   /** A server error about the default. */
   error?: string | null;
+  /** S2c-03: the picker's Custom entry is (in)valid; the form must not save while it's invalid. */
+  onValidityChange?: (valid: boolean) => void;
 }
 
-export function DefaultWeightSection({ value, onChange, note, error }: Props) {
+export function DefaultWeightSection({ value, onChange, note, error, onValidityChange }: Props) {
   const unitId = useId();
   // Open on first render when there's a stored default; after that the user's toggle wins.
   const [startOpen] = useState(value.weightPerUnit != null);
@@ -54,6 +56,7 @@ export function DefaultWeightSection({ value, onChange, note, error }: Props) {
         value={value.weightPerUnit}
         onChange={(w) => onChange({ ...value, weightPerUnit: w })}
         legend="Default bar width"
+        onValidityChange={onValidityChange}
       />
       {note}
       {error ? <p className="field-error" role="alert">{error}</p> : null}
