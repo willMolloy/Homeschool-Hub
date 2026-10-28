@@ -9,3 +9,7 @@ const repo = rosterRepo("subject");
 
 export const toSubjectJson = toRosterJson;
 export const listSubjects = (db: Queryable, familyId: string, includeArchived = false) => repo.list(db, familyId, includeArchived);
+export const createSubject = (db: Queryable, familyId: string, input: { name: string; color?: string | null }) => repo.create(db, familyId, input);
+
+/** DB index enforcing one active subject per (family, case-insensitive trimmed name). */
+export const SUBJECT_NAME_INDEX = "subject_family_name_uq";

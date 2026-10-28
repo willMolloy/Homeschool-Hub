@@ -16,7 +16,7 @@ Body: `{ name: string, color?: string }`. `family_id` comes from the session. Su
 4. Unique violation (SQLSTATE 23505) → 409 `{ error: 'duplicate_name' }`.
 
 ## Done when
-- [ ] Creating a subject shows up in `GET /api/subjects`.
+- [x] Creating a subject shows up in `GET /api/subjects`.
 
 ## Tests
 - valid → 201 + row in DB with session family_id
