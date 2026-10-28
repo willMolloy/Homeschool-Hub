@@ -2,7 +2,7 @@
 
 A short guide for reviewing Homeschool Hub on your own machine. It's written for a Java/SQL backend developer who is new to this TypeScript stack.
 
-- **What exists today:** Sprint 1 and Sprint 2a are done. You can sign in, manage kids and subjects, enter schedule data (settings, assignments, days off, events), and see the engine's plan in a temporary debug table.
+- **What exists today:** Sprint 1 and Sprint 2a are done, and Sprint 2b's weights are in. You can sign in, manage kids and subjects (with optional default weights), enter schedule data (settings, assignments with a thickness picker, days off, events), and see the engine's plan in a temporary debug table.
 - **What doesn't exist yet:** the real timeline, logging, and the week-overrides API.
 - **Status and open decisions:** see the [Morning summary](progress/overnight.md#morning-summary).
 
@@ -57,11 +57,11 @@ Without `DATABASE_URL=…_test`, the integration tests are **skipped**, not fail
 Sign in at http://localhost:5173 with `demo@example.com` / `demo-password`. Try a narrow browser window too; the app is built mobile-first (360 px).
 
 1. **Plan (`/`)**
-   - This is a *debug view*: one table per child, with minutes per subject per day.
+   - This is a *debug view*: one table per child, with effort (units × weight) per subject per day. See [Weights](#weights).
    - Use **Prev/Next** to change the week.
    - Set **"Plan as of"** to `2026-10-19` and go to the week of Oct 26. Frank's Literature reads 45 a day.
    - Clear "as of" (so it means today). The numbers go up because nothing is logged and the work rolls forward. That's decision 1 in the Morning summary.
-   - A `*` means the minutes are an estimate.
+   - A `~` means a cell uses the built-in weight for its unit; an `s` means it uses the subject's default weight.
 2. **Kids and Subjects**
    - Add, rename, recolor, archive, and use "Show archived".
    - Try adding a subject whose name already exists. You get a 409 with a field message.
@@ -96,7 +96,7 @@ npm **workspaces** work like Maven modules: one root `package.json`, one lockfil
 | `apps/api` (`@hh/api`) | Fastify HTTP API | The Spring Boot app |
 | `apps/web` (`@hh/web`) | React single-page app (Vite dev server, PWA) | A separate frontend; nothing like Thymeleaf |
 | `db` (`@hh/db`) | SQL migrations, the migration runner, seed, demo script, schema checks | Flyway scripts + a `data.sql` |
-| `docs/tickets` | Sprint 1 and 2a tickets, each with "Done when" and tests | Your Jira |
+| `docs/tickets` | Sprint 1, 2a and 2b tickets, each with "Done when" and tests | Your Jira |
 | `docs/progress` | Overnight log (Morning summary) and the tester's report | — |
 
 ### API (`apps/api/src`)
@@ -120,7 +120,7 @@ A route reads like this (from `routes/children.ts`): a zod schema describes the 
 
 ### Database (`db/`)
 
-- `001_init.sql`, `002_auth.sql`, `003_minutes_unit.sql`: forward-only migrations, applied in order by `db/migrate.ts` and recorded in `schema_migration` (like Flyway's history table).
+- `001_init.sql` … `007_drop_minutes_per_unit.sql`: forward-only migrations, applied in order by `db/migrate.ts` and recorded in `schema_migration` (like Flyway's history table). 004–007 are Sprint 2b's weights, done expand/contract: 004 adds `assignment.weight_per_unit` (backfilled from the old minutes ÷ 2), 005 adds the `weight_choice` history, 006 adds subject default weights, and 007 drops the old minutes column once nothing reads it. See `db/README.md`.
 - `npm run db:migrate` applies pending migrations; `npm run db:reset` drops and re-migrates. It only works on `*_dev` or `*_test` databases.
 - `npm run db:seed`: the demo family (hh_dev only). `npm run demo`: reset + seed + servers.
 - `db/test/validate.sql`: SQL assertions about the schema (constraints, cascades, indexes), run by `node db/test/validate.cjs`. See `db/README.md`.
@@ -148,7 +148,49 @@ In dev, Vite serves the web app on :5173 and proxies `/api` to the API on :3000,
 
 vitest works like JUnit 5: `describe` groups and `it` tests, with `expect(...)` instead of AssertJ. `it.fails` marks a known bug pinned by a test.
 
-**CI:** `.github/workflows/ci.yml` runs Postgres 16, then lint, typecheck, db:reset, test, and test:tz. It has never run, because nothing has been pushed.
+**CI:** `.github/workflows/ci.yml` runs Postgres 16, then lint, typecheck, db:reset, test, and test:tz. It runs on every push to `main`; check it with `gh run list`.
+
+## Weights
+
+Sprint 2b replaced the old per-unit minutes with a relative **weight per unit**: how much effort one page, chapter, lesson or minute is. A bar's thickness for a day is `units × weight`. Thickness has no unit; 1 point ≈ 2 minutes of work (`MINUTES_PER_WEIGHT_POINT`), which is only used for the picker's "≈ N min of work" caption. Logged hours come from `log_entry.minutes_spent`, never from bars.
+
+- **Built-ins** (`DEFAULT_WEIGHT_PER_UNIT` in `packages/engine/src/weights.ts`): pages 1, chapters 10, lessons 15, minutes 0.5 (so 30 minutes of piano and 15 pages are both thickness 15).
+- **Bounds:** 0.01–100 with at most 2 decimals (`isValidWeight`). The API returns 400 outside them, and the DB has CHECKs (the `numeric(6,2)` columns round a third decimal rather than reject it; tester findings T3-1/T4-1). The picker offers None / Light ×0.5 / Normal ×1 / Heavy ×1.5 / Very heavy ×2 / Custom.
+- **Precedence** for a new assignment's suggested weight (`GET /api/weights/suggestion`, `suggestWeight`): the assignment's own value → the children's learned weight (pages and chapters only) → the subject's default for that unit type → the built-in. In the plan (`weightPerUnitOf`) it's the assignment's own value → the subject default → the built-in, and each plan says which (`weightSource`).
+- **Learned weight (trimmed mean):** per child and unit, take the latest choice on each of their 5 most recent pages (or chapters) assignments. With 4 or 5 values, drop the single highest and lowest and average the rest; with 1–3, the plain mean; with none, fall back to the subject default, then the built-in. Rounded to 2 decimals. A cleared weight removes that assignment's vote. Lessons and minutes are never learned.
+- **Several children:** the median of the usual weights of the children who have one. Children without history are listed in the response so the hint can say so.
+- **Snapshot vs live:** a learned (or typed) value is saved on the assignment, so it doesn't change later. An assignment with no weight of its own follows its subject's default live: edit the subject and the next plan uses the new value. A subject default is bound to one unit type (20 per lesson isn't 20 per page).
+
+### Sprint 2b decisions
+
+DeeDee settled D1, D5, D6, D14, D17 and the precedence on Oct 28, 2026, and approved the revised tickets with the rest (including D17–D23) as written the same day. Copied from `docs/tickets/sprint-2b-weights/README.md`:
+
+| ID | Decision | Chosen | Decided |
+|----|----------|--------|---------|
+| D1 | Minutes ↔ points | 2 minutes = 1 point; migration 004 converts minutes ÷ 2, capped | Oct 28, 2026 |
+| D5 | Usual weight | Latest weight on the 5 most recent assignments of that unit per child; drop the high and low, average the rest | Oct 28, 2026 |
+| D6 | Several children | Median of the per-child usual weights | Oct 28, 2026 |
+| D14 | Skipping the weekly card | Counts as done; the card never nags | Oct 28, 2026 |
+| — | Precedence | Assignment → learned → subject → built-in | Oct 28, 2026 |
+| D17 | Chapters learned like pages | Yes | Oct 28, 2026 |
+| D18 | Fewer than 5 assignments | 4 → drop high and low, average the middle 2; 1–3 → plain mean; 0 → fall back | Oct 28, 2026 |
+| D19 | Subject default vs learned (pages, chapters) | Learned wins; the subject default fills in for children without history | Oct 28, 2026 |
+| D20 | Subject default: snapshot or live | Live for assignments without their own weight; learned values are stored on the assignment | Oct 28, 2026 |
+| D21 | Weights on lessons and minutes | Allowed (minute built-in 0.5); never learned | Oct 28, 2026 |
+| D22 | Picker presets | None / Light ×0.5 / Normal ×1 / Heavy ×1.5 / Very heavy ×2 / Custom | Oct 28, 2026 |
+| D23 | Subject default bound to one unit type | Yes | Oct 28, 2026 |
+| D2 | Weight bounds | 0.01–100, 2 decimals | Oct 28, 2026 |
+| D3 | Existing minute values | ÷ 2, capped; 0 or NULL → default | Oct 28, 2026 |
+| D4 | Where choices are stored | A separate `weight_choice` table | Oct 28, 2026 |
+| D7 | Unit change on edit | Must resend a weight (400 otherwise) | Oct 28, 2026 |
+| D8 | Archived children and subjects in suggestions | Allowed | Oct 28, 2026 |
+| D9 | Past bars in a checked-in week | Scaled to actual | Oct 28, 2026 |
+| D10 | Default absorb choice | Keep the end date (thicken or thin) | Oct 28, 2026 |
+| D11 | On-plan tolerance | ±0.5 units | Oct 28, 2026 |
+| D12 | Preview numbers on the absorb choices | Not in v1 | Oct 28, 2026 |
+| D13 | Position meaning | Units done since the start; no start page | Oct 28, 2026 |
+| D15 | Engine versions | 0.2.0, 0.3.0, 0.4.0, 0.5.0, with a patch bump for S2b-32 | Oct 28, 2026 |
+| D16 | Hours and exports | Only from `log_entry.minutes_spent` | Oct 28, 2026 |
 
 ## 4. Decisions waiting for you
 

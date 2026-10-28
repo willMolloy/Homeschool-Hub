@@ -1,7 +1,7 @@
 # db/
 
 Plain SQL migrations, applied in file-name order (`001_init.sql`, `002_...`). Each migration
-records itself in `schema_migration`. There is no migration runner yet — that's ticket S1-08.
+records itself in `schema_migration`. `db/migrate.ts` applies pending ones in order (S1-08).
 
 ## Migrations
 
@@ -14,6 +14,8 @@ records itself in `schema_migration`. There is no migration runner yet — that'
 | `005_weight_choice.sql` | S2b-04: append-only `weight_choice` history (child, pages/chapters, weight or NULL, `chosen_at`), backfilled one row per child from weighted pages/chapters assignments |
 | `006_subject_default_weight.sql` | S2b-30: optional subject default bar width, `default_weight_unit` + `default_weight` (0.01–100), both or neither |
 | `007_drop_minutes_per_unit.sql` | S2b-15, contract step: drops `assignment.minutes_per_unit` and 003's `assignment_minutes_unit_no_mpu`. Older migrations still mention the column; they are history and are never edited |
+
+**Expand/contract (004–007).** Sprint 2b moved from minutes per unit to weights without a broken step: 004 *expands* (adds `weight_per_unit` next to the old column and backfills it at ÷ 2), 005 and 006 add the history and subject defaults, the API and web then switch to weights (S2b-06 … S2b-14), and only after nothing reads the old column does 007 *contract* (drop it and its 003 constraint). Every migration in between leaves the app working and the gate green.
 
 ## Tables (001_init.sql)
 

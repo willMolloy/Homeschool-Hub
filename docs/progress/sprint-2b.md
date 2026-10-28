@@ -28,7 +28,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-14 remove minute outputs from the engine (0.3.0) | ddecdda | |
 | S2b-15 migration 007 drops minutes_per_unit | 57309e4 | |
 | S2b-16 tester pass: weight edge cases | 1cebc14 | |
-| S2b-37 tester pass: subject defaults and precedence | (this commit) | |
+| S2b-37 tester pass: subject defaults and precedence | 89986ca | |
+| S2b-17 update docs for weights | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -68,6 +69,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-16 — tester suites written by the developer.** The four suites and the case table are in `tester-report.md` (round 3). Two findings, both Info and not fixed: T3-1 (the DB rounds 3-decimal weights instead of rejecting them; only the API/web reject) and T3-2 (the web parsers accept hex/exponent strings the number input never sends). Case 10's UI half is manual: the picker caption's "≈ N min of work" is S2b-34's requirement and comes from the weight, not the plan.
 
 - **S2b-37 — what "learned" and "archived" mean here.** The plan never reads history (S2b-05: assignment → subject → built-in), so case 1's "history + subject → learned" is checked where D19 applies, in the suggestion, and the saved prefilled value then plans as `assignment` (case 2 shows it doesn't follow a later subject change). Case 5's "its assignments still use its default" meets Sprint 1's rule that an archived subject's assignments aren't planned: the test pins that they drop out while archived, that `loadPlanInputs` still carries the default (S2b-33), that a suggestion with the subject uses it, and that unarchiving plans them at it. No behaviour was changed. One Info finding, T4-1 (the subject column rounds 3 decimals, like T3-1).
+
+- **S2b-17 — where the decisions went, and the done-when check.** "Copy the README decisions table, with the dates decided" names no target, so the table went into a new "Weights" section of `docs/REVIEW-GUIDE.md` (next to the rules it explains), with D4 and the Oct 28 settled items added and every row dated Oct 28, 2026 (the day DeeDee settled D1/D5/D6/D14/D17 and approved the rest as written). The done-when `rg` is run as written but with `**/` globs (`--glob '!**/tickets/**'` etc.): with the ticket's `'!reviews/**'` form, ripgrep matches the globs against `docs/…` paths and still searches reviews and progress, which are history and stay as written. The guide's stale lines ("Sprint 1 and 2a", "CI has never run", the old `*` estimate marker) and `db/README.md`'s "no migration runner yet" were also brought up to date.
 
 ## Deferred
 
