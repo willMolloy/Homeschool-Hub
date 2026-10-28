@@ -20,3 +20,16 @@ export function plannedRangeText(unitType: UnitType, from: number, to: number): 
   const { one, many } = UNIT_LABELS[unitType];
   return first === last ? `${one} ${first}` : `${many} ${first}–${last}`;
 }
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const md = (d: string) => ({ m: MONTHS[Number(d.slice(5, 7)) - 1]!, d: Number(d.slice(8, 10)) });
+
+/** A week as "Oct 12–18", or "Sep 28 – Oct 4" across a month (S2b-27). Locale-free so tests are stable. */
+export function weekRangeText(weekStart: string, weekEnd: string): string {
+  const a = md(weekStart);
+  const b = md(weekEnd);
+  return a.m === b.m ? `${a.m} ${a.d}–${b.d}` : `${a.m} ${a.d} – ${b.m} ${b.d}`;
+}
+
+/** The picker's label for a week's review state (S2b-27). */
+export const reviewStatusText = (status: "reviewed" | "skipped" | null) => status ?? "not reviewed";

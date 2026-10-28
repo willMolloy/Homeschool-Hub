@@ -161,3 +161,12 @@ export interface SaveWeekBody {
 export interface SaveWeekResponse extends WeekCheckIn {
   planChanged: boolean;
 }
+
+/** GET /api/check-ins/weeks (S2b-27): a finished week that can be reopened, newest first. */
+export interface PastWeek {
+  weekStart: string;
+  weekEnd: string;
+  status: WeekReviewStatus | null;
+  /** Some row has a stored check-in that week. */
+  hasCheckIns: boolean;
+}

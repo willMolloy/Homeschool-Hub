@@ -3,29 +3,40 @@
  * fetches. Collapsed it is one line with three controls; Adjust lists each assignment × child, grouped by
  * child. Untouched rows count as done; each row's ProgressAdjuster (S2b-36) sets where the child got to,
  * and rows that ended up behind or ahead ask how to absorb it (S2b-26).
+ *
+ * Edit mode (S2b-27) reopens a finished week: always expanded, prefilled from the stored `actual` and `mode`,
+ * and Save sends the whole week (replace), so a row put back to its plan is removed.
  */
 import { useId, useState } from "react";
 import type { OverrideMode } from "@hh/engine";
 import type { CheckInItem, SaveWeekBody, WeekCheckIn } from "../../api/types";
 import { AbsorbChoice } from "./AbsorbChoice";
 import { DEFAULT_MODE, itemKey, outcomeText, rowOutcome, type Direction } from "./absorb";
-import { plannedCountText, plannedRangeText } from "./checkinText";
+import { plannedCountText, plannedRangeText, reviewStatusText, weekRangeText } from "./checkinText";
 import { ProgressAdjuster } from "./ProgressAdjuster";
 import "./checkin.css";
 
 export type SaveItems = SaveWeekBody["items"];
 
+export type CardMode = "prompt" | "edit";
+
 export interface LastWeekCardProps {
+  /** Carries its own weekStart; key the card by it so a different week starts fresh. */
   week: WeekCheckIn;
+  /** "prompt" is the home-screen question (default); "edit" corrects a past week (S2b-27). */
+  mode?: CardMode;
   busy: boolean;
   /** A failed save's message, shown inline; the card stays. */
   error: string | null;
   /** A 400 about one row, by itemKey, shown on that row. */
   itemErrors?: Readonly<Record<string, string>>;
-  onConfirm: () => void;
-  onSkip: () => void;
+  /** Prompt mode's "went as planned" and Skip; edit mode doesn't show them. */
+  onConfirm?: () => void;
+  onSkip?: () => void;
   /** Save the changed rows (S2b-26). Rows left out are done as planned. */
   onSave: (items: SaveItems) => void;
+  /** Edit mode: close without saving. */
+  onClose?: () => void;
 }
 
 /** Items grouped by child, in the API's order (child, then subject, then title). */
@@ -42,13 +53,39 @@ export function groupByChild(items: readonly CheckInItem[]): { childId: string; 
 const DIRECTIONS: readonly Direction[] = ["behind", "ahead"];
 const isDirection = (o: string): o is Direction => o === "behind" || o === "ahead";
 
-export function LastWeekCard({ week, busy, error, itemErrors = {}, onConfirm, onSkip, onSave }: LastWeekCardProps) {
-  const [expanded, setExpanded] = useState(false);
+/**
+ * The card's starting answers from what's stored (S2b-27): positions and per-row modes; for each direction a
+ * shared answer only when every stored row going that way agrees, otherwise rows keep their own.
+ */
+export function initialAnswers(items: readonly CheckInItem[]) {
+  const positions: Record<string, number> = {};
+  const rowModes: Record<string, OverrideMode> = {};
+  const applyAll: Record<Direction, boolean> = { behind: true, ahead: true };
+  const groupModes: Record<Direction, OverrideMode> = { behind: DEFAULT_MODE, ahead: DEFAULT_MODE };
+  for (const d of DIRECTIONS) {
+    const going = items.filter((i) => i.actual !== null && rowOutcome(i, i.actual) === d);
+    const modes = new Set(going.map((i) => i.mode ?? DEFAULT_MODE));
+    applyAll[d] = modes.size <= 1;
+    if (modes.size === 1) groupModes[d] = [...modes][0]!;
+  }
+  for (const i of items) {
+    if (i.actual === null) continue;
+    positions[itemKey(i)] = i.actual;
+    if (i.mode) rowModes[itemKey(i)] = i.mode;
+  }
+  return { positions, rowModes, applyAll, groupModes };
+}
+
+export function LastWeekCard({ week, mode = "prompt", busy, error, itemErrors = {}, onConfirm, onSkip, onSave, onClose }: LastWeekCardProps) {
+  const editing = mode === "edit";
+  const [start] = useState(() => (editing ? initialAnswers(week.items) : initialAnswers([])));
+  const [adjusting, setExpanded] = useState(false);
+  const expanded = editing || adjusting;
   /** Positions the parent changed, by itemKey; rows not here are done as planned. */
-  const [positions, setPositions] = useState<Record<string, number>>({});
-  const [rowModes, setRowModes] = useState<Record<string, OverrideMode>>({});
-  const [applyAll, setApplyAll] = useState<Record<Direction, boolean>>({ behind: true, ahead: true });
-  const [groupModes, setGroupModes] = useState<Record<Direction, OverrideMode>>({ behind: DEFAULT_MODE, ahead: DEFAULT_MODE });
+  const [positions, setPositions] = useState<Record<string, number>>(start.positions);
+  const [rowModes, setRowModes] = useState<Record<string, OverrideMode>>(start.rowModes);
+  const [applyAll, setApplyAll] = useState<Record<Direction, boolean>>(start.applyAll);
+  const [groupModes, setGroupModes] = useState<Record<Direction, OverrideMode>>(start.groupModes);
   const titleId = useId();
   const listId = useId();
 
@@ -68,13 +105,20 @@ export function LastWeekCard({ week, busy, error, itemErrors = {}, onConfirm, on
   })));
 
   const confirm = (
-    <button type="button" className="btn" disabled={busy} onClick={() => { setExpanded(false); onConfirm(); }}>
+    <button type="button" className="btn" disabled={busy} onClick={() => { setExpanded(false); onConfirm?.(); }}>
       Last week went as planned
     </button>
   );
 
-  return (
-    <section className="card checkin-card" aria-labelledby={titleId}>
+  const header = editing ? (
+    <div className="checkin-line">
+      <p className="checkin-question">
+        <strong id={titleId}>Week of {weekRangeText(week.weekStart, week.weekEnd)}</strong>{" "}
+        <span className="checkin-status">({reviewStatusText(week.status)})</span> {plannedCountText(week.items.length)}
+      </p>
+      {onClose && <button type="button" className="btn-link" disabled={busy} onClick={onClose}>Close</button>}
+    </div>
+  ) : (
       <div className="checkin-line">
         <p className="checkin-question">
           <strong id={titleId}>How did last week go?</strong> {plannedCountText(week.items.length)}
@@ -90,6 +134,11 @@ export function LastWeekCard({ week, busy, error, itemErrors = {}, onConfirm, on
           </button>
         </div>
       </div>
+  );
+
+  return (
+    <section className={`card checkin-card${editing ? " checkin-edit" : ""}`} aria-labelledby={titleId}>
+      {header}
       {error && <p className="checkin-error" role="alert">{error}</p>}
       <div id={listId} hidden={!expanded}>
         {expanded && (
@@ -137,8 +186,8 @@ export function LastWeekCard({ week, busy, error, itemErrors = {}, onConfirm, on
               </div>
             ))}
             <div className="btn-row checkin-footer">
-              <button type="button" className="btn" disabled={busy || changed.length === 0} onClick={save}>Save</button>
-              {confirm}
+              <button type="button" className="btn" disabled={busy || (!editing && changed.length === 0)} onClick={save}>Save</button>
+              {!editing && confirm}
             </div>
           </>
         )}

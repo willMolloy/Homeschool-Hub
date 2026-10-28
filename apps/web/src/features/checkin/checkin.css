@@ -35,3 +35,11 @@
 .checkin-group-choice { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
 .checkin-apply-all { display: inline-flex; align-items: center; gap: 6px; }
 .checkin-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Reopening a past week (S2b-27). */
+.past-week-review { margin: 16px 0; }
+.past-week-list { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
+.past-week[aria-current="true"] { font-weight: 600; }
+.past-week-status { color: var(--muted); }
+.past-week-empty, .checkin-note { color: var(--muted); margin: 8px 0; }
+.checkin-status { color: var(--muted); }

@@ -136,6 +136,56 @@ export async function readWeek(
   return weekView(db, familyId, inputs, resolveWeek(inputs.calendar.weekStart, today, opts.requested), today);
 }
 
+export interface PastWeekJson {
+  weekStart: LocalDate;
+  weekEnd: LocalDate;
+  status: WeekReviewStatus | null;
+  /** Some assignment × child has a stored check-in that week (so it drives the plan from then on). */
+  hasCheckIns: boolean;
+}
+
+/** The week picker lists at most this many weeks, newest first (two school years). */
+export const MAX_PAST_WEEKS = 104;
+
+/**
+ * Finished weeks a parent can reopen (S2b-27), newest first: from last week back to the earliest assignment
+ * start, keeping weeks with planned work (as planned then, earlier check-ins only) or a stored check-in or
+ * review. Plans are recomputed only where an earlier week's check-in could have changed them.
+ */
+export async function listWeeks(
+  db: Queryable, familyId: string, opts: { todayIn: (timeZone: string) => LocalDate },
+  load: PlanLoader = readPlanInputs,
+): Promise<PastWeekJson[]> {
+  const inputs = await load(db, familyId);
+  const today = opts.todayIn(inputs.timeZone);
+  const ws = inputs.calendar.weekStart;
+  const last = resolveWeek(ws, today);
+  const { rows: checked } = await db.query<{ week_start: LocalDate }>(
+    "SELECT DISTINCT week_start FROM progress_checkin WHERE family_id = $1", [familyId]);
+  const { rows: reviews } = await db.query<{ week_start: LocalDate; status: WeekReviewStatus }>(
+    "SELECT week_start, status FROM week_review WHERE family_id = $1", [familyId]);
+  const withCheckIns = new Set(checked.map((r) => r.week_start));
+  const statusOf = new Map(reviews.map((r) => [r.week_start, r.status]));
+  const starts = [...inputs.assignments.map((a) => a.start), ...withCheckIns, ...statusOf.keys()];
+  if (starts.length === 0) return [];
+  const first = weekStartOf(starts.reduce((a, b) => (a < b ? a : b)), ws);
+
+  const weeks: PastWeekJson[] = [];
+  let cachedEarlier = -1;
+  let plans: ChildPlan[] = [];
+  for (let w = last; w >= first && weeks.length < MAX_PAST_WEEKS; w = addDays(w, -7)) {
+    const earlier = inputs.ctx.checkIns.filter((c) => c.weekStart < w).length;
+    if (earlier !== cachedEarlier) {
+      plans = plansBefore(inputs, w, today).plans;
+      cachedEarlier = earlier;
+    }
+    const planned = plans.some((p) => plannedRangeForWeek(p, w).hasPlannedWork);
+    if (planned || withCheckIns.has(w) || statusOf.has(w))
+      weeks.push({ weekStart: w, weekEnd: addDays(w, 6), status: statusOf.get(w) ?? null, hasCheckIns: withCheckIns.has(w) });
+  }
+  return weeks;
+}
+
 /** Within this many units of the plan, a position counts as "as planned" (D11). */
 export const AS_PLANNED_TOLERANCE = 0.5;
 

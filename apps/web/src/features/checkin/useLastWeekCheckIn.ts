@@ -1,7 +1,7 @@
 /**
- * Data and mutations for the "How did last week go?" card (S2b-25): GET /api/check-ins (last week) and the
- * PUT that confirms, skips or saves it. The card shows only while the week is unreviewed and had work.
- * A save that changed the plan tells the plan views to refetch (S2b-26).
+ * Data and mutations for a week's check-in card: GET /api/check-ins (last week, or `?weekStart=` for a past
+ * week, S2b-27) and the PUT that confirms, skips or saves it. The home-screen card shows only while last week
+ * is unreviewed and had work. A save that changed the plan tells the plan views to refetch (S2b-26).
  */
 import { useState } from "react";
 import { ApiError, apiPut } from "../../api/client";
@@ -28,15 +28,22 @@ export function itemErrorOf(message: string): { index: number; text: string } | 
   return m ? { index: Number(m[1]), text: m[2]! } : null;
 }
 
-export function useLastWeekCheckIn(): LastWeekCheckIn {
-  const api = useApi<WeekCheckIn>("/api/check-ins");
+export interface WeekCheckInState extends Omit<LastWeekCheckIn, "week"> {
+  /** The loaded week whatever its status, or null while loading or after a load error. */
+  data: WeekCheckIn | null;
+  loading: boolean;
+  loadError: string | null;
+}
+
+/** One week's check-in: last week when `weekStart` is undefined. `onSaved` runs after a successful PUT. */
+export function useWeekCheckIn(weekStart?: string, onSaved?: (res: SaveWeekResponse) => void): WeekCheckInState {
+  const api = useApi<WeekCheckIn>(weekStart ? `/api/check-ins?weekStart=${weekStart}` : "/api/check-ins");
   const { invalidate } = usePlanRefresh();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [itemErrors, setItemErrors] = useState<Record<string, string>>({});
   const [thanks, setThanks] = useState<string | null>(null);
-  const data = api.data;
-  const week = data && !api.error && data.status === null && data.items.length > 0 ? data : null;
+  const data = api.error ? null : api.data ?? null;
 
   const save = async (body: SaveWeekBody): Promise<SaveWeekResponse | null> => {
     if (!data) return null;
@@ -49,6 +56,7 @@ export function useLastWeekCheckIn(): LastWeekCheckIn {
       if (updated) invalidate();
       api.setData(res);
       setThanks(updated ? "Thanks — plan updated" : "Thanks!");
+      onSaved?.(res);
       return res;
     } catch (e) {
       const row = e instanceof ApiError && e.status === 400 ? itemErrorOf(e.message) : null;
@@ -61,5 +69,12 @@ export function useLastWeekCheckIn(): LastWeekCheckIn {
       setBusy(false);
     }
   };
+  return { data, loading: api.loading, loadError: api.error ? "Couldn't load that week." : null, busy, error, itemErrors, thanks, save };
+}
+
+/** The home-screen prompt: last week, only while unreviewed and it had work. */
+export function useLastWeekCheckIn(): LastWeekCheckIn {
+  const { data, busy, error, itemErrors, thanks, save } = useWeekCheckIn();
+  const week = data && data.status === null && data.items.length > 0 ? data : null;
   return { week, busy, error, itemErrors, thanks, save };
 }

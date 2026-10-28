@@ -88,6 +88,7 @@ class FakeApi {
     this.on("GET /api/weights/suggestion", (_b, _p, q) => [200, builtinSuggestionFor(q)]);
     // S2b-25: no work last week (card hidden); a save echoes the week back as reviewed or skipped.
     this.on("GET /api/check-ins", 200, EMPTY_WEEK);
+    this.on("GET /api/check-ins/weeks", 200, { weeks: [] });
     this.on(`PUT /api/check-ins/${EMPTY_WEEK.weekStart}`, (body) =>
       [200, { ...EMPTY_WEEK, status: (body as { status: string }).status, planChanged: false }]);
   }

@@ -6,7 +6,7 @@ import { withReadSnapshot, withTransaction } from "../db";
 import { familyToday } from "../http/today";
 import { LocalDate, MAX_IDS, Position } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
-import { readWeek, saveWeek } from "../services/checkInService";
+import { listWeeks, readWeek, saveWeek } from "../services/checkInService";
 
 const WeekQuery = z.strictObject({ weekStart: LocalDate.optional() });
 const WeekParams = z.strictObject({ weekStart: LocalDate });
@@ -27,6 +27,13 @@ export async function checkInsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/check-ins", async (req) => {
     const { weekStart } = parseBody(WeekQuery, req.query);
     return withReadSnapshot(app.db, (tx) => readWeek(tx, req.familyId, { requested: weekStart, todayIn: (zone) => familyToday(req, zone) }));
+  });
+
+  /** Finished weeks that can be reopened (S2b-27). */
+  app.get("/api/check-ins/weeks", async (req) => {
+    parseBody(z.strictObject({}), req.query);
+    const weeks = await withReadSnapshot(app.db, (tx) => listWeeks(tx, req.familyId, { todayIn: (zone) => familyToday(req, zone) }));
+    return { weeks };
   });
 
   app.put("/api/check-ins/:weekStart", async (req) => {
