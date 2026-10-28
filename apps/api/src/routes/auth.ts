@@ -33,4 +33,12 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     reply.setCookie(SESSION_COOKIE, token, sessionCookieOptions(app.config.NODE_ENV === "production"));
     return { familyId: family.id, familyName: family.name };
   });
+
+  // Public and idempotent: always 204, so the client can always get back to a clean state.
+  app.post("/api/auth/logout", { config: { public: true } }, async (req, reply) => {
+    const token = req.cookies[SESSION_COOKIE];
+    if (token) await app.db.query("DELETE FROM session WHERE id = $1", [hashSessionToken(token)]);
+    reply.clearCookie(SESSION_COOKIE, { path: "/" });
+    return reply.code(204).send();
+  });
 }
