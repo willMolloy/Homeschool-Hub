@@ -23,6 +23,18 @@ npm run dev:web     # Vite dev server
 npm run dev:api     # API on :3000
 ```
 
+## Local database
+
+Postgres 16 runs in Docker:
+
+```
+docker compose up -d db            # start (data persists in the hh-pgdata volume)
+docker compose ps                  # wait for "healthy"
+cp .env.example .env               # DATABASE_URL=postgres://hh:hh@localhost:5432/hh_dev
+psql postgres://hh:hh@localhost:5432/hh_dev -c 'select 1'
+docker compose down                # stop (add -v to delete the data)
+```
+
 Validate the schema: see `db/README.md` (`DATABASE_URL=... node db/test/validate.cjs`).
 
 Start with `docs/tickets/README.md` → S1-01.
