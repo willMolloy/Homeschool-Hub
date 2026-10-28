@@ -1,0 +1,41 @@
+/* Schedule screens (S2a-12..16). Phone first: one column of cards. */
+.schedule h1 {
+  margin-top: 0;
+}
+.schedule-back {
+  margin: 0 0 8px;
+}
+.schedule-back a {
+  display: inline-block;
+  min-height: 44px;
+  line-height: 44px;
+  font-weight: 600;
+}
+.schedule-hub {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .schedule-hub {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.schedule-hub-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: inherit;
+  min-height: 44px;
+}
+.schedule-hub-label {
+  font-weight: 700;
+  color: var(--brand);
+}
+.schedule-hub-hint {
+  color: var(--muted);
+  font-size: 0.95rem;
+}

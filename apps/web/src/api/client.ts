@@ -53,3 +53,5 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export const apiGet = <T>(path: string) => request<T>("GET", path);
 export const apiPost = <T>(path: string, body?: unknown) => request<T>("POST", path, body ?? {});
 export const apiPatch = <T>(path: string, body: unknown) => request<T>("PATCH", path, body);
+/** Sends no body (and so no content-type: Fastify rejects an empty JSON body). Resolves on 204. */
+export const apiDelete = (path: string) => request<void>("DELETE", path);

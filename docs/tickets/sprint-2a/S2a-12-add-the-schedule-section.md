@@ -15,7 +15,7 @@ The phone bottom bar has room for four items at 360 px. The screens behind it ar
 3. Add `apiDelete` to the API client.
 
 ## Done when
-- [ ] The nav shows Plan, Kids, Subjects, Schedule at 360 and 1280 px without overflow.
+- [x] The nav shows Plan, Kids, Subjects, Schedule at 360 and 1280 px without overflow.
 
 ## Tests
 - nav links and aria-current on a nested route

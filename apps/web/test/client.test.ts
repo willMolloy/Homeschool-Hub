@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, apiGet, apiPatch, apiPost, onUnauthenticated } from "../src/api/client";
+import { ApiError, apiDelete, apiGet, apiPatch, apiPost, onUnauthenticated } from "../src/api/client";
 
 const json = (status: number, body: unknown) =>
   new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -29,6 +29,16 @@ describe("api client", () => {
   it("204 → undefined", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
     await expect(apiPost("/api/auth/logout")).resolves.toBeUndefined();
+  });
+
+  it("DELETE sends no body or content-type; 204 → undefined", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(apiDelete("/api/blocked-ranges/b1")).resolves.toBeUndefined();
+    const init = fetchMock.mock.calls[0]![1] as RequestInit;
+    expect(init).toMatchObject({ method: "DELETE", credentials: "include" });
+    expect(init.body).toBeUndefined();
+    expect(init.headers).not.toHaveProperty("content-type");
   });
 
   it("404 JSON → ApiError with status and code", async () => {

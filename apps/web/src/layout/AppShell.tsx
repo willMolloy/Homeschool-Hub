@@ -17,6 +17,7 @@ const NAV = [
   { to: "/", label: "Plan", end: true },
   { to: "/kids", label: "Kids", end: false },
   { to: "/subjects", label: "Subjects", end: false },
+  { to: "/schedule", label: "Schedule", end: false },
 ];
 
 export function AppShell({ familyName, headerActions, footer, banner }: AppShellProps) {

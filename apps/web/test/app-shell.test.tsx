@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest";
 import { renderAt } from "./render";
 
 describe("AppShell", () => {
-  it("shows the three nav links; the active one has aria-current=page", async () => {
+  it("shows the four nav links; the active one has aria-current=page", async () => {
     renderAt("/kids");
     const nav = await screen.findByRole("navigation", { name: "Main" });
     const links = within(nav).getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual(["Plan", "Kids", "Subjects"]);
+    expect(links.map((l) => l.textContent)).toEqual(["Plan", "Kids", "Subjects", "Schedule"]);
     expect(within(nav).getByRole("link", { name: "Kids" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getByRole("link", { name: "Plan" })).not.toHaveAttribute("aria-current");
   });
@@ -19,16 +19,23 @@ describe("AppShell", () => {
     expect(within(nav).getByRole("link", { name: "Plan" })).toHaveAttribute("aria-current", "page");
   });
 
+  it("Schedule is current on nested schedule routes", async () => {
+    renderAt("/schedule/events");
+    const nav = await screen.findByRole("navigation", { name: "Main" });
+    expect(within(nav).getByRole("link", { name: "Schedule" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("link", { name: "Plan" })).not.toHaveAttribute("aria-current");
+  });
+
   it("keyboard tabbing reaches every nav link", async () => {
     const user = userEvent.setup();
     renderAt("/subjects");
     await screen.findByRole("navigation", { name: "Main" });
     const reached: string[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       await user.tab();
       reached.push(document.activeElement?.textContent ?? "");
     }
-    expect(reached).toEqual(expect.arrayContaining(["Plan", "Kids", "Subjects"]));
+    expect(reached).toEqual(expect.arrayContaining(["Plan", "Kids", "Subjects", "Schedule"]));
   });
 
   it("login is outside the shell", async () => {
