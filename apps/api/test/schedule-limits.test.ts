@@ -1,9 +1,9 @@
-import { DEFAULT_MINUTES_PER_UNIT } from "@hh/engine";
+import { DEFAULT_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT } from "@hh/engine";
 import { describe, expect, it } from "vitest";
 import { HttpError } from "../src/http/errors";
 import {
-  CapacityFraction, checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, MAX_BLOCKED_DAYS, MAX_MINUTES_PER_UNIT,
-  MAX_TOTAL_UNITS, MinutesPerUnit, Title, TotalUnits, Weekdays,
+  CapacityFraction, checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, MAX_BLOCKED_DAYS,
+  MAX_TOTAL_UNITS, Title, TotalUnits, Weekdays, WeightPerUnit,
 } from "../src/http/scheduleLimits";
 
 const fromJson = (s: string) => (JSON.parse(`{"v":${s}}`) as { v: unknown }).v;
@@ -18,20 +18,20 @@ describe("numeric limits", () => {
   it.each([0, -1, 0.001, 1e-3, 100000.01, Infinity, -Infinity, NaN, fromJson("1e309"), "10", null])("TotalUnits rejects %s", (v) =>
     expect(ok(TotalUnits, v)).toBe(false));
 
-  it.each([0.5, 2, 30, MAX_MINUTES_PER_UNIT])("MinutesPerUnit accepts %s", (v) => expect(ok(MinutesPerUnit, v)).toBe(true));
-  it.each([0, -2, 600.01, 0.005, Infinity, NaN, fromJson("1e309")])("MinutesPerUnit rejects %s", (v) =>
-    expect(ok(MinutesPerUnit, v)).toBe(false));
+  it.each([0.01, 0.5, 2, 30, MAX_WEIGHT_PER_UNIT])("WeightPerUnit accepts %s", (v) => expect(ok(WeightPerUnit, v)).toBe(true));
+  it.each([0, -2, 100.01, 0.005, Infinity, NaN, fromJson("1e309"), "2"])("WeightPerUnit rejects %s", (v) =>
+    expect(ok(WeightPerUnit, v)).toBe(false));
 
   it.each([0, 0.5, 0.333, 1])("CapacityFraction accepts %s", (v) => expect(ok(CapacityFraction, v)).toBe(true));
   it.each([-0.1, 1.001, 0.3333, Infinity, NaN])("CapacityFraction rejects %s", (v) => expect(ok(CapacityFraction, v)).toBe(false));
 
   it("the worst accepted assignment stays finite and fits the columns", () => {
-    const minutes = MAX_TOTAL_UNITS * MAX_MINUTES_PER_UNIT;
-    expect(Number.isFinite(minutes)).toBe(true);
+    const thickness = MAX_TOTAL_UNITS * MAX_WEIGHT_PER_UNIT;
+    expect(Number.isFinite(thickness)).toBe(true);
     expect(MAX_TOTAL_UNITS).toBeLessThan(1e8); // numeric(10,2)
-    expect(MAX_MINUTES_PER_UNIT).toBeLessThan(1e6); // numeric(8,2)
-    // Per-day minutes over the shortest range (1 day) are still finite.
-    expect(Number.isFinite((MAX_TOTAL_UNITS * Math.max(...Object.values(DEFAULT_MINUTES_PER_UNIT))) / 1)).toBe(true);
+    expect(MAX_WEIGHT_PER_UNIT).toBeLessThan(1e4); // numeric(6,2)
+    // Per-day thickness over the shortest range (1 day), at the largest built-in weight, is still finite.
+    expect(Number.isFinite((MAX_TOTAL_UNITS * Math.max(...Object.values(DEFAULT_WEIGHT_PER_UNIT))) / 1)).toBe(true);
   });
 });
 

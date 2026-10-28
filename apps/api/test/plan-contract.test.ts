@@ -60,13 +60,13 @@ describe.skipIf(!hasDb)("/api/plan reflects schedule data written through the AP
 
   it("stage 1: an assignment plans exactly as the engine predicts", async () => {
     const res = await req("POST", "/api/assignments", {
-      subjectId: subject, title: "Saxon 5", unitType: "lessons", totalUnits: 20, minutesPerUnit: 30,
+      subjectId: subject, title: "Saxon 5", unitType: "lessons", totalUnits: 20, weightPerUnit: 15,
       startDate: "2026-11-02", endDate: "2026-11-26", childIds: [child],
     });
     expect(res.statusCode).toBe(201);
     assignment = {
       id: res.json().id, childIds: [child], subjectId: subject, title: "Saxon 5", unitType: "lessons", totalUnits: 20,
-      start: "2026-11-02", end: "2026-11-26", minutesPerUnit: 30, weightPerUnit: 15, // the API translates the legacy 30 at 2 min = 1 point
+      start: "2026-11-02", end: "2026-11-26", weightPerUnit: 15,
     };
     stage1 = await apiPlan();
     expect(stage1).toEqual(predicted());

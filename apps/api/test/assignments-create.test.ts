@@ -40,7 +40,7 @@ describe.skipIf(!hasDb)("POST /api/assignments (integration)", () => {
   });
 
   const valid = () => ({
-    subjectId: subject, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, minutesPerUnit: 30,
+    subjectId: subject, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: 15,
     startDate: "2026-11-02", endDate: "2026-11-27", childIds: [kids[0]],
   });
 
@@ -48,7 +48,7 @@ describe.skipIf(!hasDb)("POST /api/assignments (integration)", () => {
     const res = await req("POST", "/api/assignments", valid());
     expect(res.statusCode).toBe(201);
     const j = res.json();
-    expect(j).toEqual({ id: expect.any(String), subjectId: subject, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: 15, minutesPerUnit: 30,
+    expect(j).toEqual({ id: expect.any(String), subjectId: subject, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: 15,
       startDate: "2026-11-02", endDate: "2026-11-27", childIds: [kids[0]], archived: false });
     const { rows } = await pool.query("SELECT family_id FROM assignment_child WHERE assignment_id = $1", [j.id]);
     expect(rows).toEqual([{ family_id: a.familyId }]);
@@ -56,12 +56,12 @@ describe.skipIf(!hasDb)("POST /api/assignments (integration)", () => {
     expect(list.map((x: { id: string }) => x.id)).toContain(j.id);
   });
 
-  it("two children → both linked (roster order); minutesPerUnit omitted → null", async () => {
-    const { minutesPerUnit: _m, ...rest } = valid();
+  it("two children → both linked (roster order); weightPerUnit omitted → null", async () => {
+    const { weightPerUnit: _w, ...rest } = valid();
     const res = await req("POST", "/api/assignments", { ...rest, title: "Shared read-aloud", unitType: "pages", totalUnits: 200, childIds: [kids[1], kids[0]] });
     expect(res.statusCode).toBe(201);
     expect(res.json().childIds).toEqual(kids);
-    expect(res.json().minutesPerUnit).toBeNull();
+    expect(res.json().weightPerUnit).toBeNull();
   });
 
   it("appears in /api/plan for each child", async () => {
@@ -107,8 +107,8 @@ describe.skipIf(!hasDb)("POST /api/assignments (integration)", () => {
     ["totalUnits 100001", { totalUnits: 100001 }, "invalid_request"],
     ["totalUnits 1.234", { totalUnits: 1.234 }, "invalid_request"],
     ["totalUnits string", { totalUnits: "20" }, "invalid_request"],
-    ["minutesPerUnit 0", { minutesPerUnit: 0 }, "invalid_request"],
-    ["minutesPerUnit 601", { minutesPerUnit: 601 }, "invalid_request"],
+    ["weightPerUnit 0", { weightPerUnit: 0 }, "invalid_request"],
+    ["weightPerUnit 100.01", { weightPerUnit: 100.01 }, "invalid_request"],
     ["bad unitType", { unitType: "verses" }, "invalid_request"],
     ["bad date", { startDate: "11/02/2026" }, "invalid_request"],
     ["Feb 30", { endDate: "2027-02-30" }, "invalid_request"],

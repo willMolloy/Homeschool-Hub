@@ -71,6 +71,19 @@ describe.skipIf(!hasDb)("strict request input (integration)", () => {
     expect(await snapshot(route)).toEqual(before);
   });
 
+  // S2b-13: the legacy alias is retired, so it is just another unknown key, with or without a weight beside it.
+  it.each([{ minutesPerUnit: 6 }, { minutesPerUnit: null }, { minutesPerUnit: 6, weightPerUnit: 3 }])(
+    "assignments: POST and PATCH with %o → 400 naming minutesPerUnit; nothing written", async (extra) => {
+      const before = await snapshot("assignments");
+      const post = await req("POST", "/api/assignments", { ...bodies().assignments, ...extra });
+      expect(post.statusCode).toBe(400);
+      expect(post.json()).toMatchObject({ error: "invalid_request", message: expect.stringContaining("minutesPerUnit") });
+      const patch = await req("PATCH", `/api/assignments/${ids.assignments}`, { title: "Book 3", ...extra });
+      expect(patch.statusCode).toBe(400);
+      expect(patch.json()).toMatchObject({ error: "invalid_request", message: expect.stringContaining("minutesPerUnit") });
+      expect(await snapshot("assignments")).toEqual(before);
+    });
+
   it("PATCH /api/family with an unknown key → 400 naming it", async () => {
     const res = await req("PATCH", "/api/family", { name: "x", ...EXTRA });
     expect(res.statusCode).toBe(400);

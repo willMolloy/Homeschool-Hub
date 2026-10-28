@@ -18,7 +18,7 @@ describe.skipIf(!hasDb)("PATCH /api/assignments/:id (integration)", () => {
   let foreignKid = "";
   let req: ReturnType<typeof inject>;
   const base = (subjectId: string, childIds: string[]) => ({
-    subjectId, title: "Spelling", unitType: "lessons", totalUnits: 10, minutesPerUnit: 15, startDate: "2026-11-02", endDate: "2026-11-13", childIds,
+    subjectId, title: "Spelling", unitType: "lessons", totalUnits: 10, weightPerUnit: 7.5, startDate: "2026-11-02", endDate: "2026-11-13", childIds,
   });
   beforeAll(async () => {
     a = await signedInFamily(pool, "Update A");
@@ -42,11 +42,10 @@ describe.skipIf(!hasDb)("PATCH /api/assignments/:id (integration)", () => {
 
   it.each([
     ["title", { title: "  Spelling Workout B " }, { title: "Spelling Workout B" }],
-    // A unit change sends its new weight (S2b-06, D7); weight × 2 keeps the legacy value in step.
-    ["unitType", { unitType: "pages", weightPerUnit: 7.5 }, { unitType: "pages", weightPerUnit: 7.5, minutesPerUnit: 15 }],
+    // A unit change sends its new weight (S2b-06, D7).
+    ["unitType", { unitType: "pages", weightPerUnit: 7.5 }, { unitType: "pages", weightPerUnit: 7.5 }],
     ["totalUnits", { totalUnits: 12.5 }, { totalUnits: 12.5 }],
-    ["minutesPerUnit", { minutesPerUnit: 20 }, { minutesPerUnit: 20, weightPerUnit: 10 }],
-    ["weightPerUnit", { weightPerUnit: 4 }, { weightPerUnit: 4, minutesPerUnit: 8 }],
+    ["weightPerUnit", { weightPerUnit: 4 }, { weightPerUnit: 4 }],
     ["startDate", { startDate: "2026-11-03" }, { startDate: "2026-11-03" }],
     ["endDate", { endDate: "2026-11-20" }, { endDate: "2026-11-20" }],
   ])("%s alone → 200, other fields kept", async (_l, body, expected) => {
@@ -60,8 +59,8 @@ describe.skipIf(!hasDb)("PATCH /api/assignments/:id (integration)", () => {
     expect((await patch({ subjectId: subjects[1] })).json().subjectId).toBe(subjects[1]);
   });
 
-  it("minutesPerUnit null clears the override (and the weight)", async () => {
-    expect((await patch({ minutesPerUnit: null })).json()).toMatchObject({ minutesPerUnit: null, weightPerUnit: null });
+  it("weightPerUnit null clears the override", async () => {
+    expect((await patch({ weightPerUnit: null })).json()).toMatchObject({ weightPerUnit: null });
   });
 
   it("childIds replaces the set (not appended)", async () => {

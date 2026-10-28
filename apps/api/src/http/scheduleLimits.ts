@@ -1,6 +1,6 @@
 /**
  * Bounds for every schedule write (S2a-03). Anything these accept keeps the engine finite and fits the
- * numeric columns (numeric(10,2), numeric(8,2), numeric(4,3)), so bad input is a 400, never a 500.
+ * numeric columns (numeric(10,2), numeric(6,2), numeric(4,3)), so bad input is a 400, never a 500.
  * See tester finding T-ENG-2 (Infinity from absurd units).
  */
 import { humanList, isValidLocalDate, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, toDayNumber, UNIT_TYPES, WEIGHT_DECIMALS } from "@hh/engine";
@@ -11,7 +11,6 @@ import { UUID_RE } from "./validate";
 export const MIN_YEAR = 2000;
 export const MAX_YEAR = 2100;
 export const MAX_TOTAL_UNITS = 100_000;
-export const MAX_MINUTES_PER_UNIT = 600;
 /** ~3 school years. */
 export const MAX_ASSIGNMENT_DAYS = 1096;
 /** One year. */
@@ -37,7 +36,6 @@ function bounded(label: string, min: number, max: number, places: number, minExc
 }
 
 export const TotalUnits = bounded("totalUnits", 0, MAX_TOTAL_UNITS, 2, true);
-export const MinutesPerUnit = bounded("minutesPerUnit", 0, MAX_MINUTES_PER_UNIT, 2, true);
 /** S2b-06: the engine's weight bounds (0.01–100, 2 decimals), inclusive at both ends. Fits numeric(6,2). */
 export const WeightPerUnit = bounded("weightPerUnit", MIN_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT, WEIGHT_DECIMALS, false);
 export const UnitTypeField = z.enum(UNIT_TYPES, `unitType must be ${humanList(UNIT_TYPES)}.`);

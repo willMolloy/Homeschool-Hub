@@ -30,7 +30,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
   });
 
   const assignmentBody = (subjectId: string, childIds: string[], over: Record<string, unknown> = {}) => ({
-    subjectId, title: "Book", unitType: "pages", totalUnits: 40, minutesPerUnit: 5, startDate: "2026-11-02", endDate: "2026-11-27", childIds, ...over,
+    subjectId, title: "Book", unitType: "pages", totalUnits: 40, weightPerUnit: 2.5, startDate: "2026-11-02", endDate: "2026-11-27", childIds, ...over,
   });
 
   describe("cross-family access on every new route", () => {
@@ -200,13 +200,13 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
     });
 
     it("number edge cases: strings, booleans, exponent forms, -0 and limits", async () => {
-      for (const over of [{ totalUnits: "40" }, { totalUnits: true }, { totalUnits: -0 }, { totalUnits: 1e-2 / 3 }, { minutesPerUnit: 600.001 }, { minutesPerUnit: "5" }, { totalUnits: null }]) {
+      for (const over of [{ totalUnits: "40" }, { totalUnits: true }, { totalUnits: -0 }, { totalUnits: 1e-2 / 3 }, { weightPerUnit: 100.001 }, { weightPerUnit: "2.5" }, { minutesPerUnit: 5 }, { totalUnits: null }]) {
         expect((await post(over)).statusCode, JSON.stringify(over)).toBe(400);
       }
-      const big = await post({ totalUnits: 100000, minutesPerUnit: 600, startDate: "2026-11-02", endDate: "2026-11-02" });
+      const big = await post({ totalUnits: 100000, weightPerUnit: 100, startDate: "2026-11-02", endDate: "2026-11-02" });
       expect(big.statusCode).toBe(201);
-      expect(big.json()).toMatchObject({ totalUnits: 100000, minutesPerUnit: 600 });
-      expect((await post({ totalUnits: 0.01, minutesPerUnit: 0.01 })).statusCode).toBe(201);
+      expect(big.json()).toMatchObject({ totalUnits: 100000, weightPerUnit: 100 });
+      expect((await post({ totalUnits: 0.01, weightPerUnit: 0.01 })).statusCode).toBe(201);
       expect((await post({ totalUnits: 99999.99 })).json().totalUnits).toBe(99999.99);
       // raw JSON exponent overflow
       const raw = await app.inject({ method: "POST", url: "/api/assignments", cookies: F.cookies, headers: { "content-type": "application/json" },
@@ -433,7 +433,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       expect(res.statusCode).toBe(201);
       const j = res.json();
       assignments.push({ id: j.id, childIds: j.childIds, subjectId: j.subjectId, title: j.title, unitType: j.unitType, totalUnits: j.totalUnits,
-        start: j.startDate, end: j.endDate, minutesPerUnit: j.minutesPerUnit, weightPerUnit: j.weightPerUnit });
+        start: j.startDate, end: j.endDate, weightPerUnit: j.weightPerUnit });
     };
     const addEvent = async (body: { name: string; weekdays: number[]; startDate?: string | null; endDate?: string | null; capacityFraction?: number; defaultRule?: "skip" | "lighter" | "normal"; subjectRules?: Record<string, string>; childIds?: string[] }) => {
       const res = await F.req("POST", "/api/events", body);
@@ -456,10 +456,10 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       const [ava, ben, cy] = kids as [string, string, string];
       const [math, read, music] = subj as [string, string, string];
       // shared across all three, a two-child one, a tiny one, a minutes-unit one with no override, and one that starts mid-window
-      await addAssignment(assignmentBody(math, [ava, ben, cy], { title: "Shared math", totalUnits: 90, minutesPerUnit: 3, startDate: "2026-11-02", endDate: "2026-12-11" }));
-      await addAssignment(assignmentBody(read, [ava, ben], { title: "Novel", unitType: "chapters", totalUnits: 17, minutesPerUnit: null, startDate: "2026-11-04", endDate: "2026-11-25" }));
-      await addAssignment(assignmentBody(music, [cy], { title: "Scales", unitType: "minutes", totalUnits: 333.33, minutesPerUnit: null, startDate: "2026-11-01", endDate: "2026-12-12" }));
-      await addAssignment(assignmentBody(read, [cy], { title: "One day", unitType: "lessons", totalUnits: 0.01, minutesPerUnit: 0.01, startDate: "2026-11-11", endDate: "2026-11-11" }));
+      await addAssignment(assignmentBody(math, [ava, ben, cy], { title: "Shared math", totalUnits: 90, weightPerUnit: 1.5, startDate: "2026-11-02", endDate: "2026-12-11" }));
+      await addAssignment(assignmentBody(read, [ava, ben], { title: "Novel", unitType: "chapters", totalUnits: 17, weightPerUnit: null, startDate: "2026-11-04", endDate: "2026-11-25" }));
+      await addAssignment(assignmentBody(music, [cy], { title: "Scales", unitType: "minutes", totalUnits: 333.33, weightPerUnit: null, startDate: "2026-11-01", endDate: "2026-12-12" }));
+      await addAssignment(assignmentBody(read, [cy], { title: "One day", unitType: "lessons", totalUnits: 0.01, weightPerUnit: 0.01, startDate: "2026-11-11", endDate: "2026-11-11" }));
       await addAssignment(assignmentBody(math, [ben], { title: "Weekend only", totalUnits: 10, startDate: "2026-11-07", endDate: "2026-11-08" }));
       // overlapping events: whole-family lighter Wed + Ava-only lighter Wed (×0.25), skip for Music on Tue/Thu, a capacity-0 lighter day,
       // an open-ended-start event ending mid-window, one with a default 'skip' and a 'normal' override
@@ -515,7 +515,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
     it("the largest accepted assignment plans to finite numbers", async () => {
       const G = await newFam("Tester2 Big");
       const r = await rosterFor(app, G.cookies, ["Max"], ["Max"]);
-      expect((await G.req("POST", "/api/assignments", assignmentBody(r.subjectIds[0]!, r.childIds, { totalUnits: 100000, minutesPerUnit: 600, startDate: "2026-11-02", endDate: "2026-11-02" }))).statusCode).toBe(201);
+      expect((await G.req("POST", "/api/assignments", assignmentBody(r.subjectIds[0]!, r.childIds, { totalUnits: 100000, weightPerUnit: 100, startDate: "2026-11-02", endDate: "2026-11-02" }))).statusCode).toBe(201);
       expect((await G.req("POST", "/api/events", { name: "Tiny", weekdays: [1], capacityFraction: 0.001, defaultRule: "lighter" })).statusCode).toBe(201);
       const res = await G.req("GET", "/api/plan?from=2026-11-01&to=2026-11-07&asOf=2026-11-02");
       expect(res.statusCode).toBe(200);

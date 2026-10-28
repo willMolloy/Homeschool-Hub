@@ -66,9 +66,9 @@ async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInpu
        FROM subject WHERE family_id = $1 ORDER BY id`, [familyId]);
   const assignmentRows = await query<{
     id: string; subject_id: string; title: string; unit_type: UnitType; total_units: number;
-    start_date: string; end_date: string; minutes_per_unit: number | null; weight_per_unit: number | null;
+    start_date: string; end_date: string; weight_per_unit: number | null;
   }>(db,
-    `SELECT id, subject_id, title, unit_type, total_units, start_date, end_date, minutes_per_unit, weight_per_unit
+    `SELECT id, subject_id, title, unit_type, total_units, start_date, end_date, weight_per_unit
        FROM assignment WHERE family_id = $1 AND archived_at IS NULL ORDER BY start_date, id`, [familyId]);
   const assignmentChildren = await query<{ assignment_id: string; child_id: string }>(db,
     "SELECT assignment_id, child_id FROM assignment_child WHERE family_id = $1 ORDER BY child_id", [familyId]);
@@ -116,7 +116,6 @@ async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInpu
       totalUnits: Number(a.total_units),
       start: a.start_date,
       end: a.end_date,
-      minutesPerUnit: a.minutes_per_unit == null ? null : Number(a.minutes_per_unit), // TODO(S2b-13): remove
       weightPerUnit: a.weight_per_unit == null ? null : Number(a.weight_per_unit),
     });
   }

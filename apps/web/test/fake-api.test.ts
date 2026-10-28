@@ -10,4 +10,16 @@ describe("fake API body-key check (RF-09)", () => {
     expect(fakeApi.bodyKeyViolations).toEqual(['POST /api/assignments: unknown key "colour"']);
     fakeApi.bodyKeyViolations = []; // setup.ts would fail this test otherwise
   });
+
+  it("flags the retired minutesPerUnit on assignment writes (S2b-13)", async () => {
+    fakeApi.on("POST /api/assignments", 201, {});
+    fakeApi.on("PATCH /api/assignments/a1", 200, {});
+    await fetch("/api/assignments", { method: "POST", body: JSON.stringify({ title: "t", weightPerUnit: 1, minutesPerUnit: 2 }) });
+    await fetch("/api/assignments/a1", { method: "PATCH", body: JSON.stringify({ minutesPerUnit: null }) });
+    expect(fakeApi.bodyKeyViolations).toEqual([
+      'POST /api/assignments: unknown key "minutesPerUnit"',
+      'PATCH /api/assignments/a1: unknown key "minutesPerUnit"',
+    ]);
+    fakeApi.bodyKeyViolations = [];
+  });
 });

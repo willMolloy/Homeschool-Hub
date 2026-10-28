@@ -2,8 +2,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { withTransaction } from "../db";
-import { checkUnitChange, checkWeightFields, weightWrite } from "../http/assignmentWeight";
-import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, MinutesPerUnit, Title, TotalUnits, UnitTypeField, WeightPerUnit } from "../http/scheduleLimits";
+import { checkUnitChange } from "../http/assignmentWeight";
+import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, Title, TotalUnits, UnitTypeField, WeightPerUnit } from "../http/scheduleLimits";
 import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
 import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment } from "../repos/assignmentRepo";
@@ -20,7 +20,6 @@ const CreateBody = z.strictObject({
   unitType: UnitTypeField,
   totalUnits: TotalUnits,
   weightPerUnit: WeightPerUnit.nullable().optional(),
-  minutesPerUnit: MinutesPerUnit.nullable().optional(), // TODO(S2b-13): legacy alias, translated to a weight
   startDate: LocalDate,
   endDate: LocalDate,
   childIds: Children,
@@ -34,8 +33,7 @@ const PatchBody = z
     totalUnits: TotalUnits.optional(),
     // null clears the weight (back to the subject default, then the built-in).
     weightPerUnit: WeightPerUnit.nullable().optional(),
-    minutesPerUnit: MinutesPerUnit.nullable().optional(), // TODO(S2b-13): legacy alias, translated to a weight
-    startDate: LocalDate.optional(),
+      startDate: LocalDate.optional(),
     endDate: LocalDate.optional(),
     childIds: Children.optional(),
     archived: z.boolean().optional(),
@@ -53,12 +51,10 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   app.post("/api/assignments", async (req, reply) => {
     const b = parseBody(CreateBody, req.body);
     checkDateOrder(b.startDate, b.endDate, MAX_ASSIGNMENT_DAYS);
-    checkWeightFields(b.unitType, b);
-    const w = weightWrite(b.unitType, b);
     const row = await withTransaction(app.db, async (c) => {
       await checkRefs(c, req.familyId, { subjectIds: [b.subjectId], childIds: b.childIds });
-      const id = await createAssignment(c, req.familyId, { ...b, weightPerUnit: w.weightPerUnit ?? null, minutesPerUnit: w.minutesPerUnit ?? null });
-      // Taking the default isn't a choice; the legacy alias never counts (S2b-07, D5).
+      const id = await createAssignment(c, req.familyId, { ...b, weightPerUnit: b.weightPerUnit ?? null });
+      // Taking the default isn't a choice (S2b-07, D5).
       if (b.weightPerUnit != null) {
         await recordWeightChoices(c, { familyId: req.familyId, assignmentId: id, childIds: b.childIds, unitType: b.unitType, weight: b.weightPerUnit });
       }
@@ -77,14 +73,12 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       // Dates are checked on the merged row, so moving only one end can't invert the range.
       checkDateOrder(p.startDate ?? cur.start_date, p.endDate ?? cur.end_date, MAX_ASSIGNMENT_DAYS);
       const unitType = p.unitType ?? cur.unit_type;
-      checkWeightFields(unitType, p);
       checkUnitChange({ unitType: cur.unit_type, weightPerUnit: cur.weight_per_unit }, p.unitType, p);
       // Only newly named references are checked: an assignment may keep a subject that was archived later.
       // Ids already linked may stay even if archived since (the forms keep them ticked); new ones must be active.
       const newSubject = p.subjectId && p.subjectId !== cur.subject_id ? [p.subjectId] : [];
       await checkRefs(c, req.familyId, { subjectIds: newSubject, childIds: (p.childIds ?? []).filter((id) => !cur.child_ids.includes(id)) });
-      const w = weightWrite(unitType, p, unitType === "minutes" && cur.unit_type !== "minutes");
-      await updateAssignment(c, req.familyId, cur.id, { ...p, ...w });
+      await updateAssignment(c, req.familyId, cur.id, p);
       // A new weight (or the same number under a new unit type) is a choice for every child left on the assignment.
       if (p.weightPerUnit !== undefined && (p.weightPerUnit !== cur.weight_per_unit || unitType !== cur.unit_type)) {
         await recordWeightChoices(c, { familyId: req.familyId, assignmentId: cur.id, childIds: p.childIds ?? cur.child_ids, unitType, weight: p.weightPerUnit });

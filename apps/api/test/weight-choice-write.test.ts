@@ -60,10 +60,9 @@ describe.skipIf(!hasDb)("weight choices written by assignment saves (integration
       expect(await choices(await create({ unitType: "minutes", totalUnits: 600, weightPerUnit: 1 }))).toEqual([]);
     });
 
-    it("no weight, a null weight, or the legacy alias → 0 rows", async () => {
+    it("no weight or a null weight → 0 rows", async () => {
       expect(await choices(await create())).toEqual([]);
       expect(await choices(await create({ weightPerUnit: null }))).toEqual([]);
-      expect(await choices(await create({ minutesPerUnit: 6 }))).toEqual([]);
     });
   });
 
@@ -97,7 +96,7 @@ describe.skipIf(!hasDb)("weight choices written by assignment saves (integration
 
     it("adding a child only, archive, unarchive, or title and date edits → 0 rows", async () => {
       const id = await create({ weightPerUnit: 2 });
-      for (const b of [{ childIds: kids }, { archived: true }, { archived: false }, { title: "Renamed" }, { endDate: "2026-12-04" }, { minutesPerUnit: 8 }]) {
+      for (const b of [{ childIds: kids }, { archived: true }, { archived: false }, { title: "Renamed" }, { endDate: "2026-12-04" }]) {
         expect((await patch(id, b)).statusCode).toBe(200);
       }
       expect(await choices(id)).toHaveLength(2);

@@ -31,7 +31,7 @@ describe.skipIf(!hasDb)("weightPerUnit on the assignment endpoints (integration)
   const create = async (over: Record<string, unknown> = {}) => {
     const res = await req("POST", "/api/assignments", body(over));
     expect(res.statusCode, res.body).toBe(201);
-    return res.json() as { id: string; weightPerUnit: number | null; minutesPerUnit: number | null };
+    return res.json() as { id: string; weightPerUnit: number | null };
   };
   const getOne = async (id: string) => ((await req("GET", "/api/assignments")).json() as { id: string }[]).find((a) => a.id === id) as Record<string, unknown>;
   const patch = (id: string, b: Record<string, unknown>) => req("PATCH", `/api/assignments/${id}`, b);
@@ -62,7 +62,7 @@ describe.skipIf(!hasDb)("weightPerUnit on the assignment endpoints (integration)
 
   it("minutes with 0.75 → 201, and the plan's thickness is minutes × 0.75 (30 min → 22.5)", async () => {
     const a = await create({ unitType: "minutes", totalUnits: 600, weightPerUnit: 0.75 });
-    expect(a).toMatchObject({ weightPerUnit: 0.75, minutesPerUnit: null });
+    expect(a).toMatchObject({ weightPerUnit: 0.75 });
     const p = await planOf(a.id);
     expect([p.weightPerUnit, p.weightSource]).toEqual([0.75, "assignment"]);
     for (const d of p.days) expect(d.thickness).toBeCloseTo(d.units * 0.75, 9);
@@ -89,7 +89,7 @@ describe.skipIf(!hasDb)("weightPerUnit on the assignment endpoints (integration)
       const a = await create({ weightPerUnit: 2 });
       const res = await patch(a.id, { unitType: "minutes", weightPerUnit: null });
       expect(res.statusCode).toBe(200);
-      expect(res.json()).toMatchObject({ unitType: "minutes", weightPerUnit: null, minutesPerUnit: null });
+      expect(res.json()).toMatchObject({ unitType: "minutes", weightPerUnit: null });
       const p = await planOf(a.id);
       expect([p.weightPerUnit, p.weightSource]).toEqual([0.5, "default"]);
     });
@@ -97,30 +97,6 @@ describe.skipIf(!hasDb)("weightPerUnit on the assignment endpoints (integration)
     it("a unit change on a row with no weight needs no weight", async () => {
       const a = await create();
       expect((await patch(a.id, { unitType: "lessons" })).statusCode).toBe(200);
-    });
-  });
-
-  describe("the legacy minutesPerUnit alias (TODO(S2b-13))", () => {
-    it("minutesPerUnit: 6 stores weight 3", async () => {
-      const a = await create({ minutesPerUnit: 6 });
-      expect(a).toMatchObject({ weightPerUnit: 3, minutesPerUnit: 6 });
-      const id = a.id;
-      expect((await patch(id, { minutesPerUnit: 9 })).json()).toMatchObject({ weightPerUnit: 4.5, minutesPerUnit: 9 });
-      expect((await patch(id, { minutesPerUnit: null })).json()).toMatchObject({ weightPerUnit: null, minutesPerUnit: null });
-    });
-
-    it("both fields → 400, on POST and PATCH", async () => {
-      const res = await req("POST", "/api/assignments", body({ weightPerUnit: 1, minutesPerUnit: 2 }));
-      expect(res.statusCode).toBe(400);
-      expect(res.json().message).toBe("minutesPerUnit: send weightPerUnit only.");
-      const a = await create({ weightPerUnit: 1 });
-      expect((await patch(a.id, { weightPerUnit: 2, minutesPerUnit: 4 })).statusCode).toBe(400);
-      expect((await getOne(a.id)).weightPerUnit).toBe(1);
-    });
-
-    it("a weight write keeps the legacy value in step (weight × 2)", async () => {
-      const a = await create({ weightPerUnit: 1.4 });
-      expect(a.minutesPerUnit).toBe(2.8);
     });
   });
 

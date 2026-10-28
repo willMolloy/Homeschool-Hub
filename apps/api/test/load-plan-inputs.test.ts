@@ -46,7 +46,6 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
       expect(l, `${f.assignmentId}/${f.childId}`).toBeDefined();
       expect(l.days.map((d) => [d.date, d.units, d.thickness])).toEqual(f.days.map((d) => [d.date, d.units, d.thickness]));
       expect([l.weightPerUnit, l.weightSource]).toEqual([f.weightPerUnit, f.weightSource]);
-      expect(l.minutesPerUnitEstimated).toBe(f.minutesPerUnitEstimated);
     }
   });
 
@@ -54,7 +53,7 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
     for (const a of inputs.assignments) {
       expect(typeof a.totalUnits).toBe("number");
       expect(a.start).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(a.minutesPerUnit === null || typeof a.minutesPerUnit === "number").toBe(true);
+      expect(a).not.toHaveProperty("minutesPerUnit"); // S2b-13
       expect(a.weightPerUnit === null || typeof a.weightPerUnit === "number").toBe(true);
     }
     for (const e of inputs.ctx.events) expect(typeof e.capacityFraction).toBe("number");

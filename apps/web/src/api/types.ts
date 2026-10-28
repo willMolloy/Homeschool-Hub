@@ -87,8 +87,6 @@ export interface Assignment {
   totalUnits: number;
   /** Relative effort per unit (S2b-06). null = the subject's default for this unit, else the built-in. */
   weightPerUnit: number | null;
-  /** Legacy, still returned until S2b-13. The web no longer reads or sends it. */
-  minutesPerUnit?: number | null;
   startDate: string;
   endDate: string;
   childIds: string[];

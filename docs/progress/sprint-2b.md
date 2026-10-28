@@ -23,7 +23,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-34 thickness picker with preview bar | bcded18 | |
 | S2b-35 default weight on the subject form | 238ef3a | |
 | S2b-11 prefill the weight and show its source | 4068ed6 | |
-| S2b-12 thickness in the plan debug view | (this commit) | |
+| S2b-12 thickness in the plan debug view | aa80013 | |
+| S2b-13 retire minutesPerUnit from the API and web | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -53,6 +54,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-11 — the wording and states the ticket left open.** The field shows the suggestion until the parent types; only then is the text theirs. Unwritten hint cases follow the given pattern: built-in override "Your weight (2). The default for pages is 1."; several children without history "Ada and Bo have no history yet."; a cleared field shows the S2b-10 "Blank = …" text with the Use button (and sends null). A typed number equal to the suggestion is sent explicitly ("any typed value is sent explicitly") but shows the normal hint. Child ids are sorted in the request so ticking order doesn't refetch the same answer; while a new answer loads the last one for the same unit stays shown. The null-weight placeholder reads "20 from Math" for a subject default and just the number for the built-in. The fake API answers the endpoint with the built-in by default, and the existing add tests now wait for that prefill before typing.
 
 - **S2b-12 — markers per cell, from the plans that add work that day.** A cell is marked only when an assignment with a default weight has thickness on that date, so a mixed lane marks just those days. A cell resting on both kinds shows "~s" (built-in first). The legend lists only the markers in use. The engine's source is named `default`; the UI says "built-in". Sums are re-rounded to 1 decimal so 0.1 + 0.2 shows 0.3.
+
+- **S2b-13 — one legacy line stays until 007.** The API no longer reads, returns or accepts `minutesPerUnit` (it is now an unknown key → 400 naming it, POST and PATCH). One exception the ticket's "only the 400 test" check doesn't allow for: migration 003's CHECK `assignment_minutes_unit_no_mpu` would turn a pre-S2b-13 row with a legacy value into a 500 when its unit is switched to minutes, so `updateAssignment` still clears `minutes_per_unit` on that switch (marked `TODO(S2b-15)`). Other edits leave an old row's legacy value alone; nothing new is written there. `checkWeightFields`/`weightWrite`/`weightFromLegacyMinutes` were deleted (only `checkUnitChange` is left in `assignmentWeight.ts`), and the `MinutesPerUnit` bounds tests became `WeightPerUnit` bounds tests. Tester2's suite bodies were converted to `weightPerUnit` (half the minutes, inside 0.01–100) and it now also expects 400 for `minutesPerUnit`. The engine's own `minutesPerUnit` outputs (plan.test, the debug fixture, sample-family) are S2b-14's; `db/seed.ts` is S2b-15's.
 
 ## Deferred
 
