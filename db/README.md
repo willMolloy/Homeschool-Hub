@@ -3,6 +3,15 @@
 Plain SQL migrations, applied in file-name order (`001_init.sql`, `002_...`). Each migration
 records itself in `schema_migration`. There is no migration runner yet — that's ticket S1-08.
 
+## Migrations
+
+| File | What it does |
+|---|---|
+| `001_init.sql` | The schema below |
+| `002_auth.sql` | Family login and sessions |
+| `003_minutes_unit.sql` | RF-10: a `minutes` assignment stores no `minutes_per_unit` |
+| `004_weight_per_unit.sql` | S2b-03, expand step: `assignment.weight_per_unit` (0.01–100, NULL = subject default, then built-in), backfilled from `minutes_per_unit` ÷ 2 (2 minutes = 1 point) |
+
 ## Tables (001_init.sql)
 
 | Table | What it is |

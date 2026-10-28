@@ -180,4 +180,20 @@ UPDATE assignment SET unit_type = 'minutes', minutes_per_unit = NULL WHERE id = 
 UPDATE assignment SET unit_type = 'pages', minutes_per_unit = 2 WHERE id = 'a0000000-0000-0000-0000-0000000000d1';
 DO $$ BEGIN RAISE NOTICE 'ok   minutes with NULL, and back to pages with a value, are fine'; END $$;
 
+-- 11. weight_per_unit is 0.01..100 or NULL, on every unit type (004_weight_per_unit)
+INSERT INTO family (id, name, week_start) VALUES ('f0000000-0000-0000-0000-0000000000e0', 'Weight family', 'mon');
+INSERT INTO subject (id, family_id, name) VALUES ('50000000-0000-0000-0000-0000000000e0', 'f0000000-0000-0000-0000-0000000000e0', 'Reading');
+INSERT INTO assignment (id, family_id, subject_id, title, unit_type, total_units, start_date, end_date) VALUES
+  ('a0000000-0000-0000-0000-0000000000e1', 'f0000000-0000-0000-0000-0000000000e0', '50000000-0000-0000-0000-0000000000e0', 'Book', 'pages', 100, '2026-11-02', '2026-11-27'),
+  ('a0000000-0000-0000-0000-0000000000e2', 'f0000000-0000-0000-0000-0000000000e0', '50000000-0000-0000-0000-0000000000e0', 'Practice', 'minutes', 600, '2026-11-02', '2026-11-27');
+SELECT pg_temp.expect_error($$UPDATE assignment SET weight_per_unit = 0 WHERE id = 'a0000000-0000-0000-0000-0000000000e1'$$,
+  '23514', 'weight_per_unit 0 is rejected');
+SELECT pg_temp.expect_error($$UPDATE assignment SET weight_per_unit = 100.01 WHERE id = 'a0000000-0000-0000-0000-0000000000e1'$$,
+  '23514', 'weight_per_unit 100.01 is rejected');
+UPDATE assignment SET weight_per_unit = 0.01 WHERE id = 'a0000000-0000-0000-0000-0000000000e1';
+UPDATE assignment SET weight_per_unit = 100 WHERE id = 'a0000000-0000-0000-0000-0000000000e1';
+UPDATE assignment SET weight_per_unit = NULL WHERE id = 'a0000000-0000-0000-0000-0000000000e1';
+UPDATE assignment SET weight_per_unit = 0.5 WHERE id = 'a0000000-0000-0000-0000-0000000000e2';
+DO $$ BEGIN RAISE NOTICE 'ok   weight_per_unit 0.01, 100 and NULL are fine, and a minutes row may hold 0.5'; END $$;
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

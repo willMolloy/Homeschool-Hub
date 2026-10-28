@@ -1,4 +1,8 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import pg from "pg";
+import { listMigrations, MIGRATIONS_DIR } from "../migrate";
 
 /** Admin URL = the _test database from DATABASE_URL; scratch DBs are created next to it. */
 export const ADMIN_URL = process.env.DATABASE_URL;
@@ -44,4 +48,14 @@ export async function q<T = Record<string, unknown>>(url: string, sql: string, p
   } finally {
     await c.end().catch(() => {});
   }
+}
+
+/**
+ * A temp dir holding only the migrations whose file names sort at or before `last` (e.g. "003"),
+ * so a test can migrate a DB to an older version, insert legacy rows, then apply the next step.
+ */
+export function migrationsThrough(last: string): { dir: string; cleanup: () => void } {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hh-mig-"));
+  for (const f of listMigrations().filter((f) => f.slice(0, 3) <= last)) fs.copyFileSync(path.join(MIGRATIONS_DIR, f), path.join(dir, f));
+  return { dir, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) };
 }
