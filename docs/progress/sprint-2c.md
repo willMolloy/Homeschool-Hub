@@ -10,7 +10,7 @@ Tickets: `docs/tickets/sprint-2c-fixes/`. Findings: `docs/reviews/sprint-2b-veri
 | S2c-03 An invalid Custom width blocks Save (L1) | 6df8659 | `onValidityChange` on the picker; `RosterForm.blocked`; caption while invalid |
 | S2c-04 Don't save a loading or stale weight suggestion (L2) | 8b3a927 | hook returns `{ suggestion, pending }`; Add/Save disabled + `aria-busy` while following a pending suggestion |
 | S2c-05 Check-in polish (L3, L5) | 3ae0067 | `checkInsVersion`/`checkInsSaved` in the plan-refresh context; PastWeeks refetches on it; one "Nothing planned" chip on empty rows |
-| S2c-06 Record progress on an assignment with nothing planned (L4) | (this commit) | GET adds `addable`; PUT accepts those pairs; "Add progress" on the card (`AddProgress`), removable added rows |
+| S2c-06 Record progress on an assignment with nothing planned (L4) | 6346256 | GET adds `addable`; PUT accepts those pairs; "Add progress" on the card (`AddProgress`), removable added rows |
 
 ## Decisions (conservative calls on ambiguous points)
 

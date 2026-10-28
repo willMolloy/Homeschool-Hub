@@ -1,0 +1,12 @@
+/* Tailwind CSS v4 for the app chrome (T-01).
+   - Preflight is deliberately NOT imported: it would reset the existing hand-written screens.
+   - Automatic class detection is off (source(none)): the existing screens use plain class names
+     such as "grid", "hidden" and "table" that Tailwind would otherwise turn into utilities.
+     Only the folders below are scanned; add a folder here when it starts using Tailwind.
+   - Utilities sit in a cascade layer, so unlayered rules in ../styles.css still win. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@source "../components/ui";
+@source "../features/timeline";
+@import "./tokens.css";
+@import "./tokens.theme.css";

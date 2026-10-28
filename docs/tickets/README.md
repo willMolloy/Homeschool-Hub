@@ -176,3 +176,7 @@ See [sprint-2a/README.md](sprint-2a/README.md): family settings, assignments, da
 ## Review fixes (after the SOLID / best-practices reviews)
 
 See [review-fixes/README.md](review-fixes/README.md): the agreed "do now" items from the developer and tester reviews, RF-01 to RF-12, one commit each.
+
+## Timeline (design tokens now; the rest pending pilot results)
+
+See [timeline/README.md](timeline/README.md): T-01 sets up the design tokens (OKLCH subject palette, light and dark variables, Tailwind v4, shadcn/ui on Base UI). T-02 onwards wait for the pilots.

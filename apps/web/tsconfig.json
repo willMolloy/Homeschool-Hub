@@ -9,11 +9,17 @@
     ],
     "types": [
       "vite/client"
-    ]
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
   "include": [
     "src",
     "test",
+    "scripts/palette.ts",
     "vite.config.ts",
     "vitest.config.ts"
   ]
