@@ -17,6 +17,8 @@ interface Props {
   onCancel: () => void;
   /** Extra buttons (e.g. Archive) rendered after Save/Cancel. */
   extra?: ReactNode;
+  /** An error from an action outside the form (e.g. Unarchive). */
+  externalError?: string | null;
 }
 
 /** Server messages look like "name: Name is required." — the field is already obvious here. */
@@ -24,7 +26,7 @@ function cleanMessage(m: string): string {
   return m.replace(/^[a-zA-Z.]+: /, "");
 }
 
-export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extra }: Props) {
+export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extra, externalError }: Props) {
   const [name, setName] = useState(initial.name);
   const [color, setColor] = useState<string | null>(initial.color);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extr
 
   return (
     <form className="roster-form card" aria-label={label} onSubmit={submit} onKeyDown={onKeyDown} noValidate>
-      {formError ? <p className="form-error" role="alert">{formError}</p> : null}
+      {formError ?? externalError ? <p className="form-error" role="alert">{formError ?? externalError}</p> : null}
       <div className="field">
         <label htmlFor={nameId}>Name</label>
         <input
