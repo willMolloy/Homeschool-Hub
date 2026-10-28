@@ -1,4 +1,6 @@
-import { buildServer } from "./app";
+import { buildApp } from "./app";
 
 const port = Number(process.env.PORT ?? 3000);
-buildServer().listen(port, () => console.log(`api listening on http://localhost:${port}`));
+const app = buildApp();
+await app.listen({ port, host: "0.0.0.0" });
+console.log(`api listening on http://localhost:${port}`);

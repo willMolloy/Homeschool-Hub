@@ -1,23 +1,30 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { AddressInfo } from "node:net";
+import { afterAll, describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
-import { buildServer } from "../src/app";
+import { buildApp } from "../src/app";
 
-const server = buildServer();
-let base = "";
-beforeAll(async () => {
-  await new Promise<void>((r) => server.listen(0, r));
-  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+const app = buildApp();
+app.get("/api/test-throws", async () => {
+  throw new Error("boom");
 });
-afterAll(() => new Promise<void>((r) => server.close(() => r())));
+afterAll(() => app.close());
 
 describe("GET /api/health", () => {
-  it("returns ok and the engine version", async () => {
-    const res = await fetch(`${base}/api/health`);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, engineVersion: ENGINE_VERSION });
+  it("returns 200, ok and the engine version", async () => {
+    const res = await app.inject({ method: "GET", url: "/api/health" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ ok: true, engineVersion: ENGINE_VERSION });
   });
-  it("404s unknown routes", async () => {
-    expect((await fetch(`${base}/nope`)).status).toBe(404);
+});
+
+describe("errors", () => {
+  it("404s unknown routes with JSON", async () => {
+    const res = await app.inject({ method: "GET", url: "/nope" });
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: "not_found" });
+  });
+  it("returns 500 JSON when a route throws, without leaking the message", async () => {
+    const res = await app.inject({ method: "GET", url: "/api/test-throws" });
+    expect(res.statusCode).toBe(500);
+    expect(res.json()).toEqual({ error: "internal_error", message: "Something went wrong." });
   });
 });

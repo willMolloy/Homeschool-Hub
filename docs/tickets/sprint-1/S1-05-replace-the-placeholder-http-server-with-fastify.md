@@ -18,9 +18,9 @@ The API runs on Fastify with the same `GET /api/health` behavior and its tests s
 6. Rewrite `test/health.test.ts` to use `app.inject()` instead of a real port.
 
 ## Done when
-- [ ] `npm run dev:api` serves `/api/health` as before.
-- [ ] `npm test -w @hh/api` passes.
-- [ ] Remove the old 'Ticket S1-05' comment from app.ts.
+- [x] `npm run dev:api` serves `/api/health` as before.
+- [x] `npm test -w @hh/api` passes.
+- [x] Remove the old 'Ticket S1-05' comment from app.ts.
 
 ## Tests
 - health returns 200 + engineVersion

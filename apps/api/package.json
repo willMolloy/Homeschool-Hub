@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@hh/engine": "*"
+    "@hh/engine": "*",
+    "fastify": "^5.12.7"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
