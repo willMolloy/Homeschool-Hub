@@ -15,7 +15,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-06 Names inside the bars | aa34054 | Name inside each bar where it fits, pinned left, cut with "…" (at least 4 characters) or left out; solid patch of the bar's swatch with its AA label colour; canvas `measureText` (cached) injected into the layout; fades with the zoom |
 | T-05b All subjects bar | 8891fb4 | DeeDee's request: the summed load of every lane as one grey bar pinned above the lanes, labelled "All subjects", 32 px at the family's heaviest point on one scale for every zoom; `--tl-total` token at the bar opacity |
 | T-05c Calm detail and This month | 7ecc308 | DeeDee's request, replacing the earlier "Year/Fall/Spring only" decision: presets Year / Fall / Spring / This month (‹ › flip months); detail follows the visible span (`DETAIL_SPAN_WEEKS` = 8, 1-week hysteresis): daily steps and events at 8 weeks or less, smooth monotone curves over a 3-week moving average above, with quiet breaks and fewer phone month labels; All subjects bar follows the same rule |
-| T-07 Adjust sheet | (this commit) | Tap a bar (44 px targets via `hitTest`) to select it: the other bars and names dim, and a sheet (Drawer on phones, Dialog ≥ 640 px) shows the title, subject · child, dates and "End one week earlier" / "End one week later" / "Reset". Those buttons don't exist in the DOM until something is selected (DeeDee's T-02b rule, tested). `PATCH /api/assignments/:id { endDate }`, then the plan is refetched. Keyboard path through the lanes list. Screens: `t07-sheet-390.png`, `t07-sheet-changed-390.png`, `t07-sheet-1280.png` |
+| T-07 Adjust sheet | 21158b1 | Tap a bar (44 px targets via `hitTest`) to select it: the other bars and names dim, and a sheet (Drawer on phones, Dialog ≥ 640 px) shows the title, subject · child, dates and "End one week earlier" / "End one week later" / "Reset". Those buttons don't exist in the DOM until something is selected (DeeDee's T-02b rule, tested). `PATCH /api/assignments/:id { endDate }`, then the plan is refetched. Keyboard path through the lanes list. Screens: `t07-sheet-390.png`, `t07-sheet-changed-390.png`, `t07-sheet-1280.png` |
+| T-07c Child filter | (this commit) | DeeDee's request: one row of chips under the title (All, then each child with something planned), hidden with one child; one child's view keeps only their sub-lanes, breaks and events, and recomputes the All subjects bar for that child at 32 px over that view's peak; palette slots don't move; choice kept in `?child=<id>` (replace), unknown ids fall back to All |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -220,3 +221,13 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **Buttons are quiet pills** (`--tl-secondary` fill, no border) to match the zoom presets, instead of the app's outlined secondary buttons.
 - **Keyboard:** every assignment in the screen-reader lanes list is a button that selects it; the list becomes visible while focus is inside it.
 - **Deferred:** the minutes-per-day stepper and the thicken-or-push choice need engine decisions, and event strips (activities) are not selectable; their dates belong to the Events screen. Manual pinch, ctrl+wheel and pan is T-07b, not built.
+
+## T-07c — Child filter decisions (DeeDee's request)
+
+- **A filter of the model, not a new plan.** `forChild` keeps the chosen child's sub-lanes and recomputes the totals from them. The grid, today, palette slots and child colour steps stay the same, so a subject keeps its colour between views.
+- **Breaks and events:** a view keeps whole-family ones and that child's own (for example, Margaret's violin is not drawn in Frank's view).
+- **The chips are the active children with something on the timeline**, in display order. A child with nothing planned gets no chip, because their view would be empty. With fewer than two chips, the row isn't rendered.
+- **`?child=` holds the child's id**, not their name, so renaming a child doesn't break a saved link. It is written with `replace`, so the chips don't fill the back button's history. An unknown or archived id shows All. All removes the parameter.
+- **Placement:** its own row under the title and presets (on phones the presets already fill the row under the title), above ‹ month ›. It is styled like the presets: text pills with the pressed one filled, no border, and the row scrolls sideways if there are many children.
+- **The selection** (T-07) uses the filtered model, so a bar that isn't shown can't stay selected.
+

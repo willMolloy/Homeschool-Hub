@@ -3,6 +3,7 @@
  * This month), then the timeline across the page's
  * full width (full-bleed on phones). Changing zoom crossfades the old picture out over the new one, names included
  * (T-06: names sit inside the bars wherever they fit). T-07: tapping a bar selects it and opens the adjust sheet.
+ * T-07c: with two or more children, a chip row (All, then each child) narrows it to one child, kept in `?child=`.
  */
 import { useMemo, useRef, useState } from "react";
 import { ApiError, apiPatch } from "../api/client";
@@ -22,6 +23,9 @@ import { useZoomFade } from "../features/timeline/useZoomFade";
 import { availableZooms, defaultMonth, gridMonths, ZOOM_LABEL, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
+import { ChildFilter } from "../features/timeline/ChildFilter";
+import { filterChildren, forChild, shownChild } from "../features/timeline/childView";
+import { useChildParam } from "../features/timeline/useChildParam";
 import "../features/timeline/timeline.css";
 
 /** Width used before anything can be measured (the smallest phone we design for). */
@@ -32,7 +36,11 @@ const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: Layou
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
 export function TimelinePage() {
-  const { model, loading, failed, reload, assignments, applyAssignment } = useTimelineData();
+  const { model: family, loading, failed, reload, assignments, applyAssignment, children } = useTimelineData();
+  const childList = useMemo(() => filterChildren(children, family), [children, family]);
+  const [childParam, setChild] = useChildParam();
+  const childId = shownChild(childParam, childList);
+  const model = useMemo(() => (family ? forChild(family, childId) : undefined), [family, childId]);
   const { ref, width } = useElementWidth<HTMLDivElement>(FALLBACK_WIDTH);
   const { zoom, leaving, setZoom, settle } = useZoomFade("year");
   const zooms = useMemo(() => (model ? availableZooms(model) : (["year"] as Zoom[])), [model]);
@@ -95,6 +103,7 @@ export function TimelinePage() {
         <h1>Timeline</h1>
         {ready && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} />}
       </header>
+      {ready && <ChildFilter childList={childList} value={childId} onChange={setChild} />}
       {ready && shownZoom === "month" && month && <MonthNav months={months} value={month} onChange={setMonth} />}
       <div ref={ref} className="timeline-bleed">
         {failed ? (

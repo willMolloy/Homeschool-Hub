@@ -50,3 +50,7 @@
 .tl-adjust-error { margin: 8px 0 0; color: var(--tl-destructive); }
 .tl-adjust-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .tl-adjust-actions .btn { min-height: 44px; border-color: transparent; background: var(--tl-secondary); color: var(--tl-foreground, inherit); border-radius: 999px; }
+
+/* T-07c: the child filter, one quiet row of chips like the zoom presets. */
+.tl-children { margin-bottom: 4px; overflow-x: auto; scrollbar-width: none; }
+.tl-children button { flex: 0 0 auto; }

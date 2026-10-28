@@ -15,6 +15,8 @@ export interface TimelineData {
   assignments: Assignment[];
   /** T-07: after a successful PATCH, swap in the saved assignment and refetch the plan. */
   applyAssignment: (saved: Assignment) => void;
+  /** T-07c: the family's children (the filter's chips). */
+  children: Child[];
 }
 
 export function useTimelineData(): TimelineData {
@@ -46,6 +48,7 @@ export function useTimelineData(): TimelineData {
       for (const s of all) if (s.error) s.reload();
     },
     assignments: assignments.data ?? [],
+    children: children.data ?? [],
     applyAssignment: (saved) => {
       assignments.setData((list) => list?.map((a) => (a.id === saved.id ? saved : a)));
       plan.reload();
