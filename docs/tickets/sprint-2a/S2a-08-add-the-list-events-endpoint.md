@@ -14,7 +14,7 @@ Shape: `{ id, name, weekdays, startDate, endDate, capacityFraction, defaultRule,
 2. Route in `routes/events.ts`; `?includeArchived=true`.
 
 ## Done when
-- [ ] Seeded events come back with their rules.
+- [x] Seeded events come back with their rules.
 
 ## Tests
 - seed family events match the seed
