@@ -26,6 +26,11 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
   useEffect(() => setInvalid(null), [s.assignmentId, s.startDate, s.endDate]);
+  // T-08b: the fields follow the selection live (a drag updates them as it goes); a pick shows at once.
+  // A typed date shows until the selection changes (a save lands, a drag moves it, another bar is picked).
+  const shown = `${s.assignmentId}:${s.startDate}:${s.endDate}`;
+  const [typed, setTyped] = useState<{ for: string; dates: DateSpan } | null>(null);
+  const draft = typed?.for === shown ? typed.dates : { startDate: s.startDate, endDate: s.endDate };
 
   const save = (next: DateSpan) => {
     const bad = datesError(next);
@@ -33,6 +38,7 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
     if (!bad) onSave(next);
   };
   const onDate = (field: keyof DateSpan) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTyped({ for: shown, dates: { ...draft, [field]: e.target.value } });
     if (ISO.test(e.target.value)) save({ startDate: s.startDate, endDate: s.endDate, [field]: e.target.value });
   };
   const changed = original !== null && (original.startDate !== s.startDate || original.endDate !== s.endDate);
@@ -55,9 +61,9 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
           {step("Move back a week", moveWeeks(s, -1))}
           {step("Move forward a week", moveWeeks(s, 1))}
         </div>
-        <div className="tl-edit-dates" key={`${s.assignmentId}:${s.startDate}:${s.endDate}`}>
-          <label>Start <input type="date" defaultValue={s.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
-          <label>End <input type="date" defaultValue={s.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
+        <div className="tl-edit-dates">
+          <label>Start <input type="date" value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
+          <label>End <input type="date" value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
           {changed && original && step("Reset", original)}
         </div>
         <div className="tl-edit-ends">

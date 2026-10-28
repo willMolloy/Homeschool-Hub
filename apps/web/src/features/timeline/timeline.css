@@ -43,6 +43,9 @@
 
 /* T-07: selection dims the other bars (opacity only, no outline); the adjust sheet's body. */
 .tl-svg .tl-dim { opacity: 0.3; }
+/* T-08b: the selected bar is solid; its grips never take the pointer (the stage handles dragging). */
+.tl-band.tl-selected { fill-opacity: 1; }
+.tl-handles { pointer-events: none; }
 .tl-svg[data-pickable] { cursor: pointer; }
 .tl-lanes-list:focus-within { position: static; width: auto; height: auto; margin: 12px 0 0; padding: 0 12px; overflow: visible; clip: auto; clip-path: none; white-space: normal; list-style: none; }
 .tl-lane-pick { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; min-height: 44px; }

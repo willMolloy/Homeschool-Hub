@@ -17,7 +17,8 @@ import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
 import { estimateTextWidth, placeName, type MeasureText } from "./names";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows } from "./rows";
-import { smoothSeries } from "./smooth";
+import { sumSeries } from "./grid";
+import { cleanSeries, smoothSeries } from "./smooth";
 import { makeXScale, type XScale } from "./xscale";
 import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, type Zoom } from "./zoom";
 
@@ -307,8 +308,18 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
 
   // T-05c: which series and outline a band uses at this detail.
   const schoolColumns = model.dates.map((_, i) => i).filter((i) => model.schoolDay[i]);
-  const seriesFor = (a: { daily: readonly number[]; weekly: readonly number[] }) =>
-    detail === "smooth" ? smoothSeries(a.daily, schoolColumns) : detail === "weekly" ? a.weekly : a.daily;
+  // T-08b: zoomed out, an assignment is its clean shape (no lumps); All subjects smooths the sum of those shapes.
+  const clean = new Map<TimelineAssignment, number[]>();
+  const cleanOf = (a: TimelineAssignment) => {
+    let c = clean.get(a);
+    if (!c) clean.set(a, (c = cleanSeries(a.daily, schoolColumns)));
+    return c;
+  };
+  const seriesFor = (a: TimelineAssignment) => (detail === "smooth" ? cleanOf(a) : detail === "weekly" ? a.weekly : a.daily);
+  const totalsSeries = () =>
+    detail === "smooth"
+      ? smoothSeries(sumSeries(model.lanes.flatMap((l) => l.children.flatMap((c) => c.assignments.map(cleanOf))), model.dates.length), schoolColumns)
+      : detail === "weekly" ? model.totals.weekly : model.totals.daily;
   const columnsFor = (series: readonly number[], cy: number, scale: number, maxPx: number) =>
     detail === "smooth" ? smoothColumns(series, xs, cy, scale, maxPx) : bandColumns(series, xs, cy, scale);
   const pathFor = detail === "smooth" ? smoothBandPath : bandPath;
@@ -324,7 +335,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     y: totalsY,
     height: TOTALS_HEIGHT_PX,
     cy: totalsCy,
-    d: totalsScale > 0 ? pathFor(columnsFor(seriesFor(model.totals), totalsCy, totalsScale, TOTALS_HEIGHT_PX)) : "",
+    d: totalsScale > 0 ? pathFor(columnsFor(totalsSeries(), totalsCy, totalsScale, TOTALS_HEIGHT_PX)) : "",
   };
   const lanesTop = totalsY + TOTALS_HEIGHT_PX + SUBJECT_GAP_PX;
 

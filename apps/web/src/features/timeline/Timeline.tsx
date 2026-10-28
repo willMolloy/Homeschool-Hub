@@ -4,6 +4,7 @@
  * stays well under 300 nodes. Colours are the `--tl-*` tokens (palette and theme switch without a re-render).
  */
 import { useId } from "react";
+import { bandExtent } from "./drag";
 import { AXIS_HEIGHT_PX, LABEL_ROW_PX, type TimelineLayout } from "./layout";
 import type { ChildStep } from "./model";
 
@@ -13,6 +14,10 @@ const PILL_W = 44;
 const PILL_H = 18;
 /** Baseline of 12 px text in a 16 px label row. */
 const LABEL_BASELINE = LABEL_ROW_PX - 4;
+/** T-08b: the grip at each end of the selected bar: a small pill in the bar's label colour. */
+export const HANDLE_W_PX = 4;
+export const HANDLE_INSET_PX = 3;
+const HANDLE_H = (rowHeight: number) => Math.min(14, Math.max(8, rowHeight - 6));
 
 const STEP_SUFFIX: Record<ChildStep, string> = { base: "", light: "-light", dark: "-dark" };
 export const bandFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]})`;
@@ -38,7 +43,17 @@ export function Timeline({ layout, label, selectedId = null, onPick }: TimelineP
   const quiet = layout.detail === "smooth";
   const bottom = Math.max(layout.lanesBottom, layout.totals.y + layout.totals.height);
   const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
-  const dim = (id: string) => (selectedId !== null && id !== selectedId ? " tl-dim" : "");
+  const dim = (id: string) => (selectedId === null ? "" : id === selectedId ? " tl-selected" : " tl-dim");
+  // T-08b: one pair of grips per lane the selected assignment is drawn in, at its outer ends.
+  const handles = selectedId === null ? [] : layout.bands.filter((b, i, all) => b.assignmentId === selectedId && b.d
+    && all.findIndex((o) => o.assignmentId === selectedId && o.laneKey === b.laneKey && o.d) === i).flatMap((b) => {
+    const extent = bandExtent(layout, b);
+    const row = layout.rows.find((r) => r.key === b.rowKey);
+    if (!extent || !row) return [];
+    const h = HANDLE_H(row.height);
+    const xs = [extent[0] + HANDLE_INSET_PX, extent[1] - HANDLE_INSET_PX - HANDLE_W_PX];
+    return xs.map((x, k) => ({ key: `${b.laneKey}-${k}`, x, y: b.cy - h / 2, h, fill: nameFill(b.paletteSlot, b.step) }));
+  });
   const pillX = layout.todayX === null ? 0 : Math.max(0, Math.min(layout.width - PILL_W, layout.todayX - PILL_W / 2));
 
   return (
@@ -95,6 +110,12 @@ export function Timeline({ layout, label, selectedId = null, onPick }: TimelineP
           </g>
         ))}
       </g>
+
+      {handles.length > 0 && (
+        <g className="tl-handles" aria-hidden="true">
+          {handles.map((h) => <rect key={h.key} className="tl-handle" x={h.x} y={h.y} width={HANDLE_W_PX} height={h.h} rx={HANDLE_W_PX / 2} style={{ fill: h.fill }} />)}
+        </g>
+      )}
 
       <g className="tl-events">
         {layout.events.map((e) => (e.d ? (

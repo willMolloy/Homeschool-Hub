@@ -20,7 +20,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-07d Richer demo seed | 4bb9262 | DeeDee's request: the demo family is now `db/demo-family.ts`, a varied 2026–27 year (Treasure Island and Charlotte's Web in three weeks, back-to-back books, chapters beside pages, overlaps in one subject, lesson math all year, a January start, the science fair heavy for three weeks then lighter via week overrides, Labor Day, Thanksgiving week, Christmas, spring break, four events, one past check-in ahead and one behind); `seed()` takes the family to load, and tests keep the engine's sample family (`SAMPLE_FAMILY`) |
 | T-07e Edit bar at the bottom | e998596 | DeeDee's request: the adjust sheet (a modal) is replaced by a slim edit bar fixed to the bottom of the viewport (above the tab bar on phones): move a week back or forward, Start and End date pickers, end a week earlier or later, Reset after a change, ×; the selected bar is kept above it; the API refuses date changes that would leave the latest check-in outside the assignment |
 | T-07f This month shows only what is in the month | 9dad6cc | At This month, rows, lanes and subjects with nothing in the month are left out; rows are packed from the whole year first, so a bar keeps its row across zooms |
-| T-08 Drag a bar | (this commit) | DeeDee's request: drag the body to move an assignment, an end to change its start or end; whole weeks zoomed out, school days at This month; live preview of that lane and All subjects with the dates in the edit bar; saved on release, Reset undoes it; touch drags only the selected bar so the page still scrolls |
+| T-08 Drag a bar | 7283bf4 | DeeDee's request: drag the body to move an assignment, an end to change its start or end; whole weeks zoomed out, school days at This month; live preview of that lane and All subjects with the dates in the edit bar; saved on release, Reset undoes it; touch drags only the selected bar so the page still scrolls |
+| T-08b Polish after the drag hand-test | (this commit) | DeeDee's hand-test: zoomed out, each assignment is a clean shape (one thickness, or distinct phases like the science fair's heavy-then-light) and All subjects has no edge wobble; the selected bar is fully opaque with a grip at each end; the Start and End fields follow a drag live |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -272,3 +273,13 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **Rows may repack in the preview** when the dragged bar starts overlapping a neighbour; that is the T-03 no-overlap rule, applied live.
 - **Saving goes through the T-07e save**, so a drag sends only the changed fields, the check-in guard applies, server errors show in the edit bar, and Reset undoes it.
 
+## T-08b — Polish decisions (DeeDee's hand-test of T-08)
+
+- **Clean shapes, zoomed out only.** An assignment's school days are cut into school weeks; consecutive weeks within ×1.5 of each other form a phase, a phase under 10 school days joins its closer neighbour, and alike neighbours join. Every day of a phase gets the phase's average, so most assignments are one thickness. The existing monotone curves give the gentle step between distinct phases (the science fair). This month (≤ 8 weeks) is unchanged.
+- **All subjects** is the moving average of the sum of the clean shapes, so it has no edge wobble of its own making.
+- **Breaks:** a week or more off splits a bar, as before. A single day off inside an assignment (Labor Day) is bridged, as before. Splitting there would cut a sliver off the start of every September bar and hide its name.
+- **Selected bar:** fill-opacity 1; the others stay dimmed.
+- **Grips:** a small rounded pill (4 px wide) inside each end of the selected bar, in the bar's label colour, drawn on the selected bar only. They don't catch the pointer.
+- **Touch targets:** the selected bar is hit-tested first. On a bar narrower than 66 px, each end reaches 44 px outside the bar, so both ends are at least 44 px wide on touch.
+- **Cursors:** ew-resize over the ends and move over the body (was grab).
+- **Live date fields:** Start and End are controlled inputs that follow the selection, including the drag preview. A body drag changes both; an end drag changes that one. Typing keeps a draft until the selection's dates change.

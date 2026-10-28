@@ -10,7 +10,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { EditBar } from "../features/timeline/EditBar";
 import { useAssignmentEdit } from "../features/timeline/useAssignmentEdit";
 import { useKeepAbove } from "../features/timeline/useKeepAbove";
-import { previewModel } from "../features/timeline/drag";
+import { grabSelected, previewModel } from "../features/timeline/drag";
 import { useBarDrag, type DragPreview } from "../features/timeline/useBarDrag";
 import { hitTest } from "../features/timeline/hit";
 import { selectionFor } from "../features/timeline/select";
@@ -77,7 +77,7 @@ export function TimelinePage() {
     setSelectedId(id);
     edit.clearError();
   };
-  const pick = (x: number, y: number) => select(layout ? hitTest(layout, x, y)?.assignmentId ?? null : null);
+  const pick = (x: number, y: number) => select(layout ? (grabSelected(layout, selectedId, x, y)?.band ?? hitTest(layout, x, y))?.assignmentId ?? null : null);
   const stage = useRef<HTMLDivElement>(null);
   const keep = useKeepAbove<HTMLElement>(selection ? selectedId : null,
     (id) => [...(stage.current?.querySelectorAll(`:scope > :not(.tl-leaving) path[data-assignment="${id}"]`) ?? [])]);

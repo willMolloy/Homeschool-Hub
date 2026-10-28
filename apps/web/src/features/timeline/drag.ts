@@ -32,6 +32,25 @@ export function dragKind(extent: [number, number], x: number): DragKind {
   return "move";
 }
 
+/** T-08b: how far past each end the selected bar can be grabbed: its 44 px handle, or the whole 44 px outside a short bar. */
+export const handleReach = (extent: [number, number]) => (extent[1] - extent[0] >= 3 * HANDLE_HALF_PX ? HANDLE_HALF_PX : 2 * HANDLE_HALF_PX);
+
+/**
+ * T-08b: the selected bar under (x, y), checked before any other: within 22 px of its centerline and its ends'
+ * reach, so each end is at least a 44 px target on touch even on a short bar.
+ */
+export function grabSelected(layout: Pick<TimelineLayout, "bands">, selectedId: string | null, x: number, y: number): { band: LaneBand; kind: DragKind } | null {
+  if (selectedId === null) return null;
+  for (const band of layout.bands) {
+    if (band.assignmentId !== selectedId || Math.abs(y - band.cy) > HANDLE_HALF_PX) continue;
+    const extent = bandExtent(layout, band);
+    if (!extent) continue;
+    const reach = handleReach(extent);
+    if (x >= extent[0] - reach && x <= extent[1] + reach) return { band, kind: dragKind(extent, x) };
+  }
+  return null;
+}
+
 /** `date` moved by `n` school days on the grid (calendar days off the grid). */
 export function shiftSchoolDays(model: Pick<TimelineModel, "from" | "dates" | "schoolDay">, date: LocalDate, n: number): LocalDate {
   let i = diffDays(model.from, date);

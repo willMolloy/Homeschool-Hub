@@ -5,7 +5,7 @@
  * dragging and save on release; a cancelled pointer (the browser took over to scroll) drops the drag.
  */
 import { useRef } from "react";
-import { bandExtent, DRAG_THRESHOLD_PX, draggedSpan, dragKind, type DragKind } from "./drag";
+import { bandExtent, DRAG_THRESHOLD_PX, draggedSpan, dragKind, grabSelected, type DragKind } from "./drag";
 import { hitTest } from "./hit";
 import type { TimelineLayout } from "./layout";
 import type { TimelineModel } from "./model";
@@ -28,7 +28,8 @@ export interface BarDragOptions {
   onCommit: (assignmentId: string, before: DateSpan, after: DateSpan) => Promise<void>;
 }
 
-const CURSOR: Record<DragKind, string> = { move: "grab", start: "ew-resize", end: "ew-resize" };
+/** T-08b: the move cursor over a bar's body, the resize cursor over its ends. */
+export const CURSOR: Record<DragKind, string> = { move: "move", start: "ew-resize", end: "ew-resize" };
 
 export function useBarDrag(o: BarDragOptions) {
   const press = useRef<Press | null>(null);
@@ -42,8 +43,10 @@ export function useBarDrag(o: BarDragOptions) {
     return r ? { x: e.clientX - r.left, y: e.clientY - r.top } : null;
   };
   const grab = (e: React.PointerEvent): { assignmentId: string; kind: DragKind } | null => {
-    const { layout } = live.current;
+    const { layout, selectedId } = live.current;
     const p = local(e);
+    const selected = layout && p ? grabSelected(layout, selectedId, p.x, p.y) : null;
+    if (selected) return { assignmentId: selected.band.assignmentId, kind: selected.kind };
     const band = layout && p ? hitTest(layout, p.x, p.y) : null;
     const extent = band && layout ? bandExtent(layout, band) : null;
     return band && extent && p ? { assignmentId: band.assignmentId, kind: dragKind(extent, p.x) } : null;
