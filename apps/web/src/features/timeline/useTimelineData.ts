@@ -11,6 +11,10 @@ export interface TimelineData {
   loading: boolean;
   failed: boolean;
   reload: () => void;
+  /** T-07: the raw assignments (start and end dates for the adjust sheet). */
+  assignments: Assignment[];
+  /** T-07: after a successful PATCH, swap in the saved assignment and refetch the plan. */
+  applyAssignment: (saved: Assignment) => void;
 }
 
 export function useTimelineData(): TimelineData {
@@ -40,6 +44,11 @@ export function useTimelineData(): TimelineData {
     failed: all.some((s) => s.error),
     reload: () => {
       for (const s of all) if (s.error) s.reload();
+    },
+    assignments: assignments.data ?? [],
+    applyAssignment: (saved) => {
+      assignments.setData((list) => list?.map((a) => (a.id === saved.id ? saved : a)));
+      plan.reload();
     },
   };
 }

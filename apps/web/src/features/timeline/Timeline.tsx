@@ -26,18 +26,27 @@ export interface TimelineProps {
   layout: TimelineLayout;
   /** The accessible name of the picture (the lanes are listed for screen readers next to it). */
   label: string;
+  /** T-07: the selected assignment; the other bars and names dim. */
+  selectedId?: string | null;
+  /** T-07: a click or tap on the picture, in its own coordinates. */
+  onPick?: (x: number, y: number) => void;
 }
 
-export function Timeline({ layout, label }: TimelineProps) {
+export function Timeline({ layout, label, selectedId = null, onPick }: TimelineProps) {
   const hatchId = `tl-hatch-${useId().replace(/:/g, "")}`;
   /** T-05c: zoomed out, breaks are a very faint plain tint instead of a hatch. */
   const quiet = layout.detail === "smooth";
   const bottom = Math.max(layout.lanesBottom, layout.totals.y + layout.totals.height);
   const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
+  const dim = (id: string) => (selectedId !== null && id !== selectedId ? " tl-dim" : "");
   const pillX = layout.todayX === null ? 0 : Math.max(0, Math.min(layout.width - PILL_W, layout.todayX - PILL_W / 2));
 
   return (
-    <svg className="tl-svg" width={layout.width} height={height} viewBox={`0 0 ${layout.width} ${height}`} role="img" aria-label={label}>
+    <svg className="tl-svg" width={layout.width} height={height} viewBox={`0 0 ${layout.width} ${height}`} role="img" aria-label={label} data-pickable={onPick ? "" : undefined}
+      onClick={onPick ? (e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        onPick(e.clientX - r.left, e.clientY - r.top);
+      } : undefined}>
       <defs>
         <pattern id={hatchId} width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line className="tl-hatch-line" x1={0} y1={0} x2={0} y2={6} />
@@ -73,14 +82,14 @@ export function Timeline({ layout, label }: TimelineProps) {
       <g className="tl-bands">
         {layout.totals.d ? <path className="tl-totals" d={layout.totals.d} /> : null}
         {layout.bands.map((b) => (b.d ? (
-          <path key={`${b.rowKey}-${b.assignmentId}`} className="tl-band" d={b.d} style={{ fill: bandFill(b.paletteSlot, b.step) }}
+          <path key={`${b.rowKey}-${b.assignmentId}`} className={`tl-band${dim(b.assignmentId)}`} d={b.d} style={{ fill: bandFill(b.paletteSlot, b.step) }}
             data-assignment={b.assignmentId} />
         ) : null))}
       </g>
 
       <g className="tl-names" aria-hidden="true">
         {layout.names.map((n) => (
-          <g key={`${n.rowKey}-${n.assignmentId}`} data-name-for={n.assignmentId}>
+          <g key={`${n.rowKey}-${n.assignmentId}`} className={dim(n.assignmentId).trim() || undefined} data-name-for={n.assignmentId}>
             <rect className="tl-name-patch" x={n.x} y={n.y} width={n.width} height={n.height} style={{ fill: bandFill(n.paletteSlot, n.step) }} />
             <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step) }}>{n.text}</text>
           </g>

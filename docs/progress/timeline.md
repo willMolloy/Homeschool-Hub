@@ -14,7 +14,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-05 Zoom presets Year / Fall / Spring | db0db98 | Text toggle buttons beside the title; 200 ms opacity crossfade (old zoom on top, aria-hidden), instant with reduced motion; Today at its date in every zoom; no control when the grid doesn't cross New Year |
 | T-06 Names inside the bars | aa34054 | Name inside each bar where it fits, pinned left, cut with "…" (at least 4 characters) or left out; solid patch of the bar's swatch with its AA label colour; canvas `measureText` (cached) injected into the layout; fades with the zoom |
 | T-05b All subjects bar | 8891fb4 | DeeDee's request: the summed load of every lane as one grey bar pinned above the lanes, labelled "All subjects", 32 px at the family's heaviest point on one scale for every zoom; `--tl-total` token at the bar opacity |
-| T-05c Calm detail and This month | (this commit) | DeeDee's request, replacing the earlier "Year/Fall/Spring only" decision: presets Year / Fall / Spring / This month (‹ › flip months); detail follows the visible span (`DETAIL_SPAN_WEEKS` = 8, 1-week hysteresis): daily steps and events at 8 weeks or less, smooth monotone curves over a 3-week moving average above, with quiet breaks and fewer phone month labels; All subjects bar follows the same rule |
+| T-05c Calm detail and This month | 7ecc308 | DeeDee's request, replacing the earlier "Year/Fall/Spring only" decision: presets Year / Fall / Spring / This month (‹ › flip months); detail follows the visible span (`DETAIL_SPAN_WEEKS` = 8, 1-week hysteresis): daily steps and events at 8 weeks or less, smooth monotone curves over a 3-week moving average above, with quiet breaks and fewer phone month labels; All subjects bar follows the same rule |
+| T-07 Adjust sheet | (this commit) | Tap a bar (44 px targets via `hitTest`) to select it: the other bars and names dim, and a sheet (Drawer on phones, Dialog ≥ 640 px) shows the title, subject · child, dates and "End one week earlier" / "End one week later" / "Reset". Those buttons don't exist in the DOM until something is selected (DeeDee's T-02b rule, tested). `PATCH /api/assignments/:id { endDate }`, then the plan is refetched. Keyboard path through the lanes list. Screens: `t07-sheet-390.png`, `t07-sheet-changed-390.png`, `t07-sheet-1280.png` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -206,3 +207,16 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **A month flip doesn't fade.** Only preset changes crossfade.
 - **Lanes move up once, at the threshold**, because the event rows aren't reserved when hidden. The crossfade covers it.
 - Screenshots: `screens/t05c-timeline-390.png`, `t05c-month-390.png`, `t05c-timeline-1280.png`. Before/after at 390 px in `/workspace/hh-preview-shots` (`before-smooth-*`, `after-smooth-*`, `after-month-390.png`).
+
+## T-07 — Adjust sheet decisions
+
+- **Hidden, not disabled.** The three buttons live inside the sheet, and the sheet is only rendered while something is selected, so none of them is in the DOM before a tap (`timeline-adjust.test.tsx` checks by role and by text).
+- **"End one week earlier" is left out, not disabled, when the new end would fall before the start**, the same rule applied one level down. "End one week later" is always offered; the API's 400 (for example the maximum span) shows as an alert in the sheet.
+- **Reset appears only after a change in this visit** and restores the end the assignment had before its first change. Once the end is back, Reset goes away. It is not persisted across visits: the server keeps no "original" end, and inventing one is out of scope.
+- **The sheet is modal** (the Base UI Drawer/Dialog from T-03b), so the zoom can't change while something is selected; the selection lives on the page beside the zoom and is cleared when the sheet closes. A tap on empty space selects nothing.
+- **Dimming is opacity only** (`.tl-dim` at 0.3); no outline, border or highlight on the selected bar.
+- **Shared assignments** list every child on the subtitle ("Reading · Ada, Ben"), because the end date is the assignment's, not one child's.
+- **Saving:** the PATCH returns the saved assignment, which replaces the cached one at once (the sheet's dates update), and the plan is refetched so the bars redraw from the engine. While saving, the buttons are disabled; there is no confirmation step (Reset undoes).
+- **Buttons are quiet pills** (`--tl-secondary` fill, no border) to match the zoom presets, instead of the app's outlined secondary buttons.
+- **Keyboard:** every assignment in the screen-reader lanes list is a button that selects it; the list becomes visible while focus is inside it.
+- **Deferred:** the minutes-per-day stepper and the thicken-or-push choice need engine decisions, and event strips (activities) are not selectable; their dates belong to the Events screen. Manual pinch, ctrl+wheel and pan is T-07b, not built.

@@ -40,3 +40,13 @@
 .tl-today line { stroke: var(--tl-today); stroke-width: 2; }
 .tl-today rect { fill: var(--tl-today); }
 .tl-today text { font-size: 11px; font-weight: 600; fill: var(--tl-background); }
+
+/* T-07: selection dims the other bars (opacity only, no outline); the adjust sheet's body. */
+.tl-svg .tl-dim { opacity: 0.3; }
+.tl-svg[data-pickable] { cursor: pointer; }
+.tl-lanes-list:focus-within { position: static; width: auto; height: auto; margin: 12px 0 0; padding: 0 12px; overflow: visible; clip: auto; clip-path: none; white-space: normal; list-style: none; }
+.tl-lane-pick { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; min-height: 44px; }
+.tl-adjust-line { margin: 0 0 4px; color: var(--muted); }
+.tl-adjust-error { margin: 8px 0 0; color: var(--tl-destructive); }
+.tl-adjust-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.tl-adjust-actions .btn { min-height: 44px; border-color: transparent; background: var(--tl-secondary); color: var(--tl-foreground, inherit); border-radius: 999px; }

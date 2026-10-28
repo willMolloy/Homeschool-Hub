@@ -109,11 +109,13 @@ describe("the Year timeline page", () => {
     stubSample();
     await openTimeline();
     const main = screen.getByRole("main");
-    expect(within(main).getAllByRole("button").map((b) => b.textContent)).toEqual(["Year", "Fall", "Spring", "This month"]);
+    // The visible buttons: the presets. (T-07: the lanes list's pick buttons are visually hidden until focused.)
+    const visible = within(main).getAllByRole("button").filter((b) => !b.closest(".sr-only"));
+    expect(visible.map((b) => b.textContent)).toEqual(["Year", "Fall", "Spring", "This month"]);
     expect(within(main).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Timeline"]);
     // Below the title: the picture, and the lane list that only screen readers get. Nothing else.
     const bleed = main.querySelector(".timeline-bleed")!;
-    expect([...bleed.children].map((e) => `${e.tagName.toLowerCase()}.${e.getAttribute("class")}`)).toEqual(["div.tl-stage", "ul.sr-only"]);
+    expect([...bleed.children].map((e) => `${e.tagName.toLowerCase()}.${e.getAttribute("class")}`)).toEqual(["div.tl-stage", "ul.sr-only tl-lanes-list"]);
     expect(bleed.querySelectorAll("svg")).toHaveLength(1);
   });
 

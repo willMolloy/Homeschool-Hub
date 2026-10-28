@@ -15,7 +15,7 @@ From the Timeline Tools Page (stack, colour and typography choices for the year 
 | T-05b | [All subjects bar pinned above the lanes](T-05b-all-subjects-bar.md) | T-05 | S |
 | T-05c | [Calm zoomed-out detail, and This month](T-05c-calm-detail-and-this-month.md) | T-05b | M |
 | T-06 | [Names inside the bars](T-06-names-inside-bars.md) | T-05 | M |
-| T-07 | Adjust sheet: Drawer with steppers *(written when started)* | T-04 | M |
+| T-07 | [Adjust sheet](T-07-adjust-sheet.md) | T-04 | M |
 | T-07b | Manual zoom: pinch, ctrl+wheel and pan; the presets just jump *(written when started)* | T-05c, T-07 | M |
 | T-08 | Drag to resize *(written when started)* | T-07 | M |
 | T-09 | Drag to move *(written when started)* | T-08 | M |
