@@ -4,6 +4,7 @@
  * and the same rules (family-scoped, archive instead of delete), so one implementation serves both.
  */
 import type { Queryable, Tx } from "../db";
+import { buildUpdateSet } from "./sql";
 
 export type RosterTable = "child" | "subject";
 
@@ -65,22 +66,14 @@ export function rosterRepo(table: RosterTable) {
 
     /** Update only the given fields of one of this family's rows. null = no such row for this family. */
     async update(db: Queryable, familyId: string, id: string, patch: RosterPatch): Promise<RosterRow | null> {
-      const sets: string[] = [];
-      const params: unknown[] = [id, familyId];
-      const set = (col: string, v: unknown) => {
-        params.push(v);
-        sets.push(`${col} = $${params.length}`);
-      };
-      if (patch.name !== undefined) set("name", patch.name);
-      if (patch.color !== undefined) set("color", patch.color);
-      if (patch.sortOrder !== undefined) set("sort_order", patch.sortOrder);
-      // Keep the original archived_at when archiving an already-archived row.
-      if (patch.archived !== undefined) sets.push(patch.archived ? "archived_at = COALESCE(archived_at, now())" : "archived_at = NULL");
+      // archived: true keeps the original archived_at when the row is already archived.
+      const { set, params } = buildUpdateSet(
+        { name: patch.name, color: patch.color, sort_order: patch.sortOrder }, { firstParam: 3, archived: patch.archived });
       const { rows } = await db.query<RosterRow>(
-        `UPDATE ${table} SET ${[...sets, "updated_at = now()"].join(", ")}
+        `UPDATE ${table} SET ${set}
           WHERE id = $1 AND family_id = $2
           RETURNING ${COLS}`,
-        params);
+        [id, familyId, ...params]);
       return rows[0] ?? null;
     },
   };

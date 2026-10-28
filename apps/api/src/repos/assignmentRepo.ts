@@ -4,6 +4,7 @@
  */
 import type { UnitType } from "@hh/engine";
 import type { Queryable, Tx } from "../db";
+import { buildUpdateSet, replaceLinks } from "./sql";
 
 export interface AssignmentRow {
   id: string;
@@ -73,12 +74,6 @@ export interface AssignmentInput {
   childIds: string[];
 }
 
-async function setChildren(tx: Tx, familyId: string, id: string, childIds: string[]): Promise<void> {
-  await tx.query("DELETE FROM assignment_child WHERE assignment_id = $1 AND family_id = $2", [id, familyId]);
-  await tx.query(
-    "INSERT INTO assignment_child (assignment_id, child_id, family_id) SELECT $1, unnest($2::uuid[]), $3", [id, childIds, familyId]);
-}
-
 /** Insert an assignment and its children. References must already be checked. */
 export async function createAssignment(tx: Tx, familyId: string, a: AssignmentInput): Promise<string> {
   const { rows } = await tx.query<{ id: string }>(
@@ -86,7 +81,7 @@ export async function createAssignment(tx: Tx, familyId: string, a: AssignmentIn
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
     [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.minutesPerUnit, a.startDate, a.endDate]);
   const id = rows[0]!.id;
-  await setChildren(tx, familyId, id, a.childIds);
+  await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: a.childIds });
   return id;
 }
 
@@ -100,19 +95,10 @@ export async function lockAssignment(tx: Tx, familyId: string, id: string): Prom
 
 /** Apply the given fields (and replace children when `childIds` is sent). */
 export async function updateAssignment(tx: Tx, familyId: string, id: string, p: AssignmentPatch): Promise<void> {
-  const cols: Record<string, unknown> = {
+  const { set, params } = buildUpdateSet({
     subject_id: p.subjectId, title: p.title, unit_type: p.unitType, total_units: p.totalUnits,
     minutes_per_unit: p.minutesPerUnit, start_date: p.startDate, end_date: p.endDate,
-  };
-  const sets: string[] = [];
-  const params: unknown[] = [id, familyId];
-  for (const [col, v] of Object.entries(cols)) {
-    if (v === undefined) continue;
-    params.push(v);
-    sets.push(`${col} = $${params.length}`);
-  }
-  if (p.archived !== undefined) sets.push(p.archived ? "archived_at = COALESCE(archived_at, now())" : "archived_at = NULL");
-  sets.push("updated_at = now()");
-  await tx.query(`UPDATE assignment SET ${sets.join(", ")} WHERE id = $1 AND family_id = $2`, params);
-  if (p.childIds) await setChildren(tx, familyId, id, p.childIds);
+  }, { firstParam: 3, archived: p.archived });
+  await tx.query(`UPDATE assignment SET ${set} WHERE id = $1 AND family_id = $2`, [id, familyId, ...params]);
+  if (p.childIds) await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: p.childIds });
 }

@@ -5,6 +5,7 @@
  */
 import type { BlockedKind } from "@hh/engine";
 import type { Queryable, Tx } from "../db";
+import { buildUpdateSet, replaceLinks } from "./sql";
 
 export type { BlockedKind };
 
@@ -62,34 +63,21 @@ export async function lockBlockedRange(tx: Tx, familyId: string, id: string): Pr
   return rowCount ? getBlockedRange(tx, familyId, id) : null;
 }
 
-async function setChildren(tx: Tx, familyId: string, id: string, childIds: string[]): Promise<void> {
-  await tx.query("DELETE FROM blocked_range_child WHERE blocked_range_id = $1 AND family_id = $2", [id, familyId]);
-  if (childIds.length) {
-    await tx.query("INSERT INTO blocked_range_child (blocked_range_id, child_id, family_id) SELECT $1, unnest($2::uuid[]), $3", [id, childIds, familyId]);
-  }
-}
-
 /** References must already be checked. */
 export async function createBlockedRange(tx: Tx, familyId: string, b: BlockedRangeInput): Promise<string> {
   const { rows } = await tx.query<{ id: string }>(
     "INSERT INTO blocked_range (family_id, label, kind, start_date, end_date) VALUES ($1, $2, $3, $4, $5) RETURNING id",
     [familyId, b.label, b.kind, b.startDate, b.endDate]);
-  await setChildren(tx, familyId, rows[0]!.id, b.childIds);
+  await replaceLinks(tx, "blocked_range_child", { ownerId: rows[0]!.id, familyId, childIds: b.childIds });
   return rows[0]!.id;
 }
 
 /** After lockBlockedRange. */
 export async function updateBlockedRange(tx: Tx, familyId: string, id: string, p: Partial<BlockedRangeInput>): Promise<void> {
-  const cols: Record<string, unknown> = { label: p.label, kind: p.kind, start_date: p.startDate, end_date: p.endDate };
-  const sets = ["updated_at = now()"];
-  const params: unknown[] = [id, familyId];
-  for (const [col, v] of Object.entries(cols)) {
-    if (v === undefined) continue;
-    params.push(v);
-    sets.push(`${col} = $${params.length}`);
-  }
-  await tx.query(`UPDATE blocked_range SET ${sets.join(", ")} WHERE id = $1 AND family_id = $2`, params);
-  if (p.childIds) await setChildren(tx, familyId, id, p.childIds);
+  const { set, params } = buildUpdateSet(
+    { label: p.label, kind: p.kind, start_date: p.startDate, end_date: p.endDate }, { firstParam: 3 });
+  await tx.query(`UPDATE blocked_range SET ${set} WHERE id = $1 AND family_id = $2`, [id, familyId, ...params]);
+  if (p.childIds) await replaceLinks(tx, "blocked_range_child", { ownerId: id, familyId, childIds: p.childIds });
 }
 
 /** true when a row was deleted. Children rows go with it (ON DELETE CASCADE). */

@@ -4,6 +4,7 @@
  */
 import type { SubjectRule } from "@hh/engine";
 import type { Queryable, Tx } from "../db";
+import { buildUpdateSet, replaceLinks } from "./sql";
 
 export interface EventRow {
   id: string;
@@ -82,13 +83,6 @@ export async function lockEvent(tx: Tx, familyId: string, id: string): Promise<E
   return rowCount ? getEvent(tx, familyId, id) : null;
 }
 
-async function setChildren(tx: Tx, familyId: string, id: string, childIds: string[]): Promise<void> {
-  await tx.query("DELETE FROM event_child WHERE event_id = $1 AND family_id = $2", [id, familyId]);
-  if (childIds.length) {
-    await tx.query("INSERT INTO event_child (event_id, child_id, family_id) SELECT $1, unnest($2::uuid[]), $3", [id, childIds, familyId]);
-  }
-}
-
 async function setRules(tx: Tx, familyId: string, id: string, rules: Record<string, SubjectRule>): Promise<void> {
   await tx.query("DELETE FROM event_subject_rule WHERE event_id = $1 AND family_id = $2", [id, familyId]);
   const subjects = Object.keys(rules);
@@ -107,7 +101,7 @@ export async function createEvent(tx: Tx, familyId: string, e: EventInput): Prom
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
     [familyId, e.name, e.weekdays, e.startDate, e.endDate, e.capacityFraction, e.defaultRule]);
   const id = rows[0]!.id;
-  await setChildren(tx, familyId, id, e.childIds);
+  await replaceLinks(tx, "event_child", { ownerId: id, familyId, childIds: e.childIds });
   await setRules(tx, familyId, id, e.subjectRules);
   return id;
 }
@@ -116,20 +110,11 @@ export type EventPatch = Partial<EventInput> & { archived?: boolean };
 
 /** After lockEvent. `subjectRules`/`childIds`, when given, replace the whole set. */
 export async function updateEvent(tx: Tx, familyId: string, id: string, p: EventPatch): Promise<void> {
-  const cols: Record<string, unknown> = {
+  const { set, params } = buildUpdateSet({
     name: p.name, weekdays: p.weekdays, start_date: p.startDate, end_date: p.endDate,
     capacity_fraction: p.capacityFraction, default_rule: p.defaultRule,
-  };
-  const sets: string[] = [];
-  const params: unknown[] = [id, familyId];
-  for (const [col, v] of Object.entries(cols)) {
-    if (v === undefined) continue; // null is a real value here (clears a date)
-    params.push(v);
-    sets.push(`${col} = $${params.length}`);
-  }
-  if (p.archived !== undefined) sets.push(p.archived ? "archived_at = COALESCE(archived_at, now())" : "archived_at = NULL");
-  sets.push("updated_at = now()");
-  await tx.query(`UPDATE event SET ${sets.join(", ")} WHERE id = $1 AND family_id = $2`, params);
-  if (p.childIds) await setChildren(tx, familyId, id, p.childIds);
+  }, { firstParam: 3, archived: p.archived }); // null is a real value here (clears a date)
+  await tx.query(`UPDATE event SET ${set} WHERE id = $1 AND family_id = $2`, [id, familyId, ...params]);
+  if (p.childIds) await replaceLinks(tx, "event_child", { ownerId: id, familyId, childIds: p.childIds });
   if (p.subjectRules) await setRules(tx, familyId, id, p.subjectRules);
 }

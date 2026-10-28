@@ -17,8 +17,8 @@ One `buildUpdateSet` helper and one `replaceLinks` helper replace the four hand-
 2. Use them in the four repos. The SQL text and results stay equivalent.
 
 ## Done when
-- [ ] No repo builds `SET` lists by hand, and there is one link-replace implementation.
-- [ ] All API tests green, with no behavior change.
+- [x] No repo builds `SET` lists by hand, and there is one link-replace implementation.
+- [x] All API tests green, with no behavior change.
 
 ## Tests
 - `buildUpdateSet`: skips undefined, keeps null, numbers params from `firstParam`, archived true/false/absent, and an empty patch still sets updated_at.
