@@ -1,0 +1,14 @@
+/* "How did last week go?" (S2b-25): quiet, one line until Adjust. */
+.checkin-card { margin: 0 0 16px; padding: 14px 16px; }
+.checkin-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.checkin-question { margin: 0; overflow-wrap: anywhere; }
+.checkin-actions { align-items: center; }
+.checkin-skip { color: var(--muted); }
+.checkin-error { color: var(--danger); margin: 8px 0 0; }
+.checkin-child h3 { font-size: 1rem; margin: 14px 0 6px; }
+.checkin-rows { list-style: none; margin: 0; padding: 0; }
+.checkin-row { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); }
+.checkin-row-title { overflow-wrap: anywhere; }
+.checkin-row-state { color: var(--muted); white-space: nowrap; }
+.checkin-footer { margin-top: 12px; }
+.checkin-thanks { color: var(--muted); margin: 0 0 12px; }

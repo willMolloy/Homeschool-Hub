@@ -54,7 +54,11 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "PATCH /api/events/:id": [...EVENT, "archived"],
   "POST /api/blocked-ranges": BLOCKED,
   "PATCH /api/blocked-ranges/:id": BLOCKED,
+  "PUT /api/check-ins/:id": ["status", "items"],
 };
+
+/** S2b-25: last week as GET /api/check-ins returns it with nothing planned, so the card stays hidden by default. */
+export const EMPTY_WEEK = { weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, items: [] };
 
 function bodyKeyProblems(method: string, pathname: string, body: unknown): string[] {
   if (body === undefined || method === "GET") return [];
@@ -82,6 +86,10 @@ class FakeApi {
     this.on("GET /api/health", 200, { ok: true, engineVersion: ENGINE_VERSION, db: "ok" });
     // S2b-11: no history and no subject default, so the built-in. Tests override it for learned/subject cases.
     this.on("GET /api/weights/suggestion", (_b, _p, q) => [200, builtinSuggestionFor(q)]);
+    // S2b-25: no work last week (card hidden); a save echoes the week back as reviewed or skipped.
+    this.on("GET /api/check-ins", 200, EMPTY_WEEK);
+    this.on(`PUT /api/check-ins/${EMPTY_WEEK.weekStart}`, (body) =>
+      [200, { ...EMPTY_WEEK, status: (body as { status: string }).status, planChanged: false }]);
   }
 
   on(key: string, statusOrFn: number | Handler, body?: unknown) {

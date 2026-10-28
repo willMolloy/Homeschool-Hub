@@ -1,7 +1,7 @@
 /** Response shapes of the API. Kept in sync with apps/api by hand (Sprint 1). */
-import type { BlockedKind, ChildPlan, SubjectDefaultWeight, SubjectRule, SuggestionSource, UnitType, WeekStart } from "@hh/engine";
+import type { BlockedKind, ChildPlan, OverrideMode, SubjectDefaultWeight, SubjectRule, SuggestionSource, UnitType, WeekReviewStatus, WeekStart } from "@hh/engine";
 
-export type { BlockedKind, SubjectDefaultWeight, SuggestionSource, UnitType, WeekStart };
+export type { BlockedKind, OverrideMode, SubjectDefaultWeight, SuggestionSource, UnitType, WeekReviewStatus, WeekStart };
 
 /** `{ error, message? }` from every non-2xx response. */
 export interface ApiErrorBody {
@@ -126,4 +126,38 @@ export interface ScheduleEvent {
 /** GET /api/timezones (S2a-17): the zones the server accepts, in canonical spelling. */
 export interface TimeZones {
   zones: string[];
+}
+
+/** GET /api/check-ins (S2b-23): one assignment × child in a finished week. Positions are cumulative units. */
+export interface CheckInItem {
+  assignmentId: string;
+  childId: string;
+  childName: string;
+  title: string;
+  unitType: UnitType;
+  plannedFrom: number;
+  plannedTo: number;
+  totalUnits: number;
+  /** The stored position; null = as planned. */
+  actual: number | null;
+  mode: OverrideMode | null;
+}
+
+/** GET /api/check-ins (S2b-23) */
+export interface WeekCheckIn {
+  weekStart: string;
+  weekEnd: string;
+  status: WeekReviewStatus | null;
+  items: CheckInItem[];
+}
+
+/** PUT /api/check-ins/:weekStart body (S2b-24). Items left out count as done as planned. */
+export interface SaveWeekBody {
+  status: WeekReviewStatus;
+  items: { assignmentId: string; childId: string; position: number; mode: OverrideMode | null }[];
+}
+
+/** PUT /api/check-ins/:weekStart (S2b-24) */
+export interface SaveWeekResponse extends WeekCheckIn {
+  planChanged: boolean;
 }
