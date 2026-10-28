@@ -7,4 +7,5 @@
 // 0.2.1: subject default weights (S2b-32); output changes only when the new input is given.
 // 0.3.0: minute outputs removed (S2b-14); plans carry only units and thickness.
 // 0.4.0: scheduled work assumed done (S2b-18); plans run from the start, asOf only labels days, logs are ignored.
-export const ENGINE_VERSION = "0.4.0";
+// 0.5.0: actual-progress check-ins (S2b-20); DayLoad.position, checkInWeeks, finishedEarly.
+export const ENGINE_VERSION = "0.5.0";

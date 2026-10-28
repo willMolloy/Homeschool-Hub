@@ -31,7 +31,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-37 tester pass: subject defaults and precedence | 89986ca | |
 | S2b-17 update docs for weights | cb7e0a6 | |
 | S2b-18 assume scheduled work was done (engine 0.4.0) | dbdaf7b | |
-| S2b-19 stop loading logs into the plan | (this commit) | |
+| S2b-19 stop loading logs into the plan | aba3df1 | |
+| S2b-20 replan from check-ins (engine 0.5.0) | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -77,6 +78,14 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-18 — the 184 pages, doneUnits and past-end.** The ticket's regression names "the sample family's 184-page assignment starting 2026-10-19"; the only such assignment is Treasure Island, which is 270 pages (12 school days × 22.5), so the named test uses it and still checks the ticket's numbers (22.5/day, 90 pages in the week of Oct 26, not 135). With logs ignored, `doneUnits` is 0 and `remainingUnits` is the total (nothing is *reported* done; assumed days are not counted as done, since S2b-20's check-ins own that). `past-end` can no longer happen (the plan always starts at the start), so it is no longer emitted but stays in the `PlanWarning` union, marked deprecated, so the debug view's label and older API clients keep compiling. The returned range is now exactly start..effective end (logs outside it no longer widen it). Tests that pinned catch-up were rewritten to pin the new behaviour: `plan.progress.test.ts` (now the S2b-18 suite), one aggregate case, one multi-child case, the no-minutes kind set, two tester asOf-edge cases and the adversarial "planned days" filter. The proto BUG 3 "no free day left" check now uses a one-week assignment instead of a late asOf.
 
 - **S2b-19 — the engine's legacy-key test.** `ProgressEntry` and `PlanContext.progress` are gone (the type was exported through `export *`, so `index.ts` needed no edit). The S2b-18 "progress entries have no effect" test was kept as "a legacy progress key has no effect", passing the old shape through a cast, so a stale client sending it still gets the same plan. Randomised suites that generated logs (invariants, adversarial) simply stopped generating them, and the now-empty per-child-logs multichild case was deleted. The loader test inserts log rows, checks the loaded inputs and the plans are identical after deleting them, and that `ctx` has no `progress` key. Comments were worded so the done-when `rg` finds nothing.
+
+- **S2b-20 — how check-ins re-anchor the plan.** The keep/push placement moved out of `plan.ts` into `placement.ts` (`placeSegment`, `prepareOverrides`); `checkins.ts` reuses it for each segment after an anchor, so nothing is duplicated. Calls made where the ticket was silent:
+  - `ProgressCheckIn {assignmentId, childId, weekStart, position, mode}` with `mode: null` meaning "on plan" (treated as keepEndDate if the position isn't on plan). One per child per week: a duplicate week keeps the later entry (`checkin-duplicate-week`); a mid-week date is normalized like overrides (`checkin-misaligned`). Applied oldest week first, whatever the input order.
+  - A check-in whose position equals the planned position at the end of its week does nothing (identical plan, any mode). Otherwise its week's bars are scaled to what happened (D9); if the plan was already ahead of the position before that week, the days since the previous anchor are scaled instead. A week with nothing planned but reported work gets it on its last capacity day (`unplanned-progress`).
+  - Positions are clamped to 0..total (`checkin-clamped`, NaN → 0), and can't go below an earlier check-in (`checkin-before-previous`). A week ending before the start or starting after the current end is ignored (`checkin-outside-range`).
+  - After the anchor, keepEndDate spreads what is left to the *current* end (which an earlier push may have moved; if an earlier pull-in ended before the anchor, the planned end). pushEndDate keeps the previous segment's pace (`baseRate`). Override weeks after the anchor still fix their own units, but the check-in's mode governs the rest.
+  - `doneUnits` is the last check-in's position (assumed days still don't count) and `remainingUnits = total − done`; `complete` is also true when a check-in reached the total, and `finishedEarly` when that anchor is on or before the planned end (the days to the planned end are still output, at 0). New outputs: `DayLoad.position` (cumulative units), `checkInWeeks`, and `plannedRangeForWeek(plan, weekStart)` for the card. `expectConserved` now checks placed + unplaced = total.
+  - The test fixture is DeeDee's example, 184 pages from Sep 7 to a half-day Tue Sep 22, which gives exactly 16/day and week 1 = pp. 1–80. "Push, 65 of 80" moves the end from Tue Sep 22 to Wed Sep 23 (the 15 pages fit in one more day).
 
 ## Deferred
 

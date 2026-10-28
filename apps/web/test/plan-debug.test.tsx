@@ -9,17 +9,20 @@ import { renderAt } from "./render";
 
 const WEEK = ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"];
 /** Day series from thickness per day; units = thickness / weight. */
-const days = (thickness: number[], weight = 1): DayLoad[] =>
-  WEEK.map((date, i) => {
+const days = (thickness: number[], weight = 1): DayLoad[] => {
+  let position = 0;
+  return WEEK.map((date, i) => {
     const t = thickness[i] ?? 0;
-    return { date, capacity: 1, schoolDay: i < 5, units: t / weight, thickness: t, kind: "planned" };
+    position += t / weight;
+    return { date, capacity: 1, schoolDay: i < 5, units: t / weight, thickness: t, kind: "planned", position };
   });
+};
 
 const plan = (over: Partial<ChildPlan>): ChildPlan => ({
   engineVersion: ENGINE_VERSION, assignmentId: "a1", childId: "c1", subjectId: "lit", unitType: "pages",
   weightPerUnit: 1, weightSource: "assignment", totalUnits: 100, doneUnits: 0, remainingUnits: 100,
   baseRate: 22.5, rate: 22.5, plannedEnd: "2026-11-06", end: "2026-11-06", mode: null, unplacedUnits: 0,
-  noCapacity: false, complete: false, days: days([]), warnings: [], ...over,
+  noCapacity: false, complete: false, checkInWeeks: [], days: days([]), warnings: [], ...over,
 });
 
 const PLANS: ChildPlan[] = [

@@ -72,6 +72,18 @@ export interface WeekOverride {
   mode: OverrideMode;
 }
 
+/** Parent-confirmed position at the end of a week (cumulative units done since the assignment's start, S2b-20). */
+export interface ProgressCheckIn {
+  assignmentId: string;
+  childId: string;
+  /** Normalized like WeekOverride.weekStart (other dates move to their week's first day, with a warning). */
+  weekStart: LocalDate;
+  /** 0..totalUnits; clamped with a warning. */
+  position: number;
+  /** keepEndDate = thicken/thin the rest, pushEndDate = push/pull the end, null = on plan (treated as keepEndDate). */
+  mode: OverrideMode | null;
+}
+
 /** A subject's default weight for one unit type (S2b-32, D20, D23). */
 export interface SubjectWeight {
   subjectId: string;
@@ -89,6 +101,8 @@ export interface PlanContext {
    * Default: the assignment's start.
    */
   asOf?: LocalDate | null;
+  /** Actual-progress check-ins; each one re-anchors the plan after its week (S2b-20). */
+  checkIns?: ProgressCheckIn[];
   /** Subject defaults: used for assignments with no weight of their own and the same unit type. */
   subjectWeights?: SubjectWeight[];
 }
@@ -106,6 +120,8 @@ export interface DayLoad {
   /** Relative effort; units × weight (1 point ≈ 2 minutes, D1). */
   thickness: number;
   kind: DayKind;
+  /** Cumulative units done at the end of this day (S2b-20). */
+  position: number;
 }
 
 export type PlanWarning =
@@ -119,7 +135,13 @@ export type PlanWarning =
   | "override-no-capacity"
   | "override-clamped"
   | "push-horizon-exceeded"
-  | "keep-no-free-capacity";
+  | "keep-no-free-capacity"
+  | "checkin-misaligned"
+  | "checkin-duplicate-week"
+  | "checkin-clamped"
+  | "checkin-outside-range"
+  | "checkin-before-previous"
+  | "unplanned-progress";
 
 /**
  * One child's plan for one assignment.
@@ -136,7 +158,9 @@ export interface ChildPlan {
   /** Where weightPerUnit came from ("default" = the built-in, shown as estimated). */
   weightSource: WeightSource;
   totalUnits: number;
+  /** Position at the last check-in (0 without one); assumed days don't count as done. */
   doneUnits: number;
+  /** totalUnits - doneUnits. */
   remainingUnits: number;
   /** Units per full-capacity day before overrides (the "old pace"). */
   baseRate: number;
@@ -149,7 +173,12 @@ export interface ChildPlan {
   /** Work that could not be placed anywhere (no capacity, or the push horizon ran out). */
   unplacedUnits: number;
   noCapacity: boolean;
+  /** No work left: the total is 0, or the last check-in reached it. */
   complete: boolean;
+  /** The last check-in reached the total on or before the planned end (S2b-20). */
+  finishedEarly?: boolean;
+  /** Weeks (their first day) with a check-in that was applied, oldest first. */
+  checkInWeeks: LocalDate[];
   days: DayLoad[];
   warnings: PlanWarning[];
 }

@@ -40,7 +40,7 @@ export function expectSane(p: ChildPlan): void {
   }
 }
 
-/** Placed + unplaced work = what was left to do. */
+/** Placed + unplaced work = the total (assumed and checked-in days are placed days too). */
 export function expectConserved(p: ChildPlan): void {
-  expect(sumPlanned(p) + p.unplacedUnits).toBeCloseTo(p.remainingUnits, 6);
+  expect(sumPlanned(p) + p.unplacedUnits).toBeCloseTo(p.totalUnits, 6);
 }

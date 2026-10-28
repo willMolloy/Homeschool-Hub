@@ -26,4 +26,5 @@ export {
 } from "./weights";
 export { buildCapacityModel, ruleFactor, type CapacityModel } from "./capacity";
 export { planChild, planAssignment, planAll, EPS, MAX_PUSH_DAYS } from "./plan";
+export { plannedRangeForWeek } from "./checkins";
 export { aggregate, weeklySummary, mergeLane, detailForZoom, sumByDate, DAILY_ZOOM_THRESHOLD_PX, type LaneDay } from "./aggregate";
