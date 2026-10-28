@@ -1,51 +1,51 @@
-# Overnight progress log, round 2 (Oct 28, 2026)
+# Overnight progress log (Oct 28, 2026): rounds 1–3 and the tester pass
 
-All times are America/Chicago (CT). The work was done on the build box only. Nothing was pushed, posted, or sent.
+All times are America/Chicago (CT). The work was done on the build box only. Nothing was pushed, posted, or sent; no cloud agents were used.
 
-## Morning summary (02:46 CT)
+## Morning summary (03:56 CT)
 
-**Done:** all 37 Sprint 1 tickets are committed, one commit per ticket with the ticket id prefix. This round finished S1-20 → S1-37, then a hardening pass with 2 more commits. Every commit left the gate green. The working tree is clean and nothing was pushed.
-- **API:** auth/session, children CRUD, subjects CRUD, `loadPlanInputs`, `GET /api/plan`.
-- **Web:** auth shell, /kids and /subjects list, add, edit and archive. The Plan page has a temporary debug table. A footer shows the engine version, with a banner when the API version differs.
+**Where things stand:** Sprint 1 (37 tickets) and Sprint 2a (16 tickets) are all committed, one commit per ticket, each with the gate green (lint, typecheck, build, test, test:tz). The working tree is clean and nothing is pushed.
 
-**Tests (last gate, 02:46 CT):** lint ✓, typecheck ✓, `npm run build` ✓.
+- **Round 1 (S1-01 → S1-19):** monorepo, CI file, lint, Compose file, Fastify skeleton, config, db pool, migrations, auth schema, password hashing, seed, login, session auth, logout, `/api/me`; web router, app shell, API client, login page.
+- **Round 2 (S1-20 → S1-37 + hardening):** the web auth provider, children and subjects CRUD (API + /kids and /subjects screens), PWA icons, `loadPlanInputs`, `GET /api/plan`, the temporary Plan debug view, the engine-version footer. Hardening: full flow at 360/1280, edge cases, axe clean.
+- **Tester pass (independent):** +61 tests. Fixed 4 bugs: NUL in names → 500 (T-API-1), racing creates tying on sort order (T-API-2), a long name widening the plan at 360 px (T-WEB-1), and `constructor`-style subject ids reading prototype keys (T-ENG-1). T-API-3 (a bad stored time zone → 500) is now fixed in S2a-01. T-ENG-2 (Infinity from absurd numbers) is kept out by the S2a-03 API limits. Full report: `tester-report.md`.
+- **Round 3 (Sprint 2a, S2a-01 → S2a-16):**
+  - **API:** time-zone validation, `GET/PATCH /api/family`, shared validation limits, assignments (list/create/update/archive), blocked ranges (list/create/update/delete), events with per-subject rules (list/create/update/archive). A contract test proves `/api/plan` matches the engine after every kind of write.
+  - **Web:** a new **Schedule** tab with a hub, Family settings, Assignments, Days off and Events screens (list, add, edit, archive or delete). Each one was smoke-tested on the dev server, and the change showed up on the Plan debug view (e.g. a Tuesday "skip" event zeroed Tuesday and moved the work to other days; archiving it restored the plan exactly).
+  - **Hardening (03:50 CT):** axe-core is clean on all 34 Schedule states (each list, add form, add form with errors, edit form and confirm dialog, at 360 and 1280 px). There's no horizontal overflow, and the only console errors are the expected 401s before login.
+  - **End-to-end smoke (03:53 CT, 360 and 1280 px):** Settings (save with no change says "Nothing to save."), then add an assignment (10 lessons, Nov 16–20), a whole-family day off (Mon Nov 16) and a Wednesday "skip" event. Each step changed the Plan for the week of Nov 16 as expected: Frank's totals went 413 → 613 min after the assignment, Monday dropped to 0 after the day off, and Wednesday dropped to 0 after the event. After archiving the event and assignment and deleting the day off, the plan matched the starting plan exactly. No overflow, no failed requests, no console errors. Screens: `s2a-hardening-{1..9}-*-{360,1280}`.
+  - **Flaky test fixed:** the full gate failed once on `subjects-list.test.tsx` ("answer is not a function") while the smoke was loading the box. The skeleton could render before the request reached the fake API. That test, `kids-list` and `auth` now wait for the request before answering. They passed 5 runs in a row, and the full gate is green.
+  - **Not built, as planned:** the timeline, bar thickness, rebalancing UX, and the week-overrides API.
+
+**Tests (last gate, 03:55 CT):** lint ✓, typecheck ✓, build ✓.
 
 | Suite | Passing |
 |---|---|
-| engine | 128 |
-| engine, test:tz | 128 × 8 runs |
-| API | 126 |
-| web | 84 |
+| engine | 153 |
+| engine, test:tz | 153 × 8 zones |
+| API | 413 |
+| web | 132 |
 | db validate | 8 |
 
-**Hardening:**
-- Full headless flow at 360 and 1280 px: login → plan → kids (add/edit) → subjects (edit) → plan next week → sign out. It showed no console errors, no failed requests and no horizontal overflow. Screens: `screens/hardening-*`.
-- Edge cases (deep link, reload, unknown URL, junk query params) all pass.
-- axe-core is clean on every page.
-- Fixed: a child with no assignments silently vanished from the plan view.
-- Fixed: the Prev button's accessible name didn't match its visible text.
+**Unverified on this box:** CI on GitHub (S1-02, nothing pushed), `docker compose` (S1-04, no Docker here), the iPhone home-screen icon (S1-21), real mobile Safari, and screen readers. Those boxes stay unticked.
 
-**Unverified on this box:**
-- S1-02: the GitHub Actions run; nothing has been pushed.
-- S1-04: Docker Compose. There's no Docker here; PG16 runs via embedded-postgres.
-- S1-21: installing the icon on a real iPhone.
-- Those tickets' remaining boxes are left unticked.
+**Decisions for DeeDee** (details in the ticket rows below):
+1. **asOf semantics:** at asOf=2026-10-26 the engine gives 135, not the ticket's 90, because unlogged work rolls forward (S1-35/36). Is that intended?
+2. **Seed progress logs?** The plan defaults to today and the seed has no logs, so it shows catch-up numbers and `past-end` warnings.
+3. **Week-override mode rule** (last edit vs. latest week). This blocks the week-overrides API, which was left out on purpose.
+4. **Removal:** days off are hard-deleted; assignments and events are archive-only, and archived ones stay editable. OK?
+5. **Rules for since-archived subjects:** the API rejects re-saving them. The events form keeps them while the rules are untouched and drops them once the rules are edited (it says so). Archived children work the same way.
+6. **Time zones:** a bad stored zone falls back to America/Chicago. Aliases like US/Central are accepted, but lowercase spellings are not.
+7. **`PATCH /api/family` is strict** (an unknown key is a 400); the roster routes ignore unknown keys.
+8. **Limits:** title 120, total ≤100,000, minutes per unit ≤600, assignments ≤1,096 days, days off ≤366, events open-ended. Lighter-day capacity is 0–100 % with one decimal.
+9. **Plan inputs:** an event or day off whose listed children are all archived is dropped. Warnings name the subject, not the assignment. The 400-day plan range counts both ends.
+10. **Sessions:** sign the cookie or drop `SESSION_SECRET`. Also: should we add expired-session cleanup and a per-email login throttle?
+11. **Name policy:** the 60-character limit counts UTF-16 units, not graphemes, and control characters other than NUL are allowed.
+12. **Sign-off on earlier deviations:** the Node 22 / cookie@2 note, the vitest/vite upgrade, the dotenv loader, the `@hh/db` workspace, zod 4, ESLint 9, the `public` route flag, React Router 7, the shared RosterPage, the partial-index rename edge case, the 360 px swatch wrap, and the S1-08 wording (`_dev` or `_test`).
 
-**Decisions for DeeDee** (details in each ticket row):
-1. **asOf semantics.** S1-36's ticket expects 90 at asOf=2026-10-26, but the engine gives 135 because unlogged work rolls forward. 90 is what you get at asOf=2026-10-19, which is what the test checks. Please confirm the intended behaviour.
-2. **Plan view default.** The debug view defaults to asOf = today. Because the seed has no logs, today shows catch-up numbers and Aesop shows `past-end`/`no-capacity` warnings. Should the seed include some log entries?
-3. **Warnings** name the subject, not the assignment. Plans don't carry titles yet.
-4. **Dropped events and blocked ranges.** An event or blocked range whose listed children are all archived is dropped (S1-34). The 400-day plan range counts both ends.
-5. **Earlier open items:**
-   - Node 22 (cookie@2), the vitest/vite upgrade, the dotenv deviation, the db workspace, zod 4 and ESLint 9.
-   - The `public` route flag, React Router 7, and the shared RosterPage for kids and subjects.
-   - The partial-index rename edge case, the dev-only empty family, and the 360 px swatch wrap.
-6. **Dev DB.** It holds smoke-test leftovers, such as the kid "Ada". `npm run db:reset && npm run db:seed` restores it.
+**Dev DB leftovers:** the smoke runs left archived rows in hh_dev ("Smoke test assignment" ×2, "Smoke test event" ×2, plus "Hardening assignment 360/1280" and "Hardening event 360/1280"). `npm run db:reset && npm run db:seed` restores the demo data.
 
-**Suggested next steps:**
-- Push the branch to check CI (S1-02), and try Compose on a machine with Docker (S1-04).
-- Settle decision 1, then seed some progress logs.
-- Plan Sprint 2: the real timeline UI and logging progress. Then delete the debug view.
+**Suggested next steps:** push the branch to see CI (S1-02); try Compose on a machine with Docker (S1-04); settle decisions 1–3, then add the week-overrides API and seed some logs; after the pilots, build the timeline and retire the debug view.
 
 ## Environment
 - Node 20.19.2, Debian 13.
@@ -120,3 +120,5 @@ Tickets: `docs/tickets/sprint-2a/`. From here on the gate (`/workspace/check.sh`
 | S2a-14 | done | `s2a-14-assignments-list-360.png`, `-add-360.png`, `-edit-360.png`, `-1280.png`, `s2a-14-plan-after-add-360.png` | `/schedule/assignments`: cards (title; subject · children; units · minutes each, `~` when it's the default; date range), sorted by start, with Show archived, empty, loading and Retry states. One form for add and edit: subject, title, unit, total, minutes per unit (blank = default, which is shown as placeholder + hint; hidden for the minutes unit), start/end, children. Client checks mirror the API limits (title ≤120, total 0–100,000 with ≤2 decimals, minutes 0–600, end ≥ start, ≤1096 days, ≥1 child). Edit sends only changed fields; `childIds` is sent whole when the set changes; clearing minutes sends `null`. Archive asks first; Unarchive in the edit form. Archived subjects/children are not offered for new work but stay visible (and selected) on rows that use them. New shared pieces for S2a-15/16: `ScheduleList` (list + inline form + archive/delete confirm), `WithLookups` (children/subjects incl. archived), `ChildPicker`, date/number helpers. Also: `scroll-padding-bottom` on phones so fields scrolled into view don't sit under the bottom tab bar (found by the smoke run clicking the tab bar instead of a checkbox). Smoke on the dev server: added one via the form, the plan week of Nov 2 changed, then archived it (two archived "Smoke test assignment" rows remain in hh_dev). +12 tests (web: 111). |
 | S2a-15 | done | `s2a-15-days-off-list-360.png`, `-add-360.png`, `-edit-360.png`, `-1280.png`, `s2a-15-plan-after-add-360.png` | `/schedule/days-off`: cards (label or kind; kind · whole family or names; dates with day count), sorted by start. One form for add and edit: kind, optional label (blank = `null`), first/last day, who is off (Whole family = `childIds: []`, or some children). Client checks mirror the API (label ≤60, end ≥ start, ≤366 days, ≥1 child when "some"). Edit sends only changed fields. Delete is permanent and asks first. Smoke on the dev server: a 3-day vacation (Nov 9–11) zeroed Mon–Wed for every child on the plan; deleting it restored the plan exactly. +11 tests (web: 122). |
 | S2a-16 | done | `s2a-16-events-list-360.png`, `-add-360.png`, `-edit-360.png`, `-1280.png`, `s2a-16-plan-after-add-360.png` | `/schedule/events`: cards (name; days · who; rules grouped as "Normal by default · Skip: History, Science · Lighter (50%): Math"; dates or "Ongoing"), by name, with Show archived. One form for add and edit: name, which days (no days → "Pick at least one day."), optional start/end, default rule, a rule per active subject (Use default / Skip / Lighter / Normal), "left on a lighter day" as 0–100 % (sent as a 0–1 fraction), who it's for. Only non-default rules are sent; on edit the whole active rule set is sent when any rule changed (the API replaces it), and not at all otherwise, so rules for since-archived subjects survive untouched edits (the form says so). Archive/unarchive. Removed the now-unused `SchedulePlaceholder`. Smoke on the dev server: a whole-family Tuesday "skip" event zeroed Tuesday on the plan week of Nov 16 and the work moved to the other days; archiving it restored the plan exactly (two archived "Smoke test event" rows remain in hh_dev). +10 tests (web: 132). |
+| Hardening | done | none (no visual change) | axe-core 4 in headless Chrome on every Schedule state at 360 and 1280 px: hub, settings, and for assignments, days off and events the list, add form, add form after a blank submit (errors showing), edit form and archive/delete confirm — 34 states, all clean, `scrollWidth` equal to the viewport everywhere. No failed requests; the only console errors are the expected 401s on `/api/me` before login. No code change needed. |
+| Hardening (smoke) | done | s2a-hardening-{1..9}-*-360, s2a-hardening-{1..9}-*-1280 | End-to-end smoke on the dev server at 360 and 1280: hub → settings (no-change save) → add assignment → plan changed → add day off → that day zeroed → add skip event → that weekday zeroed → archive/delete all three → plan identical to the start. No overflow, failed requests or console errors. Also fixed a timing race in 3 web tests (`auth`, `kids-list`, `subjects-list`): they called the fake API's answer before the request arrived, which failed once under load. |

@@ -25,6 +25,8 @@ describe("auth", () => {
     fakeApi.on("GET /api/me", () => new Promise((r) => (answer = () => r([200, { familyId: "f", name: "Late family", weekStart: "mon", schoolDays: [1] }]))));
     renderAt("/");
     expect(await screen.findByRole("status")).toHaveTextContent("Loading");
+    // The skeleton can render before the request reaches the fake API; wait for it.
+    await waitFor(() => expect(answer).toBeTypeOf("function"));
     answer();
     expect(await screen.findByText("Late family")).toBeInTheDocument();
   });

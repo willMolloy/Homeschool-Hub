@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { fakeApi } from "./helpers/fake-api";
@@ -21,6 +21,8 @@ describe("Subjects list", () => {
     fakeApi.on("GET /api/subjects", () => new Promise((r) => (answer = () => r([200, [MATH]]))));
     renderAt("/subjects");
     expect(await screen.findByRole("list", { name: "Loading subjects" })).toHaveAttribute("aria-busy", "true");
+    // The skeleton can render before the request reaches the fake API; wait for it.
+    await waitFor(() => expect(answer).toBeTypeOf("function"));
     answer();
     expect(await screen.findByText("Math")).toBeInTheDocument();
   });
