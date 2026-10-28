@@ -17,7 +17,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-30 migration 006 subject default weight | 643a260 | |
 | S2b-31 `defaultWeight` on the subject endpoints | 958f9b4 | |
 | S2b-09 weight-suggestion endpoint | e8e6eb3 | |
-| S2b-32 subject default weight in the engine (0.2.1) | (this commit) | |
+| S2b-32 subject default weight in the engine (0.2.1) | 2a42df0 | |
+| S2b-33 load subject default weights into the plan | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -34,6 +35,9 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-30 — named constraints.** The two column CHECKs are named (`subject_default_weight_unit`, `subject_default_weight_range`) next to the ticket's `subject_default_weight_pair`, so errors name what failed. validate section 13 also rejects an unknown unit.
 - **S2b-31 — the roster repo grows table-specific columns.** `rosterRepo(table, extraCols)` lets subject add `default_weight_unit` / `default_weight` without forking the shared child/subject SQL; unknown extra keys throw. `UnitTypeField` moved to `http/scheduleLimits.ts` beside the new `DefaultWeight` schema, so assignments and subjects share one unit validator.
 - **S2b-09 — query parser location and repeats.** `SuggestionQuery` lives in `http/scheduleLimits.ts`, not `http/validate.ts`: it needs `IdList` and `UnitTypeField`, and `scheduleLimits` already imports `validate`, so putting it in `validate` would make an import cycle. "De-duplicated. Malformed or repeated → 400" is read as: a repeated id is a 400 (same as every other id list), not silently merged. Empty `childIds=` means no children; a trailing comma is a 400. `MAX_ASSIGNMENT_CHILDREN` moved to `scheduleLimits` so both routes share it. The service reads in one read-only snapshot.
+
+- **S2b-32 — matching entry.** `planChild` uses the `subjectWeights` entry whose subject *and* unit match the assignment; other entries are ignored. A non-positive or non-finite default falls back to the built-in, the same as `weightPerUnitOf`.
+- **S2b-33 — where the demo default lives.** The demo family is seeded from `packages/engine/test/fixtures/sample-family.ts` by `db/seed.ts` (`db/demo.ts` only calls `seed`), so Math's lessons-20 default was added to the fixture as `subjectWeights` and written by `seed`. That keeps "API output equals the engine fixture" true: the load-plan comparison now passes the fixture's `subjectWeights` too, and Fractions unit plans at 20 a lesson with source `subject`. `plan-contract` sets the default through `PATCH /api/subjects/:id` and checks the plan says `subject`. Archived subjects' defaults are loaded (harmless: their assignments are still left out by the existing archived-subject rule).
 
 ## Deferred
 

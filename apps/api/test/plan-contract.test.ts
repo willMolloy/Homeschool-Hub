@@ -146,4 +146,22 @@ describe.skipIf(!hasDb)("/api/plan reflects schedule data written through the AP
       await req("PATCH", `/api/assignments/${id}`, { archived: true });
     }
   });
+
+  it("a subject default (Math, lessons 20) reaches the plan as source 'subject' (S2b-33)", async () => {
+    expect((await req("PATCH", `/api/subjects/${subject}`, { defaultWeight: { unitType: "lessons", weightPerUnit: 20 } })).statusCode).toBe(200);
+    const res = await req("POST", "/api/assignments", {
+      subjectId: subject, title: "Fractions", unitType: "lessons", totalUnits: 16,
+      startDate: "2026-11-02", endDate: "2026-11-26", childIds: [child],
+    });
+    expect(res.statusCode).toBe(201);
+    const id = res.json().id as string;
+    try {
+      const p = (await apiPlan()).find((x) => x.assignmentId === id)!;
+      expect([p.weightPerUnit, p.weightSource]).toEqual([20, "subject"]);
+      for (const d of p.days) expect(d.thickness).toBeCloseTo(d.units * 20, 9);
+    } finally {
+      await req("PATCH", `/api/assignments/${id}`, { archived: true });
+      await req("PATCH", `/api/subjects/${subject}`, { defaultWeight: null });
+    }
+  });
 });

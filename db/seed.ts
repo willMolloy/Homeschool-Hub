@@ -8,7 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { hashPassword } from "../apps/api/src/auth/password";
-import { assignments, blocked, calendar, events } from "../packages/engine/test/fixtures/sample-family";
+import { assignments, blocked, calendar, events, subjectWeights } from "../packages/engine/test/fixtures/sample-family";
 import { databaseName, databaseUrlFromEnv } from "./migrate";
 
 export const DEMO_EMAIL = "demo@example.com";
@@ -66,9 +66,11 @@ export async function seed(databaseUrl: string, email: string = DEMO_EMAIL): Pro
         [familyId, c.name, c.color, i]);
     }
     for (const [i, s] of SUBJECTS.entries()) {
+      const dw = subjectWeights.find((w) => w.subjectId === s.key); // S2b-33: Math has a lessons default
       ids.subject[s.key] = await one(
-        "INSERT INTO subject (id, family_id, name, color, sort_order) VALUES (gen_random_uuid(), $1, $2, $3, $4) RETURNING id",
-        [familyId, s.name, s.color, i]);
+        `INSERT INTO subject (id, family_id, name, color, sort_order, default_weight_unit, default_weight)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6) RETURNING id`,
+        [familyId, s.name, s.color, i, dw?.unitType ?? null, dw?.weightPerUnit ?? null]);
     }
     for (const a of assignments) {
       const id = await one(

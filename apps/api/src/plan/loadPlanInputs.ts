@@ -3,12 +3,13 @@
  * One small query per table, every one filtered by family_id; child/rule rows are grouped in JS.
  * They run one after another on ONE connection inside a read-only REPEATABLE READ snapshot, so a
  * request never holds more than one pool connection and never sees half of a concurrent edit.
- * Archived children, subjects, assignments and events are left out of planning.
+ * Archived children, subjects, assignments and events are left out of planning. Subject default weights (S2b-33)
+ * are read for every subject, archived ones included, and only matter for assignments that are planned.
  * `asOf` is not set here: the route decides it.
  */
 import type {
   Assignment, BlockedPeriod, FamilyCalendar, PlanContext, ProgressEntry, RecurringEvent,
-  SubjectRule, UnitType, WeekOverride, WeekStart, Weekday,
+  SubjectRule, SubjectWeight, UnitType, WeekOverride, WeekStart, Weekday,
 } from "@hh/engine";
 import { query, withReadSnapshot, type Db, type Queryable } from "../db";
 
@@ -22,6 +23,7 @@ export interface PlanInputs {
     blocked: BlockedPeriod[];
     overrides: WeekOverride[];
     progress: ProgressEntry[];
+    subjectWeights: SubjectWeight[];
   };
 }
 
@@ -59,7 +61,9 @@ async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInpu
   };
 
   const children = await query<{ id: string }>(db, "SELECT id FROM child WHERE family_id = $1 AND archived_at IS NULL", [familyId]);
-  const subjects = await query<{ id: string }>(db, "SELECT id FROM subject WHERE family_id = $1 AND archived_at IS NULL", [familyId]);
+  const subjects = await query<{ id: string; archived: boolean; default_weight_unit: UnitType | null; default_weight: number | null }>(db,
+    `SELECT id, archived_at IS NOT NULL AS archived, default_weight_unit, default_weight
+       FROM subject WHERE family_id = $1 ORDER BY id`, [familyId]);
   const assignmentRows = await query<{
     id: string; subject_id: string; title: string; unit_type: UnitType; total_units: number;
     start_date: string; end_date: string; minutes_per_unit: number | null; weight_per_unit: number | null;
@@ -94,7 +98,7 @@ async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInpu
       ORDER BY p.log_date`, [familyId]);
 
   const activeChild = new Set(children.map((c) => c.id));
-  const activeSubject = new Set(subjects.map((s) => s.id));
+  const activeSubject = new Set(subjects.filter((s) => !s.archived).map((s) => s.id));
   const keepChildren = (ids: string[] | undefined) => (ids ?? []).filter((id) => activeChild.has(id));
 
   const childrenOf = groupBy(assignmentChildren, (r) => r.assignment_id, (r) => r.child_id);
@@ -167,5 +171,10 @@ async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInpu
     .filter((p) => planned.has(p.assignment_id) && activeChild.has(p.child_id))
     .map((p) => ({ assignmentId: p.assignment_id, childId: p.child_id, date: p.log_date, units: Number(p.units) }));
 
-  return { timeZone: family.time_zone, calendar, assignments, ctx: { calendar, events, blocked, overrides, progress } };
+  // Both columns are set or both NULL (subject_default_weight_pair); a subject with none is simply not listed.
+  const subjectWeights: SubjectWeight[] = subjects
+    .filter((s) => s.default_weight_unit != null && s.default_weight != null)
+    .map((s) => ({ subjectId: s.id, unitType: s.default_weight_unit!, weightPerUnit: Number(s.default_weight) }));
+
+  return { timeZone: family.time_zone, calendar, assignments, ctx: { calendar, events, blocked, overrides, progress, subjectWeights } };
 }

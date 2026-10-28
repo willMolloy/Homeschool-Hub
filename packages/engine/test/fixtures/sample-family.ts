@@ -1,7 +1,9 @@
 /** The prototype's sample family (proto data.ts), converted to @hh/engine types. Weekdays: 0 = Sun. */
-import { MINUTES_PER_WEIGHT_POINT, type Assignment, type BlockedPeriod, type FamilyCalendar, type RecurringEvent } from "../../src";
+import { MINUTES_PER_WEIGHT_POINT, type Assignment, type BlockedPeriod, type FamilyCalendar, type RecurringEvent, type SubjectWeight } from "../../src";
 
 export const calendar: FamilyCalendar = { weekStart: "mon", schoolDays: [1, 2, 3, 4, 5] };
+/** S2b-33: subject default weights. Math's lessons are 20 a lesson, so "Fractions unit" (no weight of its own) plans from it. */
+export const subjectWeights: SubjectWeight[] = [{ subjectId: "math", unitType: "lessons", weightPerUnit: 20 }];
 export const blocked: BlockedPeriod[] = [{ id: "xmas", start: "2026-12-21", end: "2027-01-01", kind: "vacation" }];
 export const events: RecurringEvent[] = [
   { id: "coop", name: "Co-op", childIds: ["frank", "margaret"], weekdays: [2], capacityFraction: 0.5, subjectRules: { lit: "skip", math: "lighter", hist: "skip", sci: "skip", music: "normal" } },

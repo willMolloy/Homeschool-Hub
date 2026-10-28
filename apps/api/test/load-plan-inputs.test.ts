@@ -37,7 +37,7 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
   });
 
   it("every assignment plans to the same day-by-day numbers as the engine fixture", () => {
-    const fixture = planAll(S.assignments, { calendar: S.calendar, events: S.events, blocked: S.blocked });
+    const fixture = planAll(S.assignments, { calendar: S.calendar, events: S.events, blocked: S.blocked, subjectWeights: S.subjectWeights });
     const loaded = planAll(inputs.assignments, inputs.ctx);
     expect(loaded).toHaveLength(fixture.length);
     const idOf = (kind: "assignment" | "child", key: string) => fam.ids[kind][key];
@@ -74,6 +74,28 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
       expect(weightOf(piano)).toBe(0.75);
     } finally {
       await pool.query("UPDATE assignment SET weight_per_unit = NULL WHERE id = ANY($1)", [[ti, piano]]);
+    }
+  });
+
+  it("maps subject default weights: Math lessons 20, subjects with NULLs skipped (S2b-33)", () => {
+    expect(inputs.ctx.subjectWeights).toEqual([{ subjectId: fam.ids.subject.math, unitType: "lessons", weightPerUnit: 20 }]);
+    expect(typeof inputs.ctx.subjectWeights[0]!.weightPerUnit).toBe("number");
+    const fracs = planChild(inputs.assignments.find((a) => a.id === fam.ids.assignment.fracs)!, fam.ids.child.margaret!, inputs.ctx);
+    expect([fracs.weightPerUnit, fracs.weightSource]).toEqual([20, "subject"]);
+  });
+
+  it("an archived subject's default is still loaded; a cleared one is not (S2b-33)", async () => {
+    const hist = fam.ids.subject.hist!;
+    const math = fam.ids.subject.math!;
+    await pool.query("UPDATE subject SET default_weight_unit = 'pages', default_weight = 2.5, archived_at = now() WHERE id = $1", [hist]);
+    await pool.query("UPDATE subject SET default_weight_unit = NULL, default_weight = NULL WHERE id = $1", [math]);
+    try {
+      const loaded = await loadPlanInputs(pool, fam.familyId);
+      expect(loaded.ctx.subjectWeights).toEqual([{ subjectId: hist, unitType: "pages", weightPerUnit: 2.5 }]);
+      expect(loaded.assignments.some((a) => a.subjectId === hist)).toBe(false);
+    } finally {
+      await pool.query("UPDATE subject SET default_weight_unit = NULL, default_weight = NULL, archived_at = NULL WHERE id = $1", [hist]);
+      await pool.query("UPDATE subject SET default_weight_unit = 'lessons', default_weight = 20 WHERE id = $1", [math]);
     }
   });
 
@@ -169,6 +191,8 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
     for (const id of [...theirs.assignments.map((a) => a.id), ...theirs.ctx.events.map((e) => e.id), ...theirs.ctx.blocked.map((b) => b.id)]) {
       expect(mineIds.has(id)).toBe(false);
     }
+    expect(mine.ctx.subjectWeights.map((w) => w.subjectId)).toEqual([fam.ids.subject.math]);
+    expect(theirs.ctx.subjectWeights.map((w) => w.subjectId)).toEqual([other.ids.subject.math]);
     const theirChildren = new Set(Object.values(other.ids.child));
     for (const a of mine.assignments) for (const c of a.childIds) expect(theirChildren.has(c)).toBe(false);
     expect(mine.assignments).toHaveLength(S.assignments.length);
