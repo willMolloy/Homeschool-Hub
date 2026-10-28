@@ -16,7 +16,7 @@ The web app has routes `/login`, `/` (Plan), `/kids`, `/subjects`, and a 404 pag
 4. Vite dev server already falls back to index.html for unknown paths. Confirm deep links like `/kids` load on refresh.
 
 ## Done when
-- [ ] Each URL shows its placeholder heading. An unknown URL shows the 404 page.
+- [x] Each URL shows its placeholder heading. An unknown URL shows the 404 page.
 
 ## Tests
 - Add vitest + @testing-library/react + jsdom to the web workspace (`test` script). Test: rendering the router at `/kids` shows 'Kids'.
