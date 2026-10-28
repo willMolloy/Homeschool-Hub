@@ -231,6 +231,8 @@ export async function saveWeek(
 ): Promise<WeekCheckInJson & { planChanged: boolean }> {
   if (req.status === "skipped" && req.items.length > 0)
     throw new HttpError(400, "invalid_request", "items: a skipped week counts as done as planned, so it has no items.");
+  // Holds off a week-start change until this save commits (S2c-01): the PATCH locks the family row FOR UPDATE.
+  await tx.query("SELECT 1 FROM family WHERE id = $1 FOR SHARE", [familyId]);
   const inputs = await load(tx, familyId);
   const today = req.todayIn(inputs.timeZone);
   const w0 = resolveWeek(inputs.calendar.weekStart, today, req.weekStart);

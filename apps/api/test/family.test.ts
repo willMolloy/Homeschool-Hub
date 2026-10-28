@@ -28,7 +28,7 @@ describe.skipIf(!hasDb)("GET/PATCH /api/family (integration)", () => {
   it("GET → the session family's settings only", async () => {
     const res = await get();
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ name: "Settings A", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago" });
+    expect(res.json()).toEqual({ name: "Settings A", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false });
     expect((await get(b.cookies)).json().name).toBe("Settings B");
   });
 
@@ -37,11 +37,11 @@ describe.skipIf(!hasDb)("GET/PATCH /api/family (integration)", () => {
     expect((await patch({ weekStart: "sun" })).json().weekStart).toBe("sun");
     expect((await patch({ schoolDays: [5, 1, 3] })).json().schoolDays).toEqual([1, 3, 5]);
     expect((await patch({ timeZone: "Europe/London" })).json().timeZone).toBe("Europe/London");
-    expect((await get()).json()).toEqual({ name: "The Smiths", weekStart: "sun", schoolDays: [1, 3, 5], timeZone: "Europe/London" });
+    expect((await get()).json()).toEqual({ name: "The Smiths", weekStart: "sun", schoolDays: [1, 3, 5], timeZone: "Europe/London", weekStartLocked: false });
     const me = (await app.inject({ method: "GET", url: "/api/me", cookies: a.cookies })).json();
     expect(me).toMatchObject({ familyId: a.familyId, name: "The Smiths", weekStart: "sun", schoolDays: [1, 3, 5], timeZone: "Europe/London" });
     // The other family is untouched.
-    expect((await get(b.cookies)).json()).toEqual({ name: "Settings B", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago" });
+    expect((await get(b.cookies)).json()).toEqual({ name: "Settings B", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false });
   });
 
   it.each([

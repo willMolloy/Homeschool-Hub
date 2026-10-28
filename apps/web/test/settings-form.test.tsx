@@ -2,11 +2,11 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { FamilySettings } from "../src/api/types";
-import { timeZoneOptions } from "../src/features/schedule/FamilySettingsPage";
+import { timeZoneOptions, WEEK_START_LOCKED_HINT } from "../src/features/schedule/FamilySettingsPage";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
-const SETTINGS: FamilySettings = { name: "Demo family", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago" };
+const SETTINGS: FamilySettings = { name: "Demo family", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false };
 
 async function open(settings: FamilySettings = SETTINGS) {
   fakeApi.on("GET /api/family", 200, settings);
@@ -18,6 +18,39 @@ async function open(settings: FamilySettings = SETTINGS) {
 const patches = () => fakeApi.calls.filter((c) => c.method === "PATCH");
 
 describe("Family settings form", () => {
+  describe("week start lock (S2c-01)", () => {
+    const MSG = "weekStart: the week start can't change after weeks have been checked in.";
+
+    it("locked: the week start choices are disabled with a hint", async () => {
+      await open({ ...SETTINGS, weekStartLocked: true });
+      expect(screen.getByRole("radio", { name: "Sunday" })).toBeDisabled();
+      expect(screen.getByRole("radio", { name: "Monday" })).toBeDisabled();
+      expect(screen.getByText(WEEK_START_LOCKED_HINT)).toBeInTheDocument();
+      expect(screen.getByRole("group", { name: "Week starts on" })).toHaveAccessibleDescription(WEEK_START_LOCKED_HINT);
+      // Other fields still edit.
+      expect(screen.getByRole("checkbox", { name: "Friday" })).toBeEnabled();
+    });
+
+    it("unlocked: no hint", async () => {
+      await open();
+      expect(screen.getByRole("radio", { name: "Sunday" })).toBeEnabled();
+      expect(screen.queryByText(WEEK_START_LOCKED_HINT)).not.toBeInTheDocument();
+    });
+
+    it("a 409 (weeks checked in meanwhile) shows the message under Week starts on and locks the choices", async () => {
+      fakeApi.on("PATCH /api/family", 409, { error: "week_start_locked", message: MSG });
+      const user = await open();
+      await user.click(screen.getByRole("radio", { name: "Sunday" }));
+      await user.click(screen.getByRole("button", { name: "Save" }));
+      const group = screen.getByRole("group", { name: "Week starts on" });
+      expect(await within(group).findByRole("alert")).toHaveTextContent("the week start can't change after weeks have been checked in.");
+      expect(within(group).getByRole("radio", { name: "Monday" })).toBeChecked();
+      expect(within(group).getByRole("radio", { name: "Monday" })).toBeDisabled();
+      expect(screen.getByText(WEEK_START_LOCKED_HINT)).toBeInTheDocument();
+      expect(screen.queryByText("Saved.")).not.toBeInTheDocument();
+    });
+  });
+
   it("loads current values", async () => {
     await open({ ...SETTINGS, weekStart: "sun", schoolDays: [1, 3], timeZone: "Europe/London" });
     expect(screen.getByLabelText("Family name")).toHaveValue("Demo family");

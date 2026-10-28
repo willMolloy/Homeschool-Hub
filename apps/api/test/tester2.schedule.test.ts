@@ -402,7 +402,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
         F.req("PATCH", "/api/family", { name: "Concurrent" }),
       ]);
       expect(res.map((r) => r.statusCode)).toEqual([200, 200, 200, 200]);
-      expect((await F.req("GET", "/api/family")).json()).toEqual({ name: "Concurrent", weekStart: "sun", schoolDays: [1, 3, 5], timeZone: "Europe/London" });
+      expect((await F.req("GET", "/api/family")).json()).toEqual({ name: "Concurrent", weekStart: "sun", schoolDays: [1, 3, 5], timeZone: "Europe/London", weekStartLocked: false });
     });
   });
 

@@ -1,7 +1,7 @@
 /** /schedule/settings (S2a-13): family name, week start, school days and time zone. */
 import { useId, useMemo, useState, type FormEvent } from "react";
-import { apiPatch } from "../../api/client";
-import type { FamilySettings, TimeZones } from "../../api/types";
+import { ApiError, apiPatch } from "../../api/client";
+import type { FamilySettings, FamilySettingsPatch, TimeZones } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useAuth } from "../../auth/AuthProvider";
 import "../../ui/forms.css";
@@ -10,6 +10,9 @@ import { BackToSchedule } from "./ScheduleHub";
 import "./schedule.css";
 
 const NAME_MAX = 60;
+
+/** Shown by the week-start choices while stored weeks lock it (S2c-01, D25). */
+export const WEEK_START_LOCKED_HINT = "Can't change after you've checked in a week.";
 
 /**
  * The picker's options (S2a-17): the server's zones (GET /api/timezones), with the stored zone first when it
@@ -35,13 +38,13 @@ export function FamilySettingsPage() {
           <button className="btn btn-secondary" type="button" onClick={reload}>Retry</button>
         </div>
       ) : (
-        <SettingsForm initial={data} onSaved={(s) => setData(s)} />
+        <SettingsForm initial={data} onSettings={(s) => setData(s)} />
       )}
     </section>
   );
 }
 
-function SettingsForm({ initial, onSaved }: { initial: FamilySettings; onSaved: (s: FamilySettings) => void }) {
+function SettingsForm({ initial, onSettings }: { initial: FamilySettings; onSettings: (s: FamilySettings) => void }) {
   const { refresh } = useAuth();
   const [name, setName] = useState(initial.name);
   const [weekStart, setWeekStart] = useState(initial.weekStart);
@@ -49,6 +52,7 @@ function SettingsForm({ initial, onSaved }: { initial: FamilySettings; onSaved: 
   const [timeZone, setTimeZone] = useState(initial.timeZone);
   const [nameError, setNameError] = useState<string | null>(null);
   const [daysError, setDaysError] = useState<string | null>(null);
+  const [weekStartError, setWeekStartError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -57,12 +61,14 @@ function SettingsForm({ initial, onSaved }: { initial: FamilySettings; onSaved: 
   const nameId = useId();
   const nameErrId = useId();
   const tzId = useId();
+  const weekStartHintId = useId();
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (saving) return;
     setStatus(null);
     setFormError(null);
+    setWeekStartError(null);
     const trimmed = name.trim();
     const nErr = !trimmed ? "Name is required." : trimmed.length > NAME_MAX ? `Name must be ${NAME_MAX} characters or fewer.` : null;
     const dErr = schoolDays.length === 0 ? "Pick at least one school day." : null;
@@ -70,7 +76,7 @@ function SettingsForm({ initial, onSaved }: { initial: FamilySettings; onSaved: 
     setDaysError(dErr);
     if (nErr || dErr) return;
 
-    const patch: Partial<FamilySettings> = {};
+    const patch: FamilySettingsPatch = {};
     if (trimmed !== initial.name) patch.name = trimmed;
     if (weekStart !== initial.weekStart) patch.weekStart = weekStart;
     const days = [...schoolDays].sort((a, b) => a - b);
@@ -81,14 +87,20 @@ function SettingsForm({ initial, onSaved }: { initial: FamilySettings; onSaved: 
     setSaving(true);
     try {
       const saved = await apiPatch<FamilySettings>("/api/family", patch);
-      onSaved(saved);
+      onSettings(saved);
       setName(saved.name);
       setSchoolDays(saved.schoolDays);
       // The header name and the plan's week start/columns come from /api/me.
       await refresh();
       setStatus("Saved.");
     } catch (err) {
-      setFormError(saveError(err));
+      // S2c-01: a week start refused because weeks are checked in is shown by its own choices.
+      if (err instanceof ApiError && err.code === "week_start_locked") {
+        setWeekStartError(saveError(err));
+        setWeekStart(initial.weekStart);
+        onSettings({ ...initial, weekStartLocked: true }); // the server now says it's locked
+
+      } else setFormError(saveError(err));
     } finally {
       setSaving(false);
     }
@@ -111,7 +123,8 @@ function SettingsForm({ initial, onSaved }: { initial: FamilySettings; onSaved: 
         />
         {nameError ? <p id={nameErrId} className="field-error" role="alert">{nameError}</p> : null}
       </div>
-      <fieldset className="choice-list">
+      <fieldset className="choice-list" disabled={initial.weekStartLocked}
+        aria-describedby={initial.weekStartLocked ? weekStartHintId : undefined}>
         <legend>Week starts on</legend>
         <label className="choice">
           <input type="radio" name="weekStart" checked={weekStart === "mon"} onChange={() => setWeekStart("mon")} />
@@ -121,6 +134,8 @@ function SettingsForm({ initial, onSaved }: { initial: FamilySettings; onSaved: 
           <input type="radio" name="weekStart" checked={weekStart === "sun"} onChange={() => setWeekStart("sun")} />
           Sunday
         </label>
+        {initial.weekStartLocked ? <p id={weekStartHintId} className="hint">{WEEK_START_LOCKED_HINT}</p> : null}
+        {weekStartError ? <p className="field-error" role="alert">{weekStartError}</p> : null}
       </fieldset>
       <WeekdayPicker legend="School days" value={schoolDays} onChange={setSchoolDays} error={daysError} />
       <div className="field">

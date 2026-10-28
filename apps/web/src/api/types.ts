@@ -22,7 +22,12 @@ export interface Me {
 }
 
 /** GET/PATCH /api/family */
-export type FamilySettings = Omit<Me, "familyId" | "today">;
+export type FamilySettings = Omit<Me, "familyId" | "today"> & {
+  /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */
+  weekStartLocked: boolean;
+};
+/** The PATCH /api/family body: any of the editable fields. */
+export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">>;
 
 /** POST /api/auth/login */
 export interface LoginResponse {
