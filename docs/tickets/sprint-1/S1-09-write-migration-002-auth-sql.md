@@ -18,8 +18,8 @@ Sprint 1 has a single family login: one shared account per family, with no per-p
 6. Add checks for the new constraints to `db/test/validate.sql` (duplicate email case-insensitive → 23505; deleting a family removes its sessions).
 
 ## Done when
-- [ ] `npm run db:migrate` applies 002.
-- [ ] `node db/test/validate.cjs` passes, including the new checks.
+- [x] `npm run db:migrate` applies 002.
+- [x] `node db/test/validate.cjs` passes, including the new checks.
 
 ## Tests
 - New validate.sql checks listed above

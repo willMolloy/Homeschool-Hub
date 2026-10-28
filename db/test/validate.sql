@@ -1,4 +1,4 @@
--- Behavioural checks for 001_init.sql. Run after the migration on an EMPTY database.
+-- Behavioural checks for db/0*.sql. Run after the migration on an EMPTY database.
 -- Every check RAISEs on failure; the script prints 'ALL CHECKS PASSED' at the end.
 SET client_min_messages = notice;
 
@@ -147,6 +147,23 @@ DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-000000000001';
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM child WHERE family_id='f0000000-0000-0000-0000-000000000001') THEN RAISE EXCEPTION 'FAIL family delete did not cascade'; END IF;
   RAISE NOTICE 'ok   deleting a family removes all its rows';
+END $$;
+
+-- 9. auth (002_auth): login emails unique case-insensitively; sessions die with their family
+INSERT INTO family (id, name, week_start, login_email, password_hash) VALUES
+  ('f0000000-0000-0000-0000-0000000000a1', 'Auth family', 'mon', 'Parent@Example.com', 'x');
+SELECT pg_temp.expect_error($$INSERT INTO family (name, week_start, login_email) VALUES ('Dup', 'mon', 'parent@example.COM')$$,
+  '23505', 'login_email is unique case-insensitively');
+INSERT INTO family (name, week_start) VALUES ('No login 1', 'mon'), ('No login 2', 'mon');
+DO $$ BEGIN RAISE NOTICE 'ok   several families may have no login yet'; END $$;
+INSERT INTO session (id, family_id, expires_at) VALUES
+  (encode(sha256('token-1'), 'hex'), 'f0000000-0000-0000-0000-0000000000a1', now() + interval '30 days');
+SELECT pg_temp.expect_error($$INSERT INTO session (id, family_id, expires_at) VALUES ('s', 'f0000000-0000-0000-0000-0000000000ff', now())$$,
+  '23503', 'a session must belong to an existing family');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000a1';
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM session) THEN RAISE EXCEPTION 'FAIL family delete did not remove its sessions'; END IF;
+  RAISE NOTICE 'ok   deleting a family removes its sessions';
 END $$;
 
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;
