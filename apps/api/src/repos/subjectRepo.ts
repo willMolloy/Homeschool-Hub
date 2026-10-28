@@ -13,3 +13,4 @@ export const createSubject = (db: Queryable, familyId: string, input: { name: st
 
 /** DB index enforcing one active subject per (family, case-insensitive trimmed name). */
 export const SUBJECT_NAME_INDEX = "subject_family_name_uq";
+export const updateSubject = (db: Queryable, familyId: string, id: string, patch: SubjectPatch) => repo.update(db, familyId, id, patch);

@@ -16,7 +16,7 @@ Archive instead of delete. Subjects are referenced by assignments and event rule
 4. Invalid uuid in the URL → 404 (not 500).
 
 ## Done when
-- [ ] Rename and archive both work from curl.
+- [x] Rename and archive both work from curl.
 
 ## Tests
 - rename → 200 + new name
