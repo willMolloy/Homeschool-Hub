@@ -15,7 +15,7 @@ Shape: `{ id, label, kind, startDate, endDate, childIds }`; `kind` ∈ vacation,
 3. Routes in `routes/blockedRanges.ts`.
 
 ## Done when
-- [ ] A vacation created through the API shows up as blocked days in `/api/plan`.
+- [x] A vacation created through the API shows up as blocked days in `/api/plan`.
 
 ## Tests
 - CRUD round-trip
