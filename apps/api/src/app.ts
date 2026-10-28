@@ -1,5 +1,6 @@
 import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
 import { ENGINE_VERSION } from "@hh/engine";
+import type { Config } from "./config";
 
 /** Error with an HTTP status and a stable machine-readable code, rendered as `{ error: code, message }`. */
 export class HttpError extends Error {
@@ -8,8 +9,8 @@ export class HttpError extends Error {
   }
 }
 
-export function buildApp(): FastifyInstance {
-  const app = Fastify({ logger: false });
+export function buildApp(config: Config): FastifyInstance {
+  const app = Fastify({ logger: config.NODE_ENV === "development" ? { level: "warn" } : false });
 
   app.setNotFoundHandler((_req, reply) => {
     reply.code(404).send({ error: "not_found" });

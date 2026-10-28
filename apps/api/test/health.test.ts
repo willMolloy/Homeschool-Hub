@@ -1,8 +1,9 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import { buildApp } from "../src/app";
+import { testConfig } from "./helpers/config";
 
-const app = buildApp();
+const app = buildApp(testConfig());
 app.get("/api/test-throws", async () => {
   throw new Error("boom");
 });

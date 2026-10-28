@@ -17,8 +17,8 @@ Config spread through `process.env` calls is hard to test and easy to typo. Java
 5. Add `SESSION_SECRET=` with a comment to `.env.example` (generate one with `openssl rand -hex 32`).
 
 ## Done when
-- [ ] Starting the API without DATABASE_URL prints a clear error and exits non-zero.
-- [ ] Tests don't need a `.env` file.
+- [x] Starting the API without DATABASE_URL prints a clear error and exits non-zero.
+- [x] Tests don't need a `.env` file.
 
 ## Tests
 - loadConfig with all values → typed object
