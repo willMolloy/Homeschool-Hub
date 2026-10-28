@@ -202,7 +202,8 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   for (let d = lo; d <= hi; d += 1) {
     const isPast = d < planFrom;
     const logged = loggedByDay.get(d) ?? 0;
-    const units = isPast ? logged : planned.get(d) ?? 0;
+    // A day's net logged work is shown as at least 0 (a correction can't draw a negative bar).
+    const units = isPast ? Math.max(0, logged) : planned.get(d) ?? 0;
     const kind: DayKind = isPast ? "logged" : kinds.get(d) ?? "planned";
     const inRange = d >= S && d <= Math.max(E, endDay);
     days.push({
