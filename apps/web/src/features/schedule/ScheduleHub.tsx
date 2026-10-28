@@ -35,14 +35,3 @@ export function BackToSchedule() {
     </p>
   );
 }
-
-/** Stand-in for a screen whose ticket hasn't landed yet. */
-export function SchedulePlaceholder({ title }: { title: string }) {
-  return (
-    <section className="schedule">
-      <BackToSchedule />
-      <h1>{title}</h1>
-      <p>Coming soon.</p>
-    </section>
-  );
-}

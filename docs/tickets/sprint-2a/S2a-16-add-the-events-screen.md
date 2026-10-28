@@ -15,7 +15,7 @@ Fields: name, weekdays (checkboxes), optional start/end, how much of the day is 
 3. Subject rules sent as a map only for subjects not on 'Use default'.
 
 ## Done when
-- [ ] An event added here changes the plan debug view on its weekdays.
+- [x] An event added here changes the plan debug view on its weekdays.
 
 ## Tests
 - list

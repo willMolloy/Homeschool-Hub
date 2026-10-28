@@ -88,3 +88,22 @@ export interface BlockedRange {
   /** [] = the whole family. */
   childIds: string[];
 }
+
+/** GET/POST/PATCH /api/events (S2a-08..10) */
+export type EventRule = "skip" | "lighter" | "normal";
+export interface ScheduleEvent {
+  id: string;
+  name: string;
+  /** 0 = Sunday … 6 = Saturday, sorted. */
+  weekdays: number[];
+  startDate: string | null;
+  endDate: string | null;
+  /** Share of the day left on "lighter", 0–1. */
+  capacityFraction: number;
+  defaultRule: EventRule;
+  /** subjectId → rule; subjects not listed use defaultRule. */
+  subjectRules: Record<string, EventRule>;
+  /** [] = the whole family. */
+  childIds: string[];
+  archived: boolean;
+}

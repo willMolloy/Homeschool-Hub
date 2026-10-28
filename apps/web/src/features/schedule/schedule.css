@@ -215,3 +215,23 @@
   width: 20px;
   height: 20px;
 }
+
+/* Event subject rules: name on the left, rule select on the right; stacked on very narrow screens. */
+.rule-list .rule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 12rem);
+  align-items: center;
+  gap: 8px 12px;
+  padding: 4px 0;
+}
+.rule-list .rule-row label {
+  overflow-wrap: anywhere;
+}
+.schedule-form .field-row + .hint {
+  margin: -6px 0 14px;
+}
+@media (max-width: 340px) {
+  .rule-list .rule-row {
+    grid-template-columns: 1fr;
+  }
+}
