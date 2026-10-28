@@ -25,4 +25,5 @@
 .plan-debug-unplanned {
   color: var(--muted);
   margin: 8px 0 16px;
+  overflow-wrap: anywhere; /* a long unbroken name must not widen the page at 360 px */
 }
