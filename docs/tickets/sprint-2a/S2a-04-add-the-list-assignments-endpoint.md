@@ -14,7 +14,7 @@ JSON shape: `{ id, subjectId, title, unitType, totalUnits, minutesPerUnit, start
 2. Route in `routes/assignments.ts`.
 
 ## Done when
-- [ ] The seeded family's 14 assignments come back with their child ids.
+- [x] The seeded family's 14 assignments come back with their child ids.
 
 ## Tests
 - seed family → 14 rows, numbers are numbers, dates are strings
