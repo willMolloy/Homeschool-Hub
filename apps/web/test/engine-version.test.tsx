@@ -7,11 +7,17 @@ import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
 describe("Engine version", () => {
-  it("footer shows the bundled engine version", async () => {
-    renderAt("/kids");
+  it("footer shows the bundled engine version with the debug flag, and nothing for parents (T-03b)", async () => {
+    renderAt("/kids?debug=1");
     const footer = await screen.findByRole("contentinfo");
     expect(footer).toHaveTextContent(`Engine ${ENGINE_VERSION}`);
     expect(ENGINE_VERSION).toBe("0.6.0");
+  });
+
+  it("parents get an empty footer (T-03b)", async () => {
+    renderAt("/kids");
+    await screen.findByRole("heading", { name: "Kids" });
+    expect(screen.getByRole("contentinfo")).toBeEmptyDOMElement();
   });
 
   it("same version on the API → no banner; /api/health asked once", async () => {

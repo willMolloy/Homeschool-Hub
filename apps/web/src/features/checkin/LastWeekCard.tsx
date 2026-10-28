@@ -9,8 +9,12 @@
  *
  * Add progress (S2c-06) adds a row for a pair with nothing planned that week ("nothing planned"); it starts at
  * the week's start, so it can only go ahead, and it can be removed again before saving.
+ *
+ * T-03b: each row starts collapsed to the assignment and its state; tapping it reveals the plan and controls
+ * (a row with an error, or one just added, opens by itself). `framed={false}` drops the card and header so a
+ * sheet can host the rows, and `rowStyle` lets the host tint rows (the subject pastels).
  */
-import { useId, useState } from "react";
+import { useId, useState, type CSSProperties } from "react";
 import type { OverrideMode } from "@hh/engine";
 import type { CheckInItem, SaveWeekBody, WeekCheckIn } from "../../api/types";
 import { AbsorbChoice } from "./AbsorbChoice";
@@ -18,6 +22,7 @@ import { AddProgress } from "./AddProgress";
 import { DEFAULT_MODE, itemKey, outcomeText, rowOutcome, type Direction } from "./absorb";
 import { plannedCountText, plannedRangeText, reviewStatusText, weekRangeText } from "./checkinText";
 import { ProgressAdjuster } from "./ProgressAdjuster";
+import { stateLabel } from "./progress";
 import "./checkin.css";
 
 export type SaveItems = SaveWeekBody["items"];
@@ -41,6 +46,10 @@ export interface LastWeekCardProps {
   onSave: (items: SaveItems) => void;
   /** Edit mode: close without saving. */
   onClose?: () => void;
+  /** False: no card frame or header, for a host (a sheet) that has its own title. Default true. */
+  framed?: boolean;
+  /** Per-row style from the host, e.g. a subject's pastel background. */
+  rowStyle?: (item: CheckInItem) => CSSProperties | undefined;
 }
 
 /** Items grouped by child, in the API's order (child, then subject, then title). */
@@ -86,7 +95,8 @@ export function initialAnswers(items: readonly CheckInItem[]) {
   return { positions, rowModes, applyAll, groupModes };
 }
 
-export function LastWeekCard({ week, mode = "prompt", busy, error, itemErrors = {}, onConfirm, onSkip, onSave, onClose }: LastWeekCardProps) {
+export function LastWeekCard(props: LastWeekCardProps) {
+  const { week, mode = "prompt", busy, error, itemErrors = {}, onConfirm, onSkip, onSave, onClose, framed = true, rowStyle } = props;
   const editing = mode === "edit";
   const [start] = useState(() => (editing ? initialAnswers(week.items) : initialAnswers([])));
   const [adjusting, setExpanded] = useState(false);
@@ -98,8 +108,17 @@ export function LastWeekCard({ week, mode = "prompt", busy, error, itemErrors = 
   const [groupModes, setGroupModes] = useState<Record<Direction, OverrideMode>>(start.groupModes);
   /** Rows added with Add progress (S2c-06), by itemKey, in the order added. */
   const [added, setAdded] = useState<string[]>([]);
+  /** Rows the parent opened (T-03b); others show only the assignment and its state. */
+  const [openRows, setOpenRows] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleRow = (key: string) => setOpenRows((o) => {
+    const next = new Set(o);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    return next;
+  });
   const titleId = useId();
   const listId = useId();
+  const rowId = useId();
 
   const addedItems = added.flatMap((k) => week.addable.filter((a) => itemKey(a) === k));
   const rows = [...week.items, ...addedItems];
@@ -151,48 +170,59 @@ export function LastWeekCard({ week, mode = "prompt", busy, error, itemErrors = 
             disabled={busy} onClick={() => setExpanded((e) => !e)}>
             Adjust
           </button>
-          <button type="button" className="btn-link checkin-skip" title="Skipping counts as done" disabled={busy} onClick={onSkip}>
+          <button type="button" className="checkin-skip" title="Skipping counts as done" disabled={busy} onClick={onSkip}>
             Skip
           </button>
         </div>
       </div>
   );
 
-  return (
-    <section className={`card checkin-card${editing ? " checkin-edit" : ""}`} aria-labelledby={titleId}>
-      {header}
+  const body = (
+    <>
+      {framed && header}
       {error && <p className="checkin-error" role="alert">{error}</p>}
       <div id={listId} hidden={!expanded}>
         {expanded && (
           <>
             {groupByChild(rows).map((g) => (
               <div key={g.childId} className="checkin-child">
-                <h3>{g.childName}</h3>
+                {framed && <h3>{g.childName}</h3>}
                 <ul className="checkin-rows">
                   {g.items.map((item) => {
                     const key = itemKey(item);
                     const outcome = outcomeOf(item);
+                    const open = openRows.has(key) || added.includes(key) || Boolean(itemErrors[key]);
+                    const detailId = `${rowId}-${key}`;
                     return (
-                      <li key={key} className="checkin-row">
-                        <span className="checkin-row-title">
-                          {item.title} — {rowPlanText(item)}
-                        </span>
-                        {added.includes(key) && (
-                          <button type="button" className="btn-link" disabled={busy} onClick={() => remove(key)}
-                            aria-label={`Remove ${item.title} for ${item.childName}`}>
-                            Remove
-                          </button>
-                        )}
-                        <ProgressAdjuster plannedFrom={item.plannedFrom} plannedTo={item.plannedTo}
-                          totalUnits={item.totalUnits} unitType={item.unitType} position={positionOf(item)}
-                          name={`${item.title} for ${item.childName}`}
-                          onChange={(n) => setPositions((p) => ({ ...p, [key]: n }))} />
-                        {outcome !== "asPlanned" && <p className="checkin-outcome">{outcomeText(item, positionOf(item))}</p>}
-                        {isDirection(outcome) && !grouped(outcome) && (
-                          <AbsorbChoice direction={outcome} value={modeOf(item) ?? DEFAULT_MODE}
-                            about={`${item.title} for ${item.childName}`}
-                            onChange={(m) => setRowModes((r) => ({ ...r, [key]: m }))} />
-                        )}
+                      <li key={key} className="checkin-row" style={rowStyle?.(item)}>
+                        <button type="button" className="checkin-row-toggle" aria-expanded={open} aria-controls={detailId}
+                          onClick={() => toggleRow(key)}>
+                          <span className="checkin-row-title">{item.title}</span>
+                          <span className="checkin-row-state">{stateLabel(item.unitType, positionOf(item), item.plannedTo)}</span>
+                        </button>
+                        <div id={detailId} className="checkin-row-detail" hidden={!open}>
+                          {open && (
+                            <>
+                              <p className="checkin-row-plan">{rowPlanText(item)}</p>
+                              {added.includes(key) && (
+                                <button type="button" className="btn-link" disabled={busy} onClick={() => remove(key)}
+                                  aria-label={`Remove ${item.title} for ${item.childName}`}>
+                                  Remove
+                                </button>
+                              )}
+                              <ProgressAdjuster plannedFrom={item.plannedFrom} plannedTo={item.plannedTo}
+                                totalUnits={item.totalUnits} unitType={item.unitType} position={positionOf(item)}
+                                name={`${item.title} for ${item.childName}`}
+                                onChange={(n) => setPositions((p) => ({ ...p, [key]: n }))} />
+                              {outcome !== "asPlanned" && <p className="checkin-outcome">{outcomeText(item, positionOf(item))}</p>}
+                              {isDirection(outcome) && !grouped(outcome) && (
+                                <AbsorbChoice direction={outcome} value={modeOf(item) ?? DEFAULT_MODE}
+                                  about={`${item.title} for ${item.childName}`}
+                                  onChange={(m) => setRowModes((r) => ({ ...r, [key]: m }))} />
+                              )}
+                            </>
+                          )}
+                        </div>
                         {itemErrors[key] && <p className="checkin-error" role="alert">{itemErrors[key]}</p>}
                       </li>
                     );
@@ -221,6 +251,11 @@ export function LastWeekCard({ week, mode = "prompt", busy, error, itemErrors = 
           </>
         )}
       </div>
-    </section>
+    </>
+  );
+  return framed ? (
+    <section className={`card checkin-card${editing ? " checkin-edit" : ""}`} aria-labelledby={titleId}>{body}</section>
+  ) : (
+    <div className="checkin-sheet">{body}</div>
   );
 }

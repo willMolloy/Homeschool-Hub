@@ -8,7 +8,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-01b Colour-blind-safe default palette | a58731e | Okabe–Ito-based "safe" palette is the default; T-01 hues kept as `data-palette="vivid"`; per-swatch label tokens; `--tl-subject-N-pastel` tints; `src/lib/timelinePalette.ts` helper (no UI) |
 | T-02 Timeline view model | 13209a6 | `features/timeline/{grid,marks,model}.ts`: subject lanes → child sub-lanes, daily + weekly-smoothed thickness per assignment on one daily grid, breaks, event days, Today, totals. Pure; nothing renders yet |
 | T-02b Hand-test fixes | 2282106 | App declared light-only and native fields given explicit colours, with a CSS contrast test. The demo family can't add events (button hidden, `POST /api/events` → 403). The hide-until-selected rule for the adjust buttons is recorded for T-07 |
-| T-03 Layout function | (this commit) | `features/timeline/{zoom,xscale,paths,rows,layout,hit}.ts`: no-overlap rows, labels above lanes (no label column), 44 px tap targets, shared scale 2.8 px/pt, `--tl-bar-opacity: 0.82`. Pure; nothing renders yet |
+| T-03 Layout function | a0a1a77 | `features/timeline/{zoom,xscale,paths,rows,layout,hit}.ts`: no-overlap rows, labels above lanes (no label column), 44 px tap targets, shared scale 2.8 px/pt, `--tl-bar-opacity: 0.82`. Pure; nothing renders yet |
+| T-03b This Week: "Make an adjustment" | (this commit) | A "Make an adjustment" button per active child opens a Drawer (phones) or Dialog (≥ 640 px) with that child's check-in rows on subject pastels; collapsed rows; one week switcher replaces Prev/Next and "Review a past week"; debug items and the engine footer only in a dev build with `?debug=1`; borders replaced by spacing; quiet Skip |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -141,3 +142,15 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **Screenshots** (sample family, Fall zoom, rendered from this layout's output with the real tokens):
   - before: `screens/t-03-bar-opacity-before-360.png`, `-before-1280.png`
   - after: `screens/t-03-bar-opacity-after-360.png`, `-after-1280.png`
+
+
+## T-03b — This Week decisions
+
+- **Which week the sheet edits:** the shown week when it's finished, otherwise last week. The API takes check-ins only for finished weeks.
+- **Saving merges.** A PUT replaces the whole week, so the sheet sends the child's rows plus every other child's stored rows, unchanged.
+- **Debug items** need a dev build plus `?debug=1`. These are the heading and note, "Plan as of", the today line, weight markers and legend, warning codes, the plan's engine note and the app footer's engine version. A production build never shows them. The engine-mismatch banner stays, because it asks a parent to reload.
+- **A child with nothing planned** still gets the button, so a parent can record what was done anyway.
+- **Borders:** check-in rows, plan table rows and the table's outer border use spacing instead.
+- **Cards stay in step:** a save from the sheet refreshes last week's prompt on the page, through `checkInsVersion`.
+- **Not changed:** the page name ("Plan"), and edit-mode Save being enabled before any change (S2b-27).
+- **Removed:** `PastWeekReview` and `PastWeekPicker`. The switcher plus the sheet cover their job, and their tests were ported to `this-week.test.tsx`.

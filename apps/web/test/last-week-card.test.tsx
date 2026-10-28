@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { CheckInItem, WeekCheckIn } from "../src/api/types";
 import { plannedCountText, plannedRangeText } from "../src/features/checkin/checkinText";
 import { EMPTY_WEEK, fakeApi } from "./helpers/fake-api";
+import { openRows } from "./helpers/checkin";
 import { renderAt } from "./render";
 
 const item = (over: Partial<CheckInItem>): CheckInItem => ({
@@ -101,11 +102,17 @@ describe("LastWeekCard", () => {
     expect(within(c).getByRole("button", { name: "Adjust" })).toHaveAttribute("aria-expanded", "true");
     const frank = within(c).getByRole("heading", { name: "Frank" }).parentElement!;
     const margaret = within(c).getByRole("heading", { name: "Margaret" }).parentElement!;
-    expect(within(frank).getByText("Treasure Island — pp. 1–80 planned")).toBeInTheDocument();
-    expect(within(frank).getByText("Story of the World — chapters 4–5 planned")).toBeInTheDocument();
-    expect(within(margaret).getByText("Story of the World — chapters 4–5 planned")).toBeInTheDocument();
-    expect(within(margaret).getByText("Violin practice — 150 minutes planned")).toBeInTheDocument();
-    expect(within(c).getAllByText("✓ Done as planned")).toHaveLength(4);
+    // T-03b: rows start collapsed to the assignment and its state; no controls until one is opened.
+    const toggles = (el: HTMLElement) => within(el).getAllByRole("button", { expanded: false }).map((b) => b.textContent);
+    expect(toggles(frank)).toEqual(["Treasure Island✓ Done as planned", "Story of the World✓ Done as planned"]);
+    expect(toggles(margaret)).toEqual(["Story of the World✓ Done as planned", "Violin practice✓ Done as planned"]);
+    expect(within(c).queryByRole("spinbutton")).toBeNull();
+    await openRows(c);
+    expect(within(frank).getByText("pp. 1–80 planned")).toBeInTheDocument();
+    expect(within(frank).getByText("chapters 4–5 planned")).toBeInTheDocument();
+    expect(within(margaret).getByText("chapters 4–5 planned")).toBeInTheDocument();
+    expect(within(margaret).getByText("150 minutes planned")).toBeInTheDocument();
+    expect(within(c).getAllByRole("spinbutton")).toHaveLength(4);
     expect(within(c).getByRole("button", { name: "Save" })).toBeDisabled();
     // The footer's "went as planned" saves like the collapsed one.
     const confirms = within(c).getAllByRole("button", { name: "Last week went as planned" });
@@ -118,12 +125,14 @@ describe("LastWeekCard", () => {
   it("each row has its own progress control (S2b-36); changing one leaves the others as planned", async () => {
     const c = await showCard();
     await userEvent.click(within(c).getByRole("button", { name: "Adjust" }));
+    await openRows(c);
     const frankHist = within(c).getByRole("group", { name: "Progress on Story of the World for Frank" });
     await userEvent.click(within(frankHist).getByRole("button", { name: "Didn't start" }));
     expect(within(frankHist).getByText("Got to chapter 3 of 5 planned (2 behind)")).toBeInTheDocument();
+    // The collapsed state follows too.
+    expect(within(frankHist.closest("li")!).getByRole("button", { expanded: true })).toHaveTextContent("Story of the WorldGot to chapter 3 of 5 planned (2 behind)");
     const margaretHist = within(c).getByRole("group", { name: "Progress on Story of the World for Margaret" });
     expect(within(margaretHist).getByText("✓ Done as planned")).toBeInTheDocument();
-    expect(within(c).getAllByText("✓ Done as planned")).toHaveLength(3);
     expect(puts()).toEqual([]);
   });
 
@@ -139,7 +148,14 @@ describe("LastWeekCard", () => {
     expect(document.activeElement).toHaveAccessibleDescription("Skipping counts as done");
     await user.keyboard("{Shift>}{Tab}{/Shift}");
     await user.keyboard("{Enter}");
-    expect(within(c).getByText("Treasure Island — pp. 1–80 planned")).toBeInTheDocument();
+    // The rows open from the keyboard too (after the header's Skip).
+    await user.tab();
+    expect(document.activeElement).toHaveAccessibleName("Skip");
+    await user.tab();
+    expect(document.activeElement).toHaveTextContent("Treasure Island✓ Done as planned");
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toHaveAttribute("aria-expanded", "true");
+    expect(within(c).getByText("pp. 1–80 planned")).toBeInTheDocument();
   });
 });
 
@@ -150,6 +166,7 @@ describe("Add progress on assignments with nothing planned (S2c-06)", () => {
   const ADDABLE: WeekCheckIn = { ...WEEK, addable: [SCI, ART_M, PIANO] };
   const openAdd = async (c: HTMLElement) => {
     await userEvent.click(within(c).getByRole("button", { name: "Adjust" }));
+    await openRows(c);
     const add = within(c).getByRole("button", { name: "Add progress" });
     expect(add).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(add);
@@ -165,7 +182,9 @@ describe("Add progress on assignments with nothing planned (S2c-06)", () => {
     await userEvent.click(within(list).getByRole("button", { name: "Frank — Science" }));
     expect(within(c).queryByRole("list", { name: "Assignments with nothing planned" })).toBeNull();
     const frank = within(c).getByRole("heading", { name: "Frank" }).parentElement!;
-    expect(within(frank).getByText("Science — nothing planned")).toBeInTheDocument();
+    // An added row opens by itself.
+    expect(within(frank).getByRole("button", { name: /^Science/ })).toHaveAttribute("aria-expanded", "true");
+    expect(within(frank).getByText("nothing planned")).toBeInTheDocument();
     expect(gotTo(c, "Science for Frank")).toHaveValue(12);
     expect(gotTo(c, "Science for Frank")).toHaveAttribute("min", "12");
     expect(within(c).getByRole("slider", { name: "Where Science for Frank got to" })).toHaveAttribute("min", "12");
@@ -207,7 +226,7 @@ describe("Add progress on assignments with nothing planned (S2c-06)", () => {
     await userEvent.type(gotTo(c, "Art for Margaret"), "6");
     expect(within(c).getByRole("button", { name: "Save" })).toBeEnabled();
     await userEvent.click(within(c).getByRole("button", { name: "Remove Art for Margaret" }));
-    expect(within(c).queryByText("Art — nothing planned")).toBeNull();
+    expect(within(c).queryByRole("button", { name: /^Art/ })).toBeNull();
     expect(within(c).getByRole("button", { name: "Save" })).toBeDisabled();
     await userEvent.click(within(c).getByRole("button", { name: "Add progress" }));
     await userEvent.click(within(c).getByRole("button", { name: "Margaret — Art" }));

@@ -22,6 +22,7 @@ const NON_TEXT = new Set([
   ".progress-bar",
   ".skeleton .color-dot",
   ".confirm-dialog::backdrop",
+  ".sheet-backdrop",
   ".swatch-chip",
 ]);
 /** Translucent backgrounds, with the colour they sit on. */

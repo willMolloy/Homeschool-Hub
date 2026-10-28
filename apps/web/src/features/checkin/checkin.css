@@ -3,12 +3,25 @@
 .checkin-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .checkin-question { margin: 0; overflow-wrap: anywhere; }
 .checkin-actions { align-items: center; }
-.checkin-skip { color: var(--muted); }
+/* T-03b: Skip stays, quietly — muted text, no button chrome. */
+.checkin-skip { color: var(--muted); background: none; border: 0; padding: 4px 6px; font: inherit; font-size: 0.9rem; cursor: pointer; min-height: 32px; }
+.checkin-skip:hover { text-decoration: underline; }
 .checkin-error { color: var(--danger); margin: 8px 0 0; }
 .checkin-child h3 { font-size: 1rem; margin: 14px 0 6px; }
-.checkin-rows { list-style: none; margin: 0; padding: 0; }
-.checkin-row { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); }
+/* T-03b: rows are spaced, not ruled; each starts as one tappable line (assignment + state). A host may tint
+   a row with --checkin-row-tint (This Week's subject pastels). */
+.checkin-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.checkin-row { border-radius: 8px; background: var(--checkin-row-tint, transparent); }
+.checkin-row-toggle { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; width: 100%;
+  min-height: 44px; padding: 8px 10px; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .checkin-row-title { overflow-wrap: anywhere; }
+.checkin-row-state { color: var(--muted); font-size: 0.9rem; }
+.checkin-row-detail { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 10px 10px; }
+.checkin-row-detail[hidden] { display: none; }
+.checkin-row-plan { margin: 0; color: var(--muted); }
+.checkin-row > .checkin-error { padding: 0 10px 8px; }
+/* The collapsed line already says the state; inside a row the adjuster's own label is for screen readers. */
+.checkin-row .progress-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .checkin-footer { margin-top: 12px; }
 .checkin-add { margin-top: 10px; }
 .checkin-add-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
@@ -34,14 +47,11 @@
 .absorb-choice { flex-basis: 100%; border: 0; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .absorb-choice legend { padding: 0; margin-bottom: 4px; color: var(--muted); }
 .absorb-option { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
-.checkin-group-choice { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+.checkin-group-choice { margin-top: 16px; }
 .checkin-apply-all { display: inline-flex; align-items: center; gap: 6px; }
 .checkin-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* Reopening a past week (S2b-27). */
-.past-week-review { margin: 16px 0; }
-.past-week-list { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
-.past-week[aria-current="true"] { font-weight: 600; }
-.past-week-status { color: var(--muted); }
-.past-week-empty, .checkin-note { color: var(--muted); margin: 8px 0; }
+/* The adjustment sheet's note (T-03b), shown only when later weeks have check-ins. */
+.checkin-note { color: var(--muted); margin: 0 0 8px; }
 .checkin-status { color: var(--muted); }
+.checkin-sheet .checkin-footer { margin-top: 16px; }

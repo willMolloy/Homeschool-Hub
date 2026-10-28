@@ -102,6 +102,14 @@ function ranked<T extends { id: string; archived: boolean; sortOrder: number; na
   };
 }
 
+const slotOfRank = (rank: number) => (rank % PALETTE_SLOTS) + 1;
+
+/** Each subject's palette slot, dealt as the timeline deals them (display order). This Week's pastels use it too. */
+export function subjectSlots(subjects: readonly Subject[]): (subjectId: string) => number {
+  const r = ranked(subjects);
+  return (subjectId) => slotOfRank(r.rank(subjectId));
+}
+
 /** Put one series of dated values onto the grid; days off the grid are dropped. */
 function onGrid(grid: DayGrid, days: readonly { date: LocalDate; value: number }[]): number[] {
   const out = zeros(grid);
@@ -164,7 +172,7 @@ export function buildTimelineModel(input: TimelineInput): TimelineModel {
     .map(([subjectId, byChild]) => ({
       subjectId,
       name: subjects.get(subjectId)?.name ?? "Subject",
-      paletteSlot: (subjects.rank(subjectId) % PALETTE_SLOTS) + 1,
+      paletteSlot: slotOfRank(subjects.rank(subjectId)),
       children: [...byChild.entries()]
         .sort(([a], [b]) => children.rank(a) - children.rank(b))
         .map(([childId, plans]): ChildLane => {

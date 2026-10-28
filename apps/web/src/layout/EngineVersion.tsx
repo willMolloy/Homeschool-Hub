@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ENGINE_VERSION } from "@hh/engine";
 import { apiGet } from "../api/client";
 import type { Health } from "../api/types";
+import { useDebugFlag } from "../lib/useDebugFlag";
 
 /** The API's engine version, asked once. Undefined until it answers (or if /api/health fails). */
 export function useApiEngineVersion(): string | undefined {
@@ -20,8 +21,10 @@ export function useApiEngineVersion(): string | undefined {
   return version;
 }
 
+/** The bundled engine version: a developer detail, so only with the debug flag (T-03b). */
 export function EngineFooter() {
-  return <span>Engine {ENGINE_VERSION}</span>;
+  const debug = useDebugFlag();
+  return debug ? <span>Engine {ENGINE_VERSION}</span> : null;
 }
 
 export function EngineMismatchBanner({ apiVersion, reload = () => window.location.reload() }: {

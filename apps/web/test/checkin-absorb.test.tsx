@@ -7,6 +7,7 @@ import { outcomeText, rowOutcome } from "../src/features/checkin/absorb";
 import { THANKS_MS } from "../src/features/checkin/LastWeekCheckIn";
 import { itemErrorOf } from "../src/features/checkin/useLastWeekCheckIn";
 import { EMPTY_WEEK, fakeApi } from "./helpers/fake-api";
+import { openRows } from "./helpers/checkin";
 import { renderAt } from "./render";
 
 const item = (over: Partial<CheckInItem>): CheckInItem => ({
@@ -31,6 +32,7 @@ async function openCard(week: WeekCheckIn = WEEK) {
   renderAt("/");
   const card = await screen.findByRole("region", { name: /How did last week go\?/ });
   await userEvent.click(within(card).getByRole("button", { name: "Adjust" }));
+  await openRows(card);
   return card;
 }
 const row = (card: HTMLElement, name: string) => within(card).getByRole("group", { name: `Progress on ${name}` }).closest("li")!;

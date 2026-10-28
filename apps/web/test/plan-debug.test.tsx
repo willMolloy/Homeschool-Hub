@@ -95,16 +95,33 @@ describe("buildDebugTables", () => {
 describe("Plan debug view", () => {
   it("asks /api/plan for the week containing ?week, Monday to Sunday", async () => {
     setup();
-    renderAt("/?week=2026-10-28");
+    renderAt("/?week=2026-10-28&debug=1");
     await screen.findByRole("table", { name: "Frank" });
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01");
     expect(screen.getByRole("heading", { name: "Debug view (temporary)" })).toBeInTheDocument();
     expect(screen.getByText(/Effort \(units × weight\) per day/)).toBeInTheDocument();
   });
 
+  it("T-03b: parents see only the tables — no debug heading, Plan as of, markers, legend, warning codes or engine footer", async () => {
+    setup();
+    renderAt("/?week=2026-10-28&asOf=2026-10-19");
+    const frank = await screen.findByRole("table", { name: "Frank" });
+    expect(screen.queryByRole("heading", { name: "Debug view (temporary)" })).toBeNull();
+    expect(screen.queryByText(/Effort \(units × weight\) per day/)).toBeNull();
+    expect(screen.queryByLabelText(/Plan as of/)).toBeNull();
+    expect(within(frank).queryAllByLabelText("built-in weight")).toHaveLength(0);
+    expect(screen.queryByRole("list", { name: "Markers" })).toBeNull();
+    expect(screen.queryByText(/Engine/)).toBeNull();
+    expect(screen.getByRole("list", { name: "Warnings for Margaret" })).toHaveTextContent("Math: the end date has passed with work left");
+    expect(screen.queryByText("past-end")).toBeNull();
+    // asOf is a debug tool: ignored for parents.
+    expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01");
+    expect(screen.queryByText(/Prev week|Review a past week/)).toBeNull();
+  });
+
   it("one table per child; Literature merges both assignments: 22.6 Mon/Wed/Thu/Fri, 0 Tue; totals add up", async () => {
     setup();
-    renderAt("/?week=2026-10-28");
+    renderAt("/?week=2026-10-28&debug=1");
     const frank = await screen.findByRole("table", { name: "Frank" });
     expect(screen.getByRole("table", { name: "Margaret" })).toBeInTheDocument();
     // weekend columns hidden: nothing planned on them and they aren't school days
@@ -117,7 +134,7 @@ describe("Plan debug view", () => {
 
   it("the mixed lane shows the subject-default marker only where the default adds work", async () => {
     setup();
-    renderAt("/?week=2026-10-28");
+    renderAt("/?week=2026-10-28&debug=1");
     const margaret = await screen.findByRole("table", { name: "Margaret" });
     expect(cellsOf(rowOf(margaret, "Math"))).toEqual(["20", "35s", "20", "35s", "20", "130"]);
     expect(within(margaret).getAllByLabelText("subject default weight")).toHaveLength(2);
@@ -125,7 +142,7 @@ describe("Plan debug view", () => {
 
   it("default cells get a labelled marker and the legend names each marker used", async () => {
     setup();
-    renderAt("/?week=2026-10-28");
+    renderAt("/?week=2026-10-28&debug=1");
     const frank = await screen.findByRole("table", { name: "Frank" });
     expect(within(frank).getAllByLabelText("built-in weight")).toHaveLength(4);
     const legend = screen.getByRole("list", { name: "Markers" });
@@ -145,7 +162,7 @@ describe("Plan debug view", () => {
 
   it("lists plan warnings under the child's table", async () => {
     setup();
-    renderAt("/?week=2026-10-28");
+    renderAt("/?week=2026-10-28&debug=1");
     const list = await screen.findByRole("list", { name: "Warnings for Margaret" });
     expect(list).toHaveTextContent("Math: the end date has passed with work left past-end");
     expect(screen.queryByRole("list", { name: "Warnings for Frank" })).not.toBeInTheDocument();
@@ -162,7 +179,7 @@ describe("Plan debug view", () => {
       fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-11-04" });
       renderAt("/");
       await screen.findByRole("table", { name: "Frank" });
-      expect(screen.getByText("Week of 2026-11-02")).toBeInTheDocument();
+      expect(within(screen.getByRole("group", { name: "Week" })).getByText("This week")).toBeInTheDocument();
       expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
       expect(fakeApi.calls.some((c) => c.path.includes("2026-12-14"))).toBe(false);
     });
@@ -178,18 +195,21 @@ describe("Plan debug view", () => {
     });
   });
 
-  it("Previous / Next week move by 7 days; 'Plan as of' passes asOf", async () => {
+  it("the header's week switcher moves by 7 days and names the week; 'Plan as of' (debug) passes asOf", async () => {
     setup();
     renderAt("/?week=2026-10-28");
     const user = userEvent.setup();
     await screen.findByRole("table", { name: "Frank" });
-    await user.click(screen.getByRole("button", { name: /Next week/ }));
-    expect(await screen.findByText("Week of 2026-11-02")).toBeInTheDocument();
+    const switcher = screen.getByRole("group", { name: "Week" });
+    expect(switcher).toHaveTextContent("This week");
+    await user.click(within(switcher).getByRole("button", { name: "Next week" }));
+    expect(await within(switcher).findByText("Nov 2–8")).toBeInTheDocument();
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
-    await user.click(screen.getByRole("button", { name: "Prev week" }));
-    await user.click(screen.getByRole("button", { name: "Prev week" }));
-    expect(await screen.findByText("Week of 2026-10-19")).toBeInTheDocument();
-    renderAt("/?week=2026-10-26&asOf=2026-10-19");
+    await user.click(within(switcher).getByRole("button", { name: "Previous week" }));
+    await user.click(within(switcher).getByRole("button", { name: "Previous week" }));
+    expect(await within(switcher).findByText("Oct 19–25")).toBeInTheDocument();
+    expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-19&to=2026-10-25");
+    renderAt("/?week=2026-10-26&asOf=2026-10-19&debug=1");
     await screen.findAllByRole("table", { name: "Frank" });
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01&asOf=2026-10-19");
   });

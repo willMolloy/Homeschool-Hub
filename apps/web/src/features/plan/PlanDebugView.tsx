@@ -1,7 +1,12 @@
-/** Temporary plan debug table (S1-36). The real timeline waits for pilot results. */
-import { useEffect, useMemo } from "react";
+/**
+ * The week's plan table (S1-36), until the timeline lands. T-03b: the week comes in as a prop (the page's
+ * switcher owns it), each child's table can carry an action (the page's "Make an adjustment"), and everything a
+ * parent doesn't need (heading, note, "Plan as of", markers and legend, warning codes, engine footer) shows only
+ * with `debug`.
+ */
+import { useEffect, useMemo, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
-import { addDays, isValidLocalDate, weekStartOf, weekdayOf, type LocalDate } from "@hh/engine";
+import { addDays, isValidLocalDate, weekdayOf, type LocalDate } from "@hh/engine";
 import { useMe } from "../../auth/AuthProvider";
 import { useApi } from "../../api/useApi";
 import type { Child, PlanResponse, Subject } from "../../api/types";
@@ -12,11 +17,7 @@ import "./plan.css";
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** The device's local date as YYYY-MM-DD. Only a fallback: the family's `me.today` decides the default week. */
-export function deviceToday(now: Date = new Date()): LocalDate {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
-}
+export { deviceToday } from "./useShownWeek";
 
 const WARNING_TEXT: Record<string, string> = {
   "invalid-range": "end date is before start date",
@@ -37,24 +38,29 @@ const MARKERS: Record<DefaultSource, { mark: string; label: string; legend: stri
   subject: { mark: "s", label: "subject default weight", legend: "s uses the subject's default weight" },
 };
 
-function Cell({ cell }: { cell: DebugCell }) {
+function Cell({ cell, debug }: { cell: DebugCell; debug: boolean }) {
   return (
     <td>
       {cell.value}
-      {cell.defaults.map((d) => <sup key={d} aria-label={MARKERS[d].label}>{MARKERS[d].mark}</sup>)}
+      {debug && cell.defaults.map((d) => <sup key={d} aria-label={MARKERS[d].label}>{MARKERS[d].mark}</sup>)}
     </td>
   );
 }
 
-export function PlanDebugView() {
+export interface PlanDebugViewProps {
+  /** The shown week's first day (the page's `useShownWeek`). */
+  weekStart: LocalDate;
+  /** Show the developer extras. Off for parents. */
+  debug?: boolean;
+  /** Rendered beside each active child's name, e.g. the "Make an adjustment" button. */
+  childAction?: (childId: string, childName: string) => ReactNode;
+}
+
+export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDebugViewProps) {
   const me = useMe();
   const [params, setParams] = useSearchParams();
-  const weekParam = params.get("week");
-  const asOfParam = params.get("asOf");
+  const asOfParam = debug ? params.get("asOf") : null;
   const asOf = asOfParam && isValidLocalDate(asOfParam) ? asOfParam : null;
-  // The family's today (server clock, family zone), so a device in another zone still opens on the plan's week.
-  const today = isValidLocalDate(me.today) ? me.today : deviceToday();
-  const weekStart = weekStartOf(weekParam && isValidLocalDate(weekParam) ? weekParam : today, me.weekStart);
   const weekEnd = addDays(weekStart, 6);
 
   const plan = useApi<PlanResponse>(`/api/plan?from=${weekStart}&to=${weekEnd}${asOf ? `&asOf=${asOf}` : ""}`);
@@ -81,7 +87,8 @@ export function PlanDebugView() {
   const childName = (id: string) => children.data?.find((c) => c.id === id)?.name ?? id;
   const subjectName = (id: string) => subjects.data?.find((s) => s.id === id)?.name ?? id;
   // Active children with nothing in the plan still get a line, so nobody silently disappears.
-  const unplanned = (children.data ?? []).filter((c) => !c.archived && !tables.some((t) => t.childId === c.id));
+  const activeChildren = (children.data ?? []).filter((c) => !c.archived);
+  const unplanned = activeChildren.filter((c) => !tables.some((t) => t.childId === c.id));
   const usedDefaults = (Object.keys(MARKERS) as DefaultSource[])
     .filter((d) => tables.some((t) => t.rows.some((r) => r.cells.some((c) => c.defaults.includes(d)))));
 
@@ -95,24 +102,19 @@ export function PlanDebugView() {
   };
 
   return (
-    <section className={refreshing ? "plan-debug plan-refreshing" : "plan-debug"} aria-labelledby="plan-debug-title"
+    <section className={refreshing ? "plan-debug plan-refreshing" : "plan-debug"} aria-label="Plan for the week"
       aria-busy={refreshing || undefined}>
-      <h2 id="plan-debug-title">Debug view (temporary)</h2>
-      <p className="plan-debug-note">Effort (units × weight) per day, straight from <code>/api/plan</code>. This is a check of the numbers, not the final timeline.</p>
-      <div className="plan-debug-bar">
-        <button type="button" className="btn btn-secondary" aria-label="Prev week" onClick={() => go({ week: addDays(weekStart, -7) })}>
-          <span aria-hidden="true">← Prev</span>
-        </button>
-        <span className="plan-debug-week" aria-live="polite">Week of {weekStart}</span>
-        <button type="button" className="btn btn-secondary" aria-label="Next week" onClick={() => go({ week: addDays(weekStart, 7) })}>
-          <span aria-hidden="true">Next →</span>
-        </button>
-      </div>
-      <label className="plan-debug-asof">
-        Plan as of{" "}
-        <input type="date" value={asOf ?? ""} onChange={(e) => go({ asOf: e.target.value || null })} />
-        <span className="plan-debug-note">{asOf ? "" : ` today (${plan.data?.asOf ?? "…"})`}</span>
-      </label>
+      {debug && (
+        <>
+          <h2>Debug view (temporary)</h2>
+          <p className="plan-debug-note">Effort (units × weight) per day, straight from <code>/api/plan</code>. This is a check of the numbers, not the final timeline.</p>
+          <label className="plan-debug-asof">
+            Plan as of{" "}
+            <input type="date" value={asOf ?? ""} onChange={(e) => go({ asOf: e.target.value || null })} />
+            <span className="plan-debug-note">{asOf ? "" : ` today (${plan.data?.asOf ?? "…"})`}</span>
+          </label>
+        </>
+      )}
 
       {plan.error ? (
         <div role="alert" className="plan-debug-error">
@@ -121,11 +123,20 @@ export function PlanDebugView() {
       ) : plan.loading && !plan.data ? (
         <p aria-busy="true">Loading plan…</p>
       ) : tables.length === 0 ? (
-        <p>Nothing planned this week.</p>
+        <>
+          <p>Nothing planned this week.</p>
+          {childAction && activeChildren.map((c) => (
+            <div key={c.id} className="plan-debug-child plan-child-only">
+              <span>{c.name}</span>
+              <div className="plan-child-action">{childAction(c.id, c.name)}</div>
+            </div>
+          ))}
+        </>
       ) : (
         <>
           {tables.map((t) => (
             <div key={t.childId} className="plan-debug-child">
+              {childAction && <div className="plan-child-action">{childAction(t.childId, childName(t.childId))}</div>}
               <div className="plan-debug-scroll">
                 <table className="plan-debug-table">
                   <caption>{childName(t.childId)}</caption>
@@ -143,7 +154,7 @@ export function PlanDebugView() {
                       <tr key={r.subjectId}>
                         <th scope="row">{subjectName(r.subjectId)}</th>
                         {dates.map((d) => {
-                          return <Cell key={d} cell={r.cells[col(d)]!} />;
+                          return <Cell key={d} cell={r.cells[col(d)]!} debug={debug} />;
                         })}
                         <td className="plan-debug-total">{r.total}</td>
                       </tr>
@@ -161,21 +172,24 @@ export function PlanDebugView() {
               {t.warnings.length > 0 ? (
                 <ul className="plan-debug-warnings" aria-label={`Warnings for ${childName(t.childId)}`}>
                   {t.warnings.map((w, i) => (
-                    <li key={i}>{subjectName(w.subjectId)}: {WARNING_TEXT[w.warning] ?? w.warning} <code>{w.warning}</code></li>
+                    <li key={i}>{subjectName(w.subjectId)}: {WARNING_TEXT[w.warning] ?? w.warning}{debug && <> <code>{w.warning}</code></>}</li>
                   ))}
                 </ul>
               ) : null}
             </div>
           ))}
           {unplanned.map((c) => (
-            <p key={c.id} className="plan-debug-unplanned">{c.name}: nothing planned this week.</p>
+            <div key={c.id} className="plan-debug-child">
+              <p className="plan-debug-unplanned">{c.name}: nothing planned this week.</p>
+              {childAction && <div className="plan-child-action">{childAction(c.id, c.name)}</div>}
+            </div>
           ))}
-          {usedDefaults.length > 0 ? (
+          {debug && usedDefaults.length > 0 ? (
             <ul className="plan-debug-note plan-debug-legend" aria-label="Markers">
               {usedDefaults.map((d) => <li key={d}>{MARKERS[d].legend}</li>)}
             </ul>
           ) : null}
-          <p className="plan-debug-note">Engine {plan.data?.engineVersion}, as of {plan.data?.asOf}. Effort is units × weight, rounded to 1 decimal; totals add the rounded cells.</p>
+          {debug && <p className="plan-debug-note">Engine {plan.data?.engineVersion}, as of {plan.data?.asOf}. Effort is units × weight, rounded to 1 decimal; totals add the rounded cells.</p>}
         </>
       )}
     </section>

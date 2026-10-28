@@ -4,10 +4,11 @@
 .plan-debug-week { font-weight: 600; }
 .plan-debug-asof { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .plan-debug-child { margin-bottom: 20px; }
-.plan-debug-scroll { overflow-x: auto; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+.plan-debug-scroll { overflow-x: auto; background: #fff; border-radius: 8px; }
 .plan-debug-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 .plan-debug-table caption { text-align: left; font-weight: 600; padding: 8px 10px; }
-.plan-debug-table th, .plan-debug-table td { padding: 6px 8px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
+/* T-03b: no rules between rows; padding spaces them. */
+.plan-debug-table th, .plan-debug-table td { padding: 7px 8px; text-align: right; white-space: nowrap; }
 .plan-debug-table th[scope="row"], .plan-debug-table thead th:first-child { text-align: left; }
 .plan-debug-table abbr { text-decoration: none; display: block; }
 .plan-debug-date { display: block; font-weight: 400; color: var(--muted); font-size: 0.8rem; }
@@ -32,3 +33,14 @@
 .plan-refreshing .plan-debug-child { animation: plan-shimmer 1s ease-in-out infinite alternate; }
 @keyframes plan-shimmer { from { opacity: 1; } to { opacity: 0.45; } }
 @media (prefers-reduced-motion: reduce) { .plan-refreshing .plan-debug-child { animation: none; opacity: 0.6; } }
+/* This Week header (T-03b): the title and one small week switcher on a line. */
+.plan-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.plan-header h1 { margin: 0; }
+.week-switcher { display: inline-flex; align-items: center; gap: 2px; }
+.week-switcher-step { min-width: 44px; min-height: 44px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: 1.3rem; line-height: 1; color: inherit; cursor: pointer; }
+.week-switcher-step:hover { background: var(--line); }
+.week-switcher-label { min-width: 7.5em; text-align: center; font-variant-numeric: tabular-nums; }
+/* Each student's "Make an adjustment", beside their name. */
+.plan-child-action { margin: 0 0 8px; }
+.plan-child-only { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.plan-child-only .plan-child-action { margin: 0; }

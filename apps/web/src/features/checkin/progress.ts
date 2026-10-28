@@ -62,3 +62,8 @@ export function progressLabel(unitType: UnitType, position: number, plannedTo: n
 /** The number field's label: "Got to page", "Got to chapter", "Minutes done in total". */
 export const fieldLabel = (unitType: UnitType) =>
   unitType === "minutes" ? "Minutes done in total" : `Got to ${unitType === "pages" ? "page" : unitType.slice(0, -1)}`;
+
+/** A row's state in words: "✓ Done as planned", or where the child got to (S2b-36; T-03b's collapsed rows). */
+export const DONE_AS_PLANNED = "✓ Done as planned";
+export const stateLabel = (unitType: UnitType, position: number, plannedTo: number) =>
+  progressState(position, plannedTo) === "asPlanned" ? DONE_AS_PLANNED : progressLabel(unitType, position, plannedTo);

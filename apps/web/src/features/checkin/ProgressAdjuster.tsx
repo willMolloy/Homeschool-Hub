@@ -5,7 +5,7 @@
 import { useId, useState, type KeyboardEvent } from "react";
 import type { UnitType } from "@hh/engine";
 import { unitNumber } from "../../components/unitLabels";
-import { chipsFor, clamp, fieldLabel, progressLabel, progressState, sliderMax, type PlannedRange } from "./progress";
+import { chipsFor, clamp, fieldLabel, progressState, sliderMax, stateLabel, type PlannedRange } from "./progress";
 
 export interface ProgressAdjusterProps extends PlannedRange {
   unitType: UnitType;
@@ -25,7 +25,7 @@ export function ProgressAdjuster(props: ProgressAdjusterProps) {
   const max = sliderMax(props);
   const min = Math.min(plannedFrom, max);
   const state = progressState(position, plannedTo);
-  const label = state === "asPlanned" ? "✓ Done as planned" : progressLabel(unitType, position, plannedTo);
+  const label = stateLabel(unitType, position, plannedTo);
 
   const set = (n: number) => {
     setDraft(null);
