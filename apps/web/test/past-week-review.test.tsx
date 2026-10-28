@@ -1,5 +1,5 @@
 /** S2b-27: reopen a finished week's check-in from the plan screen and correct it. */
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { CheckInItem, PastWeek, WeekCheckIn } from "../src/api/types";
@@ -170,3 +170,46 @@ describe("initialAnswers", () => {
     expect(initialAnswers([item({})]).positions).toEqual({});
   });
 });
+
+/** S2c-05 (L3): a save on the home card updates the past-week labels without a reload. */
+describe("the past-week list after a home-card save", () => {
+  const LAST: WeekCheckIn = { weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, items: [item({})] };
+  const homeCard = () => screen.findByRole("region", { name: /How did last week go\?/ });
+
+  function stubHome() {
+    stub();
+    fakeApi.on("GET /api/check-ins", 200, LAST);
+    fakeApi.on(`PUT /api/check-ins/${LAST.weekStart}`, (body) => {
+      const status = (body as { status: PastWeek["status"] }).status;
+      // The list now reports last week as the API stored it.
+      fakeApi.on("GET /api/check-ins/weeks", 200, { weeks: [{ ...WEEKS[0]!, status }, ...WEEKS.slice(1)] });
+      return [200, { ...LAST, status, planChanged: false }];
+    });
+  }
+  const firstWeek = () => within(screen.getByRole("list", { name: "Past weeks" })).getAllByRole("listitem")[0];
+
+  it.each([
+    ["Last week went as planned", "reviewed"],
+    ["Skip", "skipped"],
+  ])("%s → Oct 19–25 shows %s", async (button, status) => {
+    stubHome();
+    await openPicker();
+    const card = await homeCard();
+    expect(firstWeek()).toHaveTextContent("Oct 19–25 not reviewed");
+    await userEvent.click(within(card).getByRole("button", { name: button }));
+    await waitFor(() => expect(firstWeek()).toHaveTextContent(`Oct 19–25 ${status}`));
+  });
+
+  it("Save from Adjust → the list refetches", async () => {
+    stubHome();
+    await openPicker();
+    const card = await homeCard();
+    const before = fakeApi.calls.filter((c) => c.path === "/api/check-ins/weeks").length;
+    await userEvent.click(within(card).getByRole("button", { name: "Adjust" }));
+    fireEvent.change(within(row(card, "Treasure Island for Frank")).getByRole("spinbutton"), { target: { value: "60" } });
+    await userEvent.click(within(card).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(fakeApi.calls.filter((c) => c.path === "/api/check-ins/weeks").length).toBe(before + 1));
+    await waitFor(() => expect(firstWeek()).toHaveTextContent("Oct 19–25 reviewed"));
+  });
+});
+

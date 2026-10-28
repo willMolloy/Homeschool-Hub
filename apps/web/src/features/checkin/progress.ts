@@ -16,14 +16,22 @@ export interface Chip {
   position: number;
 }
 
-/** Done, About half, Didn't start, and Finished it when the total is within two weeks' work. */
+export const NOTHING_PLANNED = "Nothing planned";
+
+/**
+ * Done, About half, Didn't start, and Finished it when the total is within two weeks' work.
+ * A row with nothing planned (`plannedTo <= plannedFrom`) gets one chip, Nothing planned, since the other three
+ * would all set the same position (S2c-05).
+ */
 export function chipsFor({ plannedFrom, plannedTo, totalUnits }: PlannedRange): Chip[] {
-  const chips: Chip[] = [
-    { label: "Done", position: plannedTo },
-    { label: "About half", position: Math.round((plannedFrom + plannedTo) / 2) },
-    { label: "Didn't start", position: plannedFrom },
-  ];
   const week = plannedTo - plannedFrom;
+  const chips: Chip[] = week <= 0
+    ? [{ label: NOTHING_PLANNED, position: plannedFrom }]
+    : [
+      { label: "Done", position: plannedTo },
+      { label: "About half", position: Math.round((plannedFrom + plannedTo) / 2) },
+      { label: "Didn't start", position: plannedFrom },
+    ];
   if (totalUnits > plannedTo && totalUnits - plannedTo <= 2 * week) chips.push({ label: "Finished it", position: totalUnits });
   return chips;
 }

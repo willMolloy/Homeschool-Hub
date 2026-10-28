@@ -49,6 +49,10 @@ describe("formatUnits and labels", () => {
     expect(sliderMax({ plannedFrom: 3, plannedTo: 5, totalUnits: 30 })).toBe(15);
     expect(sliderMax({ plannedFrom: 180, plannedTo: 240, totalUnits: 270 })).toBe(270);
   });
+  it("a row with nothing planned gets one chip, Nothing planned (S2c-05)", () => {
+    expect(chipsFor({ plannedFrom: 40, plannedTo: 40, totalUnits: 270 })).toEqual([{ label: "Nothing planned", position: 40 }]);
+    expect(chipsFor({ plannedFrom: 40, plannedTo: 40, totalUnits: 40 })).toEqual([{ label: "Nothing planned", position: 40 }]);
+  });
   it("About half rounds to a whole unit", () => {
     expect(chipsFor({ plannedFrom: 0, plannedTo: 22.5, totalUnits: 270 })[1]).toEqual({ label: "About half", position: 11 });
   });
@@ -181,5 +185,13 @@ describe("ProgressAdjuster", () => {
   it("pages field label", () => {
     setup();
     expect(screen.getByRole("spinbutton", { name: "Got to page" })).toBeInTheDocument();
+  });
+
+  it("nothing planned: only the Nothing planned chip is shown (S2c-05)", () => {
+    setup({ plannedFrom: 40, plannedTo: 40 });
+    const chips = screen.getAllByRole("button").map((b) => b.textContent);
+    expect(chips).toContain("Nothing planned");
+    for (const gone of ["Done", "About half", "Didn't start"]) expect(screen.queryByRole("button", { name: gone })).toBeNull();
+    expect(screen.getByRole("button", { name: "Nothing planned" })).toHaveAttribute("aria-pressed", "true");
   });
 });

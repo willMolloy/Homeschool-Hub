@@ -35,10 +35,13 @@ export interface WeekCheckInState extends Omit<LastWeekCheckIn, "week"> {
   loadError: string | null;
 }
 
-/** One week's check-in: last week when `weekStart` is undefined. `onSaved` runs after a successful PUT. */
-export function useWeekCheckIn(weekStart?: string, onSaved?: (res: SaveWeekResponse) => void): WeekCheckInState {
+/**
+ * One week's check-in: last week when `weekStart` is undefined. A successful PUT signals `checkInsSaved`
+ * (S2c-05) so check-in lists on the page refetch, and `invalidate` when the plan changed.
+ */
+export function useWeekCheckIn(weekStart?: string): WeekCheckInState {
   const api = useApi<WeekCheckIn>(weekStart ? `/api/check-ins?weekStart=${weekStart}` : "/api/check-ins");
-  const { invalidate } = usePlanRefresh();
+  const { invalidate, checkInsSaved } = usePlanRefresh();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [itemErrors, setItemErrors] = useState<Record<string, string>>({});
@@ -54,9 +57,9 @@ export function useWeekCheckIn(weekStart?: string, onSaved?: (res: SaveWeekRespo
       const res = await apiPut<SaveWeekResponse>(`/api/check-ins/${data.weekStart}`, body);
       const updated = body.items.length > 0 || res.planChanged;
       if (updated) invalidate();
+      checkInsSaved();
       api.setData(res);
       setThanks(updated ? "Thanks — plan updated" : "Thanks!");
-      onSaved?.(res);
       return res;
     } catch (e) {
       const row = e instanceof ApiError && e.status === 400 ? itemErrorOf(e.message) : null;

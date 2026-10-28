@@ -8,7 +8,8 @@ Tickets: `docs/tickets/sprint-2c-fixes/`. Findings: `docs/reviews/sprint-2b-veri
 | S2c-01 Block a week-start change once weeks are checked in (M1) | ce2980e | 409 `week_start_locked`; `weekStartLocked` on GET/PATCH; UI hint + inline error |
 | S2c-02 Reject a check-in position below the week's start (M2) | b63324a | 400 below `plannedFrom`; number field min = slider min |
 | S2c-03 An invalid Custom width blocks Save (L1) | 6df8659 | `onValidityChange` on the picker; `RosterForm.blocked`; caption while invalid |
-| S2c-04 Don't save a loading or stale weight suggestion (L2) | (this commit) | hook returns `{ suggestion, pending }`; Add/Save disabled + `aria-busy` while following a pending suggestion |
+| S2c-04 Don't save a loading or stale weight suggestion (L2) | 8b3a927 | hook returns `{ suggestion, pending }`; Add/Save disabled + `aria-busy` while following a pending suggestion |
+| S2c-05 Check-in polish (L3, L5) | (this commit) | `checkInsVersion`/`checkInsSaved` in the plan-refresh context; PastWeeks refetches on it; one "Nothing planned" chip on empty rows |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -25,3 +26,5 @@ Tickets: `docs/tickets/sprint-2c-fixes/`. Findings: `docs/reviews/sprint-2b-veri
 - **S2c-04 the label.** The button keeps its usual label while waiting ("Add" on the add form, "Save" when editing after a unit change); the ticket's "keeps the label Save" is read as "keeps its label", not as renaming Add.
 - **S2c-04 what counts as pending.** Pending means the last answer's request path differs from the current one (unit, sorted children, subject), so reordering the same children is not a new input and the debounce counts as pending. Changing only the subject re-asks too, because a subject default can change the suggestion.
 - **S2c-04 only an untouched suggestion waits.** A typed weight (or a cleared field) doesn't depend on the suggestion, so it can save while one is loading. Editing an assignment without changing its unit makes no request and is never pending.
+- **S2c-05 one refresh path.** The past-week editor's own `onSaved={api.reload}` was removed (and with it the hook's `onSaved` parameter, which had no other user): every save, from the editor or the home card, now goes through `checkInsSaved`, so the list refetches exactly once per save.
+- **S2c-05 Finished it on an empty row.** The existing rule (the total within two weeks' planned work) is kept unchanged; with nothing planned that week it never applies, so an empty row shows only "Nothing planned". The number field still accepts any position up to the total.
