@@ -42,7 +42,7 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-26 Ask how to absorb the difference and save | 68aab28 | |
 | S2b-27 Edit a past week's check-in | 48fdfeb | |
 | S2b-28 Tester pass: check-in edge cases | c80d72b | |
-| S2b-29 Update docs for assumed progress and check-ins | (this commit) | |
+| S2b-29 Update docs for assumed progress and check-ins | d3be7c8 | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -109,3 +109,13 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 ## Deferred
 
 (none yet)
+
+## Screens
+
+Taken at 11:25 CT on the demo family (hh_dev, which had to be migrated from 002 to 008 first; nothing was saved) with `scripts/smoke/flow.mjs s2b-screens`, in `docs/progress/screens/`:
+- `s2b-subject-width-picker-{360,1280}.png`: editing Math, "Default bar width" open (Lessons, None selected, preview bars).
+- `s2b-weekly-card-{360,1280}.png`: "How did last week go?" for the week of Oct 19.
+- `s2b-weekly-card-adjust-{360,1280}.png`: the card expanded with Adjust (per-item choices and positions).
+- `s2b-past-week-picker-360.png`: "Review a past week" opened under the plan.
+
+The bottom tab bar is fixed, so full-page shots show it mid-page.
