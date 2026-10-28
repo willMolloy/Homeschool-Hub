@@ -168,3 +168,7 @@ Nothing below is final. Every title is **pending pilot results**: the pilots wil
 - Add the 'behind / ahead' progress indicator *(pending pilot results)*
 - Add the minutes-per-unit calibration prompt *(pending pilot results)*
 - Add per-child view filters *(pending pilot results)*
+
+## Sprint 2a: schedule data (pilot-independent)
+
+See [sprint-2a/README.md](sprint-2a/README.md): family settings, assignments, days off, recurring events, plain forms, plan contract tests. No timeline UI; the week-overrides API waits for DeeDee's decision on the override-mode rule.
