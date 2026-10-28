@@ -1,10 +1,12 @@
-# Overnight progress log (Oct 28, 2026): rounds 1–3 and the tester pass
+# Overnight progress log (Oct 28, 2026): rounds 1–4 and two tester passes
 
 All times are America/Chicago (CT). The work was done on the build box only. Nothing was pushed, posted, or sent; no cloud agents were used.
 
-## Morning summary (03:56 CT)
+## Morning summary
 
-**Where things stand:** Sprint 1 (37 tickets) and Sprint 2a (16 tickets) are all committed, one commit per ticket, each with the gate green (lint, typecheck, build, test, test:tz). The working tree is clean and nothing is pushed.
+_Last updated at the end of round 4 (04:20 CT). **Start with [`docs/REVIEW-GUIDE.md`](../REVIEW-GUIDE.md)** for how to run it, a 10-minute click-through and a repo map._
+
+**Where things stand:** Sprint 1 (37 tickets) and Sprint 2a (18 tickets: 16 planned, plus S2a-17 and S2a-18 after tester round 2) are all committed, one commit per ticket, each with the gate green (lint, typecheck, build, test, test:tz). The working tree is clean and nothing is pushed.
 
 - **Round 1 (S1-01 → S1-19):** monorepo, CI file, lint, Compose file, Fastify skeleton, config, db pool, migrations, auth schema, password hashing, seed, login, session auth, logout, `/api/me`; web router, app shell, API client, login page.
 - **Round 2 (S1-20 → S1-37 + hardening):** the web auth provider, children and subjects CRUD (API + /kids and /subjects screens), PWA icons, `loadPlanInputs`, `GET /api/plan`, the temporary Plan debug view, the engine-version footer. Hardening: full flow at 360/1280, edge cases, axe clean.
@@ -16,17 +18,23 @@ All times are America/Chicago (CT). The work was done on the build box only. Not
   - **End-to-end smoke (03:53 CT, 360 and 1280 px):** Settings (save with no change says "Nothing to save."), then add an assignment (10 lessons, Nov 16–20), a whole-family day off (Mon Nov 16) and a Wednesday "skip" event. Each step changed the Plan for the week of Nov 16 as expected: Frank's totals went 413 → 613 min after the assignment, Monday dropped to 0 after the day off, and Wednesday dropped to 0 after the event. After archiving the event and assignment and deleting the day off, the plan matched the starting plan exactly. No overflow, no failed requests, no console errors. Screens: `s2a-hardening-{1..9}-*-{360,1280}`.
   - **Flaky test fixed:** the full gate failed once on `subjects-list.test.tsx` ("answer is not a function") while the smoke was loading the box. The skeleton could render before the request reached the fake API. That test, `kids-list` and `auth` now wait for the request before answering. They passed 5 runs in a row, and the full gate is green.
   - **Not built, as planned:** the timeline, bar thickness, rebalancing UX, and the week-overrides API.
-- **Tester round 2 (Sprint 2a, 04:10 CT):** +33 API tests and an odd-data smoke at 360/1280 (`screens/tester2-*`). Fixed 1 bug: editing an item that still links a since-archived child returned 400 (T2-1). Documented 2 low-severity time-zone quirks (T2-2 ALL-CAPS names accepted, T2-3 Chrome offers `America/Coyhaique`, which Node 20 rejects). Gate green. Full report: `tester-report.md` § "Round 2 (Sprint 2a)".
+- **Tester round 2 (Sprint 2a, 04:10 CT):** +33 API tests and an odd-data smoke at 360/1280 (`screens/tester2-*`). Fixed 1 bug: editing an item that still links a since-archived child returned 400 (T2-1). Documented 2 low-severity time-zone quirks (T2-2 ALL-CAPS names accepted, T2-3 Chrome offers `America/Coyhaique`, which Node 20 rejects); both are fixed in S2a-17. Gate green. Full report: `tester-report.md` § "Round 2 (Sprint 2a)". **Count correction:** that report's summary says "engine 132, web 153". It's the other way round: engine 153, web 132 (before S2a-17).
+- **Round 4 (04:08–04:20 CT):**
+  - **S2a-17:** the server now serves the time-zone list (`GET /api/timezones`, from its own ICU data; 418 zones on Node 20.19.2), and the Settings picker shows only those. `PATCH /api/family` accepts any letter case and aliases and stores the canonical name (`america/chicago`, `US/Central` → `America/Chicago`). This fixes T2-2 and T2-3.
+  - **S2a-18:** `npm run demo` resets and seeds hh_dev (it refuses anything else), starts the API and web if they're not running, and prints the login and URLs. I ran it on the box, so **hh_dev is now a clean demo**: just the demo family, with no smoke leftovers.
+  - **`docs/REVIEW-GUIDE.md`:** how to run it on your own machine, a 10-minute click-through, a repo map with Spring analogies, and a pointer to the decisions below. The root README is updated too (it still had Sprint 1 placeholder text).
 
-**Tests (last gate, 03:55 CT):** lint ✓, typecheck ✓, build ✓.
+**Tests (final gate, round 4):** lint ✓, typecheck ✓, build ✓, db validate.sql ALL CHECKS PASSED.
 
 | Suite | Passing |
 |---|---|
 | engine | 153 |
-| engine, test:tz | 153 × 8 zones |
-| API | 413 |
-| web | 132 |
-| db validate | 8 |
+| engine, test:tz | 153 in each of 7 time zones |
+| API | 483 |
+| web | 135 |
+| db workspace (migrate, seed, demo) | 17 |
+
+**Hand-off:** the last code commit is `1e27062` (S2a-18). The commit on top of it, "Docs: review guide and final Morning summary", adds this summary and the review guide and is the final HEAD. A commit can't contain its own hash, so run `git log -1` to see it. The tree is clean and nothing is pushed.
 
 **Unverified on this box:** CI on GitHub (S1-02, nothing pushed), `docker compose` (S1-04, no Docker here), the iPhone home-screen icon (S1-21), real mobile Safari, and screen readers. Those boxes stay unticked.
 
@@ -36,7 +44,7 @@ All times are America/Chicago (CT). The work was done on the build box only. Not
 3. **Week-override mode rule** (last edit vs. latest week). This blocks the week-overrides API, which was left out on purpose.
 4. **Removal:** days off are hard-deleted; assignments and events are archive-only, and archived ones stay editable. OK?
 5. **Rules for since-archived subjects:** the API rejects re-saving them. The events form keeps them while the rules are untouched and drops them once the rules are edited (it says so). Archived children work the same way.
-6. **Time zones:** a bad stored zone falls back to America/Chicago. Aliases like US/Central are accepted, but lowercase spellings are not.
+6. **Time zones:** a bad stored zone falls back to America/Chicago. Since S2a-17, any letter case and aliases like US/Central are accepted and stored under the canonical name, and the picker lists only the server's zones. Abbreviations and offsets (EST, +05:00) are still rejected.
 7. **`PATCH /api/family` is strict** (an unknown key is a 400); the roster routes ignore unknown keys.
 8. **Limits:** title 120, total ≤100,000, minutes per unit ≤600, assignments ≤1,096 days, days off ≤366, events open-ended. Lighter-day capacity is 0–100 % with one decimal.
 9. **Plan inputs:** an event or day off whose listed children are all archived is dropped. Warnings name the subject, not the assignment. The 400-day plan range counts both ends.
@@ -44,9 +52,9 @@ All times are America/Chicago (CT). The work was done on the build box only. Not
 11. **Name policy:** the 60-character limit counts UTF-16 units, not graphemes, and control characters other than NUL are allowed.
 12. **Sign-off on earlier deviations:** the Node 22 / cookie@2 note, the vitest/vite upgrade, the dotenv loader, the `@hh/db` workspace, zod 4, ESLint 9, the `public` route flag, React Router 7, the shared RosterPage, the partial-index rename edge case, the 360 px swatch wrap, and the S1-08 wording (`_dev` or `_test`).
 
-**Dev DB leftovers:** the smoke runs left archived rows in hh_dev ("Smoke test assignment" ×2, "Smoke test event" ×2, plus "Hardening assignment 360/1280" and "Hardening event 360/1280"). `npm run db:reset && npm run db:seed` restores the demo data.
+**Dev DB:** hh_dev was reset with `npm run demo` in round 4. It holds only the demo family: 2 children, 5 subjects, 14 assignments, 3 events and 1 day off. The earlier smoke leftovers are gone.
 
-**Suggested next steps:** push the branch to see CI (S1-02); try Compose on a machine with Docker (S1-04); settle decisions 1–3, then add the week-overrides API and seed some logs; after the pilots, build the timeline and retire the debug view.
+**Suggested next steps:** read `docs/REVIEW-GUIDE.md` and run `npm run demo`; push the branch to see CI (S1-02); try Compose on a machine with Docker (S1-04); settle decisions 1–3, then add the week-overrides API and seed some logs; after the pilots, build the timeline and retire the debug view.
 
 ## Environment
 - Node 20.19.2, Debian 13.
