@@ -61,3 +61,31 @@ export async function getAssignment(db: Queryable, familyId: string, id: string)
   const { rows } = await db.query<AssignmentRow>(`${SELECT} WHERE a.family_id = $1 AND a.id = $2`, [familyId, id]);
   return rows[0] ?? null;
 }
+
+export interface AssignmentInput {
+  subjectId: string;
+  title: string;
+  unitType: UnitType;
+  totalUnits: number;
+  minutesPerUnit: number | null;
+  startDate: string;
+  endDate: string;
+  childIds: string[];
+}
+
+async function setChildren(db: Queryable, familyId: string, id: string, childIds: string[]): Promise<void> {
+  await db.query("DELETE FROM assignment_child WHERE assignment_id = $1 AND family_id = $2", [id, familyId]);
+  await db.query(
+    "INSERT INTO assignment_child (assignment_id, child_id, family_id) SELECT $1, unnest($2::uuid[]), $3", [id, childIds, familyId]);
+}
+
+/** Insert an assignment and its children. Call inside a transaction; references must already be checked. */
+export async function createAssignment(db: Queryable, familyId: string, a: AssignmentInput): Promise<string> {
+  const { rows } = await db.query<{ id: string }>(
+    `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, minutes_per_unit, start_date, end_date)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+    [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.minutesPerUnit, a.startDate, a.endDate]);
+  const id = rows[0]!.id;
+  await setChildren(db, familyId, id, a.childIds);
+  return id;
+}

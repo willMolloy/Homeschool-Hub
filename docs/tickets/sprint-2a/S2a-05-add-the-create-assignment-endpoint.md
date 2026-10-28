@@ -15,7 +15,7 @@ Body: `{ subjectId, title, unitType, totalUnits, minutesPerUnit?, startDate, end
 3. Insert in a transaction; return 201 with the list shape.
 
 ## Done when
-- [ ] A created assignment appears in `GET /api/assignments` and in `GET /api/plan`.
+- [x] A created assignment appears in `GET /api/assignments` and in `GET /api/plan`.
 
 ## Tests
 - valid → 201, rows in assignment + assignment_child
