@@ -92,6 +92,7 @@
   --color-grid: var(--tl-grid);
   --color-today: var(--tl-today);
   --color-hatch: var(--tl-hatch);
+  --color-total: var(--tl-total);
   --font-sans: var(--tl-font);
   --text-label: var(--tl-text-sm);
   --text-body: var(--tl-text-md);

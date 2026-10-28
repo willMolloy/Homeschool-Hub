@@ -156,6 +156,7 @@ export const CHROME: Record<ThemeName, Record<string, Oklch>> = {
     grid: oklch(0.9, 0.008, 250),
     today: oklch(0.55, 0.2, 27),
     hatch: oklch(0.82, 0.008, 250),
+    total: oklch(0.74, 0.008, 250),
   },
   dark: {
     background: oklch(0.2, 0.01, 260),
@@ -180,6 +181,7 @@ export const CHROME: Record<ThemeName, Record<string, Oklch>> = {
     grid: oklch(0.32, 0.012, 260),
     today: oklch(0.72, 0.17, 25),
     hatch: oklch(0.38, 0.012, 260),
+    total: oklch(0.56, 0.01, 260),
   },
 };
 

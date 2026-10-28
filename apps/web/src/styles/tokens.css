@@ -22,6 +22,7 @@
   --tl-grid: oklch(0.9 0.008 250);
   --tl-today: oklch(0.55 0.2 27);
   --tl-hatch: oklch(0.82 0.008 250);
+  --tl-total: oklch(0.74 0.008 250);
   --tl-subject-1: oklch(0.7527 0.1576 76.77);
   --tl-subject-1-label: oklch(0.2 0.01 260);
   --tl-subject-1-light: oklch(0.8227 0.1576 76.77);
@@ -123,6 +124,7 @@
   --tl-grid: oklch(0.32 0.012 260);
   --tl-today: oklch(0.72 0.17 25);
   --tl-hatch: oklch(0.38 0.012 260);
+  --tl-total: oklch(0.56 0.01 260);
   --tl-subject-1: oklch(0.7527 0.1576 76.77);
   --tl-subject-1-label: oklch(0.2 0.01 260);
   --tl-subject-1-light: oklch(0.8227 0.1576 76.77);

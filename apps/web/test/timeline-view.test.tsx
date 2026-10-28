@@ -70,7 +70,7 @@ describe("the Year timeline page", () => {
     expect(paths.length).toBeGreaterThan(10);
     for (const p of paths) expect((p as SVGPathElement).style.fill).toMatch(/^var\(--tl-subject-\d+(-light|-dark)?\)$/);
     const labels = [...svg.querySelectorAll("text.tl-lane-label")].map((t) => t.textContent);
-    expect(labels).toEqual([...expected.labels.map((l) => l.text), "Total"]);
+    expect(labels).toEqual(["All subjects", ...expected.labels.map((l) => l.text)]);
     expect(labels).toContain("Literature · Frank");
     expect(svg.querySelector("path.tl-totals")).not.toBeNull();
   });

@@ -12,6 +12,7 @@ From the Timeline Tools Page (stack, colour and typography choices for the year 
 | T-03b | [This Week: "Make an adjustment" and a calmer page](T-03b-this-week-adjustment.md) | T-03 | M |
 | T-04 | [Static SVG timeline at Year zoom, reachable in the app](T-04-static-svg-timeline.md) | T-03 | M |
 | T-05 | [Zoom presets Year / Fall / Spring with crossfade](T-05-zoom-presets.md) | T-04 | M |
+| T-05b | [All subjects bar pinned above the lanes](T-05b-all-subjects-bar.md) | T-05 | S |
 | T-06 | [Names inside the bars](T-06-names-inside-bars.md) | T-05 | M |
 | T-07 | Adjust sheet: Drawer with steppers *(written when started)* | T-04 | M |
 | T-08 | Drag to resize *(written when started)* | T-07 | M |

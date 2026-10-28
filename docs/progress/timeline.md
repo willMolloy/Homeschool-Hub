@@ -12,7 +12,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-03b This Week: "Make an adjustment" | a8a43a0, f04a4f5 | A "Make an adjustment" button per active child opens a Drawer (phones) or Dialog (≥ 640 px) with that child's check-in rows on subject pastels; collapsed rows; one week switcher replaces Prev/Next and "Review a past week"; debug items and the engine footer only in a dev build with `?debug=1`; borders replaced by spacing; quiet Skip |
 | T-04 Static SVG timeline at Year zoom | ed51f34 | `/timeline` route and a Timeline nav item; `Timeline.tsx` draws the T-03 layout (hatched breaks, month lines, labels above lanes, one path per band, Total strip, event strips, Today line and pill); Aug 1 – Jun 30 school year trimmed to planned weeks; screen-reader lane list; +5.6 KB gzip |
 | T-05 Zoom presets Year / Fall / Spring | db0db98 | Text toggle buttons beside the title; 200 ms opacity crossfade (old zoom on top, aria-hidden), instant with reduced motion; Today at its date in every zoom; no control when the grid doesn't cross New Year |
-| T-06 Names inside the bars | (this commit) | Name inside each bar where it fits, pinned left, cut with "…" (at least 4 characters) or left out; solid patch of the bar's swatch with its AA label colour; canvas `measureText` (cached) injected into the layout; fades with the zoom |
+| T-06 Names inside the bars | aa34054 | Name inside each bar where it fits, pinned left, cut with "…" (at least 4 characters) or left out; solid patch of the bar's swatch with its AA label colour; canvas `measureText` (cached) injected into the layout; fades with the zoom |
+| T-05b All subjects bar | (this commit) | DeeDee's request: the summed load of every lane as one grey bar pinned above the lanes, labelled "All subjects", 32 px at the family's heaviest point on one scale for every zoom; `--tl-total` token at the bar opacity |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -184,3 +185,10 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **Measuring:** the layout takes an injected `measureText`. The page passes a cached `OffscreenCanvas` measure in the page font. Tests and old browsers use an over-estimate, so names may be cut early but never overflow.
 - **Accessibility:** names are `aria-hidden`. The full titles are already in the screen-reader lane list.
 - Screenshots: `screens/t06-timeline-390.png`, `screens/t06-timeline-1280.png`, `screens/t06-timeline-fall-1280.png`.
+
+## T-05b — All subjects bar decisions (DeeDee's request, after T-04)
+
+- **Moved from the bottom to the top.** It sits under the axis and event strips, above every lane, on its own label row and centerline. "Pinned" means fixed at the top of the picture, not sticky on scroll. This is conservative and can be revisited.
+- **Sum, then normalise.** The thickness at each point is the sum of every lane. One scale is used for every zoom, so the heaviest point (daily or weekly) is 32 px, about the thickness of a heavy single lane. The pixels aren't stacked.
+- **Neutral grey `--tl-total`** at `--tl-bar-opacity`, replacing the T-04 muted strip at 0.35 opacity. Labelled "All subjects", with no legend or numbers.
+- Screenshots: `screens/t05b-timeline-390.png`, `screens/t05b-timeline-1280.png`.

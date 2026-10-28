@@ -25,7 +25,7 @@
 /* T-06: names on a solid patch of their own swatch (AA on every swatch; translucent alone misses it). */
 .tl-name-patch { fill-opacity: 1; }
 .tl-name { font-size: 11px; font-weight: 500; }
-.tl-totals { fill: var(--tl-muted-foreground); fill-opacity: 0.35; }
+.tl-totals { fill: var(--tl-total); fill-opacity: var(--tl-bar-opacity); }
 .tl-event { fill: var(--tl-muted-foreground); fill-opacity: 0.6; }
 .tl-today line { stroke: var(--tl-today); stroke-width: 2; }
 .tl-today rect { fill: var(--tl-today); }

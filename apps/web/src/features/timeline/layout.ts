@@ -173,6 +173,15 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 const WEEKDAY_OF_START = { mon: 1, sun: 0 } as const;
 
 /** Drawn height of one value: nothing at zero, otherwise at least the 2 px floor. */
+/**
+ * T-05b: px per point for the "All subjects" bar, so the family's heaviest point (daily or weekly) is
+ * TOTALS_HEIGHT_PX thick. 0 when nothing is planned.
+ */
+export function totalsPxPerPoint(totals: { daily: readonly number[]; weekly: readonly number[] }, maxPx = TOTALS_HEIGHT_PX): number {
+  const peak = Math.max(0, ...totals.daily, ...totals.weekly);
+  return peak > 0 ? maxPx / peak : 0;
+}
+
 export const bandHeight = (value: number, pxPerPoint: number): number => (value > 0 ? Math.max(value * pxPerPoint, MIN_BAND_PX) : 0);
 
 /** A row's height: its thickest drawn point anywhere on the grid, daily or weekly, so it never moves between zooms. */
@@ -245,7 +254,23 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     const spans = e.days.filter((i) => xs.isColumn(i)).map((i) => ({ x: xs.start(i), width: xs.columnWidth }));
     return { eventId: e.id, name: e.name, y, height: EVENT_ROW_PX, spans, d: rectsPath(spans.map((s) => ({ x: s.x, y, w: s.width, h: EVENT_ROW_PX }))) };
   });
-  const lanesTop = AXIS_HEIGHT_PX + model.events.length * (EVENT_ROW_PX + EVENT_ROW_GAP_PX) + (model.events.length ? LANE_GAP_PX : 0);
+  const eventsBottom = AXIS_HEIGHT_PX + model.events.length * (EVENT_ROW_PX + EVENT_ROW_GAP_PX) + (model.events.length ? LANE_GAP_PX : 0);
+
+  // T-05b: the "All subjects" bar, pinned above the lanes on its own label row and centerline. Its thickness is
+  // the sum of every lane, normalised so the family's heaviest point (at any zoom) is TOTALS_HEIGHT_PX.
+  const totalsLabelY = eventsBottom;
+  const totalsY = totalsLabelY + LABEL_ROW_PX;
+  const totalsScale = totalsPxPerPoint(model.totals);
+  const totalsCy = totalsY + TOTALS_HEIGHT_PX / 2;
+  const totalsSeries = detail === "weekly" ? model.totals.weekly : model.totals.daily;
+  const totals = {
+    labelY: totalsLabelY,
+    y: totalsY,
+    height: TOTALS_HEIGHT_PX,
+    cy: totalsCy,
+    d: totalsScale > 0 ? bandPath(bandColumns(totalsSeries, xs, totalsCy, totalsScale)) : "",
+  };
+  const lanesTop = totalsY + TOTALS_HEIGHT_PX + SUBJECT_GAP_PX;
 
   // Labels, rows and their bands. A child's name is only needed when there is more than one child.
   const manyChildren = new Set(model.lanes.flatMap((l) => l.children.map((c) => c.childId))).size > 1;
@@ -289,21 +314,6 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   });
   const lanesBottom = y;
 
-  // The total-load strip, on its own scale so the busiest day fills it, under its own label row like a lane.
-  const totalsLabelY = lanesBottom + (rows.length ? SUBJECT_GAP_PX : 0);
-  const totalsY = totalsLabelY + LABEL_ROW_PX;
-  const peak = Math.max(0, ...model.totals.daily, ...model.totals.weekly);
-  const totalsScale = peak > 0 ? TOTALS_HEIGHT_PX / peak : 0;
-  const totalsCy = totalsY + TOTALS_HEIGHT_PX / 2;
-  const totalsSeries = detail === "weekly" ? model.totals.weekly : model.totals.daily;
-  const totals = {
-    labelY: totalsLabelY,
-    y: totalsY,
-    height: TOTALS_HEIGHT_PX,
-    cy: totalsCy,
-    d: totalsScale > 0 ? bandPath(bandColumns(totalsSeries, xs, totalsCy, totalsScale)) : "",
-  };
-
   // Breaks: family-wide ones span every lane and the totals; per-child ones only that child's rows.
   const breaks: BreakRect[] = [];
   for (const b of model.breaks) {
@@ -314,7 +324,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     const w = xs.end(to) - x;
     if (w <= 0) continue;
     if (b.childIds.length === 0) {
-      breaks.push({ breakId: b.id, label: b.label, x, y: lanesTop, width: w, height: totalsY + TOTALS_HEIGHT_PX - lanesTop });
+      breaks.push({ breakId: b.id, label: b.label, x, y: totalsY, width: w, height: Math.max(lanesBottom, totalsY + TOTALS_HEIGHT_PX) - totalsY });
     } else {
       for (const span of childSpans.values()) {
         if (b.childIds.includes(span.childId)) breaks.push({ breakId: b.id, label: b.label, x, y: span.top, width: w, height: span.bottom - span.top });
@@ -329,7 +339,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     zoom: options.zoom,
     detail,
     width,
-    height: totalsY + TOTALS_HEIGHT_PX + BOTTOM_PAD_PX,
+    height: Math.max(lanesBottom, totalsY + TOTALS_HEIGHT_PX) + BOTTOM_PAD_PX,
     pxPerPoint,
     plot: { x: plotX, width: plotWidth, columnWidth: xs.columnWidth, columns: xs.columns, first, last },
     rows,

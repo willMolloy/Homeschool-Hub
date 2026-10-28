@@ -7,7 +7,7 @@ import { useId } from "react";
 import { AXIS_HEIGHT_PX, LABEL_ROW_PX, type TimelineLayout } from "./layout";
 import type { ChildStep } from "./model";
 
-/** Room under the totals for the Today pill. */
+/** Room under the lanes for the Today pill. */
 export const TODAY_PILL_PX = 22;
 const PILL_W = 44;
 const PILL_H = 18;
@@ -19,6 +19,9 @@ export const bandFill = (slot: number, step: ChildStep) => `var(--tl-subject-${s
 /** T-06: the AA label colour picked for each swatch (light or dark text, from the tokens). */
 export const nameFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]}-label)`;
 
+/** T-05b: the label of the summed bar pinned above the lanes. */
+export const TOTALS_LABEL = "All subjects";
+
 export interface TimelineProps {
   layout: TimelineLayout;
   /** The accessible name of the picture (the lanes are listed for screen readers next to it). */
@@ -27,7 +30,7 @@ export interface TimelineProps {
 
 export function Timeline({ layout, label }: TimelineProps) {
   const hatchId = `tl-hatch-${useId().replace(/:/g, "")}`;
-  const bottom = layout.totals.y + layout.totals.height;
+  const bottom = Math.max(layout.lanesBottom, layout.totals.y + layout.totals.height);
   const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
   const pillX = layout.todayX === null ? 0 : Math.max(0, Math.min(layout.width - PILL_W, layout.todayX - PILL_W / 2));
 
@@ -58,18 +61,18 @@ export function Timeline({ layout, label }: TimelineProps) {
       </g>
 
       <g className="tl-labels">
+        <text className="tl-lane-label" x={layout.plot.x} y={layout.totals.labelY + LABEL_BASELINE}>{TOTALS_LABEL}</text>
         {layout.labels.map((l) => (
           <text key={l.laneKey} className="tl-lane-label" x={l.x} y={l.y + LABEL_BASELINE}>{l.text}</text>
         ))}
-        <text className="tl-lane-label" x={layout.plot.x} y={layout.totals.labelY + LABEL_BASELINE}>Total</text>
       </g>
 
       <g className="tl-bands">
+        {layout.totals.d ? <path className="tl-totals" d={layout.totals.d} /> : null}
         {layout.bands.map((b) => (b.d ? (
           <path key={`${b.rowKey}-${b.assignmentId}`} className="tl-band" d={b.d} style={{ fill: bandFill(b.paletteSlot, b.step) }}
             data-assignment={b.assignmentId} />
         ) : null))}
-        {layout.totals.d ? <path className="tl-totals" d={layout.totals.d} /> : null}
       </g>
 
       <g className="tl-names" aria-hidden="true">
