@@ -74,7 +74,7 @@ describe.skipIf(!hasDb)("POST /api/assignments (integration)", () => {
   });
 
   it("unknown keys (family_id, familyId, archived) → 400 naming them; nothing inserted (RF-09)", async () => {
-    const count = async () => (await pool.query("SELECT count(*)::int AS n FROM assignment")).rows[0].n as number;
+    const count = async () => (await pool.query("SELECT count(*)::int AS n FROM assignment WHERE family_id = ANY($1::uuid[])", [[a.familyId, b.familyId]])).rows[0].n as number;
     const before = await count();
     const res = await req("POST", "/api/assignments", { ...valid(), title: "Keys", family_id: b.familyId, familyId: b.familyId, archived: true });
     expect(res.statusCode).toBe(400);

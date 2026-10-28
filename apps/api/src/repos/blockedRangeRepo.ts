@@ -4,7 +4,7 @@
  * No children = the whole family.
  */
 import type { BlockedKind } from "@hh/engine";
-import type { Queryable } from "../db";
+import type { Queryable, Tx } from "../db";
 
 export type { BlockedKind };
 
@@ -56,30 +56,30 @@ export async function getBlockedRange(db: Queryable, familyId: string, id: strin
   return rows[0] ?? null;
 }
 
-/** Lock one of the family's ranges and return it, or null. Call inside a transaction. */
-export async function lockBlockedRange(db: Queryable, familyId: string, id: string): Promise<BlockedRangeRow | null> {
-  const { rowCount } = await db.query("SELECT 1 FROM blocked_range WHERE id = $1 AND family_id = $2 FOR UPDATE", [id, familyId]);
-  return rowCount ? getBlockedRange(db, familyId, id) : null;
+/** Lock one of the family's ranges and return it, or null. */
+export async function lockBlockedRange(tx: Tx, familyId: string, id: string): Promise<BlockedRangeRow | null> {
+  const { rowCount } = await tx.query("SELECT 1 FROM blocked_range WHERE id = $1 AND family_id = $2 FOR UPDATE", [id, familyId]);
+  return rowCount ? getBlockedRange(tx, familyId, id) : null;
 }
 
-async function setChildren(db: Queryable, familyId: string, id: string, childIds: string[]): Promise<void> {
-  await db.query("DELETE FROM blocked_range_child WHERE blocked_range_id = $1 AND family_id = $2", [id, familyId]);
+async function setChildren(tx: Tx, familyId: string, id: string, childIds: string[]): Promise<void> {
+  await tx.query("DELETE FROM blocked_range_child WHERE blocked_range_id = $1 AND family_id = $2", [id, familyId]);
   if (childIds.length) {
-    await db.query("INSERT INTO blocked_range_child (blocked_range_id, child_id, family_id) SELECT $1, unnest($2::uuid[]), $3", [id, childIds, familyId]);
+    await tx.query("INSERT INTO blocked_range_child (blocked_range_id, child_id, family_id) SELECT $1, unnest($2::uuid[]), $3", [id, childIds, familyId]);
   }
 }
 
-/** Call inside a transaction; references must already be checked. */
-export async function createBlockedRange(db: Queryable, familyId: string, b: BlockedRangeInput): Promise<string> {
-  const { rows } = await db.query<{ id: string }>(
+/** References must already be checked. */
+export async function createBlockedRange(tx: Tx, familyId: string, b: BlockedRangeInput): Promise<string> {
+  const { rows } = await tx.query<{ id: string }>(
     "INSERT INTO blocked_range (family_id, label, kind, start_date, end_date) VALUES ($1, $2, $3, $4, $5) RETURNING id",
     [familyId, b.label, b.kind, b.startDate, b.endDate]);
-  await setChildren(db, familyId, rows[0]!.id, b.childIds);
+  await setChildren(tx, familyId, rows[0]!.id, b.childIds);
   return rows[0]!.id;
 }
 
-/** Call inside a transaction, after lockBlockedRange. */
-export async function updateBlockedRange(db: Queryable, familyId: string, id: string, p: Partial<BlockedRangeInput>): Promise<void> {
+/** After lockBlockedRange. */
+export async function updateBlockedRange(tx: Tx, familyId: string, id: string, p: Partial<BlockedRangeInput>): Promise<void> {
   const cols: Record<string, unknown> = { label: p.label, kind: p.kind, start_date: p.startDate, end_date: p.endDate };
   const sets = ["updated_at = now()"];
   const params: unknown[] = [id, familyId];
@@ -88,8 +88,8 @@ export async function updateBlockedRange(db: Queryable, familyId: string, id: st
     params.push(v);
     sets.push(`${col} = $${params.length}`);
   }
-  await db.query(`UPDATE blocked_range SET ${sets.join(", ")} WHERE id = $1 AND family_id = $2`, params);
-  if (p.childIds) await setChildren(db, familyId, id, p.childIds);
+  await tx.query(`UPDATE blocked_range SET ${sets.join(", ")} WHERE id = $1 AND family_id = $2`, params);
+  if (p.childIds) await setChildren(tx, familyId, id, p.childIds);
 }
 
 /** true when a row was deleted. Children rows go with it (ON DELETE CASCADE). */

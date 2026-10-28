@@ -11,6 +11,17 @@ export type Db = pg.Pool;
 /** Anything that can run a query: the pool or a checked-out client inside a transaction. */
 export type Queryable = Pick<pg.Pool, "query"> | pg.PoolClient;
 
+declare const txBrand: unique symbol;
+declare const readTxBrand: unique symbol;
+/**
+ * A client inside an open BEGIN…COMMIT, handed out only by `withTransaction`. Repo functions that run
+ * several statements (lock + update, insert + link rows, advisory lock + insert) take a `Tx`, so passing
+ * the pool or a bare client is a compile error instead of a "call inside a transaction" comment.
+ */
+export type Tx = pg.PoolClient & { readonly [txBrand]: true };
+/** A client inside a READ ONLY REPEATABLE READ snapshot, handed out only by `withReadSnapshot`. */
+export type ReadTx = pg.PoolClient & { readonly [readTxBrand]: true };
+
 /** Where pool errors go (the app's logger; anything with a pino-style `error(obj, msg)`). */
 export interface PoolErrorLog {
   error(obj: object, msg: string): void;
@@ -36,11 +47,11 @@ export async function query<T = Record<string, unknown>>(db: Queryable, sql: str
 }
 
 /** Run `fn` inside BEGIN/COMMIT on one client; ROLLBACK on any error. */
-export async function withTransaction<T>(pool: pg.Pool, fn: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+export async function withTransaction<T>(pool: pg.Pool, fn: (tx: Tx) => Promise<T>): Promise<T> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const out = await fn(client);
+    const out = await fn(client as Tx);
     await client.query("COMMIT");
     return out;
   } catch (e) {
@@ -55,11 +66,11 @@ export async function withTransaction<T>(pool: pg.Pool, fn: (client: pg.PoolClie
  * Run `fn` on ONE client inside `BEGIN READ ONLY ISOLATION LEVEL REPEATABLE READ`: every read sees the same
  * snapshot and writes are rejected. COMMIT on success, ROLLBACK on error; the client is always released.
  */
-export async function withReadSnapshot<T>(pool: pg.Pool, fn: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+export async function withReadSnapshot<T>(pool: pg.Pool, fn: (tx: ReadTx) => Promise<T>): Promise<T> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN READ ONLY ISOLATION LEVEL REPEATABLE READ");
-    const out = await fn(client);
+    const out = await fn(client as ReadTx);
     await client.query("COMMIT");
     return out;
   } catch (e) {

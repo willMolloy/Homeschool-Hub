@@ -16,8 +16,8 @@ Repo functions that run several statements take a `Tx` (a client inside `withTra
 3. `rosterRepo.create(tx, …)`: routes wrap the call in `withTransaction`. Remove `isPool`.
 
 ## Done when
-- [ ] `rg isPool apps/api` finds nothing.
-- [ ] Passing `app.db` to `createAssignment` fails typecheck.
+- [x] `rg isPool apps/api` finds nothing.
+- [x] Passing `app.db` to `createAssignment` fails typecheck.
 
 ## Tests
 - A type test (`// @ts-expect-error` with the pool) in the typecheck build.

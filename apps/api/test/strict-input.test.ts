@@ -78,12 +78,11 @@ describe.skipIf(!hasDb)("strict request input (integration)", () => {
   });
 
   it("POST /api/auth/login with an unknown key → 400 naming it; no session created", async () => {
-    const sessions = async () => (await pool.query("SELECT count(*)::int AS n FROM session")).rows[0].n as number;
-    const before = await sessions();
     const res = await app.inject({ method: "POST", url: "/api/auth/login", payload: { email: "a@example.com", password: "pw", remember: true } });
     expect(res.statusCode).toBe(400);
     expect(res.json()).toMatchObject({ error: "invalid_request", message: expect.stringContaining("remember") });
-    expect(await sessions()).toBe(before);
+    // Scoped, not a global session count: other test files log in concurrently.
+    expect(res.headers["set-cookie"]).toBeUndefined();
   });
 
   const LISTS = ["children", "subjects", "assignments", "events"];

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { withTransaction } from "../db";
 import { HttpError } from "../http/errors";
 import { Color, Name, SortOrder, UUID_RE, parseBody, parseListQuery } from "../http/validate";
 import { createChild, listChildren, toChildJson, updateChild } from "../repos/childRepo";
@@ -20,7 +21,7 @@ export async function childrenRoutes(app: FastifyInstance): Promise<void> {
 
   app.post("/api/children", async (req, reply) => {
     const body = parseBody(CreateBody, req.body);
-    const row = await createChild(app.db, req.familyId, body);
+    const row = await withTransaction(app.db, (tx) => createChild(tx, req.familyId, body));
     return reply.code(201).send(toChildJson(row));
   });
 

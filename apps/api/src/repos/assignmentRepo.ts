@@ -3,7 +3,7 @@
  * Archive instead of delete: progress logs reference assignments.
  */
 import type { UnitType } from "@hh/engine";
-import type { Queryable } from "../db";
+import type { Queryable, Tx } from "../db";
 
 export interface AssignmentRow {
   id: string;
@@ -73,33 +73,33 @@ export interface AssignmentInput {
   childIds: string[];
 }
 
-async function setChildren(db: Queryable, familyId: string, id: string, childIds: string[]): Promise<void> {
-  await db.query("DELETE FROM assignment_child WHERE assignment_id = $1 AND family_id = $2", [id, familyId]);
-  await db.query(
+async function setChildren(tx: Tx, familyId: string, id: string, childIds: string[]): Promise<void> {
+  await tx.query("DELETE FROM assignment_child WHERE assignment_id = $1 AND family_id = $2", [id, familyId]);
+  await tx.query(
     "INSERT INTO assignment_child (assignment_id, child_id, family_id) SELECT $1, unnest($2::uuid[]), $3", [id, childIds, familyId]);
 }
 
-/** Insert an assignment and its children. Call inside a transaction; references must already be checked. */
-export async function createAssignment(db: Queryable, familyId: string, a: AssignmentInput): Promise<string> {
-  const { rows } = await db.query<{ id: string }>(
+/** Insert an assignment and its children. References must already be checked. */
+export async function createAssignment(tx: Tx, familyId: string, a: AssignmentInput): Promise<string> {
+  const { rows } = await tx.query<{ id: string }>(
     `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, minutes_per_unit, start_date, end_date)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
     [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.minutesPerUnit, a.startDate, a.endDate]);
   const id = rows[0]!.id;
-  await setChildren(db, familyId, id, a.childIds);
+  await setChildren(tx, familyId, id, a.childIds);
   return id;
 }
 
 export type AssignmentPatch = Partial<AssignmentInput> & { archived?: boolean };
 
-/** Lock one of the family's assignments for update and return it, or null. Call inside a transaction. */
-export async function lockAssignment(db: Queryable, familyId: string, id: string): Promise<AssignmentRow | null> {
-  const { rowCount } = await db.query("SELECT 1 FROM assignment WHERE id = $1 AND family_id = $2 FOR UPDATE", [id, familyId]);
-  return rowCount ? getAssignment(db, familyId, id) : null;
+/** Lock one of the family's assignments for update and return it, or null. */
+export async function lockAssignment(tx: Tx, familyId: string, id: string): Promise<AssignmentRow | null> {
+  const { rowCount } = await tx.query("SELECT 1 FROM assignment WHERE id = $1 AND family_id = $2 FOR UPDATE", [id, familyId]);
+  return rowCount ? getAssignment(tx, familyId, id) : null;
 }
 
-/** Apply the given fields (and replace children when `childIds` is sent). Call inside a transaction. */
-export async function updateAssignment(db: Queryable, familyId: string, id: string, p: AssignmentPatch): Promise<void> {
+/** Apply the given fields (and replace children when `childIds` is sent). */
+export async function updateAssignment(tx: Tx, familyId: string, id: string, p: AssignmentPatch): Promise<void> {
   const cols: Record<string, unknown> = {
     subject_id: p.subjectId, title: p.title, unit_type: p.unitType, total_units: p.totalUnits,
     minutes_per_unit: p.minutesPerUnit, start_date: p.startDate, end_date: p.endDate,
@@ -113,6 +113,6 @@ export async function updateAssignment(db: Queryable, familyId: string, id: stri
   }
   if (p.archived !== undefined) sets.push(p.archived ? "archived_at = COALESCE(archived_at, now())" : "archived_at = NULL");
   sets.push("updated_at = now()");
-  await db.query(`UPDATE assignment SET ${sets.join(", ")} WHERE id = $1 AND family_id = $2`, params);
-  if (p.childIds) await setChildren(db, familyId, id, p.childIds);
+  await tx.query(`UPDATE assignment SET ${sets.join(", ")} WHERE id = $1 AND family_id = $2`, params);
+  if (p.childIds) await setChildren(tx, familyId, id, p.childIds);
 }

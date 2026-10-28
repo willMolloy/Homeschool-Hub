@@ -52,7 +52,7 @@ describe.skipIf(!hasDb)("POST /api/subjects (integration)", () => {
   });
 
   it("family_id in the body → 400 naming it; nothing inserted (RF-09)", async () => {
-    const count = async () => (await pool.query("SELECT count(*)::int AS n FROM subject")).rows[0].n as number;
+    const count = async () => (await pool.query("SELECT count(*)::int AS n FROM subject WHERE family_id = ANY($1::uuid[])", [[a.familyId, other.familyId]])).rows[0].n as number;
     const before = await count();
     const res = await post({ name: "Sneaky", family_id: other.familyId, familyId: other.familyId });
     expect(res.statusCode).toBe(400);
