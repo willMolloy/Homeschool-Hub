@@ -18,7 +18,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-31 `defaultWeight` on the subject endpoints | 958f9b4 | |
 | S2b-09 weight-suggestion endpoint | e8e6eb3 | |
 | S2b-32 subject default weight in the engine (0.2.1) | 2a42df0 | |
-| S2b-33 load subject default weights into the plan | (this commit) | |
+| S2b-33 load subject default weights into the plan | b5b9bc4 | |
+| S2b-10 weight field on the assignment form | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -38,6 +39,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 
 - **S2b-32 — matching entry.** `planChild` uses the `subjectWeights` entry whose subject *and* unit match the assignment; other entries are ignored. A non-positive or non-finite default falls back to the built-in, the same as `weightPerUnitOf`.
 - **S2b-33 — where the demo default lives.** The demo family is seeded from `packages/engine/test/fixtures/sample-family.ts` by `db/seed.ts` (`db/demo.ts` only calls `seed`), so Math's lessons-20 default was added to the fixture as `subjectWeights` and written by `seed`. That keeps "API output equals the engine fixture" true: the load-plan comparison now passes the fixture's `subjectWeights` too, and Fractions unit plans at 20 a lesson with source `subject`. `plan-contract` sets the default through `PATCH /api/subjects/:id` and checks the plan says `subject`. Archived subjects' defaults are loaded (harmless: their assignments are still left out by the existing archived-subject rule).
+
+- **S2b-10 — unit change and card text.** Changing the unit in the form clears the weight (blank → null) rather than keeping a number meant for another unit; S2b-11 will put the suggestion there. The PATCH always carries `weightPerUnit` when the unit changes. The card resolves the weight with the engine's `weightPerUnitOf` against the subject's `defaultWeight` from `/api/subjects`, so it says "(subject)" only when the default is for the same unit (D23). `Subject.defaultWeight` was added to the web types now (the API has returned it since S2b-31). `minutesPerUnit` stays on the web type as optional and is never sent; `BODY_KEYS` keeps it until S2b-13 because the API still accepts it.
 
 ## Deferred
 

@@ -1,7 +1,7 @@
 /** Response shapes of the API. Kept in sync with apps/api by hand (Sprint 1). */
-import type { BlockedKind, ChildPlan, SubjectRule, UnitType, WeekStart } from "@hh/engine";
+import type { BlockedKind, ChildPlan, SubjectDefaultWeight, SubjectRule, UnitType, WeekStart } from "@hh/engine";
 
-export type { BlockedKind, UnitType, WeekStart };
+export type { BlockedKind, SubjectDefaultWeight, UnitType, WeekStart };
 
 /** `{ error, message? }` from every non-2xx response. */
 export interface ApiErrorBody {
@@ -46,6 +46,8 @@ export interface Subject {
   color: string | null;
   sortOrder: number;
   archived: boolean;
+  /** S2b-31: the subject's default bar width for one unit type, or null. */
+  defaultWeight: SubjectDefaultWeight | null;
 }
 
 /** GET /api/health */
@@ -71,8 +73,10 @@ export interface Assignment {
   title: string;
   unitType: UnitType;
   totalUnits: number;
-  /** null = the unit-type default (estimated). */
-  minutesPerUnit: number | null;
+  /** Relative effort per unit (S2b-06). null = the subject's default for this unit, else the built-in. */
+  weightPerUnit: number | null;
+  /** Legacy, still returned until S2b-13. The web no longer reads or sends it. */
+  minutesPerUnit?: number | null;
   startDate: string;
   endDate: string;
   childIds: string[];

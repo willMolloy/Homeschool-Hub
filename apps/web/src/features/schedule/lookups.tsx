@@ -1,6 +1,6 @@
 /** Children and subjects (archived included, so old rows still show names) for the schedule screens. */
 import type { ReactNode } from "react";
-import type { Child, Subject } from "../../api/types";
+import type { Child, Subject, SubjectDefaultWeight } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { BackToSchedule } from "./ScheduleHub";
 
@@ -9,6 +9,8 @@ export interface Lookups {
   subjects: Subject[];
   childName: (id: string) => string;
   subjectName: (id: string) => string;
+  /** The subject's default weight (S2b-31), or null when it has none or is unknown. */
+  subjectDefault: (id: string) => SubjectDefaultWeight | null;
 }
 
 const bySort = <T extends { sortOrder: number }>(a: T, b: T) => a.sortOrder - b.sortOrder;
@@ -50,6 +52,7 @@ export function WithLookups({ title, children }: { title: string; children: (l: 
         subjects: subjectList,
         childName: (id) => cMap.get(id)?.name ?? "Unknown child",
         subjectName: (id) => sMap.get(id)?.name ?? "Unknown subject",
+        subjectDefault: (id) => sMap.get(id)?.defaultWeight ?? null,
       })}
     </>
   );

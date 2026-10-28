@@ -1,14 +1,15 @@
 /** /schedule/assignments (S2a-14): list, add, edit, archive. */
 import { useId, useState, type FormEvent, type ReactNode } from "react";
-import { DEFAULT_MINUTES_PER_UNIT, UNIT_TYPES } from "@hh/engine";
+import { DEFAULT_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, UNIT_TYPES } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
 import type { Assignment, UnitType } from "../../api/types";
 import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet } from "./formBits";
 import { WithLookups, type Lookups } from "./lookups";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
+import { formatWeight, weightCardText, weightHint } from "./weightText";
 
-/** Mirrors apps/api/src/http/scheduleLimits.ts. */
-export const LIMITS = { title: 120, totalUnits: 100_000, minutesPerUnit: 600, days: 1096 } as const;
+/** Mirrors apps/api/src/http/scheduleLimits.ts; weight bounds come from the engine (D2). */
+export const LIMITS = { title: 120, totalUnits: 100_000, weightPerUnit: MAX_WEIGHT_PER_UNIT, days: 1096 } as const;
 
 const UNIT_LABELS: Record<UnitType, { one: string; many: string }> = {
   lessons: { one: "lesson", many: "lessons" },
@@ -47,15 +48,14 @@ function AssignmentCard({ a, l }: { a: Assignment; l: Lookups }) {
       <span className="card-title">{a.title}</span>
       <span className="card-line">{l.subjectName(a.subjectId)} · {a.childIds.map(l.childName).join(", ")}</span>
       <span className="card-line">
-        {units(a.totalUnits, a.unitType)}
-        {a.unitType !== "minutes" ? ` · ${a.minutesPerUnit ?? `~${DEFAULT_MINUTES_PER_UNIT[a.unitType]}`} min each` : null}
+        {units(a.totalUnits, a.unitType)} · {weightCardText(a, l.subjectDefault(a.subjectId))}
       </span>
       <span className="card-line">{dateRange(a.startDate, a.endDate)}</span>
     </span>
   );
 }
 
-type Errors = Partial<Record<"subject" | "title" | "totalUnits" | "minutes" | "dates" | "children", string>>;
+type Errors = Partial<Record<"subject" | "title" | "totalUnits" | "weight" | "dates" | "children", string>>;
 
 function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlotProps<Assignment> & { l: Lookups }) {
   const activeSubjects = l.subjects.filter((s) => !s.archived || s.id === item?.subjectId);
@@ -63,7 +63,7 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
   const [title, setTitle] = useState(item?.title ?? "");
   const [unitType, setUnitType] = useState<UnitType>(item?.unitType ?? "lessons");
   const [totalUnits, setTotalUnits] = useState(item ? String(item.totalUnits) : "");
-  const [minutes, setMinutes] = useState(item?.minutesPerUnit != null ? String(item.minutesPerUnit) : "");
+  const [weight, setWeight] = useState(item?.weightPerUnit != null ? String(item.weightPerUnit) : "");
   const [startDate, setStartDate] = useState(item?.startDate ?? "");
   const [endDate, setEndDate] = useState(item?.endDate ?? "");
   const activeChildren = l.children.filter((c) => !c.archived);
@@ -71,7 +71,13 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const ids = { subject: useId(), title: useId(), unit: useId(), total: useId(), minutes: useId(), start: useId(), end: useId(), err: useId() };
+  const ids = { subject: useId(), title: useId(), unit: useId(), total: useId(), weight: useId(), start: useId(), end: useId(), err: useId() };
+
+  /** A weight means effort per *this* unit, so changing the unit clears it (D7; S2b-11 pre-fills a suggestion). */
+  function changeUnit(u: UnitType) {
+    setUnitType(u);
+    setWeight("");
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -84,11 +90,12 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
     else if (t.length > LIMITS.title) errs.title = `Title must be ${LIMITS.title} characters or fewer.`;
     const total = parsePositive(totalUnits, "Total", LIMITS.totalUnits);
     if (typeof total === "string") errs.totalUnits = total;
-    let mpu: number | null = null;
-    if (unitType !== "minutes" && minutes.trim()) {
-      const m = parsePositive(minutes, "Minutes", LIMITS.minutesPerUnit);
-      if (typeof m === "string") errs.minutes = m;
-      else mpu = m;
+    // Blank = null: the subject's default for this unit, else the built-in (D21: every unit type may set one).
+    let wpu: number | null = null;
+    if (weight.trim()) {
+      const w = parsePositive(weight, "Weight", LIMITS.weightPerUnit);
+      if (typeof w === "string") errs.weight = w;
+      else wpu = w;
     }
     const d = dateRangeError(startDate, endDate, LIMITS.days);
     if (d) errs.dates = d;
@@ -96,7 +103,7 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
     setErrors(errs);
     if (Object.keys(errs).length > 0 || typeof total === "string") return;
 
-    const full = { subjectId, title: t, unitType, totalUnits: total, minutesPerUnit: mpu, startDate, endDate, childIds };
+    const full = { subjectId, title: t, unitType, totalUnits: total, weightPerUnit: wpu, startDate, endDate, childIds };
     setSaving(true);
     try {
       if (!item) {
@@ -108,8 +115,8 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
       if (full.title !== item.title) patch.title = full.title;
       if (full.unitType !== item.unitType) patch.unitType = full.unitType;
       if (full.totalUnits !== item.totalUnits) patch.totalUnits = full.totalUnits;
-      // A unit change always restates the per-unit value: the API won't carry a weight across unit types (S2b-06, D7).
-      if (full.minutesPerUnit !== item.minutesPerUnit || patch.unitType) patch.minutesPerUnit = full.minutesPerUnit;
+      // A unit change always restates the weight: the API won't carry one across unit types (D7).
+      if (full.weightPerUnit !== item.weightPerUnit || patch.unitType) patch.weightPerUnit = full.weightPerUnit;
       if (full.startDate !== item.startDate) patch.startDate = full.startDate;
       if (full.endDate !== item.endDate) patch.endDate = full.endDate;
       if (!sameSet(full.childIds, item.childIds)) patch.childIds = full.childIds;
@@ -148,7 +155,7 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
         <input id={ids.title} type="text" value={title} autoComplete="off" onChange={(e) => setTitle(e.target.value)} {...inv(errors.title, ids.title)} />)}
       <div className="field-row">
         {field(ids.unit, "Unit", undefined,
-          <select id={ids.unit} value={unitType} onChange={(e) => setUnitType(e.target.value as UnitType)}>
+          <select id={ids.unit} value={unitType} onChange={(e) => changeUnit(e.target.value as UnitType)}>
             {UNIT_TYPES.map((u) => (
               <option key={u} value={u}>{UNIT_LABELS[u].many[0]!.toUpperCase() + UNIT_LABELS[u].many.slice(1)}</option>
             ))}
@@ -157,15 +164,13 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
           <input id={ids.total} type="number" inputMode="decimal" min="0" step="any" value={totalUnits}
             onChange={(e) => setTotalUnits(e.target.value)} {...inv(errors.totalUnits, ids.total)} />)}
       </div>
-      {unitType !== "minutes"
-        ? field(ids.minutes, `Minutes per ${UNIT_LABELS[unitType].one}`, errors.minutes,
-          <input id={ids.minutes} type="number" inputMode="decimal" min="0" step="any" value={minutes}
-            placeholder={String(DEFAULT_MINUTES_PER_UNIT[unitType])}
-            aria-describedby={errors.minutes ? `${ids.minutes}-err` : `${ids.minutes}-hint`}
-            aria-invalid={errors.minutes ? true : undefined}
-            onChange={(e) => setMinutes(e.target.value)} />,
-          <p id={`${ids.minutes}-hint`} className="hint">Leave blank to use the default ({DEFAULT_MINUTES_PER_UNIT[unitType]} min, estimated).</p>)
-        : null}
+      {field(ids.weight, `Weight per ${UNIT_LABELS[unitType].one}`, errors.weight,
+        <input id={ids.weight} type="number" inputMode="decimal" min={MIN_WEIGHT_PER_UNIT} max={MAX_WEIGHT_PER_UNIT} step="0.01" value={weight}
+          placeholder={formatWeight(DEFAULT_WEIGHT_PER_UNIT[unitType])}
+          aria-describedby={errors.weight ? `${ids.weight}-err` : `${ids.weight}-hint`}
+          aria-invalid={errors.weight ? true : undefined}
+          onChange={(e) => setWeight(e.target.value)} />,
+        <p id={`${ids.weight}-hint`} className="hint">{weightHint(unitType)}</p>)}
       <div className="field-row">
         {field(ids.start, "Start", undefined,
           <input id={ids.start} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} {...inv(errors.dates, ids.end)} />)}
