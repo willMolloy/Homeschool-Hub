@@ -196,4 +196,27 @@ UPDATE assignment SET weight_per_unit = NULL WHERE id = 'a0000000-0000-0000-0000
 UPDATE assignment SET weight_per_unit = 0.5 WHERE id = 'a0000000-0000-0000-0000-0000000000e2';
 DO $$ BEGIN RAISE NOTICE 'ok   weight_per_unit 0.01, 100 and NULL are fine, and a minutes row may hold 0.5'; END $$;
 
+-- 12. weight_choice: pages/chapters only, weight 0.01..100 or NULL, same-family child (005_weight_choice)
+INSERT INTO child (id, family_id, name) VALUES ('c0000000-0000-0000-0000-0000000000e1', 'f0000000-0000-0000-0000-0000000000e0', 'Weighted kid');
+INSERT INTO family (id, name, week_start) VALUES ('f0000000-0000-0000-0000-0000000000e9', 'Other weight family', 'mon');
+INSERT INTO child (id, family_id, name) VALUES ('c0000000-0000-0000-0000-0000000000e9', 'f0000000-0000-0000-0000-0000000000e9', 'Other kid');
+INSERT INTO weight_choice (family_id, child_id, assignment_id, unit_type, weight) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'c0000000-0000-0000-0000-0000000000e1', 'a0000000-0000-0000-0000-0000000000e1', 'pages', 1.4),
+  ('f0000000-0000-0000-0000-0000000000e0', 'c0000000-0000-0000-0000-0000000000e1', 'a0000000-0000-0000-0000-0000000000e1', 'chapters', NULL);
+SELECT pg_temp.expect_error($$INSERT INTO weight_choice (family_id, child_id, assignment_id, unit_type, weight) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'c0000000-0000-0000-0000-0000000000e1', 'a0000000-0000-0000-0000-0000000000e1', 'pages', 100.01)$$,
+  '23514', 'weight_choice weight above 100 is rejected');
+SELECT pg_temp.expect_error($$INSERT INTO weight_choice (family_id, child_id, assignment_id, unit_type, weight) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'c0000000-0000-0000-0000-0000000000e1', 'a0000000-0000-0000-0000-0000000000e1', 'pages', 0)$$,
+  '23514', 'weight_choice weight 0 is rejected');
+SELECT pg_temp.expect_error($$INSERT INTO weight_choice (family_id, child_id, assignment_id, unit_type, weight) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'c0000000-0000-0000-0000-0000000000e1', 'a0000000-0000-0000-0000-0000000000e1', 'lessons', 1)$$,
+  '23514', 'weight_choice for lessons is rejected');
+SELECT pg_temp.expect_error($$INSERT INTO weight_choice (family_id, child_id, assignment_id, unit_type, weight) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'c0000000-0000-0000-0000-0000000000e1', 'a0000000-0000-0000-0000-0000000000e1', 'minutes', 1)$$,
+  '23514', 'weight_choice for minutes is rejected');
+SELECT pg_temp.expect_error($$INSERT INTO weight_choice (family_id, child_id, assignment_id, unit_type, weight) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'c0000000-0000-0000-0000-0000000000e9', 'a0000000-0000-0000-0000-0000000000e1', 'pages', 1)$$,
+  '23503', 'weight_choice for another family''s child is rejected');
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

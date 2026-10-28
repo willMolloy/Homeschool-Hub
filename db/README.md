@@ -11,6 +11,7 @@ records itself in `schema_migration`. There is no migration runner yet — that'
 | `002_auth.sql` | Family login and sessions |
 | `003_minutes_unit.sql` | RF-10: a `minutes` assignment stores no `minutes_per_unit` |
 | `004_weight_per_unit.sql` | S2b-03, expand step: `assignment.weight_per_unit` (0.01–100, NULL = subject default, then built-in), backfilled from `minutes_per_unit` ÷ 2 (2 minutes = 1 point) |
+| `005_weight_choice.sql` | S2b-04: append-only `weight_choice` history (child, pages/chapters, weight or NULL, `chosen_at`), backfilled one row per child from weighted pages/chapters assignments |
 
 ## Tables (001_init.sql)
 

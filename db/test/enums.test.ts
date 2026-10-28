@@ -2,7 +2,7 @@
  * The SQL CHECK lists repeat the engine's enum constants (RF-08). This fails if
  * either side gains or loses a value without the other.
  */
-import { BLOCKED_KINDS, OVERRIDE_MODES, SUBJECT_RULES, UNIT_TYPES, WEEK_STARTS } from "@hh/engine";
+import { BLOCKED_KINDS, LEARNED_UNIT_TYPES, OVERRIDE_MODES, SUBJECT_RULES, UNIT_TYPES, WEEK_STARTS } from "@hh/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { migrate, MIGRATIONS_DIR } from "../migrate";
 import { createScratch, dropScratch, hasDb, q } from "./scratch";
@@ -16,6 +16,7 @@ const CHECKED: [table: string, column: string, values: readonly string[]][] = [
   ["event_subject_rule", "rule", SUBJECT_RULES],
   ["week_override", "mode", OVERRIDE_MODES],
   ["blocked_range", "kind", BLOCKED_KINDS],
+  ["weight_choice", "unit_type", LEARNED_UNIT_TYPES],
 ];
 
 /** The quoted literals in a CHECK definition, e.g. CHECK ((x = ANY (ARRAY['a'::text, 'b'::text]))). */
