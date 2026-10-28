@@ -3,12 +3,15 @@
  * This month), then the timeline across the page's
  * full width (full-bleed on phones). Changing zoom crossfades the old picture out over the new one, names included
  * (T-06: names sit inside the bars wherever they fit). T-07/T-07e: tapping a bar selects it and shows the edit bar at the bottom.
+ * T-08: bars can be dragged (body moves, edges change the start or end), previewing live and saving on release.
  * T-07c: with two or more children, a chip row (All, then each child) narrows it to one child, kept in `?child=`.
  */
 import { useCallback, useMemo, useRef, useState } from "react";
 import { EditBar } from "../features/timeline/EditBar";
 import { useAssignmentEdit } from "../features/timeline/useAssignmentEdit";
 import { useKeepAbove } from "../features/timeline/useKeepAbove";
+import { previewModel } from "../features/timeline/drag";
+import { useBarDrag, type DragPreview } from "../features/timeline/useBarDrag";
 import { hitTest } from "../features/timeline/hit";
 import { selectionFor } from "../features/timeline/select";
 import { layoutTimeline } from "../features/timeline/layout";
@@ -41,6 +44,9 @@ export function TimelinePage() {
   const [childParam, setChild] = useChildParam();
   const childId = shownChild(childParam, childList);
   const model = useMemo(() => (family ? forChild(family, childId) : undefined), [family, childId]);
+  // T-08: while a bar is dragged, the picture draws from a preview model (that assignment over its new dates).
+  const [preview, setPreview] = useState<DragPreview | null>(null);
+  const drawn = useMemo(() => (model && preview ? previewModel(model, preview.assignmentId, preview.span) : model), [model, preview]);
   const { ref, width } = useElementWidth<HTMLDivElement>(FALLBACK_WIDTH);
   const { zoom, leaving, setZoom, settle } = useZoomFade("year");
   const zooms = useMemo(() => (model ? availableZooms(model) : (["year"] as Zoom[])), [model]);
@@ -57,15 +63,16 @@ export function TimelinePage() {
   // The last detail drawn, for the detail threshold's hysteresis.
   const lastDetail = useRef<DrawnDetail | undefined>(undefined);
   const layout = useMemo(
-    () => layoutFor(model, shownZoom, { width, measureText, month, previousDetail: lastDetail.current }),
-    [model, shownZoom, width, measureText, month],
+    () => layoutFor(drawn, shownZoom, { width, measureText, month, previousDetail: lastDetail.current }),
+    [drawn, shownZoom, width, measureText, month],
   );
   lastDetail.current = layout?.detail;
   const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month }), [model, leaving, width, measureText, month]);
   // T-07: the selection lives beside the zoom, so it survives zoom changes and month flips.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const edit = useAssignmentEdit(applyAssignment);
-  const selection = model && selectedId ? selectionFor(model, assignments, selectedId) : null;
+  const picked = model && selectedId ? selectionFor(model, assignments, selectedId) : null;
+  const selection = picked && preview?.assignmentId === picked.assignmentId ? { ...picked, ...preview.span } : picked;
   const select = (id: string | null) => {
     setSelectedId(id);
     edit.clearError();
@@ -74,6 +81,11 @@ export function TimelinePage() {
   const stage = useRef<HTMLDivElement>(null);
   const keep = useKeepAbove<HTMLElement>(selection ? selectedId : null,
     (id) => [...(stage.current?.querySelectorAll(`:scope > :not(.tl-leaving) path[data-assignment="${id}"]`) ?? [])]);
+  const drag = useBarDrag({
+    stage, layout, model, zoom: shownZoom, selectedId: selection ? selectedId : null,
+    spanOf: (id) => { const a = assignments.find((x) => x.id === id); return a ? { startDate: a.startDate, endDate: a.endDate } : null; },
+    onSelect: select, onPreview: setPreview, onCommit: edit.save,
+  });
   const closeEdit = useCallback(() => setSelectedId(null), []);
   const empty = model !== undefined && model.lanes.length === 0;
   const ready = !failed && !loading && model && layout && !empty;
@@ -97,7 +109,7 @@ export function TimelinePage() {
           <p>Nothing planned yet.</p>
         ) : (
           <>
-            <div ref={stage} className="tl-stage">
+            <div ref={stage} className="tl-stage" data-drag-ready={selection ? "" : undefined} {...drag}>
               <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
                 <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : ZOOM_LABEL[shownZoom]} timeline`}
                   selectedId={selection ? selectedId : null} onPick={pick} />

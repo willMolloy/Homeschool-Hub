@@ -75,3 +75,7 @@
 /* T-07c: the child filter, one quiet row of chips like the zoom presets. */
 .tl-children { margin-bottom: 4px; overflow-x: auto; scrollbar-width: none; }
 .tl-children button { flex: 0 0 auto; }
+
+/* T-08: once a bar is selected, a finger dragging sideways moves it; vertical pans and pinches stay the browser's. */
+.tl-stage[data-drag-ready] .tl-svg { touch-action: pan-y pinch-zoom; }
+.tl-stage .tl-svg { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }

@@ -19,7 +19,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-07c Child filter | b24ba30 | DeeDee's request: one row of chips under the title (All, then each child with something planned), hidden with one child; one child's view keeps only their sub-lanes, breaks and events, and recomputes the All subjects bar for that child at 32 px over that view's peak; palette slots don't move; choice kept in `?child=<id>` (replace), unknown ids fall back to All |
 | T-07d Richer demo seed | 4bb9262 | DeeDee's request: the demo family is now `db/demo-family.ts`, a varied 2026–27 year (Treasure Island and Charlotte's Web in three weeks, back-to-back books, chapters beside pages, overlaps in one subject, lesson math all year, a January start, the science fair heavy for three weeks then lighter via week overrides, Labor Day, Thanksgiving week, Christmas, spring break, four events, one past check-in ahead and one behind); `seed()` takes the family to load, and tests keep the engine's sample family (`SAMPLE_FAMILY`) |
 | T-07e Edit bar at the bottom | e998596 | DeeDee's request: the adjust sheet (a modal) is replaced by a slim edit bar fixed to the bottom of the viewport (above the tab bar on phones): move a week back or forward, Start and End date pickers, end a week earlier or later, Reset after a change, ×; the selected bar is kept above it; the API refuses date changes that would leave the latest check-in outside the assignment |
-| T-07f This month shows only what is in the month | (this commit) | At This month, rows, lanes and subjects with nothing in the month are left out; rows are packed from the whole year first, so a bar keeps its row across zooms |
+| T-07f This month shows only what is in the month | 9dad6cc | At This month, rows, lanes and subjects with nothing in the month are left out; rows are packed from the whole year first, so a bar keeps its row across zooms |
+| T-08 Drag a bar | (this commit) | DeeDee's request: drag the body to move an assignment, an end to change its start or end; whole weeks zoomed out, school days at This month; live preview of that lane and All subjects with the dates in the edit bar; saved on release, Reset undoes it; touch drags only the selected bar so the page still scrolls |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -260,4 +261,14 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **Rows are not repacked.** Packing still uses the whole year, and empty rows are then dropped, so a bar never changes row when switching zoom (the T-03 rule).
 - **Only This month.** Year, Fall and Spring keep every lane, as asked. The screen-reader lanes list still lists everything.
 - **Labels keep the "Subject · Child" form** whenever the family has more than one child, even if only one child's lane is left in a subject that month, so the label doesn't change between months.
+
+## T-08 — Drag decisions (DeeDee's request)
+
+- **Phones: selected-first, not long-press.** A tap selects (T-07e), then a sideways drag on the selected bar moves it. Long-press fights the browser's own long-press, and selected-first needs no timer. Before anything is selected, touches on the picture are the browser's as before.
+- **`touch-action: pan-y pinch-zoom` only while something is selected**, so vertical scrolling and pinch-zoom always work. If the browser takes a gesture for scrolling, the drag is cancelled and nothing is saved.
+- **Handles are 44 px zones centred on each end**, not drawn. On a bar shorter than three half-handles (66 px), the inside is body and only just outside each end resizes, so a short bar can still be moved.
+- **Snapping:** Year, Fall and Spring move by whole calendar weeks (one school week's width per step). This month moves each date by school days, skipping weekends. The edges never cross: start stops at the end and the end at the start.
+- **The preview is approximate on purpose.** It spreads the assignment's current planned values over the school days of the new dates (breaks for that child left out), keeping the total. The real plan comes back from the server after the save and replaces it. Re-running the engine in the browser would duplicate the server's rules.
+- **Rows may repack in the preview** when the dragged bar starts overlapping a neighbour; that is the T-03 no-overlap rule, applied live.
+- **Saving goes through the T-07e save**, so a drag sends only the changed fields, the check-in guard applies, server errors show in the edit bar, and Reset undoes it.
 
