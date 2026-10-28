@@ -3,6 +3,7 @@
  * Ownership always comes from the session; there is no family id in the URL.
  */
 import type { FastifyInstance } from "fastify";
+import { humanList, WEEK_STARTS } from "@hh/engine";
 import { z } from "zod";
 import { HttpError } from "../http/errors";
 import { TimeZone } from "../http/timeZone";
@@ -23,7 +24,7 @@ export const SchoolDays = z
 
 // Strict: a typo'd key is a 400 rather than a silent no-op on a settings form.
 const PatchBody = z
-  .strictObject({ name: Name.optional(), weekStart: z.enum(["mon", "sun"], "weekStart must be \"mon\" or \"sun\".").optional(), schoolDays: SchoolDays.optional(), timeZone: TimeZone.optional() })
+  .strictObject({ name: Name.optional(), weekStart: z.enum(WEEK_STARTS, `weekStart must be ${humanList(WEEK_STARTS.map((s) => `"${s}"`))}.`).optional(), schoolDays: SchoolDays.optional(), timeZone: TimeZone.optional() })
   .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, weekStart, schoolDays, timeZone.");
 
 const COLS = "name, week_start, school_days, time_zone";

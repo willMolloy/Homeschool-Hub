@@ -1,17 +1,11 @@
+import type { BlockedKind, OverrideMode, SubjectRule, UnitType, WeekStart } from "./enums";
+export type { BlockedKind, OverrideMode, SubjectRule, UnitType, WeekStart };
+
 /** A local calendar date, "YYYY-MM-DD". Never a timestamp. */
 export type LocalDate = string;
 
 /** 0 = Sunday ... 6 = Saturday. */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-
-export type WeekStart = "mon" | "sun";
-
-export type UnitType = "pages" | "chapters" | "lessons" | "minutes";
-
-/** What a recurring event does to a subject on its day. */
-export type SubjectRule = "skip" | "lighter" | "normal";
-
-export type OverrideMode = "keepEndDate" | "pushEndDate";
 
 /** Family-level calendar settings. `weekStart` is the one definition of a week. */
 export interface FamilyCalendar {
@@ -62,7 +56,8 @@ export interface BlockedPeriod {
   end: LocalDate;
   /** null/undefined/empty = whole family. */
   childIds?: string[] | null;
-  kind?: "vacation" | "holiday" | "sick" | string;
+  /** Informational only; the engine treats every kind the same. Stored values are a BlockedKind. */
+  kind?: BlockedKind | (string & {});
 }
 
 /** "This week, do N units instead" for one assignment (optionally for one child). */

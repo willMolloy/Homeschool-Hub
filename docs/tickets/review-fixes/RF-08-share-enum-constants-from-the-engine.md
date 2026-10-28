@@ -17,8 +17,8 @@ The same lists are typed by hand in the engine types, the zod enums, the web lab
 4. db test: read `pg_get_constraintdef` for `assignment.unit_type`, `event.default_rule`, `event_subject_rule.rule`, `week_override.mode` and `blocked_range.kind`, parse the quoted values and compare them with the engine arrays as sets.
 
 ## Done when
-- [ ] Each list is written once in TypeScript (plus once in SQL, guarded by the test).
-- [ ] API messages and web options are unchanged.
+- [x] Each list is written once in TypeScript (plus once in SQL, guarded by the test).
+- [x] API messages and web options are unchanged.
 
 ## Tests
 - db: the five CHECK constraints match the engine constants (and the test fails if either side gains a value).

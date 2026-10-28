@@ -1,7 +1,7 @@
 /** Response shapes of the API. Kept in sync with apps/api by hand (Sprint 1). */
-import type { ChildPlan, UnitType } from "@hh/engine";
+import type { BlockedKind, ChildPlan, SubjectRule, UnitType, WeekStart } from "@hh/engine";
 
-export type { UnitType };
+export type { BlockedKind, UnitType, WeekStart };
 
 /** `{ error, message? }` from every non-2xx response. */
 export interface ApiErrorBody {
@@ -13,7 +13,7 @@ export interface ApiErrorBody {
 export interface Me {
   familyId: string;
   name: string;
-  weekStart: "mon" | "sun";
+  weekStart: WeekStart;
   schoolDays: number[];
   /** IANA zone, e.g. "America/Chicago" (S2a-02). */
   timeZone: string;
@@ -80,7 +80,6 @@ export interface Assignment {
 }
 
 /** GET/POST/PATCH/DELETE /api/blocked-ranges (S2a-07) */
-export type BlockedKind = "vacation" | "holiday" | "sick" | "other";
 export interface BlockedRange {
   id: string;
   label: string | null;
@@ -92,7 +91,7 @@ export interface BlockedRange {
 }
 
 /** GET/POST/PATCH /api/events (S2a-08..10) */
-export type EventRule = "skip" | "lighter" | "normal";
+export type EventRule = SubjectRule;
 export interface ScheduleEvent {
   id: string;
   name: string;

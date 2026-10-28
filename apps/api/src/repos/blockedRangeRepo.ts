@@ -3,9 +3,10 @@
  * The table has no archived_at and nothing references a range, so delete really deletes.
  * No children = the whole family.
  */
+import type { BlockedKind } from "@hh/engine";
 import type { Queryable } from "../db";
 
-export type BlockedKind = "vacation" | "holiday" | "sick" | "other";
+export type { BlockedKind };
 
 export interface BlockedRangeRow {
   id: string;

@@ -1,5 +1,6 @@
 /** /schedule/events (S2a-16): recurring events such as co-op or piano, with per-subject rules. Archive only. */
 import { useId, useState, type FormEvent } from "react";
+import { SUBJECT_RULES } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
 import type { EventRule, ScheduleEvent } from "../../api/types";
 import { ChildPicker, dateRange, saveError, sameSet, shortDate, spanDays, WeekdayPicker, weekdaySummary } from "./formBits";
@@ -10,7 +11,7 @@ import { ScheduleList, type FormSlotProps } from "./ScheduleList";
 export const LIMITS = { name: 120 } as const;
 
 export const RULE_LABELS: Record<EventRule, string> = { skip: "Skip", lighter: "Lighter", normal: "Normal" };
-const RULES = Object.keys(RULE_LABELS) as EventRule[];
+const RULES = SUBJECT_RULES;
 /** Select value for "no rule of its own". */
 const USE_DEFAULT = "";
 

@@ -1,6 +1,6 @@
 /** /schedule/assignments (S2a-14): list, add, edit, archive. */
 import { useId, useState, type FormEvent, type ReactNode } from "react";
-import { DEFAULT_MINUTES_PER_UNIT } from "@hh/engine";
+import { DEFAULT_MINUTES_PER_UNIT, UNIT_TYPES } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
 import type { Assignment, UnitType } from "../../api/types";
 import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet } from "./formBits";
@@ -148,7 +148,7 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
       <div className="field-row">
         {field(ids.unit, "Unit", undefined,
           <select id={ids.unit} value={unitType} onChange={(e) => setUnitType(e.target.value as UnitType)}>
-            {(Object.keys(UNIT_LABELS) as UnitType[]).map((u) => (
+            {UNIT_TYPES.map((u) => (
               <option key={u} value={u}>{UNIT_LABELS[u].many[0]!.toUpperCase() + UNIT_LABELS[u].many.slice(1)}</option>
             ))}
           </select>)}

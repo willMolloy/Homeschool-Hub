@@ -1,5 +1,6 @@
 /** /api/events (S2a-08..10): recurring events such as co-op or piano. */
 import type { FastifyInstance } from "fastify";
+import { humanList, SUBJECT_RULES, type SubjectRule } from "@hh/engine";
 import { z } from "zod";
 import { HttpError } from "../http/errors";
 import { withTransaction } from "../db";
@@ -14,7 +15,7 @@ export const MAX_RULES = 100;
 
 const Name = z.string("name must be text.").trim().min(1, "Name is required.").max(MAX_TITLE, `Name must be ${MAX_TITLE} characters or fewer.`)
   .refine((s) => !s.includes("\u0000"), "Name can't contain a NUL character.");
-const Rule = z.enum(["skip", "lighter", "normal"], "Rules are skip, lighter or normal.");
+const Rule = z.enum(SUBJECT_RULES, `Rules are ${humanList(SUBJECT_RULES)}.`);
 /**
  * subjectId → rule. Checked by hand (not z.record) so that only own keys are read, every key must be a UUID
  * (which also rules out `__proto__`/`constructor`), and the result is a null-prototype object.
@@ -29,7 +30,7 @@ const SubjectRules = z.unknown().transform((v, ctx) => {
     ctx.addIssue({ code: "custom", message: `At most ${MAX_RULES} subject rules.` });
     return z.NEVER;
   }
-  const out = Object.create(null) as Record<string, "skip" | "lighter" | "normal">;
+  const out = Object.create(null) as Record<string, SubjectRule>;
   for (const k of keys) {
     if (!UUID_RE.test(k)) {
       ctx.addIssue({ code: "custom", message: "subjectRules keys must be subject ids." });
@@ -94,7 +95,7 @@ export async function eventsRoutes(app: FastifyInstance): Promise<void> {
   app.post("/api/events", async (req, reply) => {
     const b = parseBody(CreateBody, req.body);
     checkOrder(b.startDate, b.endDate);
-    const subjectRules = b.subjectRules ?? (Object.create(null) as Record<string, "skip" | "lighter" | "normal">);
+    const subjectRules = b.subjectRules ?? (Object.create(null) as Record<string, SubjectRule>);
     const row = await withTransaction(app.db, async (c) => {
       await checkRefs(c, req.familyId, { subjectIds: Object.keys(subjectRules), childIds: b.childIds ?? [] });
       const id = await createEvent(c, req.familyId, {

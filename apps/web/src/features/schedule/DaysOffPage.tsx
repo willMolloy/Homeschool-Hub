@@ -1,5 +1,6 @@
 /** /schedule/days-off (S2a-15): vacations, holidays and other blocked ranges. Delete is permanent. */
 import { useId, useState, type FormEvent } from "react";
+import { BLOCKED_KINDS } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
 import type { BlockedKind, BlockedRange } from "../../api/types";
 import { ChildPicker, dateRange, dateRangeError, saveError, sameSet, spanDays } from "./formBits";
@@ -106,7 +107,7 @@ function DaysOffForm({ item, onSaved, onCancel, extra, externalError, l }: FormS
       <div className="field">
         <label htmlFor={ids.kind}>Kind</label>
         <select id={ids.kind} value={kind} onChange={(e) => setKind(e.target.value as BlockedKind)}>
-          {(Object.keys(KIND_LABELS) as BlockedKind[]).map((k) => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
+          {BLOCKED_KINDS.map((k) => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
         </select>
       </div>
       <div className="field">

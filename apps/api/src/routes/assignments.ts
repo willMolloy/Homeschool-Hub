@@ -1,5 +1,6 @@
 /** /api/assignments (S2a-04..06). */
 import type { FastifyInstance } from "fastify";
+import { humanList, UNIT_TYPES } from "@hh/engine";
 import { z } from "zod";
 import { withTransaction } from "../db";
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, MinutesPerUnit, Title, TotalUnits } from "../http/scheduleLimits";
@@ -10,7 +11,7 @@ import { checkRefs } from "../repos/refs";
 
 const ListQuery = z.object({ includeArchived: z.enum(["true", "false"]).optional() });
 const Id = z.string("Must be an id.").regex(UUID_RE, "Must be a UUID.").transform((s) => s.toLowerCase());
-const UnitTypeField = z.enum(["pages", "chapters", "lessons", "minutes"], "unitType must be pages, chapters, lessons or minutes.");
+const UnitTypeField = z.enum(UNIT_TYPES, `unitType must be ${humanList(UNIT_TYPES)}.`);
 export const MAX_ASSIGNMENT_CHILDREN = 20;
 const Children = IdList(MAX_ASSIGNMENT_CHILDREN).min(1, "Pick at least one child.");
 

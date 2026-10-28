@@ -1,5 +1,6 @@
 /** /api/blocked-ranges (S2a-07): vacations and other days off. */
 import type { FastifyInstance } from "fastify";
+import { BLOCKED_KINDS, humanList } from "@hh/engine";
 import { z } from "zod";
 import { HttpError } from "../http/errors";
 import { withTransaction } from "../db";
@@ -14,7 +15,7 @@ import { checkRefs } from "../repos/refs";
 const Label = z.string("label must be text.").trim().max(60, "Label must be 60 characters or fewer.")
   .refine((s) => !s.includes("\u0000"), "Label can't contain a NUL character.")
   .transform((s) => (s === "" ? null : s));
-const Kind = z.enum(["vacation", "holiday", "sick", "other"], "kind must be vacation, holiday, sick or other.");
+const Kind = z.enum(BLOCKED_KINDS, `kind must be ${humanList(BLOCKED_KINDS)}.`);
 // [] = the whole family.
 const Children = IdList(20);
 
