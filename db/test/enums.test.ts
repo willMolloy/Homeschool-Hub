@@ -17,6 +17,7 @@ const CHECKED: [table: string, column: string, values: readonly string[]][] = [
   ["week_override", "mode", OVERRIDE_MODES],
   ["blocked_range", "kind", BLOCKED_KINDS],
   ["weight_choice", "unit_type", LEARNED_UNIT_TYPES],
+  ["subject", "default_weight_unit", UNIT_TYPES],
 ];
 
 /** The quoted literals in a CHECK definition, e.g. CHECK ((x = ANY (ARRAY['a'::text, 'b'::text]))). */

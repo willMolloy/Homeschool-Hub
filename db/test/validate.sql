@@ -219,4 +219,19 @@ SELECT pg_temp.expect_error($$INSERT INTO weight_choice (family_id, child_id, as
   ('f0000000-0000-0000-0000-0000000000e0', 'c0000000-0000-0000-0000-0000000000e9', 'a0000000-0000-0000-0000-0000000000e1', 'pages', 1)$$,
   '23503', 'weight_choice for another family''s child is rejected');
 
+-- 13. subject default weight: unit and weight together, weight 0.01..100 (006_subject_default_weight)
+INSERT INTO subject (id, family_id, name, default_weight_unit, default_weight) VALUES
+  ('50000000-0000-0000-0000-0000000000e3', 'f0000000-0000-0000-0000-0000000000e0', 'Default-weight math', 'lessons', 20),
+  ('50000000-0000-0000-0000-0000000000e4', 'f0000000-0000-0000-0000-0000000000e0', 'No default', NULL, NULL);
+SELECT pg_temp.expect_error($$UPDATE subject SET default_weight = 3 WHERE id = '50000000-0000-0000-0000-0000000000e4'$$,
+  '23514', 'subject default weight without a unit is rejected');
+SELECT pg_temp.expect_error($$UPDATE subject SET default_weight_unit = 'pages' WHERE id = '50000000-0000-0000-0000-0000000000e4'$$,
+  '23514', 'subject default unit without a weight is rejected');
+SELECT pg_temp.expect_error($$UPDATE subject SET default_weight = 0 WHERE id = '50000000-0000-0000-0000-0000000000e3'$$,
+  '23514', 'subject default weight 0 is rejected');
+SELECT pg_temp.expect_error($$UPDATE subject SET default_weight = 100.01 WHERE id = '50000000-0000-0000-0000-0000000000e3'$$,
+  '23514', 'subject default weight above 100 is rejected');
+SELECT pg_temp.expect_error($$UPDATE subject SET default_weight_unit = 'hours' WHERE id = '50000000-0000-0000-0000-0000000000e3'$$,
+  '23514', 'subject default unit outside the unit types is rejected');
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;
