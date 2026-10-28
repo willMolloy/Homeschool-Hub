@@ -3,8 +3,17 @@
 .timeline-page-header h1 { margin: 0; }
 /* T-05: zoom presets. Plain text buttons; the chosen one is bold on a soft fill. No borders. */
 .tl-zoom { display: flex; gap: 4px; }
+/* T-05c: ‹ month › under the presets, only with This month. */
+.tl-month-nav { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.tl-month-nav button { font: inherit; font-size: 20px; color: inherit; background: transparent; border: 0; border-radius: 999px; min-width: 44px; min-height: 44px; cursor: pointer; }
+.tl-month-nav button:disabled { opacity: 0.35; cursor: default; }
 .tl-zoom button { font: inherit; color: inherit; background: transparent; border: 0; border-radius: 999px; padding: 0 14px; min-height: 44px; cursor: pointer; }
 .tl-zoom button[aria-pressed="true"] { font-weight: 600; background: var(--line); }
+/* T-05c: phones get the presets as one compact row under the title. */
+@media (max-width: 639px) {
+  .timeline-page-header .tl-zoom { flex: 1 0 100%; justify-content: space-between; }
+  .tl-zoom button { padding: 0 10px; }
+}
 /* T-05: crossfade between zooms (keep in step with FADE_MS in useZoomFade.ts). */
 .tl-stage { position: relative; }
 .tl-leaving { position: absolute; top: 0; left: 0; pointer-events: none; animation: tl-fade-out 200ms ease-out forwards; }
@@ -16,6 +25,7 @@
 .timeline-bleed { margin-inline: -16px; }
 @media (min-width: 640px) { .timeline-bleed { margin-inline: 0; } }
 .tl-svg { display: block; touch-action: pan-x pan-y; font-family: inherit; }
+.tl-break-quiet { fill: var(--tl-hatch); fill-opacity: 0.12; }
 .tl-hatch-line { stroke: var(--tl-hatch); stroke-width: 2; }
 .tl-tick-month { stroke: var(--tl-grid); stroke-width: 1; }
 .tl-tick-week { stroke: var(--tl-grid); stroke-width: 1; stroke-opacity: 0.5; }

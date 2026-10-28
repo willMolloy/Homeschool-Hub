@@ -75,25 +75,27 @@ describe("the Year timeline page", () => {
     expect(svg.querySelector("path.tl-totals")).not.toBeNull();
   });
 
-  it("marks breaks with a hatch, months along the top, and today with the one strong line and pill", async () => {
+  it("marks breaks with a faint plain tint at Year (T-05c), months along the top, and today with the one strong line and pill", async () => {
     stubSample();
     const { svg } = await openTimeline();
     const hatchId = svg.querySelector("pattern")!.id;
     const breaks = svg.querySelectorAll(".tl-breaks rect");
     expect(breaks.length).toBeGreaterThan(0);
-    expect(breaks[0]).toHaveAttribute("fill", `url(#${hatchId})`);
+    expect(breaks[0]).toHaveClass("tl-break-quiet");
+    expect(breaks[0]).not.toHaveAttribute("fill", `url(#${hatchId})`);
     const months = [...svg.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
-    expect(months).toEqual(expect.arrayContaining(["Sep", "Oct", "Jan", "May"]));
+    // T-05c: a phone shows every other month label, so the axis stays calm.
+    expect(months).toEqual(["Sep", "Nov", "Jan", "Mar", "May"]);
     const today = svg.querySelector("[data-today]")!;
     expect(today.querySelectorAll("line")).toHaveLength(1);
     expect(today.textContent).toBe("Today");
   });
 
-  it("stays under 300 SVG nodes at Year zoom, at 360 px and with events", async () => {
+  it("stays under 300 SVG nodes at Year zoom, at 360 px and with events, which Year hides (T-05c)", async () => {
     stubSample({ events: SAMPLE_EVENTS });
     const { svg } = await openTimeline();
     expect(svg.querySelectorAll("*").length).toBeLessThan(300);
-    expect(svg.querySelectorAll("path.tl-event").length).toBe(SAMPLE_EVENTS.length);
+    expect(svg.querySelectorAll("path.tl-event").length).toBe(0);
   });
 
   it("lists every lane and its assignments for screen readers", async () => {
@@ -107,7 +109,7 @@ describe("the Year timeline page", () => {
     stubSample();
     await openTimeline();
     const main = screen.getByRole("main");
-    expect(within(main).getAllByRole("button").map((b) => b.textContent)).toEqual(["Year", "Fall", "Spring"]);
+    expect(within(main).getAllByRole("button").map((b) => b.textContent)).toEqual(["Year", "Fall", "Spring", "This month"]);
     expect(within(main).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Timeline"]);
     // Below the title: the picture, and the lane list that only screen readers get. Nothing else.
     const bleed = main.querySelector(".timeline-bleed")!;

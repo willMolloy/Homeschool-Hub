@@ -2,6 +2,8 @@
 
 **Source:** Timeline Tools Page (zoom section; the agreed zooms are Year, Fall and Spring only). **Depends on:** T-04. **Size:** M.
 
+> **Superseded in part by [T-05c](T-05c-calm-detail-and-this-month.md), at DeeDee's request.** The presets are now Year, Fall, Spring and This month, and detail follows the visible span (daily at 8 weeks or less, smooth above), not the preset. This replaces the earlier "Year, Fall and Spring only" decision. The rest of this ticket (the crossfade, Today anchoring, the control) stands.
+
 ## Goal
 
 A parent can switch the timeline between the whole year and each half. The change is a short crossfade (under 250 ms) and is instant with reduced motion. Today and selection stay anchored to their dates.

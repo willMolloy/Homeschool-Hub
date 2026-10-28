@@ -13,7 +13,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-04 Static SVG timeline at Year zoom | ed51f34 | `/timeline` route and a Timeline nav item; `Timeline.tsx` draws the T-03 layout (hatched breaks, month lines, labels above lanes, one path per band, Total strip, event strips, Today line and pill); Aug 1 – Jun 30 school year trimmed to planned weeks; screen-reader lane list; +5.6 KB gzip |
 | T-05 Zoom presets Year / Fall / Spring | db0db98 | Text toggle buttons beside the title; 200 ms opacity crossfade (old zoom on top, aria-hidden), instant with reduced motion; Today at its date in every zoom; no control when the grid doesn't cross New Year |
 | T-06 Names inside the bars | aa34054 | Name inside each bar where it fits, pinned left, cut with "…" (at least 4 characters) or left out; solid patch of the bar's swatch with its AA label colour; canvas `measureText` (cached) injected into the layout; fades with the zoom |
-| T-05b All subjects bar | (this commit) | DeeDee's request: the summed load of every lane as one grey bar pinned above the lanes, labelled "All subjects", 32 px at the family's heaviest point on one scale for every zoom; `--tl-total` token at the bar opacity |
+| T-05b All subjects bar | 8891fb4 | DeeDee's request: the summed load of every lane as one grey bar pinned above the lanes, labelled "All subjects", 32 px at the family's heaviest point on one scale for every zoom; `--tl-total` token at the bar opacity |
+| T-05c Calm detail and This month | (this commit) | DeeDee's request, replacing the earlier "Year/Fall/Spring only" decision: presets Year / Fall / Spring / This month (‹ › flip months); detail follows the visible span (`DETAIL_SPAN_WEEKS` = 8, 1-week hysteresis): daily steps and events at 8 weeks or less, smooth monotone curves over a 3-week moving average above, with quiet breaks and fewer phone month labels; All subjects bar follows the same rule |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -171,6 +172,8 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 
 ## T-05 — Zoom decisions
 
+> **Replaced in part by T-05c, at DeeDee's request:** the presets are no longer "Year, Fall and Spring only". This month is added, and detail follows the visible span rather than the preset. See "T-05c — Calm detail decisions" below.
+
 - **"Anchored":** every zoom fits the width, so there is no scroll to keep. Today is drawn at its own date in every zoom that shows it, and is absent in Spring while it's still fall. Zoom state lives on the page, so T-07's selection can sit beside it and survive zoom changes.
 - **Starts at Year** on every visit. It isn't remembered and doesn't jump to the half holding today. That's conservative and easy to change after the hand-test.
 - **Crossfade:** opacity only, 200 ms. The old picture sits on top and is `aria-hidden`. It's removed on `animationend` or by a timer, and is instant under reduced motion. Measured in the preview: 0.62 opacity at about 60 ms, then one layer left.
@@ -192,3 +195,14 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **Sum, then normalise.** The thickness at each point is the sum of every lane. One scale is used for every zoom, so the heaviest point (daily or weekly) is 32 px, about the thickness of a heavy single lane. The pixels aren't stacked.
 - **Neutral grey `--tl-total`** at `--tl-bar-opacity`, replacing the T-04 muted strip at 0.35 opacity. Labelled "All subjects", with no legend or numbers.
 - Screenshots: `screens/t05b-timeline-390.png`, `screens/t05b-timeline-1280.png`.
+
+## T-05c — Calm detail decisions (DeeDee's request; replaces "Year/Fall/Spring only")
+
+- **This replaces the earlier "Year, Fall and Spring only" zoom decision, at DeeDee's request.** The presets are Year, Fall, Spring and This month. This month opens on today's month, clamped to the grid, and ‹ › flip it. The 2:50 PM wording replaces the 2:45 PM "Month zoom".
+- **Detail follows the visible span**, with one constant, `DETAIL_SPAN_WEEKS` = 8, and 1 week of hysteresis. At 8 weeks or less: daily steps, event strips, the hatch, and week lines with dates. Above it: smooth curves, no events, breaks as a 0.12 tint, and month lines only. The All subjects bar follows the same rule on its one scale.
+- **Smoothing:** a centred 15-school-day (3-week) moving average per segment, so each assignment keeps its first and last day. Segments split at a week off. Thickness is rounded to even pixels and held through changes under 3 px, before the curve is drawn. The curve is monotone cubic through plateau centres, so it doesn't overshoot, and an end sliver narrower than 12 px joins its neighbour.
+- **Phones:** month labels at least 48 px apart (every other month at Year). The four presets sit on one compact row.
+- **Manual pinch, ctrl+wheel zoom and pan → its own ticket (T-07b) after T-07.** The presets and month flipping ship first.
+- **A month flip doesn't fade.** Only preset changes crossfade.
+- **Lanes move up once, at the threshold**, because the event rows aren't reserved when hidden. The crossfade covers it.
+- Screenshots: `screens/t05c-timeline-390.png`, `t05c-month-390.png`, `t05c-timeline-1280.png`. Before/after at 390 px in `/workspace/hh-preview-shots` (`before-smooth-*`, `after-smooth-*`, `after-month-390.png`).

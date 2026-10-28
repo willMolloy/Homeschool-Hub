@@ -110,10 +110,12 @@ describe("rows, centerlines and spacing", () => {
     }
   });
 
-  it.each(WIDTHS)("centerlines don't move between zooms or detail at %i px", (width) => {
-    const base = layoutTimeline(sample, { zoom: "year", width }).rows.map((r) => r.cy);
-    for (const zoom of ZOOMS) for (const detail of ["daily", "weekly"] as const) {
-      expect(layoutTimeline(sample, { zoom, width, detail }).rows.map((r) => r.cy)).toEqual(base);
+  // T-05c: event strips only show with daily detail, so the lanes start lower there; below lanesTop nothing moves.
+  it.each(WIDTHS)("centerlines don't move between zooms or detail at %i px (relative to the lanes' top)", (width) => {
+    const rel = (o: ReturnType<typeof layoutTimeline>) => o.rows.map((r) => r.cy - o.lanesTop);
+    const base = rel(layoutTimeline(sample, { zoom: "year", width }));
+    for (const zoom of ZOOMS) for (const detail of ["daily", "weekly", "smooth"] as const) {
+      expect(rel(layoutTimeline(sample, { zoom, width, detail }))).toEqual(base);
     }
   });
 

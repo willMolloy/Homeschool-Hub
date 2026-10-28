@@ -30,6 +30,8 @@ export interface TimelineProps {
 
 export function Timeline({ layout, label }: TimelineProps) {
   const hatchId = `tl-hatch-${useId().replace(/:/g, "")}`;
+  /** T-05c: zoomed out, breaks are a very faint plain tint instead of a hatch. */
+  const quiet = layout.detail === "smooth";
   const bottom = Math.max(layout.lanesBottom, layout.totals.y + layout.totals.height);
   const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
   const pillX = layout.todayX === null ? 0 : Math.max(0, Math.min(layout.width - PILL_W, layout.todayX - PILL_W / 2));
@@ -44,7 +46,8 @@ export function Timeline({ layout, label }: TimelineProps) {
 
       <g className="tl-breaks">
         {layout.breaks.map((b, i) => (
-          <rect key={`${b.breakId}-${i}`} x={b.x} y={b.y} width={b.width} height={b.height} fill={`url(#${hatchId})`}>
+          <rect key={`${b.breakId}-${i}`} x={b.x} y={b.y} width={b.width} height={b.height}
+            className={quiet ? "tl-break-quiet" : undefined} fill={quiet ? undefined : `url(#${hatchId})`}>
             {b.label ? <title>{b.label}</title> : null}
           </rect>
         ))}

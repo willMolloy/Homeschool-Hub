@@ -15,10 +15,11 @@ import { weekdayOf } from "@hh/engine";
 import { PX_PER_THICKNESS } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
 import { estimateTextWidth, placeName, type MeasureText } from "./names";
-import { bandPath, rectsPath, type BandColumn } from "./paths";
+import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { packRows } from "./rows";
+import { smoothSeries } from "./smooth";
 import { makeXScale, type XScale } from "./xscale";
-import { resolveDetail, zoomRange, type Detail, type Zoom } from "./zoom";
+import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, type Zoom } from "./zoom";
 
 /**
  * Horizontal room (DeeDee): no label column. Lane labels sit on their own short line above the lane, so
@@ -30,8 +31,11 @@ export const SIDE_PAD_PX = 4;
 export const LABEL_ROW_PX = 16;
 /** Month ticks along the top. */
 export const AXIS_HEIGHT_PX = 20;
-/** A month label is shown only when its slot is at least this wide. */
+/** A month label is shown only when its slot is at least this wide. T-05c: on phones, labels also keep this far apart. */
 export const MIN_TICK_LABEL_PX = 24;
+export const PHONE_MIN_TICK_LABEL_PX = 48;
+/** Layout widths under this are phones (matches the app's 640 px breakpoint). */
+export const PHONE_WIDTH_PX = 640;
 /** One strip row per recurring event, above the lanes. */
 export const EVENT_ROW_PX = 6;
 export const EVENT_ROW_GAP_PX = 2;
@@ -50,6 +54,10 @@ export interface LayoutOptions {
   /** Available width in CSS px. */
   width: number;
   detail?: Detail;
+  /** T-05c: the detail drawn before this layout, for the threshold's hysteresis. */
+  previousDetail?: DrawnDetail;
+  /** T-05c: the calendar month ("YYYY-MM") for the month zoom; defaults to the one holding today. */
+  month?: string | null;
   /** Pixels per thickness point; defaults to the shared scale (`PX_PER_THICKNESS`). */
   pxPerPoint?: number;
   /** T-06: text width for in-bar names; defaults to an over-estimate (the page passes a canvas measure). */
@@ -147,7 +155,10 @@ export interface Tick {
 
 export interface TimelineLayout {
   zoom: Zoom;
-  detail: "daily" | "weekly";
+  /** T-05c: daily steps (with events) at DETAIL_SPAN_WEEKS or less, smooth curves above. */
+  detail: DrawnDetail;
+  /** Visible span in calendar weeks. */
+  spanWeeks: number;
   width: number;
   height: number;
   pxPerPoint: number;
@@ -172,7 +183,6 @@ export interface TimelineLayout {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const WEEKDAY_OF_START = { mon: 1, sun: 0 } as const;
 
-/** Drawn height of one value: nothing at zero, otherwise at least the 2 px floor. */
 /**
  * T-05b: px per point for the "All subjects" bar, so the family's heaviest point (daily or weekly) is
  * TOTALS_HEIGHT_PX thick. 0 when nothing is planned.
@@ -182,6 +192,7 @@ export function totalsPxPerPoint(totals: { daily: readonly number[]; weekly: rea
   return peak > 0 ? maxPx / peak : 0;
 }
 
+/** Drawn height of one value: nothing at zero, otherwise at least the 2 px floor. */
 export const bandHeight = (value: number, pxPerPoint: number): number => (value > 0 ? Math.max(value * pxPerPoint, MIN_BAND_PX) : 0);
 
 /** A row's height: its thickest drawn point anywhere on the grid, daily or weekly, so it never moves between zooms. */
@@ -205,6 +216,28 @@ function bandColumns(series: readonly number[], xs: XScale, cy: number, pxPerPoi
   return out;
 }
 
+/** T-05c: the smooth look ignores thickness changes smaller than this, so the curve has no tiny jogs. */
+export const SMOOTH_DEADBAND_PX = 3;
+
+/**
+ * T-05c: columns for the smooth (zoomed-out) look: the smoothed series rounded to even pixels, held through
+ * changes under SMOOTH_DEADBAND_PX (no tiny jogs), and capped at the row's height.
+ */
+export function smoothColumns(series: readonly number[], xs: XScale, cy: number, pxPerPoint: number, maxPx: number): (BandColumn | null)[] {
+  const out: (BandColumn | null)[] = [];
+  let held = 0;
+  for (let i = xs.first; i <= xs.last; i++) {
+    if (!xs.isColumn(i)) continue;
+    const raw = (series[i] ?? 0) * pxPerPoint;
+    // Even heights keep both edges on whole pixels; a change under the dead band keeps the height held.
+    if (raw <= 0) held = 0;
+    else if (held === 0 || Math.abs(raw - held) >= SMOOTH_DEADBAND_PX) held = Math.max(MIN_BAND_PX, 2 * Math.round(raw / 2));
+    const h = Math.min(maxPx, held);
+    out.push(h > 0 ? { x0: xs.start(i), x1: xs.end(i), top: cy - h / 2, bottom: cy + h / 2 } : null);
+  }
+  return out;
+}
+
 /** Runs of touching columns as x spans. */
 function runsOf(columns: readonly (BandColumn | null)[]): { x0: number; x1: number }[] {
   const runs: { x0: number; x1: number }[] = [];
@@ -222,15 +255,17 @@ function runsOf(columns: readonly (BandColumn | null)[]): { x0: number; x1: numb
 
 export function layoutTimeline(model: TimelineModel, options: LayoutOptions): TimelineLayout {
   const pxPerPoint = options.pxPerPoint ?? PX_PER_THICKNESS;
-  const detail = resolveDetail(options.zoom, options.detail);
+  const range = zoomRange(model, options.zoom, options.month);
+  const weeks = spanWeeks(model, range);
+  const detail = resolveDetail(weeks, options.detail, options.previousDetail);
   const width = Math.max(0, options.width);
   const plotX = Math.min(SIDE_PAD_PX, width / 2);
   const plotWidth = Math.max(0, width - 2 * SIDE_PAD_PX);
-  const [first, last] = zoomRange(model, options.zoom) ?? [0, -1];
+  const [first, last] = range ?? [0, -1];
   const xs = makeXScale(model, first, last, plotX, plotWidth);
   const shown = (i: number) => i >= first && i <= last;
 
-  // Ticks: a line at each month start (labels where they fit); week lines too at Fall and Spring.
+  // Ticks: a line at each month start (labels where they fit).
   const ticks: Tick[] = [];
   const monthStarts: number[] = [];
   for (let i = first; i <= last; i++) if (i === first || model.dates[i]!.endsWith("-01")) monthStarts.push(i);
@@ -239,22 +274,44 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     const next = k + 1 < monthStarts.length ? xs.start(monthStarts[k + 1]!) : xs.x + xs.width;
     ticks.push({ index: i, x, kind: "month", label: next - x >= MIN_TICK_LABEL_PX ? MONTHS[Number(model.dates[i]!.slice(5, 7)) - 1]! : null });
   });
-  if (options.zoom !== "year") {
+  // Phones: every other month label at most, so the axis stays calm.
+  if (width < PHONE_WIDTH_PX) {
+    let lastLabel = -Infinity;
+    for (const t of ticks) {
+      if (!t.label) continue;
+      if (t.x - lastLabel < PHONE_MIN_TICK_LABEL_PX) t.label = null;
+      else lastLabel = t.x;
+    }
+  }
+  // Week lines only with daily detail (T-05c: zoomed out they are noise).
+  if (detail === "daily") {
     const startDay = WEEKDAY_OF_START[model.weekStart];
     const months = new Set(monthStarts);
     for (let i = first; i <= last; i++) {
-      if (weekdayOf(model.dates[i]!) === startDay && !months.has(i)) ticks.push({ index: i, x: xs.start(i), kind: "week", label: null });
+      if (weekdayOf(model.dates[i]!) !== startDay || months.has(i)) continue;
+      // Daily detail: week lines carry their day of the month, so a month's weeks can be told apart.
+      const label = detail === "daily" && xs.columnWidth * 5 >= MIN_TICK_LABEL_PX ? String(Number(model.dates[i]!.slice(8, 10))) : null;
+      ticks.push({ index: i, x: xs.start(i), kind: "week", label });
     }
     ticks.sort((a, b) => a.x - b.x || a.index - b.index);
   }
 
-  // Event strips, one row each, under the axis.
-  const events: EventStrip[] = model.events.map((e, row) => {
+  // Event strips, one row each, under the axis. T-05c: only with daily detail; zoomed out they are noise.
+  const shownEvents = detail === "smooth" ? [] : model.events;
+  const events: EventStrip[] = shownEvents.map((e, row) => {
     const y = AXIS_HEIGHT_PX + row * (EVENT_ROW_PX + EVENT_ROW_GAP_PX);
     const spans = e.days.filter((i) => xs.isColumn(i)).map((i) => ({ x: xs.start(i), width: xs.columnWidth }));
     return { eventId: e.id, name: e.name, y, height: EVENT_ROW_PX, spans, d: rectsPath(spans.map((s) => ({ x: s.x, y, w: s.width, h: EVENT_ROW_PX }))) };
   });
-  const eventsBottom = AXIS_HEIGHT_PX + model.events.length * (EVENT_ROW_PX + EVENT_ROW_GAP_PX) + (model.events.length ? LANE_GAP_PX : 0);
+  const eventsBottom = AXIS_HEIGHT_PX + shownEvents.length * (EVENT_ROW_PX + EVENT_ROW_GAP_PX) + (shownEvents.length ? LANE_GAP_PX : 0);
+
+  // T-05c: which series and outline a band uses at this detail.
+  const schoolColumns = model.dates.map((_, i) => i).filter((i) => model.schoolDay[i]);
+  const seriesFor = (a: { daily: readonly number[]; weekly: readonly number[] }) =>
+    detail === "smooth" ? smoothSeries(a.daily, schoolColumns) : detail === "weekly" ? a.weekly : a.daily;
+  const columnsFor = (series: readonly number[], cy: number, scale: number, maxPx: number) =>
+    detail === "smooth" ? smoothColumns(series, xs, cy, scale, maxPx) : bandColumns(series, xs, cy, scale);
+  const pathFor = detail === "smooth" ? smoothBandPath : bandPath;
 
   // T-05b: the "All subjects" bar, pinned above the lanes on its own label row and centerline. Its thickness is
   // the sum of every lane, normalised so the family's heaviest point (at any zoom) is TOTALS_HEIGHT_PX.
@@ -262,13 +319,12 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   const totalsY = totalsLabelY + LABEL_ROW_PX;
   const totalsScale = totalsPxPerPoint(model.totals);
   const totalsCy = totalsY + TOTALS_HEIGHT_PX / 2;
-  const totalsSeries = detail === "weekly" ? model.totals.weekly : model.totals.daily;
   const totals = {
     labelY: totalsLabelY,
     y: totalsY,
     height: TOTALS_HEIGHT_PX,
     cy: totalsCy,
-    d: totalsScale > 0 ? bandPath(bandColumns(totalsSeries, xs, totalsCy, totalsScale)) : "",
+    d: totalsScale > 0 ? pathFor(columnsFor(seriesFor(model.totals), totalsCy, totalsScale, TOTALS_HEIGHT_PX)) : "",
   };
   const lanesTop = totalsY + TOTALS_HEIGHT_PX + SUBJECT_GAP_PX;
 
@@ -299,10 +355,10 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
           childName: child.childName, paletteSlot: subject.paletteSlot, step: child.step, y, height, cy,
         });
         for (const a of members) {
-          const columns = bandColumns(detail === "weekly" ? a.weekly : a.daily, xs, cy, pxPerPoint);
+          const columns = columnsFor(seriesFor(a), cy, pxPerPoint, height);
           bands.push({
             rowKey: key, laneKey: child.key, assignmentId: a.assignmentId, childId: a.childId, title: a.title,
-            paletteSlot: subject.paletteSlot, step: child.step, d: bandPath(columns), runs: runsOf(columns), cy,
+            paletteSlot: subject.paletteSlot, step: child.step, d: pathFor(columns), runs: runsOf(columns), cy,
           });
           const name = placeName(a.title, columns, cy, measure);
           if (name) names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...name });
@@ -338,6 +394,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   return {
     zoom: options.zoom,
     detail,
+    spanWeeks: weeks,
     width,
     height: Math.max(lanesBottom, totalsY + TOTALS_HEIGHT_PX) + BOTTOM_PAD_PX,
     pxPerPoint,
