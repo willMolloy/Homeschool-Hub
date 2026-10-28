@@ -289,7 +289,7 @@ describe.skipIf(!hasDb)("tester: concurrency and archived names", () => {
   });
   const post = (kind: string, name: string) => app.inject({ method: "POST", url: `/api/${kind}`, payload: { name }, cookies: a.cookies });
 
-  it.fails.each(["children", "subjects"])("20 concurrent %s creates get 20 distinct sort_orders (appended, no ties)", async (kind) => {
+  it.each(["children", "subjects"])("20 concurrent %s creates get 20 distinct sort_orders (appended, no ties)", async (kind) => {
     const res = await Promise.all(Array.from({ length: 20 }, (_, i) => post(kind, `Racer ${kind} ${i}`)));
     expect(res.map((r) => r.statusCode).every((c) => c === 201)).toBe(true);
     const orders = res.map((r) => r.json().sortOrder as number);

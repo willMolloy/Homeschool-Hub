@@ -3,7 +3,10 @@
  * Both have the same shape (id, family_id, name, color, sort_order, archived_at, updated_at)
  * and the same rules (family-scoped, archive instead of delete), so one implementation serves both.
  */
-import type { Queryable } from "../db";
+import type pg from "pg";
+import { type Queryable, withTransaction } from "../db";
+
+const isPool = (db: Queryable): db is pg.Pool => !("release" in db) && typeof (db as pg.Pool).connect === "function";
 
 export type RosterTable = "child" | "subject";
 
@@ -52,12 +55,19 @@ export function rosterRepo(table: RosterTable) {
 
     /** Insert at the end of the family's list (sort_order = max + 1). */
     async create(db: Queryable, familyId: string, input: { name: string; color?: string | null }): Promise<RosterRow> {
-      const { rows } = await db.query<RosterRow>(
-        `INSERT INTO ${table} (family_id, name, color, sort_order)
-         SELECT $1, $2, $3, COALESCE(MAX(sort_order), -1) + 1 FROM ${table} WHERE family_id = $1
-         RETURNING ${COLS}`,
-        [familyId, input.name, input.color ?? null]);
-      return rows[0]!;
+      // Concurrent creates would read the same MAX and tie, so serialize them per family and table
+      // with a transaction-scoped advisory lock, taken in its own statement before the INSERT reads MAX.
+      const run = async (q: Queryable) => {
+        await q.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [`${table}:${familyId}`]);
+        const { rows } = await q.query<RosterRow>(
+          `INSERT INTO ${table} (family_id, name, color, sort_order)
+           SELECT $1, $2, $3, COALESCE(MAX(sort_order), -1) + 1 FROM ${table} WHERE family_id = $1
+           RETURNING ${COLS}`,
+          [familyId, input.name, input.color ?? null]);
+        return rows[0]!;
+      };
+      // A pool gets its own transaction; a checked-out client is already inside the caller's.
+      return isPool(db) ? withTransaction(db, run) : run(db);
     },
 
     /** Update only the given fields of one of this family's rows. null = no such row for this family. */
