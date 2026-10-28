@@ -35,9 +35,10 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `log_entry` | One recorded thing, `kind` = `checkoff` or `session`. `id` is the **client-generated UUID** (no default). Feeds hours and exports only; never the plan (S2b-18). |
 | `progress_checkin` | 008: "at the end of this week we were really at N" per (assignment, child, week). Only changed positions are stored; the plan re-anchors on them (S2b-20) |
 | `week_review` | 008: the family reviewed or skipped a week's check-in card, so it doesn't ask again |
-| `log_child_progress` | Units per child for a log entry. Partial unique index: one `checkoff` per (assignment, date, child) |
+| `log_child_progress` | Units per child for a log entry. Partial unique index: one `checkoff` per (assignment, date, child). Like `log_entry`, it feeds hours and exports only; plan progress comes from `progress_checkin` |
 
 Design notes
+- **Log tables feed hours and exports only** (S2b-18, D16). The plan assumes scheduled work was done and re-anchors only on `progress_checkin` (008); nothing in `log_entry` or `log_child_progress` moves it.
 - Dates are `DATE` (local calendar days). The engine's rate and per-day loads are never stored.
 - Every child table carries `family_id` with composite foreign keys, so cross-family references are impossible.
 - `log_child_progress` copies `assignment_id`, `log_date`, `kind` from its `log_entry` so the partial unique index can live on it;

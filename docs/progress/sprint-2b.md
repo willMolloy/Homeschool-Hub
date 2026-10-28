@@ -41,7 +41,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-36 Adjust one assignment's progress | 1ac8f6a | |
 | S2b-26 Ask how to absorb the difference and save | 68aab28 | |
 | S2b-27 Edit a past week's check-in | 48fdfeb | |
-| S2b-28 Tester pass: check-in edge cases | (this commit) | |
+| S2b-28 Tester pass: check-in edge cases | c80d72b | |
+| S2b-29 Update docs for assumed progress and check-ins | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 

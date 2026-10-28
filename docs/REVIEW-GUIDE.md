@@ -60,7 +60,8 @@ Sign in at http://localhost:5173 with `demo@example.com` / `demo-password`. Try 
    - This is a *debug view*: one table per child, with effort (units × weight) per subject per day. See [Weights](#weights).
    - Use **Prev/Next** to change the week.
    - Set **"Plan as of"** to `2026-10-19` and go to the week of Oct 26. Frank's Literature reads 45 a day.
-   - Clear "as of" (so it means today). The numbers go up because nothing is logged and the work rolls forward. That's decision 1 in the Morning summary.
+   - Clear "as of" (so it means today). The numbers stay the same: the plan assumes the scheduled work was done, so nothing rolls forward. See [Progress](#progress).
+   - Above the table, the card asks "How did last week go?". Try *Adjust*, move a slider, pick how to absorb the difference and save; the following weeks change. *Skip* counts as done. Under the table, **Review a past week** reopens an earlier week.
    - A `~` means a cell uses the built-in weight for its unit; an `s` means it uses the subject's default weight.
 2. **Kids and Subjects**
    - Add, rename, recolor, archive, and use "Show archived".
@@ -192,12 +193,27 @@ DeeDee settled D1, D5, D6, D14, D17 and the precedence on Oct 28, 2026, and appr
 | D15 | Engine versions | 0.2.0, 0.3.0, 0.4.0, 0.5.0, with a patch bump for S2b-32 | Oct 28, 2026 |
 | D16 | Hours and exports | Only from `log_entry.minutes_spent` | Oct 28, 2026 |
 
+## Progress
+
+Sprint 2b (S2b-18 … S2b-29) replaced "progress = what was logged" with **assumed progress**: the plan assumes each week's scheduled work was done, and a parent corrects it only when it wasn't.
+
+- **No rollover.** Unlogged work never piles onto later days, so the plan for a week is the same whatever "today" is. Logs (`log_entry`, `log_child_progress`) feed hours and exports only (D16); they never move the plan.
+- **Check-ins.** Once a week the card asks about last week (Monday–Sunday). *Last week went as planned* or *Skip* stores a review and nothing else; *Adjust* lets the parent set where each child really is (units done since the start, D13). Only changed positions are stored (`progress_checkin`); no row means "as planned". The plan re-anchors on the latest check-in before each week (S2b-20), and the past days of a checked-in week are scaled to the actual (D9).
+- **Two absorb modes** when the actual differs from the plan (±0.5 units counts as on plan, D11): **keep the end date** (`keepEndDate`, the default, D10) spreads the difference over the remaining days, so bars thicken or thin; **push the end date** (`pushEndDate`) keeps the same pace and moves the end. Reaching the total finishes the assignment early and asks nothing.
+- **Skip = done** (D14). A skipped week is stored as `skipped` and the card never comes back for it; it can still be edited later from "Review a past week".
+- **Editing a past week** saves it as reviewed and changes only the weeks after it; a later check-in is still the anchor for the work left from its week on (see tester finding T5-2 for push mode).
+- **API:**
+  - `GET /api/check-ins[?weekStart=YYYY-MM-DD]`: one week's items (planned vs actual, mode) and its review status; without `weekStart`, last week.
+  - `PUT /api/check-ins/:weekStart` with `{ status: "reviewed" | "skipped", items: [{ assignmentId, childId, position, mode }] }`: saves the week in one transaction and returns whether the plan changed. Only past weeks; positions 0…total with at most 2 decimals.
+  - `GET /api/check-ins/weeks`: finished weeks that can be reopened (up to 104), newest first, with their status.
+- **Tables:** migration 008 (`progress_checkin`, `week_review`); see `db/README.md`.
+
 ## 4. Decisions waiting for you
 
 The list, with context, is in the [Morning summary](progress/overnight.md#morning-summary), under "Decisions for DeeDee". The most important ones:
 
-1. **asOf semantics:** unlogged work rolls forward, so "today" shows catch-up numbers.
-2. **Seed logs:** should the seed include some progress logs?
-3. **Week-override rule:** this blocks the week-overrides API.
+1. **Week-override rule:** this blocks the week-overrides API.
+
+The asOf/rollover question and the seed-logs question from Sprint 1 are settled by Sprint 2b's assumed progress (S2b-18): nothing rolls forward, and logs no longer affect the plan.
 
 The rest of the list covers removal (hard-delete vs. archive), limits, time-zone handling, sessions and name policy, plus sign-off on the earlier deviations. Each ticket row in that file explains what was built and why.

@@ -39,8 +39,8 @@ _Last updated at the end of round 4 (04:20 CT). **Start with [`docs/REVIEW-GUIDE
 **Unverified on this box:** CI on GitHub (S1-02, nothing pushed), `docker compose` (S1-04, no Docker here), the iPhone home-screen icon (S1-21), real mobile Safari, and screen readers. Those boxes stay unticked.
 
 **Decisions for DeeDee** (details in the ticket rows below):
-1. **asOf semantics:** at asOf=2026-10-26 the engine gives 135, not the ticket's 90, because unlogged work rolls forward (S1-35/36). Is that intended?
-2. **Seed progress logs?** The plan defaults to today and the seed has no logs, so it shows catch-up numbers and `past-end` warnings.
+1. ~~**asOf semantics:** at asOf=2026-10-26 the engine gives 135, not the ticket's 90, because unlogged work rolls forward (S1-35/36). Is that intended?~~ **Superseded by S2b-18:** the plan assumes scheduled work was done, so asOf=2026-10-26 gives 90.
+2. ~~**Seed progress logs?** The plan defaults to today and the seed has no logs, so it shows catch-up numbers and `past-end` warnings.~~ **Superseded by S2b-18:** logs no longer move the plan, so there are no catch-up numbers to avoid.
 3. **Week-override mode rule** (last edit vs. latest week). This blocks the week-overrides API, which was left out on purpose.
 4. **Removal:** days off are hard-deleted; assignments and events are archive-only, and archived ones stay editable. OK?
 5. **Rules for since-archived subjects:** the API rejects re-saving them. The events form keeps them while the rules are untouched and drops them once the rules are edited (it says so). Archived children work the same way.
