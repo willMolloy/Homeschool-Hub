@@ -16,7 +16,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-08 a child's usual weight | 97275a2 | |
 | S2b-30 migration 006 subject default weight | 643a260 | |
 | S2b-31 `defaultWeight` on the subject endpoints | 958f9b4 | |
-| S2b-09 weight-suggestion endpoint | (this commit) | |
+| S2b-09 weight-suggestion endpoint | e8e6eb3 | |
+| S2b-32 subject default weight in the engine (0.2.1) | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 

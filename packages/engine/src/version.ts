@@ -4,4 +4,5 @@
  * MAJOR: semantics change; MINOR: new outputs; PATCH: bug fix that changes numbers.
  */
 // Pre-1.0, a MINOR bump is breaking (0.2.0: thickness from weight, S2b-02).
-export const ENGINE_VERSION = "0.2.0";
+// 0.2.1: subject default weights (S2b-32); output changes only when the new input is given.
+export const ENGINE_VERSION = "0.2.1";

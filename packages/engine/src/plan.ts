@@ -3,7 +3,7 @@ import { EngineInputError, fromDayNumber, isValidLocalDate, toDayNumber, weekSta
 import { minutesPerUnitOf } from "./units";
 import { weightPerUnitOf } from "./weights";
 import { ENGINE_VERSION } from "./version";
-import type { Assignment, ChildPlan, DayKind, DayLoad, OverrideMode, PlanContext, PlanWarning, WeekOverride } from "./types";
+import type { Assignment, ChildPlan, DayKind, DayLoad, OverrideMode, PlanContext, PlanWarning, SubjectWeight, WeekOverride } from "./types";
 
 /** Floating-point tolerance for "nothing left". */
 export const EPS = 1e-9;
@@ -41,6 +41,11 @@ function prepareOverrides(a: Assignment, childId: string, ctx: PlanContext, warn
   return [...byWeek.values()];
 }
 
+/** The assignment's subject default for its own unit type, if the context has one (S2b-32). */
+function subjectDefaultFor(a: Assignment, ctx: PlanContext): SubjectWeight | null {
+  return ctx.subjectWeights?.find((w) => w.subjectId === a.subjectId && w.unitType === a.unitType) ?? null;
+}
+
 /**
  * Plan one assignment for one child.
  *
@@ -60,7 +65,7 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   };
   const cap = model ?? buildCapacityModel(ctx.calendar, ctx.events, ctx.blocked);
   const { minutesPerUnit, estimated } = minutesPerUnitOf(a);
-  const { weight, source: weightSource } = weightPerUnitOf(a);
+  const { weight, source: weightSource } = weightPerUnitOf(a, subjectDefaultFor(a, ctx));
 
   const S = toDayNumber(a.start);
   const E = toDayNumber(a.end);

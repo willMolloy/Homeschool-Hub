@@ -85,6 +85,13 @@ export interface ProgressEntry {
   units: number;
 }
 
+/** A subject's default weight for one unit type (S2b-32, D20, D23). */
+export interface SubjectWeight {
+  subjectId: string;
+  unitType: UnitType;
+  weightPerUnit: number;
+}
+
 export interface PlanContext {
   calendar: FamilyCalendar;
   events?: RecurringEvent[];
@@ -97,6 +104,8 @@ export interface PlanContext {
    * Default: the assignment's start.
    */
   asOf?: LocalDate | null;
+  /** Subject defaults: used for assignments with no weight of their own and the same unit type. */
+  subjectWeights?: SubjectWeight[];
 }
 
 export type DayKind = "logged" | "planned" | "override";
