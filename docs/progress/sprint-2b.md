@@ -12,7 +12,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-04 migration 005 `weight_choice` | d648651 | |
 | S2b-05 read weights into the plan | 247d62b | |
 | S2b-06 `weightPerUnit` on the assignment endpoints | eecac3b | |
-| S2b-07 record weight choices on save | (this commit) | |
+| S2b-07 record weight choices on save | b93c01d | |
+| S2b-08 a child's usual weight | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -25,6 +26,7 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-06 — a unit change accepts either field.** Sending the legacy `minutesPerUnit` (or null) with a unit change satisfies D7, because the web still sends only that field until S2b-10. RF-10's old "send minutesPerUnit: null when switching to minutes" message is now the general D7 message. The test is kept, with the new message.
 - **S2b-06 — web transition fix.** The assignment form now restates `minutesPerUnit` whenever the unit type changes. Without that, changing the unit on a weighted assignment would get the new D7 400.
 - **S2b-07 — what counts as a changed weight.** A PATCH records choices when it sends `weightPerUnit` and the value differs from the stored one, or the unit type changes (lessons 15 → pages 15 is a new pages choice). The legacy alias never records.
+- **S2b-08 — suggestion details.** `source` is `child` when exactly one child has history and `children` when two or more do. An even count of children takes the mean of the middle two, then rounds. `choicesFor` drops cleared assignments before ranking, so a clear doesn't take one of the 5 slots (the rule's order: latest per assignment, drop clears, then newest 5). Rounding is `roundWeight`, exported for the endpoint.
 
 ## Deferred
 

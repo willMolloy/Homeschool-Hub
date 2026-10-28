@@ -59,3 +59,97 @@ export function weightPerUnitOf(
   }
   return { weight: DEFAULT_WEIGHT_PER_UNIT[a.unitType], source: "default" };
 }
+
+// ---- A child's usual weight (S2b-08, D5/D6/D18) ----
+
+/** With this many values or more, the single highest and lowest are dropped before averaging. */
+export const TRIM_MIN_COUNT = 4;
+/** How many of a child's most recent assignments count toward their usual weight. */
+export const USUAL_WEIGHT_WINDOW = 5;
+
+/** One row of weight_choice history for one child and unit type. */
+export interface WeightChoice {
+  assignmentId: string;
+  /** null = the parent cleared the weight back to the default. */
+  weight: number | null;
+  chosenAt: string;
+  id: number;
+}
+
+/** Round to WEIGHT_DECIMALS, half away from zero, tolerant of binary noise (1.005 → 1.01). */
+export function roundWeight(n: number): number {
+  const scale = 10 ** WEIGHT_DECIMALS;
+  const abs = Math.round(Math.abs(n) * scale * (1 + Number.EPSILON * 4) + 1e-9) / scale;
+  return n < 0 ? -abs : abs;
+}
+
+/** Newer first: by chosenAt, then id. */
+function newerFirst(a: WeightChoice, b: WeightChoice): number {
+  return Date.parse(b.chosenAt) - Date.parse(a.chosenAt) || b.id - a.id;
+}
+
+/** Mean of the values, trimmed of one high and one low once there are TRIM_MIN_COUNT or more. */
+function trimmedMean(values: number[]): number {
+  const sorted = [...values].sort((x, y) => x - y);
+  const kept = sorted.length >= TRIM_MIN_COUNT ? sorted.slice(1, -1) : sorted;
+  return kept.reduce((s, v) => s + v, 0) / kept.length;
+}
+
+/**
+ * A child's usual weight for one unit type: the latest choice per assignment, minus cleared ones, the
+ * newest USUAL_WEIGHT_WINDOW of those, trimmed-mean'd and rounded. null when there's no history.
+ * Input order doesn't matter.
+ */
+export function usualWeight(choices: readonly WeightChoice[]): number | null {
+  const latest = new Map<string, WeightChoice>();
+  for (const c of [...choices].sort(newerFirst)) {
+    if (!latest.has(c.assignmentId)) latest.set(c.assignmentId, c);
+  }
+  const values = [...latest.values()]
+    .filter((c): c is WeightChoice & { weight: number } => c.weight !== null && Number.isFinite(c.weight))
+    .slice(0, USUAL_WEIGHT_WINDOW)
+    .map((c) => c.weight);
+  return values.length === 0 ? null : roundWeight(trimmedMean(values));
+}
+
+export type SuggestionSource = "child" | "children" | "subject" | "builtin";
+
+export interface WeightSuggestion {
+  weight: number;
+  source: SuggestionSource;
+  /** Children whose history fed the learned weight (empty unless the source is child/children). */
+  childIdsWithHistory: string[];
+  /** Children on the assignment with no usable history (for lessons/minutes: all of them). */
+  childIdsWithout: string[];
+}
+
+function median(values: number[]): number {
+  const s = [...values].sort((x, y) => x - y);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 === 1 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+}
+
+/**
+ * The default weight for a new assignment, in DeeDee's precedence (D6, D19): the median of the children's
+ * usual weights (pages and chapters only), else a subject default for this unit type, else the built-in.
+ */
+export function suggestWeight(input: {
+  unitType: UnitType;
+  perChild: readonly { childId: string; usual: number | null }[];
+  subjectDefault: SubjectDefaultWeight | null;
+}): WeightSuggestion {
+  const learned = isLearnedUnit(input.unitType);
+  const withHistory = learned ? input.perChild.filter((c) => c.usual !== null && isValidWeight(c.usual)) : [];
+  const childIdsWithHistory = withHistory.map((c) => c.childId);
+  const childIdsWithout = input.perChild.map((c) => c.childId).filter((id) => !childIdsWithHistory.includes(id));
+  if (withHistory.length > 0) {
+    return {
+      weight: roundWeight(median(withHistory.map((c) => c.usual!))),
+      source: withHistory.length === 1 ? "child" : "children",
+      childIdsWithHistory,
+      childIdsWithout,
+    };
+  }
+  const resolved = weightPerUnitOf({ unitType: input.unitType, weightPerUnit: null }, input.subjectDefault);
+  return { weight: resolved.weight, source: resolved.source === "subject" ? "subject" : "builtin", childIdsWithHistory, childIdsWithout };
+}

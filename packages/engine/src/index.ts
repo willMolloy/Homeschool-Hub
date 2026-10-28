@@ -9,13 +9,21 @@ export {
   MAX_WEIGHT_PER_UNIT,
   MINUTES_PER_WEIGHT_POINT,
   MIN_WEIGHT_PER_UNIT,
+  TRIM_MIN_COUNT,
+  USUAL_WEIGHT_WINDOW,
   WEIGHT_DECIMALS,
   isLearnedUnit,
   isValidWeight,
+  roundWeight,
+  suggestWeight,
+  usualWeight,
   weightPerUnitOf,
   type LearnedUnitType,
   type SubjectDefaultWeight,
+  type SuggestionSource,
+  type WeightChoice,
   type WeightSource,
+  type WeightSuggestion,
 } from "./weights";
 export { buildCapacityModel, ruleFactor, type CapacityModel } from "./capacity";
 export { planChild, planAssignment, planAll, EPS, MAX_PUSH_DAYS } from "./plan";
