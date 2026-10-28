@@ -15,7 +15,7 @@ The web app calls this on start-up to learn whether it's signed in, and it needs
 3. Respond `{ familyId, name, weekStart, schoolDays }` (camelCase in JSON, snake_case in SQL; do the mapping in one function).
 
 ## Done when
-- [ ] Signed in → family data; signed out → 401.
+- [x] Signed in → family data; signed out → 401.
 
 ## Tests
 - signed-in returns the seeded family

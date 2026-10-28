@@ -41,8 +41,11 @@ export interface SeedSummary {
   ids: { child: Record<string, string>; subject: Record<string, string>; assignment: Record<string, string>; event: Record<string, string> };
 }
 
-/** Seed the demo family into `databaseUrl`. No name guard here (the CLI applies it). */
-export async function seed(databaseUrl: string): Promise<SeedSummary> {
+/**
+ * Seed the demo family into `databaseUrl`. No name guard here (the CLI applies it).
+ * `email` lets parallel test files each own a separate copy of the sample family.
+ */
+export async function seed(databaseUrl: string, email: string = DEMO_EMAIL): Promise<SeedSummary> {
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   const client = new pg.Client({ connectionString: databaseUrl });
   client.on("error", () => {});
@@ -50,11 +53,11 @@ export async function seed(databaseUrl: string): Promise<SeedSummary> {
   const one = async (sql: string, params: unknown[]): Promise<string> => (await client.query(sql, params)).rows[0].id;
   try {
     await client.query("BEGIN");
-    await client.query("DELETE FROM family WHERE lower(login_email) = lower($1)", [DEMO_EMAIL]);
+    await client.query("DELETE FROM family WHERE lower(login_email) = lower($1)", [email]);
     const familyId = await one(
       `INSERT INTO family (name, week_start, school_days, time_zone, login_email, password_hash)
        VALUES ('Demo family', $1, $2, 'America/Chicago', $3, $4) RETURNING id`,
-      [calendar.weekStart, calendar.schoolDays, DEMO_EMAIL, passwordHash],
+      [calendar.weekStart, calendar.schoolDays, email, passwordHash],
     );
     const ids: SeedSummary["ids"] = { child: {}, subject: {}, assignment: {}, event: {} };
     for (const [i, c] of CHILDREN.entries()) {
