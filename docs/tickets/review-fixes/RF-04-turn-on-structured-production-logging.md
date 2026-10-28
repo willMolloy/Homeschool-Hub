@@ -18,8 +18,8 @@ The Fastify logger is off unless `NODE_ENV=development`. In production a 500 lea
 5. The bad-zone warning keeps its `familyId` and `timeZone` fields.
 
 ## Done when
-- [ ] In production mode, a 500 produces an `error`-level line with the stack, and a request line per request.
-- [ ] No captured line contains the login password, the cookie value or the set-cookie header.
+- [x] In production mode, a 500 produces an `error`-level line with the stack, and a request line per request.
+- [x] No captured line contains the login password, the cookie value or the set-cookie header.
 
 ## Tests
 - `loadConfig`: the LOG_LEVEL default for each NODE_ENV; an explicit value wins; junk → ConfigError.

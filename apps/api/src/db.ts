@@ -11,10 +11,21 @@ export type Db = pg.Pool;
 /** Anything that can run a query: the pool or a checked-out client inside a transaction. */
 export type Queryable = Pick<pg.Pool, "query"> | pg.PoolClient;
 
-export function createPool(config: Pick<Config, "DATABASE_URL">): pg.Pool {
+/** Where pool errors go (the app's logger; anything with a pino-style `error(obj, msg)`). */
+export interface PoolErrorLog {
+  error(obj: object, msg: string): void;
+}
+
+export function createPool(config: Pick<Config, "DATABASE_URL">, log?: PoolErrorLog): pg.Pool {
   const pool = new pg.Pool({ connectionString: config.DATABASE_URL, max: 10, connectionTimeoutMillis: 3000 });
   // An idle client error (DB restarted) must not crash the process; the next query reconnects.
-  pool.on("error", () => {});
+  pool.on("error", (err) => {
+    try {
+      log?.error({ err }, "idle database client error");
+    } catch {
+      // a broken logger must not turn this into a crash either
+    }
+  });
   return pool;
 }
 

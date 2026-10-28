@@ -16,6 +16,7 @@ import { eventsRoutes } from "./routes/events";
 import { timeZonesRoutes } from "./routes/timezones";
 import { registerSessionAuth } from "./auth/session";
 import { HttpError } from "./http/errors";
+import { loggerOptions, type LogStream } from "./http/logging";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -27,16 +28,18 @@ declare module "fastify" {
 export interface BuildOptions {
   /** Use an existing pool (tests share one). Otherwise one is created from config and closed with the app. */
   db?: Db;
+  /** Send log lines here instead of stdout (tests capture them; set config.LOG_LEVEL to see anything in test). */
+  logStream?: LogStream;
 }
 
 export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstance {
-  const app = Fastify({ logger: config.NODE_ENV === "development" ? { level: "warn" } : false });
+  const app = Fastify({ logger: loggerOptions(config, opts.logStream) });
 
   app.setNotFoundHandler((_req, reply) => {
     reply.code(404).send({ error: "not_found" });
   });
 
-  app.setErrorHandler((err: FastifyError | HttpError, _req, reply) => {
+  app.setErrorHandler((err: FastifyError | HttpError, req, reply) => {
     if (err instanceof HttpError) {
       return reply.code(err.statusCode).send({ error: err.code, message: err.message });
     }
@@ -44,14 +47,14 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
       return reply.code(400).send({ error: "invalid_request", message: err.message, details: (err as FastifyError).validation });
     }
     const status = typeof err.statusCode === "number" && err.statusCode >= 400 ? err.statusCode : 500;
-    if (status >= 500) app.log.error(err);
+    if (status >= 500) req.log.error({ err }, "request failed");
     return reply.code(status).send({
       error: status >= 500 ? "internal_error" : (err as FastifyError).code ?? "error",
       message: status >= 500 ? "Something went wrong." : err.message,
     });
   });
 
-  const db = opts.db ?? createPool(config);
+  const db = opts.db ?? createPool(config, app.log);
   app.decorate("db", db);
   app.decorate("config", config);
   if (!opts.db) app.addHook("onClose", async () => db.end());

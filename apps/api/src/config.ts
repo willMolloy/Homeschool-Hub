@@ -2,14 +2,23 @@ import { fileURLToPath } from "node:url";
 import { config as loadDotenvFile } from "dotenv";
 import { z } from "zod";
 
+export const LOG_LEVELS = ["fatal", "error", "warn", "info", "debug", "trace", "silent"] as const;
+
 const schema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   DATABASE_URL: z.string({ error: (i) => (i.input === undefined ? "is required" : "must be a string") }).url({ message: "must be a URL like postgres://user:pass@host:5432/db" }),
   SESSION_SECRET: z.string({ error: (i) => (i.input === undefined ? "is required" : "must be a string") }).min(32, { message: "must be at least 32 characters (try: openssl rand -hex 32)" }),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  /** Defaults by NODE_ENV: production → info, development → warn, test → silent (see defaultLogLevel). */
+  LOG_LEVEL: z.enum(LOG_LEVELS, { message: `must be one of ${LOG_LEVELS.join(", ")}` }).optional(),
 });
 
 export type Config = z.infer<typeof schema>;
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
+export function defaultLogLevel(nodeEnv: Config["NODE_ENV"]): LogLevel {
+  return nodeEnv === "production" ? "info" : nodeEnv === "development" ? "warn" : "silent";
+}
 
 export class ConfigError extends Error {}
 
@@ -23,7 +32,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     const lines = res.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`);
     throw new ConfigError(`Invalid API configuration:\n${lines.join("\n")}`);
   }
-  return res.data;
+  return { ...res.data, LOG_LEVEL: res.data.LOG_LEVEL ?? defaultLogLevel(res.data.NODE_ENV) };
 }
 
 /**
