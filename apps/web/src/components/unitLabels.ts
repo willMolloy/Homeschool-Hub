@@ -27,3 +27,6 @@ export function formatUnits(t: UnitType, n: number): string {
   if (t === "minutes") return `${unitNumber(n)} ${n === 1 ? UNIT_LABELS.minutes.one : UNIT_LABELS.minutes.many}`;
   return `${UNIT_LABELS[t].one} ${unitNumber(n)}`;
 }
+
+/** An amount of units: "15 pages", "1 chapter", "100 minutes" (S2b-26). */
+export const formatAmount = (t: UnitType, n: number) => `${unitNumber(n)} ${n === 1 ? UNIT_LABELS[t].one : UNIT_LABELS[t].many}`;

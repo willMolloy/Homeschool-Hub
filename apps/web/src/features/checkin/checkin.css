@@ -26,3 +26,12 @@
 .progress-field input { width: 7em; }
 .progress-error { color: var(--danger); margin: 0; }
 .progress-label { color: var(--muted); margin: 0; }
+
+/* How to absorb a difference (S2b-26). */
+.checkin-outcome { flex-basis: 100%; margin: 6px 0 0; }
+.absorb-choice { flex-basis: 100%; border: 0; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.absorb-choice legend { padding: 0; margin-bottom: 4px; color: var(--muted); }
+.absorb-option { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
+.checkin-group-choice { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+.checkin-apply-all { display: inline-flex; align-items: center; gap: 6px; }
+.checkin-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

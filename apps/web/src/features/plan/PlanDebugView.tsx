@@ -1,11 +1,12 @@
 /** Temporary plan debug table (S1-36). The real timeline waits for pilot results. */
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { addDays, isValidLocalDate, weekStartOf, weekdayOf, type LocalDate } from "@hh/engine";
 import { useMe } from "../../auth/AuthProvider";
 import { useApi } from "../../api/useApi";
 import type { Child, PlanResponse, Subject } from "../../api/types";
 import { buildDebugTables, type DebugCell, type DefaultSource } from "./debugTable";
+import { usePlanRefresh } from "./planRefresh";
 import "../roster/roster.css";
 import "./plan.css";
 
@@ -59,6 +60,13 @@ export function PlanDebugView() {
   const plan = useApi<PlanResponse>(`/api/plan?from=${weekStart}&to=${weekEnd}${asOf ? `&asOf=${asOf}` : ""}`);
   const children = useApi<Child[]>("/api/children");
   const subjects = useApi<Subject[]>("/api/subjects");
+  // Something else on the page changed the plan (a check-in, S2b-26): refetch in place.
+  const { version } = usePlanRefresh();
+  const reloadPlan = plan.reload;
+  useEffect(() => {
+    if (version > 0) reloadPlan();
+  }, [version, reloadPlan]);
+  const refreshing = plan.loading && plan.data !== undefined;
 
   const allDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const tables = useMemo(() => {
@@ -87,7 +95,8 @@ export function PlanDebugView() {
   };
 
   return (
-    <section className="plan-debug" aria-labelledby="plan-debug-title">
+    <section className={refreshing ? "plan-debug plan-refreshing" : "plan-debug"} aria-labelledby="plan-debug-title"
+      aria-busy={refreshing || undefined}>
       <h2 id="plan-debug-title">Debug view (temporary)</h2>
       <p className="plan-debug-note">Effort (units × weight) per day, straight from <code>/api/plan</code>. This is a check of the numbers, not the final timeline.</p>
       <div className="plan-debug-bar">

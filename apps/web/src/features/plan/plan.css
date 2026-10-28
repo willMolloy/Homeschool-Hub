@@ -28,3 +28,7 @@
   overflow-wrap: anywhere; /* a long unbroken name must not widen the page at 360 px */
 }
 .plan-debug-legend { list-style: none; padding: 0; }
+/* Refetching after a check-in (S2b-26): the old numbers stay, gently pulsing, until the new ones land. */
+.plan-refreshing .plan-debug-child { animation: plan-shimmer 1s ease-in-out infinite alternate; }
+@keyframes plan-shimmer { from { opacity: 1; } to { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .plan-refreshing .plan-debug-child { animation: none; opacity: 0.6; } }
