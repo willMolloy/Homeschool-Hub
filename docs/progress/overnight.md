@@ -2,6 +2,51 @@
 
 All times are America/Chicago (CT). The work was done on the build box only. Nothing was pushed, posted, or sent.
 
+## Morning summary (02:50 CT)
+
+**Done:** all 37 Sprint 1 tickets are committed, one commit per ticket with the ticket id prefix. This round finished S1-20 → S1-37, then a hardening pass with 2 more commits. Every commit left the gate green. The working tree is clean and nothing was pushed.
+- **API:** auth/session, children CRUD, subjects CRUD, `loadPlanInputs`, `GET /api/plan`.
+- **Web:** auth shell, /kids and /subjects list, add, edit and archive. The Plan page has a temporary debug table. A footer shows the engine version, with a banner when the API version differs.
+
+**Tests (last gate, 02:46 CT):** lint ✓, typecheck ✓, `npm run build` ✓.
+
+| Suite | Passing |
+|---|---|
+| engine | 128 |
+| engine, test:tz | 128 × 8 runs |
+| API | 126 |
+| web | 84 |
+| db validate | 8 |
+
+**Hardening:**
+- Full headless flow at 360 and 1280 px: login → plan → kids (add/edit) → subjects (edit) → plan next week → sign out. It showed no console errors, no failed requests and no horizontal overflow. Screens: `screens/hardening-*`.
+- Edge cases (deep link, reload, unknown URL, junk query params) all pass.
+- axe-core is clean on every page.
+- Fixed: a child with no assignments silently vanished from the plan view.
+- Fixed: the Prev button's accessible name didn't match its visible text.
+
+**Unverified on this box:**
+- S1-02: the GitHub Actions run; nothing has been pushed.
+- S1-04: Docker Compose. There's no Docker here; PG16 runs via embedded-postgres.
+- S1-21: installing the icon on a real iPhone.
+- Those tickets' remaining boxes are left unticked.
+
+**Decisions for DeeDee** (details in each ticket row):
+1. **asOf semantics.** S1-36's ticket expects 90 at asOf=2026-10-26, but the engine gives 135 because unlogged work rolls forward. 90 is what you get at asOf=2026-10-19, which is what the test checks. Please confirm the intended behaviour.
+2. **Plan view default.** The debug view defaults to asOf = today. Because the seed has no logs, today shows catch-up numbers and Aesop shows `past-end`/`no-capacity` warnings. Should the seed include some log entries?
+3. **Warnings** name the subject, not the assignment. Plans don't carry titles yet.
+4. **Dropped events and blocked ranges.** An event or blocked range whose listed children are all archived is dropped (S1-34). The 400-day plan range counts both ends.
+5. **Earlier open items:**
+   - Node 22 (cookie@2), the vitest/vite upgrade, the dotenv deviation, the db workspace, zod 4 and ESLint 9.
+   - The `public` route flag, React Router 7, and the shared RosterPage for kids and subjects.
+   - The partial-index rename edge case, the dev-only empty family, and the 360 px swatch wrap.
+6. **Dev DB.** It holds smoke-test leftovers, such as the kid "Ada". `npm run db:reset && npm run db:seed` restores it.
+
+**Suggested next steps:**
+- Push the branch to check CI (S1-02), and try Compose on a machine with Docker (S1-04).
+- Settle decision 1, then seed some progress logs.
+- Plan Sprint 2: the real timeline UI and logging progress. Then delete the debug view.
+
 ## Environment
 - Node 20.19.2, Debian 13.
 - **Postgres 16:** Docker isn't available on the build box, and the Debian apt repo has no PG16. I used `embedded-postgres@16.14.0-beta.17` instead, which gives real PostgreSQL **16.14** binaries.
