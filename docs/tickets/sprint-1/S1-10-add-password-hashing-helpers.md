@@ -13,11 +13,11 @@ No native dependencies (bcrypt and argon2 need compilers on some machines). Node
 1. Create `apps/api/src/auth/password.ts`.
 2. `hashPassword(pw)`: 16-byte random salt, `scrypt(pw, salt, 64, { N: 16384, r: 8, p: 1 })`, return `scrypt$16384$8$1$<saltB64>$<hashB64>`.
 3. `verifyPassword(pw, stored)`: parse the parameters, recompute, compare with `crypto.timingSafeEqual`. Return false (don't throw) on a malformed string.
-4. Add a CLI `apps/api/src/cli/set-family-login.ts <familyId> <email>` that prompts for the password (no echo) and updates `family.login_email/password_hash`. This is how DeeDee creates her login. There's no signup screen in Sprint 1.
+4. Add a CLI `apps/api/src/cli/set-family-login.ts <familyId> <email>` that prompts for the password (no echo) and updates `family.login_email/password_hash`. This is how the family login gets created. There's no signup screen in Sprint 1.
 
 ## Done when
-- [ ] Unit tests pass.
-- [ ] CLI sets the login on the seeded family.
+- [x] Unit tests pass.
+- [x] CLI sets the login on a family (TTY, no-echo prompt checked by hand; piped-stdin path covered by an integration test). Re-checked on the seeded family in S1-11.
 
 ## Tests
 - hash then verify same password → true
