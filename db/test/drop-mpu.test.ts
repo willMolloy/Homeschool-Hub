@@ -63,7 +63,8 @@ describe.skipIf(!hasDb)("007_drop_minutes_per_unit (integration)", () => {
   });
 
   it("running the migrations again applies nothing", async () => {
-    expect((await migrate(url, MIGRATIONS_DIR, () => {})).applied).toEqual([]);
+    // Through 007 only, so later migrations don't break this test (S2b-21).
+    expect((await migrate(url, at007.dir, () => {})).applied).toEqual([]);
   });
 });
 

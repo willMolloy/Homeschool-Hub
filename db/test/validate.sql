@@ -220,4 +220,26 @@ SELECT pg_temp.expect_error($$UPDATE subject SET default_weight = 100.01 WHERE i
 SELECT pg_temp.expect_error($$UPDATE subject SET default_weight_unit = 'hours' WHERE id = '50000000-0000-0000-0000-0000000000e3'$$,
   '23514', 'subject default unit outside the unit types is rejected');
 
+-- 14. progress check-ins and week reviews (008_progress_checkin)
+INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position, mode) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'a0000000-0000-0000-0000-0000000000e1', 'c0000000-0000-0000-0000-0000000000e1', '2026-09-07', 65, 'keepEndDate'),
+  ('f0000000-0000-0000-0000-0000000000e0', 'a0000000-0000-0000-0000-0000000000e1', 'c0000000-0000-0000-0000-0000000000e1', '2026-09-14', 80, NULL);
+SELECT pg_temp.expect_error($$INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'a0000000-0000-0000-0000-0000000000e1', 'c0000000-0000-0000-0000-0000000000e1', '2026-09-21', -1)$$,
+  '23514', 'a negative check-in position is rejected');
+SELECT pg_temp.expect_error($$INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'a0000000-0000-0000-0000-0000000000e1', 'c0000000-0000-0000-0000-0000000000e1', '2026-09-07', 70)$$,
+  '23505', 'a second check-in for the same assignment, child and week is rejected');
+SELECT pg_temp.expect_error($$INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'a0000000-0000-0000-0000-0000000000e1', 'c0000000-0000-0000-0000-0000000000e9', '2026-09-21', 1)$$,
+  '23503', 'a check-in for another family''s child is rejected');
+SELECT pg_temp.expect_error($$INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position, mode) VALUES
+  ('f0000000-0000-0000-0000-0000000000e0', 'a0000000-0000-0000-0000-0000000000e1', 'c0000000-0000-0000-0000-0000000000e1', '2026-09-21', 1, 'later')$$,
+  '23514', 'a check-in mode outside keepEndDate/pushEndDate is rejected');
+INSERT INTO week_review (family_id, week_start, status) VALUES ('f0000000-0000-0000-0000-0000000000e0', '2026-09-07', 'reviewed');
+SELECT pg_temp.expect_error($$INSERT INTO week_review (family_id, week_start, status) VALUES ('f0000000-0000-0000-0000-0000000000e0', '2026-09-07', 'skipped')$$,
+  '23505', 'a second review of the same week is rejected');
+SELECT pg_temp.expect_error($$INSERT INTO week_review (family_id, week_start, status) VALUES ('f0000000-0000-0000-0000-0000000000e0', '2026-09-14', 'maybe')$$,
+  '23514', 'a week review status outside reviewed/skipped is rejected');
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

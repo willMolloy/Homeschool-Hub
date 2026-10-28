@@ -14,6 +14,7 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `005_weight_choice.sql` | S2b-04: append-only `weight_choice` history (child, pages/chapters, weight or NULL, `chosen_at`), backfilled one row per child from weighted pages/chapters assignments |
 | `006_subject_default_weight.sql` | S2b-30: optional subject default bar width, `default_weight_unit` + `default_weight` (0.01–100), both or neither |
 | `007_drop_minutes_per_unit.sql` | S2b-15, contract step: drops `assignment.minutes_per_unit` and 003's `assignment_minutes_unit_no_mpu`. Older migrations still mention the column; they are history and are never edited |
+| `008_progress_checkin.sql` | S2b-21: `progress_checkin` (parent-confirmed position per assignment, child and week; `mode` NULL = on plan; no row = as planned) and `week_review` (`reviewed`/`skipped` per family week) |
 
 **Expand/contract (004–007).** Sprint 2b moved from minutes per unit to weights without a broken step: 004 *expands* (adds `weight_per_unit` next to the old column and backfills it at ÷ 2), 005 and 006 add the history and subject defaults, the API and web then switch to weights (S2b-06 … S2b-14), and only after nothing reads the old column does 007 *contract* (drop it and its 003 constraint). Every migration in between leaves the app working and the gate green.
 
@@ -32,6 +33,8 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `blocked_range` + `blocked_range_child` | Vacation/holiday/sick days (no child rows = whole family) |
 | `week_override` | "This week do N units", `keepEndDate` / `pushEndDate`. **Added beyond the original table list** so overrides persist |
 | `log_entry` | One recorded thing, `kind` = `checkoff` or `session`. `id` is the **client-generated UUID** (no default). Feeds hours and exports only; never the plan (S2b-18). |
+| `progress_checkin` | 008: "at the end of this week we were really at N" per (assignment, child, week). Only changed positions are stored; the plan re-anchors on them (S2b-20) |
+| `week_review` | 008: the family reviewed or skipped a week's check-in card, so it doesn't ask again |
 | `log_child_progress` | Units per child for a log entry. Partial unique index: one `checkoff` per (assignment, date, child) |
 
 Design notes

@@ -12,12 +12,15 @@ export const UNIT_TYPES = list("pages", "chapters", "lessons", "minutes");
 export const SUBJECT_RULES = list("skip", "lighter", "normal");
 export const OVERRIDE_MODES = list("keepEndDate", "pushEndDate");
 export const BLOCKED_KINDS = list("vacation", "holiday", "sick", "other");
+/** What the family did with a past week's "How did last week go?" card (S2b-21). */
+export const WEEK_REVIEW_STATUSES = list("reviewed", "skipped");
 
 export type WeekStart = (typeof WEEK_STARTS)[number];
 export type UnitType = (typeof UNIT_TYPES)[number];
 export type SubjectRule = (typeof SUBJECT_RULES)[number];
 export type OverrideMode = (typeof OVERRIDE_MODES)[number];
 export type BlockedKind = (typeof BLOCKED_KINDS)[number];
+export type WeekReviewStatus = (typeof WEEK_REVIEW_STATUSES)[number];
 
 /** "a, b or c" for validation messages. */
 export function humanList(values: readonly string[]): string {
