@@ -18,7 +18,7 @@ Sessions live in the `session` table (S1-09). The cookie holds a random token; t
 6. Basic brute-force limit: `@fastify/rate-limit` on this route only, 10/minute per IP.
 
 ## Done when
-- [ ] Logging in with the seeded demo login sets the cookie and creates a session row.
+- [x] Logging in with the seeded demo login sets the cookie and creates a session row.
 
 ## Tests
 - correct credentials → 200 + Set-Cookie + session row exists with hashed id (not the raw token)

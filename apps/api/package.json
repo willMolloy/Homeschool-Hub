@@ -11,6 +11,8 @@
     "set-family-login": "tsx src/cli/set-family-login.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/rate-limit": "^11.2.1",
     "@hh/engine": "*",
     "dotenv": "^18.0.9",
     "fastify": "^5.12.7",

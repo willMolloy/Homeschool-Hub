@@ -1,7 +1,10 @@
 import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
+import cookie from "@fastify/cookie";
+import rateLimit from "@fastify/rate-limit";
 import { ENGINE_VERSION } from "@hh/engine";
 import type { Config } from "./config";
 import { createPool, type Db } from "./db";
+import { authRoutes } from "./routes/auth";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -49,6 +52,13 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
   app.decorate("config", config);
   if (!opts.db) app.addHook("onClose", async () => db.end());
 
+  app.register(cookie, { secret: config.SESSION_SECRET });
+  // Opt-in per route (config.rateLimit); only login uses it in Sprint 1.
+  app.register(rateLimit, {
+    global: false,
+    errorResponseBuilder: () => new HttpError(429, "rate_limited", "Too many attempts. Wait a minute and try again."),
+  });
+
   // Always 200 so the web app can show a "database down" banner instead of an error page.
   app.get("/api/health", async () => {
     let dbStatus: "ok" | "down" = "ok";
@@ -59,6 +69,8 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
     }
     return { ok: true, engineVersion: ENGINE_VERSION, db: dbStatus };
   });
+
+  app.register(authRoutes);
 
   return app;
 }
