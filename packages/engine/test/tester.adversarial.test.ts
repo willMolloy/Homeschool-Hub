@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
-  addDays, aggregate, buildCapacityModel, EngineInputError, isValidLocalDate, planAll, planAssignment, planChild,
+  addDays, buildCapacityModel, EngineInputError, isValidLocalDate, planAll, planAssignment, planChild,
   toDayNumber, weekdayOf, weeklySummary, weekStartOf,
   type Assignment, type BlockedPeriod, type ChildPlan, type PlanContext, type RecurringEvent, type Weekday, type WeekOverride,
 } from "../src";
