@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { withTransaction } from "../db";
 import { checkUnitChange, checkWeightFields, weightWrite } from "../http/assignmentWeight";
-import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, MinutesPerUnit, Title, TotalUnits, UnitTypeField, WeightPerUnit } from "../http/scheduleLimits";
+import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, MinutesPerUnit, Title, TotalUnits, UnitTypeField, WeightPerUnit } from "../http/scheduleLimits";
 import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
 import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment } from "../repos/assignmentRepo";
@@ -11,7 +11,6 @@ import { checkRefs } from "../repos/refs";
 import { recordWeightChoices } from "../repos/weightChoiceRepo";
 
 const Id = z.string("Must be an id.").regex(UUID_RE, "Must be a UUID.").transform((s) => s.toLowerCase());
-export const MAX_ASSIGNMENT_CHILDREN = 20;
 const Children = IdList(MAX_ASSIGNMENT_CHILDREN).min(1, "Pick at least one child.");
 
 // Unknown keys (e.g. family_id) are dropped: ownership always comes from the session.

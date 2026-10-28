@@ -17,6 +17,7 @@ export const MAX_ASSIGNMENT_DAYS = 1096;
 /** One year. */
 export const MAX_BLOCKED_DAYS = 366;
 export const MAX_IDS = 50;
+export const MAX_ASSIGNMENT_CHILDREN = 20;
 export const MAX_TITLE = 120;
 
 /** True when `v` has at most `places` decimals (tolerant of binary float noise like 0.1 + 0.2). */
@@ -70,6 +71,17 @@ export const IdList = (max = MAX_IDS) =>
   z.array(z.string().regex(UUID_RE, "Ids must be UUIDs.").transform((s) => s.toLowerCase()))
     .max(max, `At most ${max} ids.`)
     .refine((ids) => new Set(ids).size === ids.length, "Ids can't repeat.");
+
+/** `?a,b,c` → a list for IdList; absent or empty = none. A repeated param arrives as an array and fails. */
+const CommaList = z.string("must be one comma-separated value.").transform((s) => (s === "" ? [] : s.split(",")));
+
+/** GET /api/weights/suggestion (S2b-09): strict, like a body. */
+export const SuggestionQuery = z.strictObject({
+  unitType: UnitTypeField,
+  childIds: CommaList.pipe(IdList(MAX_ASSIGNMENT_CHILDREN)).optional().transform((ids) => ids ?? []),
+  subjectId: z.string("subjectId must be one id.").regex(UUID_RE, "subjectId must be a UUID.").transform((s) => s.toLowerCase()).optional(),
+});
+export type SuggestionQuery = z.infer<typeof SuggestionQuery>;
 
 /** 400 `invalid_range` unless start ≤ end and the span (counting both ends) is at most `maxDays`. */
 export function checkDateOrder(start: string, end: string, maxDays: number): void {
