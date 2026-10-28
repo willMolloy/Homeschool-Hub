@@ -17,7 +17,7 @@ This is the contract the timeline will rely on: whatever the forms save is what 
 5. Archive the event, delete the vacation → back to the first plan.
 
 ## Done when
-- [ ] All four stages match the engine exactly (minutes per day, warnings).
+- [x] All four stages match the engine exactly (minutes per day, warnings).
 
 ## Tests
 - the four stages above
