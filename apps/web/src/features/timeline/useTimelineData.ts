@@ -11,7 +11,7 @@ export interface TimelineData {
   loading: boolean;
   failed: boolean;
   reload: () => void;
-  /** T-07: the raw assignments (start and end dates for the adjust sheet). */
+  /** T-07: the raw assignments (start and end dates for the edit bar). */
   assignments: Assignment[];
   /** T-07: after a successful PATCH, swap in the saved assignment and refetch the plan. */
   applyAssignment: (saved: Assignment) => void;

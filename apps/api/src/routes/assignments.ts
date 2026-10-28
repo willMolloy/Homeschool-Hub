@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { withTransaction } from "../db";
 import { checkUnitChange } from "../http/assignmentWeight";
+import { checkDatesKeepLatestCheckIn } from "../http/checkInDates";
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, Title, TotalUnits, UnitTypeField, WeightPerUnit } from "../http/scheduleLimits";
 import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
@@ -33,7 +34,7 @@ const PatchBody = z
     totalUnits: TotalUnits.optional(),
     // null clears the weight (back to the subject default, then the built-in).
     weightPerUnit: WeightPerUnit.nullable().optional(),
-      startDate: LocalDate.optional(),
+    startDate: LocalDate.optional(),
     endDate: LocalDate.optional(),
     childIds: Children.optional(),
     archived: z.boolean().optional(),
@@ -72,6 +73,9 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       if (!cur) throw notFound();
       // Dates are checked on the merged row, so moving only one end can't invert the range.
       checkDateOrder(p.startDate ?? cur.start_date, p.endDate ?? cur.end_date, MAX_ASSIGNMENT_DAYS);
+      if (p.startDate !== undefined || p.endDate !== undefined) {
+        await checkDatesKeepLatestCheckIn(c, req.familyId, cur.id, p.startDate ?? cur.start_date, p.endDate ?? cur.end_date);
+      }
       const unitType = p.unitType ?? cur.unit_type;
       checkUnitChange({ unitType: cur.unit_type, weightPerUnit: cur.weight_per_unit }, p.unitType, p);
       // Only newly named references are checked: an assignment may keep a subject that was archived later.

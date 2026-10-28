@@ -1,5 +1,5 @@
 /**
- * T-07: what the adjust sheet needs about the selected assignment, and the end-date steps. Pure.
+ * T-07/T-07e: what the edit bar needs about the selected assignment, and the week steps. Pure.
  */
 import { addDays, type LocalDate } from "@hh/engine";
 import type { Assignment } from "../../api/types";
@@ -14,13 +14,27 @@ export const shiftEnd = (end: string, weeks: number): string => addDays(end as L
 /** Ending a week earlier must not put the end before the start (ISO dates compare as strings). */
 export const canEndEarlier = (start: string, end: string): boolean => shiftEnd(end, -1) >= start;
 
-export interface Selection {
+export interface DateSpan { startDate: string; endDate: string }
+
+/** T-07e: the whole assignment moved by whole weeks (negative = back). */
+export const moveWeeks = (s: DateSpan, weeks: number): DateSpan => ({ startDate: shiftEnd(s.startDate, weeks), endDate: shiftEnd(s.endDate, weeks) });
+
+/** T-07e: only the fields that differ from `from`, or null when nothing changed. */
+export function changedDates(from: DateSpan, to: DateSpan): Partial<DateSpan> | null {
+  const out: Partial<DateSpan> = {};
+  if (to.startDate !== from.startDate) out.startDate = to.startDate;
+  if (to.endDate !== from.endDate) out.endDate = to.endDate;
+  return Object.keys(out).length ? out : null;
+}
+
+/** T-07e: the start must be on or before the end. */
+export const datesError = (s: DateSpan): string | null => (s.startDate > s.endDate ? "The start must be on or before the end." : null);
+
+export interface Selection extends DateSpan {
   assignmentId: string;
   title: string;
   /** "Reading · Ada" or "Reading · Ada, Ben" for a shared assignment. */
   subtitle: string;
-  startDate: string;
-  endDate: string;
 }
 
 /** The selected assignment as the sheet shows it, or null when it isn't on the timeline any more. */

@@ -1,6 +1,6 @@
 /**
  * T-04/T-07: the timeline's lanes as a list, for screen readers (the picture itself is one labelled image).
- * Each assignment is a button that selects it (the keyboard path to the adjust sheet); the list shows while
+ * Each assignment is a button that selects it (the keyboard path to the edit bar); the list shows while
  * focus is inside it.
  */
 import { dateRange } from "../schedule/formBits";

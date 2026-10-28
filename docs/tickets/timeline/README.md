@@ -18,6 +18,7 @@ From the Timeline Tools Page (stack, colour and typography choices for the year 
 | T-07 | [Adjust sheet](T-07-adjust-sheet.md) | T-04 | M |
 | T-07c | [Child filter](T-07c-child-filter.md) | T-05b, T-07 | S |
 | T-07d | [Richer demo seed](T-07d-demo-seed.md) | T-07c | S |
+| T-07e | [Edit bar at the bottom](T-07e-edit-bar.md) | T-07, T-07d | M |
 | T-07b | Manual zoom: pinch, ctrl+wheel and pan; the presets just jump *(written when started)* | T-05c, T-07 | M |
 | T-08 | Drag to resize *(written when started)* | T-07 | M |
 | T-09 | Drag to move *(written when started)* | T-08 | M |

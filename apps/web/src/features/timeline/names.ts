@@ -4,7 +4,7 @@
  * A name sits on a solid (opacity 1) patch of its bar's own swatch, inside the bar, pinned to the bar's left
  * edge: the first stretch of the bar thick enough for the patch. It is the full title when it fits, otherwise
  * the longest prefix plus "…" that fits, and only when at least MIN_NAME_CHARS characters survive. Otherwise the
- * bar has no name (the title is still in the lane list and the adjust sheet).
+ * bar has no name (the title is still in the lane list and the edit bar).
  */
 import type { BandColumn } from "./paths";
 
