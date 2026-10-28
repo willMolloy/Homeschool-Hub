@@ -17,8 +17,8 @@ Vibe-coded code benefits from a strict linter that catches unused vars, floating
 5. Add `npm run lint` as a step in `.github/workflows/ci.yml` before tests.
 
 ## Done when
-- [ ] `npm run lint` exits 0.
-- [ ] CI runs lint.
+- [x] `npm run lint` exits 0.
+- [x] CI runs lint.
 
 ## Tests
 - None. Lint is the test.
