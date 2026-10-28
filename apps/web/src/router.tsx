@@ -1,4 +1,5 @@
 import { createBrowserRouter, Outlet, type RouteObject } from "react-router-dom";
+import { FamilySettingsPage } from "./features/schedule/FamilySettingsPage";
 import { ScheduleHub, SchedulePlaceholder } from "./features/schedule/ScheduleHub";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { RequireAuth } from "./auth/RequireAuth";
@@ -42,7 +43,7 @@ export const routes: RouteObject[] = [
           { path: "/schedule/assignments", element: <SchedulePlaceholder title="Assignments" /> },
           { path: "/schedule/days-off", element: <SchedulePlaceholder title="Days off" /> },
           { path: "/schedule/events", element: <SchedulePlaceholder title="Events" /> },
-          { path: "/schedule/settings", element: <SchedulePlaceholder title="Family settings" /> },
+          { path: "/schedule/settings", element: <FamilySettingsPage /> },
         ],
       },
       { path: "*", element: <NotFoundPage /> },

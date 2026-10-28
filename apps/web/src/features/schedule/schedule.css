@@ -39,3 +39,102 @@
   color: var(--muted);
   font-size: 0.95rem;
 }
+
+/* Forms */
+.schedule-form {
+  margin-bottom: 16px;
+}
+.schedule-form fieldset {
+  border: 0;
+  margin: 0 0 14px;
+  padding: 0;
+  min-width: 0;
+}
+.schedule-form legend {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+  padding: 0;
+}
+.schedule-form select,
+.schedule-form input[type="date"],
+.schedule-form input[type="number"] {
+  padding: 10px 12px;
+  border: 1px solid #b7c0cc;
+  border-radius: 8px;
+  background: #fff;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  font: inherit;
+}
+.schedule-form [aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.choice-list .choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.choice input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.choice-indent {
+  padding-left: 30px;
+}
+.day-picker-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.day-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid #b7c0cc;
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.day-chip input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.day-chip:has(input:checked) {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.day-chip:has(input:focus-visible) {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+.hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 4px 0 0;
+}
+.form-status {
+  margin: 10px 0 0;
+  min-height: 1.4em;
+  color: var(--muted);
+}
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.field-row > .field {
+  min-width: 0;
+}

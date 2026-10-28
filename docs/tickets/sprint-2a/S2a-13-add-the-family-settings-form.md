@@ -15,7 +15,7 @@ Uses `GET/PATCH /api/family`. After saving, re-ask `/api/me` so the header name 
 3. Save → PATCH only changed fields; success message; server 400 shown inline.
 
 ## Done when
-- [ ] Changing school days and saving updates `/api/me` (and the plan view's columns).
+- [x] Changing school days and saving updates `/api/me` (and the plan view's columns).
 
 ## Tests
 - loads current values
