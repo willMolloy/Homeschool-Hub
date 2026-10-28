@@ -15,7 +15,7 @@ Uses `PATCH /api/subjects/:id`. Archive needs a confirm step that explains histo
 3. Archive → confirm dialog (native `<dialog>`), then PATCH `{archived:true}`; the row disappears unless 'Show archived' is on.
 
 ## Done when
-- [ ] Rename, recolor, archive, unarchive all work and survive a reload.
+- [x] Rename, recolor, archive, unarchive all work and survive a reload.
 
 ## Tests
 - render tests: rename updates row; archive asks for confirmation then hides the row; cancel leaves it
