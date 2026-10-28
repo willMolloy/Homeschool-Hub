@@ -6,7 +6,8 @@
   "description": "Homeschool Hub: year timeline planner with low-friction logging",
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/*",
+    "db"
   ],
   "engines": {
     "node": ">=20"
@@ -18,7 +19,9 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "dev:web": "npm run dev -w @hh/web",
-    "dev:api": "npm run dev -w @hh/api"
+    "dev:api": "npm run dev -w @hh/api",
+    "db:migrate": "tsx db/migrate.ts",
+    "db:reset": "tsx db/migrate.ts --reset"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

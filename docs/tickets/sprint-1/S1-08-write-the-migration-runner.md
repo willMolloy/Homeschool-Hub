@@ -21,8 +21,8 @@
 9. CI: add a `postgres:16` service to `.github/workflows/ci.yml` (user/password `hh`, database `hh_test`), set `DATABASE_URL=postgres://hh:hh@localhost:5432/hh_test` for the job, and run `npm run db:reset` before `npm test`, so integration tests run in CI instead of being skipped.
 
 ## Done when
-- [ ] On a fresh DB, `npm run db:migrate` applies 001. Running it again prints `nothing to do`.
-- [ ] `npm run db:reset` works on hh_dev and refuses on any other DB name.
+- [x] On a fresh DB, `npm run db:migrate` applies 001. Running it again prints `nothing to do`.
+- [x] `npm run db:reset` works on hh_dev and refuses on any other DB name.
 
 ## Tests
 - Integration test against a `_test` database: fresh → applies all; second run → no-op; a broken migration file in a temp dir → exits non-zero and leaves `schema_migration` unchanged
