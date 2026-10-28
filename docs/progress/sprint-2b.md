@@ -26,7 +26,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-12 thickness in the plan debug view | aa80013 | |
 | S2b-13 retire minutesPerUnit from the API and web | 87d4421 | |
 | S2b-14 remove minute outputs from the engine (0.3.0) | ddecdda | |
-| S2b-15 migration 007 drops minutes_per_unit | (this commit) | |
+| S2b-15 migration 007 drops minutes_per_unit | 57309e4 | |
+| S2b-16 tester pass: weight edge cases | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -62,6 +63,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-14 — what replaced the minute checks.** `units.ts` had no other users, so it was deleted with `DEFAULT_MINUTES_PER_UNIT` and `minutesPerUnitOf`. `MINUTES_PER_WEIGHT_POINT` stays (it is the normalization constant the done-when allows). Tests that checked `minutes` now check `thickness` with the same meaning (zero on a day off, > 0 on a work day, finite). The minutes-per-unit default tests in `plan.basic` became one "plans carry no minutes" test, and a new `no-minutes.contract.test.ts` walks every serialized plan, lane, weekly summary and display series for a key named like "minutes" (the unit type value `"minutes"` is data and allowed). The tester's known-failing `it.fails` overflow case (T-ENG-2) now overflows thickness (1e307 units × weight 100) instead of minutes, so it still documents the same limit. The sample family takes weights directly (the prototype's 30 min a unit → 15, as before). `db/seed.ts` no longer writes `minutes_per_unit`, since its source field is gone; the column itself goes in S2b-15.
 
 - **S2b-15 — dropping the column.** `007_drop_minutes_per_unit.sql` drops 003's `assignment_minutes_unit_no_mpu` explicitly and then the column; 001–004 are history and keep their mentions (noted in `db/README.md`). With the column gone, S2b-13's `TODO(S2b-15)` line in `updateAssignment` was removed and `weight-rules.test.ts` lost its legacy-column tests (the D7/D21 behaviour tests stay). `validate.sql` lost RF-10's checks (section 10 and the negative-value check), and `minutes-unit.test.ts` still runs because it migrates only 001–003. New `drop-mpu.test.ts` covers 003 data → 006 → 007 (weights and subject defaults untouched, column and constraint gone, writing it fails with 42703) and runs `validate.sql` on a 003 → latest upgrade, checking its `assignment` columns equal a fresh database's.
+
+- **S2b-16 — tester suites written by the developer.** The four suites and the case table are in `tester-report.md` (round 3). Two findings, both Info and not fixed: T3-1 (the DB rounds 3-decimal weights instead of rejecting them; only the API/web reject) and T3-2 (the web parsers accept hex/exponent strings the number input never sends). Case 10's UI half is manual: the picker caption's "≈ N min of work" is S2b-34's requirement and comes from the weight, not the plan.
 
 ## Deferred
 

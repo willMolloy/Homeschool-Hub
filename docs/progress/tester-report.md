@@ -212,3 +212,33 @@ Result: **no horizontal overflow, no console errors, no HTTP ≥ 400, no failed 
 1. **T2-3:** serve the supported zone list from the API (or filter the picker through the API's validator) so the browser and server agree.
 2. **T2-2:** normalise or reject time-zone names that differ only in case.
 3. Lock the archive-versus-link race with `SELECT … FOR SHARE` on referenced rows, if it ever matters.
+
+## Round 3 (Sprint 2b weights): S2b-16 weight edge cases
+
+Written by the developer as the tester ticket's suites (DeeDee's brief); a separate tester verifies afterwards.
+
+**Suites:**
+- `packages/engine/test/tester.weights.test.ts` (33): bad weights, a 100 × 100 000 plan, D1 scale, trimmed mean, D17, multi-child, no minute keys.
+- `apps/api/test/tester3.weights.test.ts` (37): API 400s (raw JSON, so `-0` and `1.234` arrive as typed) for POST and PATCH, DB CHECKs, archived child, no history, trimmed mean through real saves, D17, multi-child, unit change, no minute keys in `/api/plan` or `/api/assignments`.
+- `apps/web/test/tester3.weights.test.ts` (16): the form's weight field and the picker's Custom field reject the same values.
+- `db/test/tester3.migration.test.ts` (2): 003 → 007 conversion and history backfill.
+
+| Case | Where | Result |
+|---|---|---|
+| 1 Zero, negative, huge | engine `isValidWeight` + fallback; API POST/PATCH 400 with nothing written; DB CHECK 23514 (`0`, `-1`, `-0`, `0.001`, `100.01`), `1e308` → 22003; web both fields | Pass, with **T3-1** below. 100 × 100 000 units plans finitely (thickness 1e7 over 20 days). |
+| 2 Scale (D1) | engine + `/api/plan` | Pass: 30 min of piano (built-in 0.5) and 15 pages at 1 are both thickness 15. |
+| 3 Archived child | API | Pass: the suggestion uses their history, a create for them is 400 `invalid_reference`, unarchiving keeps the history. |
+| 4 No history | API | Pass: built-ins 1/10/15/0.5; a save with no weight writes no history; the first explicit save does and the next suggestion uses it. The hint text for each source is covered by `weight-hint.test.tsx`. |
+| 5 Trimmed mean | engine + API | Pass: 3 → mean, 4 → middle two, 5 with an outlier → trimmed, 6 → oldest out of the window; repeated edits count once; a clear drops the vote (and lets an older one back into the window). |
+| 6 Learned units (D17) | engine + API + DB | Pass: lessons/minutes saves and edits write no history, the DB refuses such rows, lessons suggest the built-in; chapters learn. |
+| 7 Multi-child | engine + API | Pass: one with history → theirs (the other listed without); both → median; saving 2.0 records both. The mixed hint text is in `weight-hint.test.tsx`. |
+| 8 Unit change | API (+ `assignments-screen.test.tsx` for the web reset) | Pass: pages(2) → chapters alone 400 with history untouched, with 12 → 200 filed under chapters; → minutes with null → 200, no minutes history. |
+| 9 Migration (D3) | db | Pass: 3 → 1.5, 4 → 2, 600 → 100 (clamped), 0 and NULL → NULL, 0.01 → 0.01, lessons 30 → 15, 2.5 → 1.25, minutes row NULL; only weighted pages/chapters became history; the column is gone. |
+| 10 Logged hours | engine + API key walk | Pass: no key mentioning minutes. **Manual:** the only time text in the UI is the picker's preview caption ("20 pages a day ≈ 40 min of work"), which S2b-34/D22 asks for; it's derived from the weight, not from a plan's bars. The plan and cards show none (checked in the code: `features/plan` has no minute text). |
+
+### Findings
+
+| ID | Severity | What | Status |
+|---|---|---|---|
+| T3-1 | Info | The DB doesn't **reject** 3 decimals: `numeric(6,2)` rounds `1.234` to `1.23` before the CHECK sees it (and `0.001` rounds to `0.00`, which the CHECK then rejects). Only the API and web stop 3 decimals. | Not fixed; pinned by a test. Writes only come through the API. A `CHECK (weight_per_unit = round(weight_per_unit, 2))` can't help either, since the cast rounds first; rejecting would need the column as unconstrained `numeric`. |
+| T3-2 | Info | The web parsers use `Number()`, so `"0x10"` or `"1e1"` would parse (16, 10). The `type="number"` input doesn't let those through in a browser. | Not fixed; noted. |
