@@ -15,7 +15,7 @@ Table `subject` from `db/001_init.sql`: `id, family_id, name, color, sort_order,
 3. Route `GET /api/subjects` (protected) in `apps/api/src/routes/subjects.ts`, registered from app.ts.
 
 ## Done when
-- [ ] Returns only this family's rows, sorted correctly.
+- [x] Returns only this family's rows, sorted correctly.
 
 ## Tests
 - integration: two families seeded → each sees only its own

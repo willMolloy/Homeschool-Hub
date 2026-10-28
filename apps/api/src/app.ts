@@ -7,6 +7,7 @@ import { createPool, type Db } from "./db";
 import { authRoutes } from "./routes/auth";
 import { meRoutes } from "./routes/me";
 import { childrenRoutes } from "./routes/children";
+import { subjectsRoutes } from "./routes/subjects";
 import { registerSessionAuth } from "./auth/session";
 
 declare module "fastify" {
@@ -78,6 +79,7 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
   app.register(authRoutes);
   app.register(meRoutes);
   app.register(childrenRoutes);
+  app.register(subjectsRoutes);
 
   return app;
 }
