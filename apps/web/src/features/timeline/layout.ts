@@ -141,7 +141,8 @@ export interface TimelineLayout {
   ticks: Tick[];
   /** Centre of today's column, or its boundary on a day off; null when today isn't shown. */
   todayX: number | null;
-  totals: { y: number; height: number; cy: number; d: string };
+  /** The total-load strip, with its "Total" label row above it (labelY). */
+  totals: { labelY: number; y: number; height: number; cy: number; d: string };
   /** Top and bottom of the lane area (breaks span it). */
   lanesTop: number;
   lanesBottom: number;
@@ -263,13 +264,15 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   });
   const lanesBottom = y;
 
-  // The total-load strip, on its own scale so the busiest day fills it.
-  const totalsY = lanesBottom + (rows.length ? SUBJECT_GAP_PX : 0);
+  // The total-load strip, on its own scale so the busiest day fills it, under its own label row like a lane.
+  const totalsLabelY = lanesBottom + (rows.length ? SUBJECT_GAP_PX : 0);
+  const totalsY = totalsLabelY + LABEL_ROW_PX;
   const peak = Math.max(0, ...model.totals.daily, ...model.totals.weekly);
   const totalsScale = peak > 0 ? TOTALS_HEIGHT_PX / peak : 0;
   const totalsCy = totalsY + TOTALS_HEIGHT_PX / 2;
   const totalsSeries = detail === "weekly" ? model.totals.weekly : model.totals.daily;
   const totals = {
+    labelY: totalsLabelY,
     y: totalsY,
     height: TOTALS_HEIGHT_PX,
     cy: totalsCy,

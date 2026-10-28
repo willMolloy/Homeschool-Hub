@@ -1,0 +1,18 @@
+/* T-04: the Year timeline. Every colour is a --tl-* token. */
+.timeline-page-header { margin-bottom: 8px; }
+.timeline-page-header h1 { margin: 0; }
+/* Full-bleed on phones (the shell pads main by 16 px there). */
+.timeline-bleed { margin-inline: -16px; }
+@media (min-width: 640px) { .timeline-bleed { margin-inline: 0; } }
+.tl-svg { display: block; touch-action: pan-x pan-y; font-family: inherit; }
+.tl-hatch-line { stroke: var(--tl-hatch); stroke-width: 2; }
+.tl-tick-month { stroke: var(--tl-grid); stroke-width: 1; }
+.tl-tick-week { stroke: var(--tl-grid); stroke-width: 1; stroke-opacity: 0.5; }
+.tl-axis-label { font-size: 11px; fill: var(--tl-muted-foreground); }
+.tl-lane-label { font-size: 12px; fill: var(--tl-foreground); }
+.tl-band { fill-opacity: var(--tl-bar-opacity); }
+.tl-totals { fill: var(--tl-muted-foreground); fill-opacity: 0.35; }
+.tl-event { fill: var(--tl-muted-foreground); fill-opacity: 0.6; }
+.tl-today line { stroke: var(--tl-today); stroke-width: 2; }
+.tl-today rect { fill: var(--tl-today); }
+.tl-today text { font-size: 11px; font-weight: 600; fill: var(--tl-background); }

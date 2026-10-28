@@ -15,6 +15,7 @@ export interface AppShellProps {
 
 const NAV = [
   { to: "/", label: "Plan", end: true },
+  { to: "/timeline", label: "Timeline", end: false },
   { to: "/kids", label: "Kids", end: false },
   { to: "/subjects", label: "Subjects", end: false },
   { to: "/schedule", label: "Schedule", end: false },

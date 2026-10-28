@@ -12,6 +12,7 @@ import { LoginPage } from "./routes/LoginPage";
 import { NotFoundPage } from "./routes/NotFoundPage";
 import { PlanPage } from "./routes/PlanPage";
 import { SubjectsPage } from "./routes/SubjectsPage";
+import { TimelinePage } from "./routes/TimelinePage";
 
 function Root() {
   return (
@@ -40,6 +41,7 @@ export const routes: RouteObject[] = [
         ),
         children: [
           { path: "/", element: <PlanPage /> },
+          { path: "/timeline", element: <TimelinePage /> },
           { path: "/kids", element: <KidsPage /> },
           { path: "/subjects", element: <SubjectsPage /> },
           { path: "/schedule", element: <ScheduleHub /> },

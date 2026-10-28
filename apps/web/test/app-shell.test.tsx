@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest";
 import { renderAt } from "./render";
 
 describe("AppShell", () => {
-  it("shows the four nav links; the active one has aria-current=page", async () => {
+  it("shows the five nav links; the active one has aria-current=page", async () => {
     renderAt("/kids");
     const nav = await screen.findByRole("navigation", { name: "Main" });
     const links = within(nav).getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual(["Plan", "Kids", "Subjects", "Schedule"]);
+    expect(links.map((l) => l.textContent)).toEqual(["Plan", "Timeline", "Kids", "Subjects", "Schedule"]);
     expect(within(nav).getByRole("link", { name: "Kids" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getByRole("link", { name: "Plan" })).not.toHaveAttribute("aria-current");
   });
@@ -35,7 +35,7 @@ describe("AppShell", () => {
       await user.tab();
       reached.push(document.activeElement?.textContent ?? "");
     }
-    expect(reached).toEqual(expect.arrayContaining(["Plan", "Kids", "Subjects", "Schedule"]));
+    expect(reached).toEqual(expect.arrayContaining(["Plan", "Timeline", "Kids", "Subjects", "Schedule"]));
   });
 
   it("login is outside the shell", async () => {
