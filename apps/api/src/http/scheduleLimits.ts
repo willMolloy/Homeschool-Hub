@@ -87,3 +87,6 @@ export function checkDateOrder(start: string, end: string, maxDays: number): voi
   if (span < 1) throw new HttpError(400, "invalid_range", "The end date must be on or after the start date.");
   if (span > maxDays) throw new HttpError(400, "invalid_range", `That range is ${span} days; the most allowed is ${maxDays}.`);
 }
+
+/** S2b-24: a check-in position, cumulative units (≤ the total is checked against the assignment). */
+export const Position = bounded("position", 0, MAX_TOTAL_UNITS, 2, false);

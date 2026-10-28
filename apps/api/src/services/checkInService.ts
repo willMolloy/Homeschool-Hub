@@ -8,7 +8,7 @@ import {
   addDays, planAll, planChild, plannedRangeForWeek, weekStartOf,
   type Assignment, type ChildPlan, type LocalDate, type OverrideMode, type UnitType, type WeekReviewStatus, type WeekStart,
 } from "@hh/engine";
-import type { Queryable } from "../db";
+import type { Queryable, Tx } from "../db";
 import { HttpError } from "../http/errors";
 import { readPlanInputs, type PlanInputs } from "../plan/loadPlanInputs";
 
@@ -134,4 +134,90 @@ export async function readWeek(
   const inputs = await load(db, familyId);
   const today = opts.todayIn(inputs.timeZone);
   return weekView(db, familyId, inputs, resolveWeek(inputs.calendar.weekStart, today, opts.requested), today);
+}
+
+/** Within this many units of the plan, a position counts as "as planned" (D11). */
+export const AS_PLANNED_TOLERANCE = 0.5;
+
+export interface CheckInWrite {
+  assignmentId: string;
+  childId: string;
+  position: number;
+  mode: OverrideMode | null;
+}
+
+export interface SaveWeekRequest {
+  weekStart: LocalDate;
+  status: WeekReviewStatus;
+  items: CheckInWrite[];
+  todayIn: (timeZone: string) => LocalDate;
+}
+
+/**
+ * Check one reported item against the week's plan (S2b-24, D11) and say whether it is stored:
+ * as planned (within the tolerance) is not, anything else is. Throws 400 for a bad position or mode.
+ */
+export function checkItem(item: CheckInWrite, planned: Pick<CheckInItemJson, "plannedTo" | "totalUnits">, where: string): boolean {
+  if (item.position > planned.totalUnits + 1e-9)
+    throw new HttpError(400, "invalid_request", `${where}.position: can't be more than the total (${planned.totalUnits}).`);
+  const asPlanned = Math.abs(item.position - planned.plannedTo) <= AS_PLANNED_TOLERANCE;
+  const finishes = item.position >= planned.totalUnits - 1e-9;
+  if (asPlanned || finishes) {
+    if (item.mode !== null)
+      throw new HttpError(400, "invalid_request", `${where}.mode: leave it empty when the week went as planned or the work is finished.`);
+  } else if (item.mode === null) {
+    throw new HttpError(400, "invalid_request", `${where}.mode: choose how to catch up or use the extra time.`);
+  }
+  return !asPlanned;
+}
+
+/**
+ * Save one finished week (S2b-24) on `tx` (the caller's transaction): PUT replaces the week's check-ins,
+ * then the review status is upserted. Returns the week as GET shows it now, and whether the plan changed.
+ */
+export async function saveWeek(
+  tx: Tx, familyId: string, req: SaveWeekRequest, load: PlanLoader = readPlanInputs,
+): Promise<WeekCheckInJson & { planChanged: boolean }> {
+  if (req.status === "skipped" && req.items.length > 0)
+    throw new HttpError(400, "invalid_request", "items: a skipped week counts as done as planned, so it has no items.");
+  const inputs = await load(tx, familyId);
+  const today = req.todayIn(inputs.timeZone);
+  const w0 = resolveWeek(inputs.calendar.weekStart, today, req.weekStart);
+  const before = await weekView(tx, familyId, inputs, w0, today);
+  const planned = new Map(before.items.map((i) => [key(i.assignmentId, i.childId), i]));
+
+  const keep: CheckInWrite[] = [];
+  const seen = new Set<string>();
+  req.items.forEach((item, n) => {
+    const k = key(item.assignmentId, item.childId);
+    if (seen.has(k)) throw new HttpError(400, "invalid_request", `items.${n}: that assignment and child are listed twice.`);
+    seen.add(k);
+    const p = planned.get(k);
+    if (!p) throw new HttpError(400, "invalid_reference", `items.${n}: must be one of this week's assignments for that child.`);
+    if (checkItem(item, p, `items.${n}`)) keep.push(item);
+  });
+
+  const old = await storedFor(tx, familyId, w0);
+  await tx.query(
+    `DELETE FROM progress_checkin WHERE family_id = $1 AND week_start = $2
+        AND NOT ((assignment_id, child_id) IN (SELECT * FROM unnest($3::uuid[], $4::uuid[])))`,
+    [familyId, w0, keep.map((i) => i.assignmentId), keep.map((i) => i.childId)]);
+  for (const i of keep) {
+    await tx.query(
+      `INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position, mode)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (assignment_id, child_id, week_start)
+       DO UPDATE SET position = EXCLUDED.position, mode = EXCLUDED.mode, updated_at = now()`,
+      [familyId, i.assignmentId, i.childId, w0, i.position, i.mode]);
+  }
+  await tx.query(
+    `INSERT INTO week_review (family_id, week_start, status) VALUES ($1, $2, $3)
+     ON CONFLICT (family_id, week_start) DO UPDATE SET status = EXCLUDED.status, updated_at = now()`,
+    [familyId, w0, req.status]);
+
+  const was = new Map(old.map((r) => [key(r.assignment_id, r.child_id), `${Number(r.position)}/${r.mode}`]));
+  const now = new Map(keep.map((i) => [key(i.assignmentId, i.childId), `${i.position}/${i.mode}`]));
+  const planChanged = was.size !== now.size || [...now].some(([k, v]) => was.get(k) !== v);
+  const after = await weekView(tx, familyId, await load(tx, familyId), w0, today);
+  return { ...after, planChanged };
 }
