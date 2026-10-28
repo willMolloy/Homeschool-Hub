@@ -48,7 +48,9 @@ export function buildCapacityModel(calendar: FamilyCalendar, events: RecurringEv
       for (const { ev, s, e, weekdays } of evs) {
         if (day < s || day > e || !weekdays.has(wd)) continue;
         if (!appliesToChild(ev.childIds, childId)) continue;
-        const rule = ev.subjectRules[subjectId] ?? ev.defaultRule ?? "normal";
+        // Own keys only: a subject id like "constructor" must not pick up Object.prototype members.
+        const own = ev.subjectRules && Object.prototype.hasOwnProperty.call(ev.subjectRules, subjectId) ? ev.subjectRules[subjectId] : undefined;
+        const rule = own ?? ev.defaultRule ?? "normal";
         c *= ruleFactor(rule, ev.capacityFraction);
       }
       return c;

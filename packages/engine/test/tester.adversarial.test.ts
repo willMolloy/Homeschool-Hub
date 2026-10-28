@@ -262,6 +262,12 @@ describe("tester: overlapping events", () => {
     expect(c).toBeGreaterThanOrEqual(0);
     expect(c).toBeLessThanOrEqual(1);
   });
+  it("subject ids that collide with Object.prototype keys don't break capacity", () => {
+    for (const sid of ["constructor", "toString", "__proto__", "hasOwnProperty"]) {
+      const m = buildCapacityModel(MON_FRI, [ev({ subjectRules: {}, defaultRule: "skip" })]);
+      expect(m.capacity(toDayNumber("2026-09-09"), "frank", sid), sid).toBe(0);
+    }
+  });
 });
 
 describe("tester: multi-child divergence", () => {
