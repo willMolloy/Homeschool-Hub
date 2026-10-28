@@ -1,12 +1,12 @@
 # Recruiting post (DRAFT, for DeeDee to post herself)
 
-**Not posted.** Check each group's rules first; some need admin approval for research posts. Swap in the right group name in brackets. A real link to the screener form goes where it says [LINK].
+**Not posted.** Check each group's rules first; some need admin approval for research posts. Edit the bracketed intro line so it describes you. A real link to the screener form goes where it says [LINK].
 
 ---
 
 ### Version for all three groups (short)
 
-> Hi all! I'm a homeschool mom and software developer building a simple planning tool that shows your whole school year on one timeline and re-plans when life happens (sick weeks, co-op days, a slow book).
+> Hi all! [Edit to fit: I'm a homeschooling parent and software developer] building a simple planning tool that shows your whole school year on one timeline and re-plans when life happens (sick weeks, co-op days, a slow book).
 >
 > I'm looking for **5–6 parents to try an early version in a 30-minute video call**. You'd just think out loud while you click around; no prep, no right answers, and nothing to buy. Phone users are especially welcome, since a lot of us plan from our phones.
 >
