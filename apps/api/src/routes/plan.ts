@@ -6,7 +6,7 @@ import type { FastifyInstance } from "fastify";
 import { ENGINE_VERSION, EngineInputError, planAll, toDayNumber, type ChildPlan } from "@hh/engine";
 import { HttpError } from "../http/errors";
 import { safeTimeZone } from "../http/timeZone";
-import { loadPlanInputs } from "../plan/loadPlanInputs";
+import { FamilyNotFoundError, loadPlanInputs, type PlanInputs } from "../plan/loadPlanInputs";
 
 /** Longest range one request may ask for, counting both ends. A school year is ~300 days. */
 export const MAX_PLAN_RANGE_DAYS = 400;
@@ -50,14 +50,19 @@ export async function planRoutes(app: FastifyInstance): Promise<void> {
     if (span < 1) throw new HttpError(400, "invalid_range", `"from" must be on or before "to".`);
     if (span > MAX_PLAN_RANGE_DAYS) throw new HttpError(400, "range_too_long", `Ask for at most ${MAX_PLAN_RANGE_DAYS} days at a time.`);
 
+    let inputs: PlanInputs;
+    try {
+      inputs = await loadPlanInputs(app.db, req.familyId);
+    } catch (e) {
+      if (e instanceof FamilyNotFoundError) throw new HttpError(401, "unauthenticated", "Your family no longer exists.");
+      throw e;
+    }
+    const { assignments, ctx, timeZone } = inputs;
     if (!asOf) {
-      const { rows } = await app.db.query<{ time_zone: string }>("SELECT time_zone FROM family WHERE id = $1", [req.familyId]);
-      if (!rows[0]) throw new HttpError(401, "unauthenticated", "Your family no longer exists.");
       // A bad stored zone (no DB CHECK is possible) falls back to the default instead of a RangeError 500.
-      asOf = localToday(safeTimeZone(rows[0].time_zone, (bad) => req.log.warn({ familyId: req.familyId, timeZone: bad }, "invalid family time_zone; using default")));
+      asOf = localToday(safeTimeZone(timeZone, (bad) => req.log.warn({ familyId: req.familyId, timeZone: bad }, "invalid family time_zone; using default")));
     }
 
-    const { assignments, ctx } = await loadPlanInputs(app.db, req.familyId);
     const plans = planAll(assignments, { ...ctx, asOf }).map((p) => ({
       ...p,
       days: p.days.filter((d) => d.date >= from && d.date <= to),

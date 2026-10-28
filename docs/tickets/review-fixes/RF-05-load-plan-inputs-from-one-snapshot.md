@@ -16,8 +16,8 @@ One `/api/plan` request reads all of its rows on a single connection inside `BEG
 3. The route maps `FamilyNotFoundError` to the existing 401.
 
 ## Done when
-- [ ] One plan request checks out exactly one connection and never uses `pool.query` directly.
-- [ ] Plan output is unchanged (contract tests green).
+- [x] One plan request checks out exactly one connection and never uses `pool.query` directly.
+- [x] Plan output is unchanged (contract tests green).
 
 ## Tests
 - Wrap the test pool so `connect()` and `query()` are counted: one `GET /api/plan` → `connect` 1, pool-level `query` 0 for the plan's reads (the session check is separate and allowed).

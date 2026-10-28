@@ -50,3 +50,22 @@ export async function withTransaction<T>(pool: pg.Pool, fn: (client: pg.PoolClie
     client.release();
   }
 }
+
+/**
+ * Run `fn` on ONE client inside `BEGIN READ ONLY ISOLATION LEVEL REPEATABLE READ`: every read sees the same
+ * snapshot and writes are rejected. COMMIT on success, ROLLBACK on error; the client is always released.
+ */
+export async function withReadSnapshot<T>(pool: pg.Pool, fn: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN READ ONLY ISOLATION LEVEL REPEATABLE READ");
+    const out = await fn(client);
+    await client.query("COMMIT");
+    return out;
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+  }
+}

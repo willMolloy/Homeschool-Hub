@@ -7,6 +7,8 @@ export function testConfig(over: Partial<Config> = {}): Config {
     DATABASE_URL: process.env.DATABASE_URL ?? "postgres://hh:hh@localhost:5432/hh_test",
     SESSION_SECRET: "test-secret-test-secret-test-secret-123",
     NODE_ENV: "test",
+    // Quiet even when a test switches NODE_ENV to production; logging tests set LOG_LEVEL themselves.
+    LOG_LEVEL: "silent",
     ...over,
   };
 }
