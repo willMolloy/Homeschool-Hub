@@ -202,10 +202,9 @@ describe("generated CSS", () => {
 describe("bar opacity (T-03: one token, a bit more transparent)", () => {
   const backgrounds = (t: (typeof THEME_NAMES)[number]) => [CHROME[t].background!, CHROME[t].card!];
 
-  it("is one token on :root, 15–20 points below the prototype's opaque bars", () => {
-    expect(BAR_OPACITY).toBe(0.82);
-    expect(1 - BAR_OPACITY).toBeGreaterThanOrEqual(0.15);
-    expect(1 - BAR_OPACITY).toBeLessThanOrEqual(0.2);
+  it("is one token on :root, halfway from T-03's 0.82 to opaque (T-08c)", () => {
+    expect(BAR_OPACITY).toBe(0.91);
+    expect(BAR_OPACITY).toBeCloseTo((0.82 + 1) / 2, 6);
     const css = renderTokensCss();
     expect(css.match(/--tl-bar-opacity:/g)).toHaveLength(1);
     expect(css.slice(0, css.indexOf("}"))).toContain(`--tl-bar-opacity: ${BAR_OPACITY};`);

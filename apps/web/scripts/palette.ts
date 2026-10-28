@@ -22,11 +22,10 @@ export const AA_TEXT = 4.5;
 /** The safe palette's floor: smallest OKLab distance between any two subjects under every vision simulation. Okabe–Ito itself is 0.086. */
 export const CVD_MIN_DISTANCE = 0.08;
 /**
- * Bars are semi-transparent (agreed), emitted as the one token `--tl-bar-opacity`. 0.82 is 18 points
- * below the prototype's opaque bars (DeeDee asked for a bit more transparency; product owner approved
- * 0.82 as the starting value, 2026-10-28).
+ * Bars are semi-transparent (agreed), emitted as the one token `--tl-bar-opacity`. T-03 started at 0.82
+ * (DeeDee asked for a bit more transparency); T-08c raised it halfway to full, to 0.91 (DeeDee, 2026-10-28).
  */
-export const BAR_OPACITY = 0.82;
+export const BAR_OPACITY = 0.91;
 /**
  * The floor for bars as seen on the page (composited at BAR_OPACITY). Transparency pulls every colour
  * toward the background, so distances shrink: Okabe–Ito's own seven colours fall from 0.086 to 0.069.

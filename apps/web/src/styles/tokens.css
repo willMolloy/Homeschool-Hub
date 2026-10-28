@@ -99,7 +99,7 @@
   --tl-text-lg: 20px;
   --tl-numeric: tabular-nums;
   --tl-radius: 0.5rem;
-  --tl-bar-opacity: 0.82;
+  --tl-bar-opacity: 0.91;
 }
 [data-theme="dark"] {
   --tl-background: oklch(0.2 0.01 260);

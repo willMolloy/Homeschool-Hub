@@ -21,7 +21,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-07e Edit bar at the bottom | e998596 | DeeDee's request: the adjust sheet (a modal) is replaced by a slim edit bar fixed to the bottom of the viewport (above the tab bar on phones): move a week back or forward, Start and End date pickers, end a week earlier or later, Reset after a change, ×; the selected bar is kept above it; the API refuses date changes that would leave the latest check-in outside the assignment |
 | T-07f This month shows only what is in the month | 9dad6cc | At This month, rows, lanes and subjects with nothing in the month are left out; rows are packed from the whole year first, so a bar keeps its row across zooms |
 | T-08 Drag a bar | 7283bf4 | DeeDee's request: drag the body to move an assignment, an end to change its start or end; whole weeks zoomed out, school days at This month; live preview of that lane and All subjects with the dates in the edit bar; saved on release, Reset undoes it; touch drags only the selected bar so the page still scrolls |
-| T-08b Polish after the drag hand-test | (this commit) | DeeDee's hand-test: zoomed out, each assignment is a clean shape (one thickness, or distinct phases like the science fair's heavy-then-light) and All subjects has no edge wobble; the selected bar is fully opaque with a grip at each end; the Start and End fields follow a drag live |
+| T-08b Polish after the drag hand-test | d9777f1 | DeeDee's hand-test: zoomed out, each assignment is a clean shape (one thickness, or distinct phases like the science fair's heavy-then-light) and All subjects has no edge wobble; the selected bar is fully opaque with a grip at each end; the Start and End fields follow a drag live |
+| T-08c Bar opacity | (this commit) | DeeDee's request: unselected bars and All subjects from 0.82 to 0.91 (halfway to solid), bars dimmed by a selection from 0.3 to 0.65, the selected bar stays at 1; colour-blind and contrast checks re-run, no threshold changed |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -283,3 +284,10 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **Touch targets:** the selected bar is hit-tested first. On a bar narrower than 66 px, each end reaches 44 px outside the bar, so both ends are at least 44 px wide on touch.
 - **Cursors:** ew-resize over the ends and move over the body (was grab).
 - **Live date fields:** Start and End are controlled inputs that follow the selection, including the drag preview. A body drag changes both; an end drag changes that one. Typing keeps a draft until the selection's dates change.
+
+## T-08c — Bar opacity decisions (DeeDee's request)
+
+- **0.82 → 0.91** for `--tl-bar-opacity` (`BAR_OPACITY` in `scripts/palette.ts`; `tokens.css` regenerated with `npm run tokens`). It also applies to the All subjects bar, which shares the token.
+- **Dimmed 0.3 → 0.65.** This is the element opacity on top of the bar opacity, so a dimmed bar draws at about 0.59 (it was about 0.25).
+- **Selected stays at fill-opacity 1.**
+- **Checks re-run, no threshold changed.** The T-03 test pinned 15–20 points below opaque; it now pins 0.91, halfway from 0.82 to 1. That is the requirement itself, not a colour threshold. Being closer to opaque, the as-drawn colour-blind distances went up (smallest now 0.076, tritanopia light, against the 0.065 floor). Names still sit on their solid patch, so label contrast is unchanged and passes.
