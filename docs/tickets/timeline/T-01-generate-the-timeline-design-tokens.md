@@ -45,4 +45,4 @@ A `scripts/palette.ts` that uses culori to write the OKLCH subject colours and t
 - Mapping roster subjects onto the new palette, or replacing the roster swatches.
 - A dark-mode switch, or following the OS setting.
 - Self-hosting Inter Variable (system UI is used).
-- Timeline tickets T-02 and later *(pending pilot results)*.
+- Timeline tickets T-02 and later (see the README for the order).

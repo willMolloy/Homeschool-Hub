@@ -1,11 +1,12 @@
 # Timeline progress
 
-Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. Only T-01 and T-01b are pilot-independent; T-02 onwards wait for the pilots.
+Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropped the parent pilot gate (they will test the timeline themselves), so T-02 onward are built in the Page's order.
 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
 | T-01 Generate the timeline design tokens | 9df15da | `scripts/palette.ts` → `src/styles/tokens.css` + `tokens.theme.css`; Tailwind v4 without Preflight; shadcn/ui `base-nova` config + `cn()`; no components yet |
-| T-01b Colour-blind-safe default palette | (this commit) | Okabe–Ito-based "safe" palette is the default; T-01 hues kept as `data-palette="vivid"`; per-swatch label tokens; `--tl-subject-N-pastel` tints; `src/lib/timelinePalette.ts` helper (no UI) |
+| T-01b Colour-blind-safe default palette | a58731e | Okabe–Ito-based "safe" palette is the default; T-01 hues kept as `data-palette="vivid"`; per-swatch label tokens; `--tl-subject-N-pastel` tints; `src/lib/timelinePalette.ts` helper (no UI) |
+| T-02 Timeline view model | (this commit) | `features/timeline/{grid,marks,model}.ts`: subject lanes → child sub-lanes, daily + weekly-smoothed thickness per assignment on one daily grid, breaks, event days, Today, totals. Pure; nothing renders yet |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -63,3 +64,14 @@ Decisions and compromises (conservative calls):
 ### Pastel direction (This Week)
 
 DeeDee wants This Week minimal, with pastel colours. Each subject therefore also gets `--tl-subject-N-pastel` (Tailwind `bg-subject-N-pastel`): the same hue as the subject's palette colour, so a subject's colour matches across pages. It sits at L 0.95 (light) or 0.32 (dark), with chroma ≤ 0.035, and follows the active palette. Text on a pastel uses `--tl-foreground` / `--tl-muted-foreground`, both above WCAG AA (tested). **The This Week screens are not restyled yet; that is its own ticket.**
+
+## T-02 — view model decisions
+
+- **A shared assignment shows in each child's sub-lane.** The plan API returns one plan per assignment × child, and each child really does that work, so History appears in Frank's and Margaret's sub-lanes. The prototype's extra "Both kids" sub-lane is not built.
+- **Roster subject colours are not used on the timeline.** Lanes take palette slots 1–10 in roster order (active subjects first, then sort order, then name), so the colour-blind-safe set stays intact. Archived subjects that still have plans come after active ones. An 11th subject reuses slot 1; the lane name is the backup cue. Mapping a subject's own swatch onto a slot is left as a product question.
+- **Child steps follow roster order**: first child base, second light, third dark, and a fourth child cycles back to base. A child keeps the same step in every subject. Sub-lane position and the child's name tell repeated steps apart.
+- **Weekly smoothing is the engine's**, per assignment: each week's thickness is spread evenly over that week's counted days, so stacks still add up. Callers fetch whole weeks (`weekAlignedRange`) so no average covers part of a week.
+- **Event days are only marked on school days that no family-wide break covers**, since an event takes nothing from the plan on a day off. Archived events, and events with no day in range, are left out.
+- **Breaks keep their children.** A family-wide break (`childIds: []`) will shade every lane; a per-child one only that child's sub-lanes (T-03/T-04).
+- **Thickness, never minutes.** The model carries the engine's thickness points; a test checks that no "minute" key appears.
+- **Unknown ids don't crash the view.** A plan whose subject, child or assignment is missing from the lists gets "Subject", "Child" or "Assignment" and sorts last.
