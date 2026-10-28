@@ -107,3 +107,8 @@ export interface ScheduleEvent {
   childIds: string[];
   archived: boolean;
 }
+
+/** GET /api/timezones (S2a-17): the zones the server accepts, in canonical spelling. */
+export interface TimeZones {
+  zones: string[];
+}

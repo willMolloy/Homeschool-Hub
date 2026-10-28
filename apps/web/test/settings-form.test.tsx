@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { FamilySettings } from "../src/api/types";
@@ -44,10 +44,11 @@ describe("Family settings form", () => {
   it("time zone change sends only timeZone", async () => {
     fakeApi.on("PATCH /api/family", (body) => [200, { ...SETTINGS, ...(body as object) }]);
     const user = await open();
-    await user.selectOptions(screen.getByLabelText("Time zone"), "America/Denver");
+    await screen.findByRole("option", { name: "America/New York" });
+    await user.selectOptions(screen.getByLabelText("Time zone"), "America/New_York");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await screen.findByText("Saved.");
-    expect(patches()[0]!.body).toEqual({ timeZone: "America/Denver" });
+    expect(patches()[0]!.body).toEqual({ timeZone: "America/New_York" });
   });
 
   it("nothing changed → no request", async () => {
@@ -77,7 +78,8 @@ describe("Family settings form", () => {
   it("server 400 → message shown", async () => {
     fakeApi.on("PATCH /api/family", 400, { error: "invalid_body", message: "timeZone: Unknown time zone." });
     const user = await open();
-    await user.selectOptions(screen.getByLabelText("Time zone"), "Asia/Tokyo");
+    await screen.findByRole("option", { name: "Asia/Kolkata" });
+    await user.selectOptions(screen.getByLabelText("Time zone"), "Asia/Kolkata");
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Unknown time zone.");
   });
@@ -108,9 +110,40 @@ describe("Family settings form", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
   });
 
-  it("an unlisted current zone (e.g. an alias) is offered first", () => {
-    expect(timeZoneOptions("US/Central")[0]).toBe("US/Central");
-    expect(timeZoneOptions("America/Chicago")).not.toContain("US/Central");
-    expect(timeZoneOptions("America/Chicago")).toContain("America/Chicago");
+  // S2a-17: the picker shows the server's list (GET /api/timezones), never the browser's (tester T2-3).
+  it("timeZoneOptions: the server's zones, with an unlisted current zone first", () => {
+    expect(timeZoneOptions("Etc/GMT-14", ["America/Chicago", "UTC"])).toEqual(["Etc/GMT-14", "America/Chicago", "UTC"]);
+    expect(timeZoneOptions("UTC", ["America/Chicago", "UTC"])).toEqual(["America/Chicago", "UTC"]);
+    expect(timeZoneOptions("America/Chicago", undefined)).toEqual(["America/Chicago"]);
+  });
+
+  it("the picker lists exactly the server's zones, not the browser's", async () => {
+    fakeApi.on("GET /api/timezones", 200, { zones: ["America/Chicago", "Asia/Kolkata", "UTC"] });
+    await open();
+    const select = screen.getByLabelText("Time zone");
+    await waitFor(() => expect(within(select).getAllByRole("option")).toHaveLength(3));
+    expect(within(select).getAllByRole("option").map((o) => (o as HTMLOptionElement).value)).toEqual(["America/Chicago", "Asia/Kolkata", "UTC"]);
+    expect(within(select).queryByRole("option", { name: "America/Coyhaique" })).toBeNull();
+    expect(screen.queryByText(/Couldn't load the time-zone list/)).toBeNull();
+  });
+
+  it("picking a server zone sends it", async () => {
+    fakeApi.on("GET /api/timezones", 200, { zones: ["America/Chicago", "Asia/Kolkata", "UTC"] });
+    fakeApi.on("PATCH /api/family", (body) => [200, { ...SETTINGS, ...(body as object) }]);
+    const user = await open();
+    const select = screen.getByLabelText("Time zone");
+    await waitFor(() => expect(within(select).getAllByRole("option")).toHaveLength(3));
+    await user.selectOptions(select, "Asia/Kolkata");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await screen.findByText("Saved.");
+    expect(patches()[0]!.body).toEqual({ timeZone: "Asia/Kolkata" });
+  });
+
+  it("if the list fails, only the stored zone is offered, with a note", async () => {
+    fakeApi.on("GET /api/timezones", 500, { error: "internal_error" });
+    await open({ ...SETTINGS, timeZone: "Europe/London" });
+    expect(await screen.findByText(/Couldn't load the time-zone list/)).toBeInTheDocument();
+    const options = within(screen.getByLabelText("Time zone")).getAllByRole("option");
+    expect(options.map((o) => (o as HTMLOptionElement).value)).toEqual(["Europe/London"]);
   });
 });

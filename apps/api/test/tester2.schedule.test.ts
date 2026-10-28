@@ -347,26 +347,30 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
     beforeAll(async () => { F = await newFam("Tester2 TZ"); });
     const setTz = (timeZone: unknown) => F.req("PATCH", "/api/family", { timeZone });
 
-    it("aliases and links are accepted and stored as sent; /api/me agrees", async () => {
-      for (const tz of ["US/Central", "Asia/Kolkata", "Asia/Calcutta", "Europe/Kyiv", "America/Argentina/Buenos_Aires", "Etc/GMT-14", "Etc/GMT+12", "Etc/UTC", "UTC", "America/Port-au-Prince"]) {
+    // S2a-17 changed this from "stored as sent" to canonical storage (T2-2 fixed).
+    it("aliases and links are accepted and stored canonically; /api/me agrees", async () => {
+      const cases: [string, string][] = [["US/Central", "America/Chicago"], ["Asia/Kolkata", "Asia/Kolkata"], ["Asia/Calcutta", "Asia/Kolkata"], ["Europe/Kyiv", "Europe/Kyiv"],
+        ["America/Argentina/Buenos_Aires", "America/Argentina/Buenos_Aires"], ["Etc/GMT-14", "Etc/GMT-14"], ["Etc/GMT+12", "Etc/GMT+12"], ["Etc/UTC", "UTC"], ["UTC", "UTC"], ["America/Port-au-Prince", "America/Port-au-Prince"]];
+      for (const [tz, stored] of cases) {
         const res = await setTz(tz);
         expect(res.statusCode, tz).toBe(200);
-        expect(res.json().timeZone).toBe(tz);
-        expect((await F.req("GET", "/api/me")).json().timeZone).toBe(tz);
+        expect(res.json().timeZone, tz).toBe(stored);
+        expect((await F.req("GET", "/api/me")).json().timeZone).toBe(stored);
       }
     });
 
     it("non-IANA spellings are rejected (incl. ICU-only abbreviations and offsets)", async () => {
-      for (const tz of ["EST", "GMT", "CST6CDT", "Zulu", "america/chicago", "+05:00", "UTC+5", "Etc/GMT+15", "Mars/Olympus_Mons", "", " America/Chicago", "America/Chicago\u0000", 5, null]) {
+      for (const tz of ["EST", "GMT", "CST6CDT", "Zulu", "+05:00", "UTC+5", "Etc/GMT+15", "Mars/Olympus_Mons", "", " America/Chicago", "America/Chicago\u0000", 5, null]) {
         expect((await setTz(tz)).statusCode, String(tz)).toBe(400);
       }
     });
 
-    it("documented quirk: an ALL-CAPS zone passes (ICU is case-insensitive) and is stored as sent", async () => {
-      const res = await setTz("AMERICA/CHICAGO");
-      expect(res.statusCode).toBe(200);
-      expect(res.json().timeZone).toBe("AMERICA/CHICAGO");
-      await setTz("America/Chicago");
+    it("T2-2 fixed: ALL-CAPS and lower-case zones are stored in IANA casing", async () => {
+      for (const tz of ["AMERICA/CHICAGO", "america/chicago"]) {
+        const res = await setTz(tz);
+        expect(res.statusCode).toBe(200);
+        expect(res.json().timeZone).toBe("America/Chicago");
+      }
     });
 
     it("asOf follows the zone at the date line (Kiritimati UTC+14 vs Pago Pago UTC−11)", async () => {

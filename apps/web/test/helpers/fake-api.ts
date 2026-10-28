@@ -31,6 +31,7 @@ class FakeApi {
     this.isOffline = false;
     this.on("GET /api/me", 200, DEMO_ME);
     this.on("POST /api/auth/logout", 204);
+    this.on("GET /api/timezones", 200, { zones: ["America/Chicago", "America/New_York", "Asia/Kolkata", "Europe/London", "UTC"] });
     this.on("GET /api/health", 200, { ok: true, engineVersion: "0.1.0", db: "ok" });
   }
 

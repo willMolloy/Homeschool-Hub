@@ -13,6 +13,7 @@ import { planRoutes } from "./routes/plan";
 import { assignmentsRoutes } from "./routes/assignments";
 import { blockedRangesRoutes } from "./routes/blockedRanges";
 import { eventsRoutes } from "./routes/events";
+import { timeZonesRoutes } from "./routes/timezones";
 import { registerSessionAuth } from "./auth/session";
 
 declare module "fastify" {
@@ -84,6 +85,7 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
   app.register(authRoutes);
   app.register(meRoutes);
   app.register(familyRoutes);
+  app.register(timeZonesRoutes);
   app.register(childrenRoutes);
   app.register(subjectsRoutes);
   app.register(assignmentsRoutes);

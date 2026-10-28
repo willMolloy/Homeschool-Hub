@@ -1,7 +1,7 @@
 /** /schedule/settings (S2a-13): family name, week start, school days and time zone. */
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { apiPatch } from "../../api/client";
-import type { FamilySettings } from "../../api/types";
+import type { FamilySettings, TimeZones } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useAuth } from "../../auth/AuthProvider";
 import "../../ui/forms.css";
@@ -11,15 +11,14 @@ import "./schedule.css";
 
 const NAME_MAX = 60;
 
-/** Every zone this browser knows, with the current one first when it isn't in the list (e.g. an alias). */
-export function timeZoneOptions(current: string): string[] {
-  let zones: string[] = [];
-  try {
-    zones = Intl.supportedValuesOf("timeZone");
-  } catch {
-    zones = [];
-  }
-  return zones.includes(current) ? zones : [current, ...zones];
+/**
+ * The picker's options (S2a-17): the server's zones (GET /api/timezones), with the stored zone first when it
+ * isn't listed. Until the list arrives, or if it fails, only the stored zone. The browser's own
+ * `Intl.supportedValuesOf` is never used: it can offer zones the server doesn't know (tester T2-3).
+ */
+export function timeZoneOptions(current: string, serverZones: string[] | undefined): string[] {
+  if (!serverZones) return [current];
+  return serverZones.includes(current) ? serverZones : [current, ...serverZones];
 }
 
 export function FamilySettingsPage() {
@@ -53,7 +52,8 @@ function SettingsForm({ initial, onSaved }: { initial: FamilySettings; onSaved: 
   const [formError, setFormError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const zones = useMemo(() => timeZoneOptions(initial.timeZone), [initial.timeZone]);
+  const zoneList = useApi<TimeZones>("/api/timezones");
+  const zones = useMemo(() => timeZoneOptions(initial.timeZone, zoneList.data?.zones), [initial.timeZone, zoneList.data]);
   const nameId = useId();
   const nameErrId = useId();
   const tzId = useId();
@@ -131,6 +131,12 @@ function SettingsForm({ initial, onSaved }: { initial: FamilySettings; onSaved: 
           ))}
         </select>
         <p className="hint">Decides what "today" is for the plan.</p>
+        {zoneList.error ? (
+          <div className="btn-row">
+            <p className="hint">Couldn't load the time-zone list, so only the current zone is shown.</p>
+            <button className="btn btn-secondary" type="button" onClick={zoneList.reload}>Reload zones</button>
+          </div>
+        ) : null}
       </div>
       <div className="btn-row">
         <button className="btn" type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</button>

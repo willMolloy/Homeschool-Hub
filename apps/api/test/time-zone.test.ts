@@ -6,8 +6,11 @@ describe("isIanaTimeZone", () => {
   it.each(["America/Chicago", "Europe/London", "Asia/Kolkata", "Pacific/Auckland", "UTC", "US/Central", "Etc/GMT+5", "America/Argentina/Buenos_Aires"])("accepts %s", (z) => {
     expect(isIanaTimeZone(z)).toBe(true);
   });
-  // Lower-case spellings are accepted by Intl.DateTimeFormat but are not how IANA writes them, so they are refused.
-  it.each(["Mars/Olympus_Mons", "", "+05:00", "america/chicago", "Chicago", "GMT+5", "America/Chicago\u0000", " UTC", 5, null])("rejects %j", (z) => {
+  // Any letter case is accepted since S2a-17 (the stored spelling is canonicalized; see timezones.test.ts).
+  it("accepts other casings", () => {
+    expect(isIanaTimeZone("america/chicago")).toBe(true);
+  });
+  it.each(["Mars/Olympus_Mons", "", "+05:00", "Chicago", "GMT+5", "America/Chicago\u0000", " UTC", 5, null])("rejects %j", (z) => {
     expect(isIanaTimeZone(z)).toBe(false);
   });
   it("zod schema gives a readable message", () => {
