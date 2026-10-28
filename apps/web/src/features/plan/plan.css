@@ -1,0 +1,24 @@
+.plan-debug h2 { font-size: 1.1rem; margin: 0 0 4px; }
+.plan-debug-note { color: var(--muted); font-size: 0.9rem; margin: 4px 0 12px; }
+.plan-debug-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.plan-debug-week { font-weight: 600; }
+.plan-debug-asof { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.plan-debug-child { margin-bottom: 20px; }
+.plan-debug-scroll { overflow-x: auto; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+.plan-debug-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.plan-debug-table caption { text-align: left; font-weight: 600; padding: 8px 10px; }
+.plan-debug-table th, .plan-debug-table td { padding: 6px 8px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.plan-debug-table th[scope="row"], .plan-debug-table thead th:first-child { text-align: left; }
+.plan-debug-table abbr { text-decoration: none; display: block; }
+.plan-debug-date { display: block; font-weight: 400; color: var(--muted); font-size: 0.8rem; }
+.plan-debug-table tfoot, .plan-debug-total { font-weight: 600; }
+.plan-debug-warnings { color: var(--danger); font-size: 0.9rem; margin: 8px 0 0; padding-left: 20px; }
+.plan-debug-error { color: var(--danger); }
+.plan-debug-bar { flex-wrap: nowrap; }
+.plan-debug-bar .btn { padding-left: 12px; padding-right: 12px; }
+@media (max-width: 480px) {
+  .plan-debug-table { font-size: 0.85rem; }
+  .plan-debug-table th, .plan-debug-table td { padding: 5px 4px; }
+  .plan-debug-table th[scope="row"] { max-width: 6.5em; overflow: hidden; text-overflow: ellipsis; }
+}
+.plan-debug-bar .btn, .plan-debug-week { white-space: nowrap; }

@@ -18,7 +18,7 @@ The real timeline UI waits for pilot results. Until then this table proves the w
 6. Header text: 'Debug view (temporary)'. Prev/next week buttons.
 
 ## Done when
-- [ ] The seeded week of Oct 26 2026 shows Frank's Literature as 45 min on Mon/Wed/Thu/Fri and 0 on Tuesday (co-op skip).
+- [x] The seeded week of Oct 26 2026 shows Frank's Literature as 45 min on Mon/Wed/Thu/Fri and 0 on Tuesday (co-op skip).
 
 ## Tests
 - render test with a fixture PlanResponse: totals add up; estimated asterisk shown; warnings listed
