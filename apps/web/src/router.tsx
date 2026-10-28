@@ -1,4 +1,5 @@
 import { createBrowserRouter, Outlet, type RouteObject } from "react-router-dom";
+import { AssignmentsPage } from "./features/schedule/AssignmentsPage";
 import { FamilySettingsPage } from "./features/schedule/FamilySettingsPage";
 import { ScheduleHub, SchedulePlaceholder } from "./features/schedule/ScheduleHub";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
@@ -40,7 +41,7 @@ export const routes: RouteObject[] = [
           { path: "/kids", element: <KidsPage /> },
           { path: "/subjects", element: <SubjectsPage /> },
           { path: "/schedule", element: <ScheduleHub /> },
-          { path: "/schedule/assignments", element: <SchedulePlaceholder title="Assignments" /> },
+          { path: "/schedule/assignments", element: <AssignmentsPage /> },
           { path: "/schedule/days-off", element: <SchedulePlaceholder title="Days off" /> },
           { path: "/schedule/events", element: <SchedulePlaceholder title="Events" /> },
           { path: "/schedule/settings", element: <FamilySettingsPage /> },

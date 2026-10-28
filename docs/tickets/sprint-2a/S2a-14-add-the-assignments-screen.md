@@ -15,7 +15,7 @@ Phone-first: a list of cards (title, subject, children, units, dates); a form wi
 3. Archive/unarchive from the edit form.
 
 ## Done when
-- [ ] Adding an assignment through the form makes it appear in the list and on the plan debug view.
+- [x] Adding an assignment through the form makes it appear in the list and on the plan debug view.
 
 ## Tests
 - list renders subject and child names

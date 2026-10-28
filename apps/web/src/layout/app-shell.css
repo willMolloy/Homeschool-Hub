@@ -65,6 +65,10 @@
 }
 
 /* phone: bottom tab bar */
+/* Keep fields that get focus or are scrolled to from hiding under the tab bar. */
+html {
+  scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
 .shell-nav {
   position: fixed;
   left: 0;
@@ -110,6 +114,9 @@
 
 /* tablet/desktop: links in the header */
 @media (min-width: 640px) {
+  html {
+    scroll-padding-bottom: 0;
+  }
   .shell-header {
     padding: 12px 24px;
   }

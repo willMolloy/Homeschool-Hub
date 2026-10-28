@@ -1,5 +1,7 @@
 /** Response shapes of the API. Kept in sync with apps/api by hand (Sprint 1). */
-import type { ChildPlan } from "@hh/engine";
+import type { ChildPlan, UnitType } from "@hh/engine";
+
+export type { UnitType };
 
 /** `{ error, message? }` from every non-2xx response. */
 export interface ApiErrorBody {
@@ -58,4 +60,19 @@ export interface PlanResponse {
   from: string;
   to: string;
   plans: ChildPlan[];
+}
+
+/** GET/POST/PATCH /api/assignments (S2a-04..06) */
+export interface Assignment {
+  id: string;
+  subjectId: string;
+  title: string;
+  unitType: UnitType;
+  totalUnits: number;
+  /** null = the unit-type default (estimated). */
+  minutesPerUnit: number | null;
+  startDate: string;
+  endDate: string;
+  childIds: string[];
+  archived: boolean;
 }
