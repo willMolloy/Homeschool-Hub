@@ -114,8 +114,11 @@ export async function eventsRoutes(app: FastifyInstance): Promise<void> {
       if (!cur) throw notFound();
       // Merged dates: `null` clears, `undefined` keeps.
       checkOrder(p.startDate === undefined ? cur.start_date : p.startDate, p.endDate === undefined ? cur.end_date : p.endDate);
-      // Sent rules/children replace the set, so every one of them must be active now.
-      await checkRefs(c, req.familyId, { subjectIds: p.subjectRules ? Object.keys(p.subjectRules) : [], childIds: p.childIds ?? [] });
+      // Sent rules replace the set, so every rule's subject must be active now. Children already linked may stay
+      // even if archived since (the forms keep them ticked); newly named ones must be active.
+      await checkRefs(c, req.familyId, {
+        subjectIds: p.subjectRules ? Object.keys(p.subjectRules) : [], childIds: (p.childIds ?? []).filter((id) => !cur.child_ids.includes(id)),
+      });
       await updateEvent(c, req.familyId, cur.id, p);
       return (await getEvent(c, req.familyId, cur.id))!;
     });

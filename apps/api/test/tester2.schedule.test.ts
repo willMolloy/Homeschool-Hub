@@ -292,9 +292,9 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       ({ childIds: kids, subjectIds: subj } = await rosterFor(app, F.cookies, ["Old", "Stay", "New"], ["S"]));
     });
 
-    // T2-1 (it.fails until fixed). The forms keep an archived child ticked ("archived ones show only while selected") and send the whole set
+    // T2-1 (fixed). The forms keep an archived child ticked ("archived ones show only while selected") and send the whole set
     // when the selection changes. Adding a child while the archived one stays ticked must not be refused.
-    it.fails("assignment: adding a child while an archived one stays linked → 200", async () => {
+    it("assignment: adding a child while an archived one stays linked → 200", async () => {
       const a = (await F.req("POST", "/api/assignments", assignmentBody(subj[0]!, [kids[0]!, kids[1]!]))).json().id;
       await F.req("PATCH", `/api/children/${kids[0]}`, { archived: true });
       try {
@@ -309,7 +309,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       }
     });
 
-    it.fails("event: adding a child while an archived one stays linked → 200", async () => {
+    it("event: adding a child while an archived one stays linked → 200", async () => {
       const e = (await F.req("POST", "/api/events", { name: "Ev", weekdays: [2], childIds: [kids[0], kids[1]] })).json().id;
       await F.req("PATCH", `/api/children/${kids[0]}`, { archived: true });
       try {
@@ -321,7 +321,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       }
     });
 
-    it.fails("day off: adding a child while an archived one stays linked → 200", async () => {
+    it("day off: adding a child while an archived one stays linked → 200", async () => {
       const b = (await F.req("POST", "/api/blocked-ranges", { startDate: "2026-11-02", endDate: "2026-11-03", childIds: [kids[0], kids[1]] })).json().id;
       await F.req("PATCH", `/api/children/${kids[0]}`, { archived: true });
       try {
@@ -333,7 +333,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       }
     });
 
-    it.fails("assignment: re-sending its own (since archived) subject with another change → 200", async () => {
+    it("assignment: re-sending its own (since archived) subject with another change → 200", async () => {
       const s2 = (await F.req("POST", "/api/subjects", { name: "Later archived" })).json().id;
       const a = (await F.req("POST", "/api/assignments", assignmentBody(s2, [kids[1]!]))).json().id;
       await F.req("PATCH", `/api/subjects/${s2}`, { archived: true });

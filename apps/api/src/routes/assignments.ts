@@ -71,7 +71,9 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       // Dates are checked on the merged row, so moving only one end can't invert the range.
       checkDateOrder(p.startDate ?? cur.start_date, p.endDate ?? cur.end_date, MAX_ASSIGNMENT_DAYS);
       // Only newly named references are checked: an assignment may keep a subject that was archived later.
-      await checkRefs(c, req.familyId, { subjectIds: p.subjectId ? [p.subjectId] : [], childIds: p.childIds ?? [] });
+      // Ids already linked may stay even if archived since (the forms keep them ticked); new ones must be active.
+      const newSubject = p.subjectId && p.subjectId !== cur.subject_id ? [p.subjectId] : [];
+      await checkRefs(c, req.familyId, { subjectIds: newSubject, childIds: (p.childIds ?? []).filter((id) => !cur.child_ids.includes(id)) });
       await updateAssignment(c, req.familyId, cur.id, p);
       return (await getAssignment(c, req.familyId, cur.id))!;
     });

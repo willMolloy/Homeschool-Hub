@@ -54,7 +54,8 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
       const cur = await lockBlockedRange(c, req.familyId, req.params.id);
       if (!cur) throw notFound();
       checkDateOrder(p.startDate ?? cur.start_date, p.endDate ?? cur.end_date, MAX_BLOCKED_DAYS);
-      await checkRefs(c, req.familyId, { childIds: p.childIds ?? [] });
+      // Children already linked may stay even if archived since (the forms keep them ticked); new ones must be active.
+      await checkRefs(c, req.familyId, { childIds: (p.childIds ?? []).filter((id) => !cur.child_ids.includes(id)) });
       await updateBlockedRange(c, req.familyId, cur.id, p);
       return (await getBlockedRange(c, req.familyId, cur.id))!;
     });
