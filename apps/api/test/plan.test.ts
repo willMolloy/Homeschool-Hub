@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
-import { localToday, type PlanResponse } from "../src/routes/plan";
+import type { PlanResponse } from "../src/routes/plan";
+import { localToday } from "../src/http/today";
 import { hashSessionToken, newSessionToken } from "../src/auth/session";
 import { testConfig } from "./helpers/config";
 import { hasDb, testPool } from "./helpers/db";
@@ -17,7 +18,9 @@ describe("localToday", () => {
 
 describe.skipIf(!hasDb)("GET /api/plan (integration)", () => {
   const pool = hasDb ? testPool() : null!;
-  const app = hasDb ? buildApp(testConfig(), { db: pool }) : null!;
+  // 10:00 in Chicago on Oct 28: "today" is pinned, never the wall clock.
+  const NOW = new Date("2026-10-28T15:00:00Z");
+  const app = hasDb ? buildApp(testConfig(), { db: pool, now: () => NOW }) : null!;
   let fam: Awaited<ReturnType<typeof seedFamily>>;
   let cookies: { hh_session: string };
 
@@ -64,9 +67,21 @@ describe.skipIf(!hasDb)("GET /api/plan (integration)", () => {
     expect(kids).toEqual(new Set([fam.ids.child.frank, fam.ids.child.margaret]));
   });
 
-  it("asOf defaults to the family's local today", async () => {
+  it("asOf defaults to the family's local today, from the injected clock", async () => {
     const body = (await get("?from=2026-10-26&to=2026-10-30")).json<PlanResponse>();
-    expect(body.asOf).toBe(localToday("America/Chicago"));
+    expect(body.asOf).toBe("2026-10-28");
+  });
+
+  it("without an injected clock, asOf comes from the real clock", async () => {
+    const real = buildApp(testConfig(), { db: pool });
+    try {
+      const before = new Date();
+      const res = await real.inject({ method: "GET", url: "/api/plan?from=2026-10-26&to=2026-10-30", cookies });
+      const after = new Date();
+      expect([localToday("America/Chicago", before), localToday("America/Chicago", after)]).toContain(res.json().asOf);
+    } finally {
+      await real.close();
+    }
   });
 
   it("no NaN, Infinity or null in any number field", async () => {

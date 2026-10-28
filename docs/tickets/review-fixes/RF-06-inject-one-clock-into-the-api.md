@@ -17,8 +17,8 @@
 4. Replace the ±5 s test in `tester2.schedule.test.ts` with fixed-clock tests.
 
 ## Done when
-- [ ] `rg "new Date\(\)" apps/api/src` finds only the default clock.
-- [ ] No test depends on the wall clock to decide "today".
+- [x] `rg "new Date\(\)" apps/api/src` finds only the default clock.
+- [x] No test depends on the wall clock to decide "today".
 
 ## Tests
 - A fixed instant of 2026-11-02T10:30Z: Kiritimati → 2026-11-03, Pago Pago → 2026-11-01, Chicago → 2026-11-02 (asOf from `/api/plan`).

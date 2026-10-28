@@ -5,7 +5,7 @@
 import type { FastifyInstance } from "fastify";
 import { ENGINE_VERSION, EngineInputError, planAll, toDayNumber, type ChildPlan } from "@hh/engine";
 import { HttpError } from "../http/errors";
-import { safeTimeZone } from "../http/timeZone";
+import { familyToday } from "../http/today";
 import { FamilyNotFoundError, loadPlanInputs, type PlanInputs } from "../plan/loadPlanInputs";
 
 /** Longest range one request may ask for, counting both ends. A school year is ~300 days. */
@@ -17,11 +17,6 @@ export interface PlanResponse {
   from: string;
   to: string;
   plans: ChildPlan[];
-}
-
-/** Today's date in `timeZone`, as YYYY-MM-DD. The server's own clock zone is never used. */
-export function localToday(timeZone: string, now: Date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
 }
 
 function dayParam(q: Record<string, unknown>, name: string, required: boolean): string | undefined {
@@ -58,10 +53,7 @@ export async function planRoutes(app: FastifyInstance): Promise<void> {
       throw e;
     }
     const { assignments, ctx, timeZone } = inputs;
-    if (!asOf) {
-      // A bad stored zone (no DB CHECK is possible) falls back to the default instead of a RangeError 500.
-      asOf = localToday(safeTimeZone(timeZone, (bad) => req.log.warn({ familyId: req.familyId, timeZone: bad }, "invalid family time_zone; using default")));
-    }
+    asOf ??= familyToday(req, timeZone);
 
     const plans = planAll(assignments, { ...ctx, asOf }).map((p) => ({
       ...p,

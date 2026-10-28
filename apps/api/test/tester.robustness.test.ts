@@ -1,14 +1,15 @@
 /** Independent tester: plan-route robustness edges (Oct 28, 2026). */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
-import { localToday } from "../src/routes/plan";
+import { localToday } from "../src/http/today";
 import { testConfig } from "./helpers/config";
 import { hasDb, testPool } from "./helpers/db";
 import { signedInFamily } from "./helpers/session";
 
 describe.skipIf(!hasDb)("tester: plan route edges", () => {
   const pool = hasDb ? testPool() : null!;
-  const app = hasDb ? buildApp(testConfig(), { db: pool }) : null!;
+  const NOW = new Date("2026-10-28T15:00:00Z");
+  const app = hasDb ? buildApp(testConfig(), { db: pool, now: () => NOW }) : null!;
   let fam: Awaited<ReturnType<typeof signedInFamily>>;
   beforeAll(async () => { fam = await signedInFamily(pool, "Plan edges"); });
   afterAll(async () => {
@@ -38,7 +39,7 @@ describe.skipIf(!hasDb)("tester: plan route edges", () => {
     try {
       const res = await plan("from=2026-09-01&to=2026-09-30");
       expect(res.statusCode).toBe(200);
-      expect(res.json().asOf).toBe(localToday("America/Chicago"));
+      expect(res.json().asOf).toBe(localToday("America/Chicago", NOW));
     } finally {
       await pool.query("UPDATE family SET time_zone = 'America/Chicago' WHERE id = $1", [fam.familyId]);
     }

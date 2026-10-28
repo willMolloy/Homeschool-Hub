@@ -6,7 +6,6 @@ import { planAll, type Assignment, type BlockedPeriod, type ChildPlan, type Fami
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
 import type { PlanResponse } from "../src/routes/plan";
-import { localToday } from "../src/routes/plan";
 import { testConfig } from "./helpers/config";
 import { hasDb, testPool } from "./helpers/db";
 import { inject, rosterFor } from "./helpers/schedule";
@@ -373,16 +372,28 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       }
     });
 
-    it("asOf follows the zone at the date line (Kiritimati UTC+14 vs Pago Pago UTC−11)", async () => {
-      await setTz("Pacific/Kiritimati");
-      const east = (await F.req("GET", "/api/plan?from=2026-11-01&to=2026-11-07")).json().asOf;
-      await setTz("Pacific/Pago_Pago");
-      const west = (await F.req("GET", "/api/plan?from=2026-11-01&to=2026-11-07")).json().asOf;
-      const now = new Date();
-      // Computed at nearly the same instant; allow one tick past midnight in either zone.
-      expect([localToday("Pacific/Kiritimati", now), localToday("Pacific/Kiritimati", new Date(now.getTime() - 5000))]).toContain(east);
-      expect([localToday("Pacific/Pago_Pago", now), localToday("Pacific/Pago_Pago", new Date(now.getTime() - 5000))]).toContain(west);
-      expect(east > west).toBe(true); // 25 hours apart: always a different calendar day
+    /** asOf from /api/plan for F in `timeZone`, with the API clock pinned at `iso`. */
+    const asOfAt = async (iso: string, timeZone: string) => {
+      expect((await setTz(timeZone)).statusCode).toBe(200);
+      const pinned = buildApp(testConfig(), { db: pool, now: () => new Date(iso) });
+      try {
+        const res = await pinned.inject({ method: "GET", url: "/api/plan?from=2026-11-01&to=2026-11-07", cookies: F.cookies });
+        expect(res.statusCode).toBe(200);
+        return res.json().asOf as string;
+      } finally {
+        await pinned.close();
+      }
+    };
+
+    it("asOf follows the zone at the date line (fixed clock 2026-11-02T10:30Z)", async () => {
+      expect(await asOfAt("2026-11-02T10:30:00Z", "Pacific/Kiritimati")).toBe("2026-11-03"); // UTC+14
+      expect(await asOfAt("2026-11-02T10:30:00Z", "Pacific/Pago_Pago")).toBe("2026-11-01"); // UTC−11
+      expect(await asOfAt("2026-11-02T10:30:00Z", "America/Chicago")).toBe("2026-11-02");
+    });
+
+    it("asOf turns over at local midnight in Chicago (CST, UTC−6)", async () => {
+      expect(await asOfAt("2026-11-02T05:59:59Z", "America/Chicago")).toBe("2026-11-01");
+      expect(await asOfAt("2026-11-02T06:00:00Z", "America/Chicago")).toBe("2026-11-02");
     });
 
     it("concurrent settings PATCHes never lose a column or 500", async () => {

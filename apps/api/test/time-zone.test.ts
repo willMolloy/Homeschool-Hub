@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_TIME_ZONE, isIanaTimeZone, safeTimeZone, TimeZone } from "../src/http/timeZone";
-import { localToday } from "../src/routes/plan";
+import { localToday } from "../src/http/today";
 
 describe("isIanaTimeZone", () => {
   it.each(["America/Chicago", "Europe/London", "Asia/Kolkata", "Pacific/Auckland", "UTC", "US/Central", "Etc/GMT+5", "America/Argentina/Buenos_Aires"])("accepts %s", (z) => {

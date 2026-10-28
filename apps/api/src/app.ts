@@ -17,11 +17,14 @@ import { timeZonesRoutes } from "./routes/timezones";
 import { registerSessionAuth } from "./auth/session";
 import { HttpError } from "./http/errors";
 import { loggerOptions, type LogStream } from "./http/logging";
+import { systemClock } from "./http/today";
 
 declare module "fastify" {
   interface FastifyInstance {
     db: Db;
     config: Config;
+    /** The clock for every "what day is it" (BuildOptions.now). */
+    now: () => Date;
   }
 }
 
@@ -30,6 +33,8 @@ export interface BuildOptions {
   db?: Db;
   /** Send log lines here instead of stdout (tests capture them; set config.LOG_LEVEL to see anything in test). */
   logStream?: LogStream;
+  /** The clock (tests pass a fixed instant). Default: the real one. */
+  now?: () => Date;
 }
 
 export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstance {
@@ -57,6 +62,7 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
   const db = opts.db ?? createPool(config, app.log);
   app.decorate("db", db);
   app.decorate("config", config);
+  app.decorate("now", opts.now ?? systemClock);
   if (!opts.db) app.addHook("onClose", async () => db.end());
 
   app.register(cookie, { secret: config.SESSION_SECRET });
