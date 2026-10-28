@@ -31,6 +31,8 @@ async function setup(rows = [SAXON, NOVEL], subjects?: Subject[]) {
 }
 const cards = () => within(screen.getByRole("list", { name: "Assignments" })).getAllByRole("listitem");
 const date = (label: string, value: string, scope: HTMLElement) => fireEvent.change(within(scope).getByLabelText(label), { target: { value } });
+/** S2c-04: Add waits for the weight suggestion for the current inputs. */
+const addReady = (form: HTMLElement) => waitFor(() => expect(within(form).getByRole("button", { name: "Add" })).toBeEnabled());
 
 describe("Assignments screen", () => {
   it("list renders subject and child names, sorted by start", async () => {
@@ -104,6 +106,7 @@ describe("Assignments screen", () => {
     date("Start", "2026-11-02", form);
     date("End", "2026-11-02", form);
     await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
+    await addReady(form);
     await user.click(within(form).getByRole("button", { name: "Add" }));
     const body = writes()[0]!.body as Record<string, unknown>;
     expect(body.weightPerUnit).toBeNull();
@@ -238,6 +241,7 @@ describe("Assignments screen", () => {
     await user.click(screen.getByRole("button", { name: "Add assignment" }));
     const form = screen.getByRole("form", { name: "Add assignment" });
     await user.type(within(form).getByLabelText("Total"), "0");
+    await addReady(form);
     await user.click(within(form).getByRole("button", { name: "Add" }));
     for (const msg of ["Pick a subject.", "Title is required.", "Total must be more than 0 and at most 100,000.", "Pick a start and an end date.", "Pick at least one child."]) {
       expect(within(form).getByText(msg)).toBeInTheDocument();
@@ -319,6 +323,7 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     return { user, form };
   }
   const add = async (user: ReturnType<typeof userEvent.setup>, form: HTMLElement) => {
+    await addReady(form);
     await user.click(within(form).getByRole("button", { name: "Add" }));
     await waitFor(() => expect(writes()).toHaveLength(1));
     return writes()[0]!.body as Record<string, unknown>;
@@ -421,5 +426,62 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     expect(await within(form).findByText("Using Maggie's usual weight (1.4). Frank has no history yet.")).toBeInTheDocument();
     expect(within(form).getByLabelText("Weight per page")).toHaveValue(1.4);
     expect(suggestionCalls()).toHaveLength(1);
+  });
+
+  describe("a loading or stale suggestion isn't saved (S2c-04)", () => {
+    const addButton = (form: HTMLElement) => within(form).getByRole("button", { name: "Add" });
+
+    it("Add is disabled and busy until the suggestion for the current inputs arrives", async () => {
+      const { form } = await openAdd();
+      await waitFor(() => expect(addButton(form)).toBeEnabled());
+      fireEvent.click(within(form).getByRole("checkbox", { name: "Maggie" }));
+      expect(addButton(form)).toBeDisabled();
+      expect(addButton(form)).toHaveAttribute("aria-busy", "true");
+      expect(addButton(form)).toHaveTextContent("Add");
+      fireEvent.submit(form); // Enter does nothing either
+      expect(writes()).toEqual([]);
+      await waitFor(() => expect(addButton(form)).toBeEnabled());
+      expect(addButton(form)).not.toHaveAttribute("aria-busy");
+    });
+
+    it("a children change → the new children's suggestion is sent, not the old one", async () => {
+      const { user, form } = await openAdd();
+      await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+      await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
+      await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
+      await within(form).findByText("Using Maggie's usual weight for pages (1.4).");
+      await addReady(form);
+      // Swap Maggie for Frank (no history): her 1.4 is still on show while his answer loads.
+      fireEvent.click(within(form).getByRole("checkbox", { name: "Maggie" }));
+      fireEvent.click(within(form).getByRole("checkbox", { name: "Frank" }));
+      expect(addButton(form)).toBeDisabled();
+      fireEvent.click(addButton(form));
+      expect(writes()).toEqual([]);
+      expect(await within(form).findByText("Using the default weight for pages (1).")).toBeInTheDocument();
+      expect((await add(user, form)).weightPerUnit).toBeNull();
+    });
+
+    it("a typed weight saves while the suggestion is still loading", async () => {
+      const { user, form } = await openAdd();
+      await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+      await addReady(form);
+      fireEvent.click(within(form).getByRole("checkbox", { name: "Maggie" }));
+      expect(addButton(form)).toBeDisabled();
+      fireEvent.change(within(form).getByLabelText("Weight per lesson"), { target: { value: "3" } });
+      expect(addButton(form)).toBeEnabled();
+      await user.click(addButton(form));
+      await waitFor(() => expect(writes()).toHaveLength(1));
+      expect((writes()[0]!.body as Record<string, unknown>).weightPerUnit).toBe(3);
+    });
+
+    it("a failed suggestion request enables Add with the built-in", async () => {
+      const { user, form } = await openAdd();
+      fakeApi.on("GET /api/weights/suggestion", 500, { error: "internal" });
+      fireEvent.click(within(form).getByRole("checkbox", { name: "Frank" }));
+      expect(addButton(form)).toBeDisabled();
+      await waitFor(() => expect(addButton(form)).toBeEnabled());
+      await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+      expect((await add(user, form)).weightPerUnit).toBeNull();
+    });
   });
 });

@@ -27,13 +27,20 @@ export function suggestionPath(unitType: UnitType, childIds: readonly string[], 
   return `/api/weights/suggestion?${q.toString()}`;
 }
 
+export interface WeightSuggestionState {
+  /** What to show: the last answer for this unit (kept while a newer one loads, so the field doesn't flicker). */
+  suggestion: WeightSuggestion | null;
+  /** True until the answer for the *current* inputs is in, debounce included (S2c-04): don't save `suggestion` yet. */
+  pending: boolean;
+}
+
 /**
- * `enabled: false` (editing an untouched unit) makes no request and returns null.
- * Otherwise returns the latest answer for these inputs, the built-in on failure, or null while the first is in flight.
+ * `enabled: false` (editing an untouched unit) makes no request: null and not pending.
+ * Otherwise the latest answer for these inputs, the built-in on failure, or null while the first is in flight.
  */
 export function useWeightSuggestion(
   unitType: UnitType, childIds: readonly string[], subjectId: string, enabled: boolean,
-): WeightSuggestion | null {
+): WeightSuggestionState {
   const [result, setResult] = useState<{ path: string; value: WeightSuggestion } | null>(null);
   const latest = useRef(0);
   const path = enabled ? suggestionPath(unitType, [...childIds].sort(), subjectId) : null;
@@ -50,7 +57,9 @@ export function useWeightSuggestion(
     return () => clearTimeout(timer);
   }, [path, unitType]);
 
-  if (!path) return null;
-  // Keep showing the last answer for the same unit while a newer one loads, so the field doesn't flicker.
-  return result && result.value.unitType === unitType ? result.value : null;
+  if (!path) return { suggestion: null, pending: false };
+  return {
+    suggestion: result && result.value.unitType === unitType ? result.value : null,
+    pending: result?.path !== path,
+  };
 }

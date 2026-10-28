@@ -73,8 +73,10 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
   const [saving, setSaving] = useState(false);
   const ids = { subject: useId(), title: useId(), unit: useId(), total: useId(), weight: useId(), start: useId(), end: useId(), err: useId() };
 
-  const suggestion = useWeightSuggestion(unitType, childIds, subjectId, suggesting);
+  const { suggestion, pending } = useWeightSuggestion(unitType, childIds, subjectId, suggesting);
   const followsSuggestion = suggesting && !typed;
+  // S2c-04: an untouched suggestion is only saved once it's the answer for the current inputs; a typed weight can always save.
+  const awaitingSuggestion = followsSuggestion && pending;
 
   /** A weight means effort per *this* unit, so changing the unit goes back to the new unit's suggestion (D7). */
   function changeUnit(u: UnitType) {
@@ -101,7 +103,7 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (saving) return;
+    if (saving || awaitingSuggestion) return;
     setFormError(null);
     const errs: Errors = {};
     if (!subjectId) errs.subject = "Pick a subject.";
@@ -213,7 +215,7 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
       </div>
       <ChildPicker options={l.children} value={childIds} onChange={setChildIds} error={errors.children} />
       <div className="btn-row">
-        <button className="btn" type="submit" disabled={saving}>{saving ? "Saving…" : item ? "Save" : "Add"}</button>
+        <button className="btn" type="submit" disabled={saving || awaitingSuggestion} aria-busy={awaitingSuggestion || undefined}>{saving ? "Saving…" : item ? "Save" : "Add"}</button>
         <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>
         {extra}
       </div>

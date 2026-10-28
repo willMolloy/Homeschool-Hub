@@ -7,7 +7,8 @@ Tickets: `docs/tickets/sprint-2c-fixes/`. Findings: `docs/reviews/sprint-2b-veri
 | Tickets S2c-01..06 | f16760d | |
 | S2c-01 Block a week-start change once weeks are checked in (M1) | ce2980e | 409 `week_start_locked`; `weekStartLocked` on GET/PATCH; UI hint + inline error |
 | S2c-02 Reject a check-in position below the week's start (M2) | b63324a | 400 below `plannedFrom`; number field min = slider min |
-| S2c-03 An invalid Custom width blocks Save (L1) | (this commit) | `onValidityChange` on the picker; `RosterForm.blocked`; caption while invalid |
+| S2c-03 An invalid Custom width blocks Save (L1) | 6df8659 | `onValidityChange` on the picker; `RosterForm.blocked`; caption while invalid |
+| S2c-04 Don't save a loading or stale weight suggestion (L2) | (this commit) | hook returns `{ suggestion, pending }`; Add/Save disabled + `aria-busy` while following a pending suggestion |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -21,3 +22,6 @@ Tickets: `docs/tickets/sprint-2c-fixes/`. Findings: `docs/reviews/sprint-2b-veri
 - **S2c-02 stale stored rows.** A stored week whose position is now below its `plannedFrom` (after an earlier week was edited) is left as stored; re-saving it with that value is refused with the new minimum named, so the parent sees it when they edit that week. Re-validating later weeks automatically is out of scope (ticket).
 - **S2c-03 the assignment form doesn't use the picker.** It has its own weight number field (S2b-10), which already refuses 0, negatives, over 100 and more than 2 decimals on Save with no request (`assignments-screen.test.tsx`, "weight %s → client error, no request"). An empty field there is valid by design (it means "use the subject's default or the built-in"), so nothing changed in that form.
 - **S2c-03 how Save is blocked.** `RosterForm` gained a generic `blocked` prop (disables Save and ignores submit) rather than knowing about weights; `SubjectForm` sets it from the picker's validity. A unit change resets the picker to None, which counts as valid.
+- **S2c-04 the label.** The button keeps its usual label while waiting ("Add" on the add form, "Save" when editing after a unit change); the ticket's "keeps the label Save" is read as "keeps its label", not as renaming Add.
+- **S2c-04 what counts as pending.** Pending means the last answer's request path differs from the current one (unit, sorted children, subject), so reordering the same children is not a new input and the debounce counts as pending. Changing only the subject re-asks too, because a subject default can change the suggestion.
+- **S2c-04 only an untouched suggestion waits.** A typed weight (or a cleared field) doesn't depend on the suggestion, so it can save while one is loading. Editing an assignment without changing its unit makes no request and is never pending.
