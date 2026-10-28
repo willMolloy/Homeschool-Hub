@@ -433,7 +433,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       expect(res.statusCode).toBe(201);
       const j = res.json();
       assignments.push({ id: j.id, childIds: j.childIds, subjectId: j.subjectId, title: j.title, unitType: j.unitType, totalUnits: j.totalUnits,
-        start: j.startDate, end: j.endDate, minutesPerUnit: j.minutesPerUnit });
+        start: j.startDate, end: j.endDate, minutesPerUnit: j.minutesPerUnit, weightPerUnit: j.weightPerUnit });
     };
     const addEvent = async (body: { name: string; weekdays: number[]; startDate?: string | null; endDate?: string | null; capacityFraction?: number; defaultRule?: "skip" | "lighter" | "normal"; subjectRules?: Record<string, string>; childIds?: string[] }) => {
       const res = await F.req("POST", "/api/events", body);

@@ -13,6 +13,7 @@ export interface AssignmentRow {
   unit_type: UnitType;
   total_units: number;
   minutes_per_unit: number | null;
+  weight_per_unit: number | null;
   start_date: string;
   end_date: string;
   archived_at: Date | null;
@@ -25,7 +26,9 @@ export interface AssignmentJson {
   title: string;
   unitType: UnitType;
   totalUnits: number;
-  /** null = use the unit-type default (the UI shows it as estimated). */
+  /** Relative weight per unit (bar thickness = units × weight); null = the subject default, then the built-in. */
+  weightPerUnit: number | null;
+  /** Legacy (TODO(S2b-13)): the old minutes-per-unit column, kept in step with the weight for the transition. */
   minutesPerUnit: number | null;
   startDate: string;
   endDate: string;
@@ -36,14 +39,14 @@ export interface AssignmentJson {
 export function toAssignmentJson(r: AssignmentRow): AssignmentJson {
   return {
     id: r.id, subjectId: r.subject_id, title: r.title, unitType: r.unit_type, totalUnits: r.total_units,
-    minutesPerUnit: r.minutes_per_unit, startDate: r.start_date, endDate: r.end_date, childIds: r.child_ids,
+    weightPerUnit: r.weight_per_unit, minutesPerUnit: r.minutes_per_unit, startDate: r.start_date, endDate: r.end_date, childIds: r.child_ids,
     archived: r.archived_at !== null,
   };
 }
 
 // Children in roster order, so the UI lists them the same way everywhere.
 const SELECT = `
-  SELECT a.id, a.subject_id, a.title, a.unit_type, a.total_units, a.minutes_per_unit, a.start_date, a.end_date, a.archived_at,
+  SELECT a.id, a.subject_id, a.title, a.unit_type, a.total_units, a.minutes_per_unit, a.weight_per_unit, a.start_date, a.end_date, a.archived_at,
          COALESCE((SELECT array_agg(ac.child_id ORDER BY c.sort_order, c.id)
                      FROM assignment_child ac JOIN child c ON c.id = ac.child_id
                     WHERE ac.assignment_id = a.id), '{}') AS child_ids
@@ -68,6 +71,8 @@ export interface AssignmentInput {
   title: string;
   unitType: UnitType;
   totalUnits: number;
+  weightPerUnit: number | null;
+  /** Legacy column (TODO(S2b-13)); the route decides its value. */
   minutesPerUnit: number | null;
   startDate: string;
   endDate: string;
@@ -77,9 +82,9 @@ export interface AssignmentInput {
 /** Insert an assignment and its children. References must already be checked. */
 export async function createAssignment(tx: Tx, familyId: string, a: AssignmentInput): Promise<string> {
   const { rows } = await tx.query<{ id: string }>(
-    `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, minutes_per_unit, start_date, end_date)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-    [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.minutesPerUnit, a.startDate, a.endDate]);
+    `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, minutes_per_unit, weight_per_unit, start_date, end_date)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+    [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.minutesPerUnit, a.weightPerUnit, a.startDate, a.endDate]);
   const id = rows[0]!.id;
   await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: a.childIds });
   return id;
@@ -97,7 +102,7 @@ export async function lockAssignment(tx: Tx, familyId: string, id: string): Prom
 export async function updateAssignment(tx: Tx, familyId: string, id: string, p: AssignmentPatch): Promise<void> {
   const { set, params } = buildUpdateSet({
     subject_id: p.subjectId, title: p.title, unit_type: p.unitType, total_units: p.totalUnits,
-    minutes_per_unit: p.minutesPerUnit, start_date: p.startDate, end_date: p.endDate,
+    minutes_per_unit: p.minutesPerUnit, weight_per_unit: p.weightPerUnit, start_date: p.startDate, end_date: p.endDate,
   }, { firstParam: 3, archived: p.archived });
   await tx.query(`UPDATE assignment SET ${set} WHERE id = $1 AND family_id = $2`, [id, familyId, ...params]);
   if (p.childIds) await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: p.childIds });

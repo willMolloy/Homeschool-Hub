@@ -66,7 +66,7 @@ describe.skipIf(!hasDb)("/api/plan reflects schedule data written through the AP
     expect(res.statusCode).toBe(201);
     assignment = {
       id: res.json().id, childIds: [child], subjectId: subject, title: "Saxon 5", unitType: "lessons", totalUnits: 20,
-      start: "2026-11-02", end: "2026-11-26", minutesPerUnit: 30,
+      start: "2026-11-02", end: "2026-11-26", minutesPerUnit: 30, weightPerUnit: 15, // the API translates the legacy 30 at 2 min = 1 point
     };
     stage1 = await apiPlan();
     expect(stage1).toEqual(predicted());

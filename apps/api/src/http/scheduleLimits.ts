@@ -3,7 +3,7 @@
  * numeric columns (numeric(10,2), numeric(8,2), numeric(4,3)), so bad input is a 400, never a 500.
  * See tester finding T-ENG-2 (Infinity from absurd units).
  */
-import { isValidLocalDate, toDayNumber } from "@hh/engine";
+import { isValidLocalDate, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, toDayNumber, WEIGHT_DECIMALS } from "@hh/engine";
 import { z } from "zod";
 import { HttpError } from "./errors";
 import { UUID_RE } from "./validate";
@@ -37,6 +37,8 @@ function bounded(label: string, min: number, max: number, places: number, minExc
 
 export const TotalUnits = bounded("totalUnits", 0, MAX_TOTAL_UNITS, 2, true);
 export const MinutesPerUnit = bounded("minutesPerUnit", 0, MAX_MINUTES_PER_UNIT, 2, true);
+/** S2b-06: the engine's weight bounds (0.01–100, 2 decimals), inclusive at both ends. Fits numeric(6,2). */
+export const WeightPerUnit = bounded("weightPerUnit", MIN_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT, WEIGHT_DECIMALS, false);
 export const CapacityFraction = bounded("capacityFraction", 0, 1, 3, false);
 
 /** A real calendar date, YYYY-MM-DD, in years 2000–2100. */

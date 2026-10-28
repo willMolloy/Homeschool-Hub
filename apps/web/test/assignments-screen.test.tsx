@@ -142,6 +142,15 @@ describe("Assignments screen", () => {
     expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "minutes", minutesPerUnit: null } }]);
   });
 
+  it("a unit change restates the per-unit value even when it's unchanged (S2b-06)", async () => {
+    const user = await setup();
+    await user.click(screen.getByRole("button", { name: /Charlotte's Web/ }));
+    const form = screen.getByRole("form", { name: "Edit Charlotte's Web" });
+    await user.selectOptions(within(form).getByLabelText("Unit"), "chapters");
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "chapters", minutesPerUnit: 3 } }]);
+  });
+
   it("end before start → error, no request", async () => {
     const user = await setup();
     await user.click(screen.getByRole("button", { name: /Saxon 5\/4/ }));

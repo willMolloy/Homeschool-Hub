@@ -108,7 +108,8 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
       if (full.title !== item.title) patch.title = full.title;
       if (full.unitType !== item.unitType) patch.unitType = full.unitType;
       if (full.totalUnits !== item.totalUnits) patch.totalUnits = full.totalUnits;
-      if (full.minutesPerUnit !== item.minutesPerUnit) patch.minutesPerUnit = full.minutesPerUnit;
+      // A unit change always restates the per-unit value: the API won't carry a weight across unit types (S2b-06, D7).
+      if (full.minutesPerUnit !== item.minutesPerUnit || patch.unitType) patch.minutesPerUnit = full.minutesPerUnit;
       if (full.startDate !== item.startDate) patch.startDate = full.startDate;
       if (full.endDate !== item.endDate) patch.endDate = full.endDate;
       if (!sameSet(full.childIds, item.childIds)) patch.childIds = full.childIds;
