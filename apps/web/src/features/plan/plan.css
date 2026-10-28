@@ -22,3 +22,7 @@
   .plan-debug-table th[scope="row"] { max-width: 6.5em; overflow: hidden; text-overflow: ellipsis; }
 }
 .plan-debug-bar .btn, .plan-debug-week { white-space: nowrap; }
+.plan-debug-unplanned {
+  color: var(--muted);
+  margin: 8px 0 16px;
+}

@@ -55,6 +55,8 @@ export function PlanDebugView() {
 
   const childName = (id: string) => children.data?.find((c) => c.id === id)?.name ?? id;
   const subjectName = (id: string) => subjects.data?.find((s) => s.id === id)?.name ?? id;
+  // Active children with nothing in the plan still get a line, so nobody silently disappears.
+  const unplanned = (children.data ?? []).filter((c) => !c.archived && !tables.some((t) => t.childId === c.id));
   const anyEstimated = tables.some((t) => t.rows.some((r) => r.cells.some((c) => c.estimated)));
 
   const go = (next: Record<string, string | null>) => {
@@ -138,6 +140,9 @@ export function PlanDebugView() {
                 </ul>
               ) : null}
             </div>
+          ))}
+          {unplanned.map((c) => (
+            <p key={c.id} className="plan-debug-unplanned">{c.name}: nothing planned this week.</p>
           ))}
           {anyEstimated ? <p className="plan-debug-note">* estimated: default minutes per unit</p> : null}
           <p className="plan-debug-note">Engine {plan.data?.engineVersion}, as of {plan.data?.asOf}. Minutes are rounded; totals add the rounded cells.</p>

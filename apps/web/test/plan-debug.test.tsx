@@ -125,4 +125,18 @@ describe("Plan debug view", () => {
     renderAt("/?week=2026-10-28");
     expect(await screen.findByText("Nothing planned this week.")).toBeInTheDocument();
   });
+
+  it("an active child with nothing planned gets a line; archived children don't", async () => {
+    setup();
+    fakeApi.on("GET /api/children", 200, [
+      { id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false },
+      { id: "c2", name: "Margaret", color: null, sortOrder: 1, archived: false },
+      { id: "c3", name: "Ada", color: null, sortOrder: 2, archived: false },
+      { id: "c4", name: "Old Kid", color: null, sortOrder: 3, archived: true },
+    ]);
+    renderAt("/?week=2026-10-28");
+    expect(await screen.findByText("Ada: nothing planned this week.")).toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Ada" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Old Kid/)).not.toBeInTheDocument();
+  });
 });
