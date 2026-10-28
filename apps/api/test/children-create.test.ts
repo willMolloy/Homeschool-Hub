@@ -51,11 +51,13 @@ describe.skipIf(!hasDb)("POST /api/children (integration)", () => {
     expect((await post({ name: "y".repeat(60) })).statusCode).toBe(201);
   });
 
-  it("family_id in the body is ignored", async () => {
+  it("family_id in the body → 400 naming it; nothing inserted (RF-09)", async () => {
+    const count = async () => (await pool.query("SELECT count(*)::int AS n FROM child")).rows[0].n as number;
+    const before = await count();
     const res = await post({ name: "Sneaky", family_id: other.familyId, familyId: other.familyId });
-    expect(res.statusCode).toBe(201);
-    const { rows } = await pool.query("SELECT family_id FROM child WHERE id = $1", [res.json().id]);
-    expect(rows[0].family_id).toBe(a.familyId);
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: "invalid_request", message: expect.stringMatching(/family_id/) });
+    expect(await count()).toBe(before);
   });
 
   it("signed out → 401", async () => {

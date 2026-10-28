@@ -4,7 +4,7 @@ import { HttpError } from "../http/errors";
 import { hashPassword, verifyPassword } from "../auth/password";
 import { SESSION_COOKIE, SESSION_DAYS, hashSessionToken, newSessionToken, sessionCookieOptions } from "../auth/session";
 
-const LoginBody = z.object({ email: z.string().trim().min(1).max(320).refine((s) => !s.includes("\u0000")), password: z.string().min(1).max(1000) });
+const LoginBody = z.strictObject({ email: z.string().trim().min(1).max(320).refine((s) => !s.includes("\u0000")), password: z.string().min(1).max(1000) });
 
 // Verified against when the email is unknown, so response time doesn't reveal which emails exist.
 let dummyHash: Promise<string> | null = null;
@@ -15,7 +15,10 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     config: { public: true, rateLimit: { max: 10, timeWindow: "1 minute" } },
   }, async (req, reply) => {
     const parsed = LoginBody.safeParse(req.body);
-    if (!parsed.success) throw new HttpError(400, "invalid_request", "Email and password are required.");
+    if (!parsed.success) {
+      const extra = parsed.error.issues.find((i) => i.code === "unrecognized_keys");
+      throw new HttpError(400, "invalid_request", extra ? extra.message : "Email and password are required.");
+    }
     const { email, password } = parsed.data;
 
     const { rows } = await app.db.query<{ id: string; name: string; password_hash: string | null }>(

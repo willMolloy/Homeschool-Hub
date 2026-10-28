@@ -73,12 +73,15 @@ describe.skipIf(!hasDb)("POST /api/assignments (integration)", () => {
     expect(mine[0]!.days.some((d) => d.minutes > 0)).toBe(true);
   });
 
-  it("unknown keys (family_id, id, archived) are dropped", async () => {
+  it("unknown keys (family_id, familyId, archived) → 400 naming them; nothing inserted (RF-09)", async () => {
+    const count = async () => (await pool.query("SELECT count(*)::int AS n FROM assignment")).rows[0].n as number;
+    const before = await count();
     const res = await req("POST", "/api/assignments", { ...valid(), title: "Keys", family_id: b.familyId, familyId: b.familyId, archived: true });
-    expect(res.statusCode).toBe(201);
-    expect(res.json().archived).toBe(false);
-    const { rows } = await pool.query("SELECT family_id FROM assignment WHERE id = $1", [res.json().id]);
-    expect(rows[0].family_id).toBe(a.familyId);
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("invalid_request");
+    expect(res.json().message).toMatch(/family_id/);
+    expect(res.json().message).toMatch(/archived/);
+    expect(await count()).toBe(before);
   });
 
   it.each([

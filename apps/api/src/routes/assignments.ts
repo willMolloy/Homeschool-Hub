@@ -4,19 +4,18 @@ import { humanList, UNIT_TYPES } from "@hh/engine";
 import { z } from "zod";
 import { withTransaction } from "../db";
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, MinutesPerUnit, Title, TotalUnits } from "../http/scheduleLimits";
-import { parseBody, UUID_RE } from "../http/validate";
+import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
 import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment } from "../repos/assignmentRepo";
 import { checkRefs } from "../repos/refs";
 
-const ListQuery = z.object({ includeArchived: z.enum(["true", "false"]).optional() });
 const Id = z.string("Must be an id.").regex(UUID_RE, "Must be a UUID.").transform((s) => s.toLowerCase());
 const UnitTypeField = z.enum(UNIT_TYPES, `unitType must be ${humanList(UNIT_TYPES)}.`);
 export const MAX_ASSIGNMENT_CHILDREN = 20;
 const Children = IdList(MAX_ASSIGNMENT_CHILDREN).min(1, "Pick at least one child.");
 
 // Unknown keys (e.g. family_id) are dropped: ownership always comes from the session.
-const CreateBody = z.object({
+const CreateBody = z.strictObject({
   subjectId: Id,
   title: Title,
   unitType: UnitTypeField,
@@ -28,7 +27,7 @@ const CreateBody = z.object({
 });
 
 const PatchBody = z
-  .object({
+  .strictObject({
     subjectId: Id.optional(),
     title: Title.optional(),
     unitType: UnitTypeField.optional(),
@@ -46,8 +45,7 @@ const notFound = () => new HttpError(404, "not_found", "No such assignment.");
 
 export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/assignments", async (req) => {
-    const q = ListQuery.safeParse(req.query);
-    const includeArchived = q.success && q.data.includeArchived === "true";
+    const { includeArchived } = parseListQuery(req.query);
     return (await listAssignments(app.db, req.familyId, includeArchived)).map(toAssignmentJson);
   });
 

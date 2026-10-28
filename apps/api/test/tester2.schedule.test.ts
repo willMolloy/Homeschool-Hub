@@ -108,11 +108,9 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       }
     });
 
-    it("family_id smuggled in a body is ignored (assignment) or rejected (strict family PATCH)", async () => {
+    it("family_id smuggled in a body is rejected everywhere (RF-09: strict bodies)", async () => {
       const res = await B.req("POST", "/api/assignments", { ...assignmentBody(bRoster.subjectIds[0]!, bRoster.childIds), family_id: A.familyId, familyId: A.familyId });
-      expect(res.statusCode).toBe(201);
-      const { rows } = await pool.query("SELECT family_id FROM assignment WHERE id = $1", [res.json().id]);
-      expect(rows[0].family_id).toBe(B.familyId);
+      expect(res.statusCode).toBe(400);
       expect((await B.req("PATCH", "/api/family", { name: "x", familyId: A.familyId })).statusCode).toBe(400);
     });
 

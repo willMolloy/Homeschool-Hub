@@ -21,5 +21,16 @@ export function parseBody<S extends z.ZodTypeAny>(schema: S, body: unknown): z.i
   return r.data;
 }
 
+/** A boolean query param: exactly `true` or `false` (a repeated param arrives as an array and fails too). */
+export const BoolQuery = z.enum(["true", "false"], "must be true or false.").transform((v) => v === "true");
+
+/** `?includeArchived=true|false` on the list routes; any other param is a 400 like an unknown body key. */
+export const ListQuery = z.strictObject({ includeArchived: BoolQuery.optional() });
+
+/** Parse the list routes' query string or throw 400 `invalid_request`. */
+export function parseListQuery(query: unknown): { includeArchived: boolean } {
+  return { includeArchived: parseBody(ListQuery, query).includeArchived ?? false };
+}
+
 /** List position: a non-negative integer. */
 export const SortOrder = z.number().int("sortOrder must be a whole number.").min(0).max(100000);

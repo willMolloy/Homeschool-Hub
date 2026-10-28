@@ -17,8 +17,8 @@ Every JSON body schema is strict (an unknown key → 400 `invalid_request`, like
 4. Update the tests that asserted "unknown keys are dropped" to assert 400 and that nothing was written.
 
 ## Done when
-- [ ] Every POST/PATCH route answers 400 to `{ ...valid, family_id: … }`, naming the key.
-- [ ] `?includeArchived=yes`, `=1` and `=TRUE` → 400; `true`, `false` and absent work as before.
+- [x] Every POST/PATCH route answers 400 to `{ ...valid, family_id: … }`, naming the key.
+- [x] `?includeArchived=yes`, `=1` and `=TRUE` → 400; `true`, `false` and absent work as before.
 
 ## Tests
 - A table test over every POST/PATCH route: an extra key → 400, and the row count is unchanged.

@@ -19,7 +19,7 @@ const Kind = z.enum(BLOCKED_KINDS, `kind must be ${humanList(BLOCKED_KINDS)}.`);
 // [] = the whole family.
 const Children = IdList(20);
 
-const CreateBody = z.object({
+const CreateBody = z.strictObject({
   label: Label.nullable().optional(),
   kind: Kind.optional(),
   startDate: LocalDate,
@@ -27,7 +27,7 @@ const CreateBody = z.object({
   childIds: Children.optional(),
 });
 const PatchBody = z
-  .object({ label: Label.nullable().optional(), kind: Kind.optional(), startDate: LocalDate.optional(), endDate: LocalDate.optional(), childIds: Children.optional() })
+  .strictObject({ label: Label.nullable().optional(), kind: Kind.optional(), startDate: LocalDate.optional(), endDate: LocalDate.optional(), childIds: Children.optional() })
   .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.");
 
 const notFound = () => new HttpError(404, "not_found", "No such day off.");

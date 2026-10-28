@@ -5,11 +5,10 @@ import { z } from "zod";
 import { HttpError } from "../http/errors";
 import { withTransaction } from "../db";
 import { CapacityFraction, checkDateOrder, IdList, LocalDate, MAX_TITLE, Weekdays } from "../http/scheduleLimits";
-import { parseBody, UUID_RE } from "../http/validate";
+import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { createEvent, getEvent, listEvents, lockEvent, toEventJson, updateEvent } from "../repos/eventRepo";
 import { checkRefs } from "../repos/refs";
 
-const ListQuery = z.object({ includeArchived: z.enum(["true", "false"]).optional() });
 
 export const MAX_RULES = 100;
 
@@ -53,7 +52,7 @@ const SubjectRules = z.unknown().transform((v, ctx) => {
 // [] = the whole family.
 const Children = IdList(20);
 
-const CreateBody = z.object({
+const CreateBody = z.strictObject({
   name: Name,
   weekdays: Weekdays,
   startDate: LocalDate.nullable().optional(),
@@ -65,7 +64,7 @@ const CreateBody = z.object({
 });
 
 const PatchBody = z
-  .object({
+  .strictObject({
     name: Name.optional(),
     weekdays: Weekdays.optional(),
     startDate: LocalDate.nullable().optional(),
@@ -87,8 +86,7 @@ const checkOrder = (start: string | null | undefined, end: string | null | undef
 
 export async function eventsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/events", async (req) => {
-    const q = ListQuery.safeParse(req.query);
-    const includeArchived = q.success && q.data.includeArchived === "true";
+    const { includeArchived } = parseListQuery(req.query);
     return (await listEvents(app.db, req.familyId, includeArchived)).map(toEventJson);
   });
 

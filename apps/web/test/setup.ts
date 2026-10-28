@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach, beforeEach, vi } from "vitest";
+import { afterEach, beforeEach, expect, vi } from "vitest";
 import { fakeApi } from "./helpers/fake-api";
 
 beforeEach(() => {
@@ -8,6 +8,8 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fakeApi.fetch);
 });
 afterEach(() => {
+  // The API rejects unknown body keys (RF-09); a form that sends one would 400 for real.
+  expect(fakeApi.bodyKeyViolations, "request bodies with keys the API rejects").toEqual([]);
   cleanup();
   vi.unstubAllGlobals();
 });
