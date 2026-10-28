@@ -184,7 +184,7 @@ describe.skipIf(!hasDb)("S2b-28 check-in edge cases (integration)", () => {
   });
 
   describe("case 6: editing a past check-in", () => {
-    it("week 1 at 65 (keep), week 2 at 140 (push); edit week 1 to 80 → from week 3 on starts from week 2's 140", async () => {
+    it("week 1 at 65 (keep), week 2 at 140 (push); edit week 1 to 80 → from week 3 on is unchanged (S2b-38)", async () => {
       const app2 = at("2026-11-04T15:00:00Z"); // so Oct 26 is a finished week too
       try {
         const putOn = (week: string, position: number, mode: string) =>
@@ -198,6 +198,10 @@ describe.skipIf(!hasDb)("S2b-28 check-in edge cases (integration)", () => {
           expect(p.days.find((d) => d.date === "2026-11-01")!.position).toBeCloseTo(140);
           expect(p.days.filter((d) => d.date >= "2026-11-02").reduce((s, d) => s + d.units, 0)).toBeCloseTo(130, 6);
         }
+        // S2b-38 (D24): the latest check-in is authoritative, so every bar after week 2 is identical.
+        const after = (p: typeof a) => p.days.filter((d) => d.date >= "2026-11-02").map((d) => [d.date, d.units]);
+        expect(after(b)).toEqual(after(a));
+        expect(b.end).toBe(a.end);
         // Clearing week 2 → driven by week 1 again.
         const clear = await app2.inject({ method: "PUT", url: "/api/check-ins/2026-10-26", cookies, payload: { status: "reviewed", items: [] } });
         expect(clear.statusCode).toBe(200);

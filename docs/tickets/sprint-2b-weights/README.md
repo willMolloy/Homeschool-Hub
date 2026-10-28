@@ -59,12 +59,13 @@ Each ticket is one component and uses the sprint-2a format: Goal / Context / Ste
 | 35 | [S2b-27 — Edit a past week's check-in](S2b-27-edit-a-past-weeks-check-in.md) | S2b-26 | S |
 | 36 | [S2b-28 — Tester pass: check-in edge cases](S2b-28-tester-pass-check-in-edge-cases.md) | S2b-27 | S |
 | 37 | [S2b-29 — Update docs for assumed progress and check-ins](S2b-29-update-docs-for-assumed-progress-and-check-ins.md) | S2b-28 | XS |
+| 38 | [S2b-38 — Make the latest check-in authoritative](S2b-38-make-the-latest-check-in-authoritative.md) | S2b-20, S2b-28 | S |
 
 ## Tracks
 
 | Track | Tickets |
 |-------|---------|
-| Engine | 01, 02, 08, 32, 14, 18, 20 |
+| Engine | 01, 02, 08, 32, 14, 18, 20, 38 |
 | DB | 03 (mig 004), 04 (005), 30 (006), 15 (007), 21 (008) |
 | API | 05, 06, 07, 31, 09, 33, 13, 19, 22, 23, 24 |
 | Web | 10, 34, 35, 11, 12, 25, 36, 26, 27 |
@@ -87,6 +88,7 @@ Each ticket is one component and uses the sprint-2a format: Goal / Context / Ste
    - Then 22 → 23 (GET) → 24 (PUT).
 9. **Card:** 25 (card + one-tap confirm + skip) → 36 (per-row adjust control) → 26 (behind/ahead question + save) → 27 (past weeks).
 10. **Verify:** 28 → 29.
+11. **Follow-up:** 38 (DeeDee's D24, from tester finding T5-2).
 
 ## Decisions
 
@@ -97,6 +99,7 @@ Each ticket is one component and uses the sprint-2a format: Goal / Context / Ste
 - **D17:** learning applies to pages; chapters are included pending confirmation (see below).
 - Precedence: assignment → learned → subject → built-in.
 - **D14:** skipping the card counts as done, and the card never nags.
+- **D24** (later on Oct 28): the most recent check-in is authoritative for everything after it; editing an earlier week never changes a bar after a later check-in (S2b-38).
 
 **Defaults chosen in the tickets, still open:**
 
@@ -118,7 +121,7 @@ Each ticket is one component and uses the sprint-2a format: Goal / Context / Ste
 | D11 | On-plan tolerance | ±0.5 units | Exact |
 | D12 | Preview numbers on the absorb choices | Not in v1 | A dry-run endpoint |
 | D13 | Position meaning | Units done since the start; no start page | A `start_at` field |
-| D15 | Engine versions | 0.2.0, 0.3.0, 0.4.0, 0.5.0, with a patch bump for S2b-32 | One bump per release |
+| D15 | Engine versions | 0.2.0, 0.3.0, 0.4.0, 0.5.0, with a patch bump for S2b-32; 0.6.0 for S2b-38 | One bump per release |
 | D16 | Hours and exports | Only from `log_entry.minutes_spent` | — |
 
 D4 (a separate `weight_choice` table) stands as written; see S2b-04.

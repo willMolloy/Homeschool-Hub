@@ -104,7 +104,6 @@ describe("check-ins (S2b-20)", () => {
 
   it("two check-ins: editing the earlier one doesn't move the later anchor", () => {
     const a = plan([ci("2026-09-07", 65, "keepEndDate"), ci("2026-09-14", 140, "keepEndDate")]);
-    // (keepEndDate both times: a push at the first one would move the end the second one keeps.)
     const b = plan([ci("2026-09-07", 70, "keepEndDate"), ci("2026-09-14", 140, "keepEndDate")]);
     for (const p of [a, b]) {
       expectInvariants(p);
@@ -116,6 +115,46 @@ describe("check-ins (S2b-20)", () => {
     expect(a.checkInWeeks).toEqual(["2026-09-07", "2026-09-14"]);
     // Input order doesn't matter: check-ins are applied oldest week first.
     expect(units(plan([ci("2026-09-14", 140, "keepEndDate"), ci("2026-09-07", 65, "keepEndDate")]))).toEqual(units(a));
+  });
+
+  describe("the latest check-in is authoritative (S2b-38, D24)", () => {
+    const after = (p: ChildPlan) => units(p).filter(([d]) => d >= "2026-09-21");
+    it.each(["pushEndDate", "keepEndDate"] as const)("week 2 %s, then week 1 edited (65 → 70, push or keep): nothing after week 2 changes", (mode2) => {
+      const ref = plan([ci("2026-09-07", 65, "keepEndDate"), ci("2026-09-14", 140, mode2)]);
+      for (const edit of [ci("2026-09-07", 70, "keepEndDate"), ci("2026-09-07", 50, "pushEndDate"), ci("2026-09-07", 100, "pushEndDate")]) {
+        const p = plan([edit, ci("2026-09-14", 140, mode2)]);
+        expectInvariants(p);
+        expect(positionAt(p, "2026-09-20")).toBeCloseTo(140);
+        expect(after(p)).toEqual(after(ref));
+        expect([p.end, p.rate, p.baseRate, p.mode, p.unplacedUnits]).toEqual([ref.end, ref.rate, ref.baseRate, ref.mode, ref.unplacedUnits]);
+      }
+    });
+    it("week 2 push keeps the original pace, whatever week 1 said", () => {
+      const p = plan([ci("2026-09-07", 50, "pushEndDate"), ci("2026-09-14", 140, "pushEndDate")]);
+      expect(p.rate).toBeCloseTo(16);
+      expect(unitsOn(p, "2026-09-21")).toBeCloseTo(16);
+    });
+    it("week 2 keep keeps the original end, even after week 1 pushed it", () => {
+      const p = plan([ci("2026-09-07", 50, "pushEndDate"), ci("2026-09-14", 120, "keepEndDate")]);
+      expectInvariants(p);
+      expect(p.end).toBe("2026-09-22");
+      expect(unitsBetween(p, "2026-09-21", "2026-09-22")).toBeCloseTo(64);
+    });
+    it("no later check-in: editing week 1 replans everything after it", () => {
+      const a = plan([ci("2026-09-07", 65, "pushEndDate")]);
+      const b = plan([ci("2026-09-07", 70, "pushEndDate")]);
+      expect(after(a)).not.toEqual(after(b));
+      expect(positionAt(b, "2026-09-13")).toBeCloseTo(70);
+      expect(unitsBetween(b, "2026-09-14", b.end)).toBeCloseTo(114);
+    });
+    it("a keep check-in after the original end (an earlier push carried the work past it) goes at the original pace", () => {
+      const p = plan([ci("2026-09-07", 20, "pushEndDate"), ci("2026-09-21", 100, "keepEndDate")]);
+      expectInvariants(p);
+      expect(p.mode).toBe("pushEndDate");
+      expect(p.rate).toBeCloseTo(16);
+      expect(positionAt(p, "2026-09-27")).toBeCloseTo(100);
+      expect(unitsBetween(p, "2026-09-28", p.end)).toBeCloseTo(84);
+    });
   });
 
   it("a duplicate week: the last entry wins, with a warning", () => {

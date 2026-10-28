@@ -43,6 +43,7 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-27 Edit a past week's check-in | 48fdfeb | |
 | S2b-28 Tester pass: check-in edge cases | c80d72b | |
 | S2b-29 Update docs for assumed progress and check-ins | d3be7c8 | |
+| S2b-38 Make the latest check-in authoritative | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -109,6 +110,7 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 ## Deferred
 
 (none yet)
+- **S2b-38 — latest check-in authoritative (D24).** DeeDee resolved T5-2: `applyCheckIns` snapshots segment 0's end and pace and every check-in replans from those, so an earlier edit never reaches past a later check-in. Conservative call where the rule needed one: if an earlier push carried the work past the original end, a later keep check-in has no end left to keep and goes at the original pace (reported as `pushEndDate`). A later check-in in a week that only exists because of an earlier push still falls out with `checkin-outside-range` if that push is edited away (unreachable from the API for fresh weeks). Engine 0.6.0.
 
 ## Screens
 

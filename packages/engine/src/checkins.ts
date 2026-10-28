@@ -2,6 +2,10 @@
  * Actual-progress check-ins (S2b-20). A check-in says "at the end of this week we were really at N".
  * Each one re-anchors the plan on the day after its week: the week's own bars are scaled to what happened
  * (D9), and what is left is replanned from there with the parent's mode (placement.ts, reused).
+ *
+ * S2b-38 (D24): the latest check-in is authoritative for everything after it. A check-in's replan reads
+ * only its own position and mode plus the plan *without* check-ins (segment 0's end and pace), never what
+ * an earlier check-in did, so editing an earlier week can't move a bar after a later check-in.
  */
 import { fromDayNumber, toDayNumber, weekStartOfDayNumber } from "./dates";
 import { EPS, MAX_PUSH_DAYS, placeSegment, type CapacityOf, type Placement, type PreparedOverride, type Warn } from "./placement";
@@ -61,6 +65,8 @@ export interface CheckInResult {
 /** Apply the check-ins to segment 0 in place. */
 export function applyCheckIns(p: Placement, { a, childId, calendar, checkIns, S, E, overrides, c, warn }: CheckInArgs): CheckInResult {
   const total = a.totalUnits;
+  // Segment 0 as planned before any check-in: the end keepEndDate keeps and the pace pushEndDate keeps.
+  const original = { end: p.endDay, pace: p.baseRate };
   const weeks: LocalDate[] = [];
   let lastAnchor = S;
   let lastDone = 0;
@@ -126,16 +132,18 @@ export function applyCheckIns(p: Placement, { a, childId, calendar, checkIns, S,
       continue;
     }
     finishedEarly = false;
-    const mode = ci.mode ?? "keepEndDate";
+    // keepEndDate keeps the original end. Once that end has passed (an earlier push carried the work past
+    // it), there is no end left to keep, so the rest goes at the original pace instead.
+    const endPassed = original.end < anchor;
+    const mode = endPassed ? "pushEndDate" : (ci.mode ?? "keepEndDate");
     const seg = placeSegment({
       from: anchor,
-      // keepEndDate keeps the current end; if an earlier pull-in ended before this anchor, the planned end.
-      end: p.endDay >= anchor ? p.endDay : E,
+      end: endPassed ? E + MAX_PUSH_DAYS : original.end,
       pushLimit: E + MAX_PUSH_DAYS,
       remaining,
       overrides,
       forcedMode: mode,
-      pace: p.baseRate,
+      pace: original.pace,
       first: false,
     }, c, warn);
     for (const [d, v] of seg.planned) p.planned.set(d, v);

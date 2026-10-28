@@ -8,4 +8,5 @@
 // 0.3.0: minute outputs removed (S2b-14); plans carry only units and thickness.
 // 0.4.0: scheduled work assumed done (S2b-18); plans run from the start, asOf only labels days, logs are ignored.
 // 0.5.0: actual-progress check-ins (S2b-20); DayLoad.position, checkInWeeks, finishedEarly.
-export const ENGINE_VERSION = "0.5.0";
+// 0.6.0: the latest check-in is authoritative (S2b-38); a later check-in replans from the original end and pace.
+export const ENGINE_VERSION = "0.6.0";

@@ -190,8 +190,9 @@ DeeDee settled D1, D5, D6, D14, D17 and the precedence on Oct 28, 2026, and appr
 | D11 | On-plan tolerance | ±0.5 units | Oct 28, 2026 |
 | D12 | Preview numbers on the absorb choices | Not in v1 | Oct 28, 2026 |
 | D13 | Position meaning | Units done since the start; no start page | Oct 28, 2026 |
-| D15 | Engine versions | 0.2.0, 0.3.0, 0.4.0, 0.5.0, with a patch bump for S2b-32 | Oct 28, 2026 |
+| D15 | Engine versions | 0.2.0, 0.3.0, 0.4.0, 0.5.0, with a patch bump for S2b-32; 0.6.0 for S2b-38 | Oct 28, 2026 |
 | D16 | Hours and exports | Only from `log_entry.minutes_spent` | Oct 28, 2026 |
+| D24 | Editing an earlier check-in | The latest check-in is authoritative for everything after it (S2b-38, engine 0.6.0) | Oct 28, 2026 |
 
 ## Progress
 
@@ -201,7 +202,7 @@ Sprint 2b (S2b-18 … S2b-29) replaced "progress = what was logged" with **assum
 - **Check-ins.** Once a week the card asks about last week (Monday–Sunday). *Last week went as planned* or *Skip* stores a review and nothing else; *Adjust* lets the parent set where each child really is (units done since the start, D13). Only changed positions are stored (`progress_checkin`); no row means "as planned". The plan re-anchors on the latest check-in before each week (S2b-20), and the past days of a checked-in week are scaled to the actual (D9).
 - **Two absorb modes** when the actual differs from the plan (±0.5 units counts as on plan, D11): **keep the end date** (`keepEndDate`, the default, D10) spreads the difference over the remaining days, so bars thicken or thin; **push the end date** (`pushEndDate`) keeps the same pace and moves the end. Reaching the total finishes the assignment early and asks nothing.
 - **Skip = done** (D14). A skipped week is stored as `skipped` and the card never comes back for it; it can still be edited later from "Review a past week".
-- **Editing a past week** saves it as reviewed and changes only the weeks after it; a later check-in is still the anchor for the work left from its week on (see tester finding T5-2 for push mode).
+- **Editing a past week** saves it as reviewed and changes only the weeks after it. **The latest check-in is authoritative** (D24, S2b-38): if a later week has a check-in, nothing after that later check-in changes, because each check-in replans from its own position with the original plan's end (keep) or pace (push), never from what an earlier check-in did. With no later check-in, the edit replans everything after it. If an earlier push carried the work past the original end, a later *keep* has no end left to keep and goes at the original pace.
 - **API:**
   - `GET /api/check-ins[?weekStart=YYYY-MM-DD]`: one week's items (planned vs actual, mode) and its review status; without `weekStart`, last week.
   - `PUT /api/check-ins/:weekStart` with `{ status: "reviewed" | "skipped", items: [{ assignmentId, childId, position, mode }] }`: saves the week in one transaction and returns whether the plan changed. Only past weeks; positions 0…total with at most 2 decimals.

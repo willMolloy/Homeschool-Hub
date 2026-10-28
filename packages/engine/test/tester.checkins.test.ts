@@ -116,10 +116,9 @@ describe("case 6: editing a past check-in", () => {
       expect(p.days.find((d) => d.date === "2026-09-20")!.position).toBeCloseTo(140);
       expect(unitsBetween(p, W3, "2026-12-31")).toBeCloseTo(160);
     }
-    // Push keeps "the same pace" — the pace of the segment week 1's check-in set (235/15 vs 220/15 a day),
-    // so week 3's bars differ slightly by design (see tester-report.md, S2b-28 note on case 6).
-    expect(a.rate).toBeCloseTo(235 / 15);
-    expect(b.rate).toBeCloseTo(220 / 15);
+    // S2b-38 (D24): the latest check-in is authoritative, so week 3 on is identical (T5-2, resolved).
+    expect(units(a, W3)).toEqual(units(b, W3));
+    expect([a.end, a.rate]).toEqual([b.end, b.rate]);
   });
   it("with keep at week 2, editing week 1 leaves week 3 on identical", () => {
     const a = plan([ci(W1, 65, "keepEndDate"), ci(W2, 140, "keepEndDate")]);
