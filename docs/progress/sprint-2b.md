@@ -11,7 +11,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-03 migration 004 `weight_per_unit` | b194b09 | |
 | S2b-04 migration 005 `weight_choice` | d648651 | |
 | S2b-05 read weights into the plan | 247d62b | |
-| S2b-06 `weightPerUnit` on the assignment endpoints | (this commit) | |
+| S2b-06 `weightPerUnit` on the assignment endpoints | eecac3b | |
+| S2b-07 record weight choices on save | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -23,6 +24,7 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-06 — "both fields" means both present.** Both keys present, even as `null`, is a 400 "send weightPerUnit only".
 - **S2b-06 — a unit change accepts either field.** Sending the legacy `minutesPerUnit` (or null) with a unit change satisfies D7, because the web still sends only that field until S2b-10. RF-10's old "send minutesPerUnit: null when switching to minutes" message is now the general D7 message. The test is kept, with the new message.
 - **S2b-06 — web transition fix.** The assignment form now restates `minutesPerUnit` whenever the unit type changes. Without that, changing the unit on a weighted assignment would get the new D7 400.
+- **S2b-07 — what counts as a changed weight.** A PATCH records choices when it sends `weightPerUnit` and the value differs from the stored one, or the unit type changes (lessons 15 → pages 15 is a new pages choice). The legacy alias never records.
 
 ## Deferred
 

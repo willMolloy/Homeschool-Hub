@@ -11,6 +11,7 @@ import { createBlockedRange, updateBlockedRange } from "../src/repos/blockedRang
 import { createChild, listChildren } from "../src/repos/childRepo";
 import { createEvent, getEvent, updateEvent } from "../src/repos/eventRepo";
 import { createSubject } from "../src/repos/subjectRepo";
+import { recordWeightChoices } from "../src/repos/weightChoiceRepo";
 
 declare const pool: pg.Pool;
 declare const client: pg.PoolClient;
@@ -38,6 +39,8 @@ export function typeChecks(): void {
   void createChild(pool, "f", { name: "x" });
   // @ts-expect-error the pool is not a transaction
   void createSubject(pool, "f", { name: "x" });
+  // @ts-expect-error weight choices are written inside the assignment save's transaction (S2b-07)
+  void recordWeightChoices(pool, {} as never);
 
   // Allowed: a Tx anywhere, and single reads on the pool, a client or a snapshot.
   void createAssignment(tx, "f", {} as never);

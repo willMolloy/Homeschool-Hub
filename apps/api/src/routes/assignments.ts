@@ -9,6 +9,7 @@ import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
 import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment } from "../repos/assignmentRepo";
 import { checkRefs } from "../repos/refs";
+import { recordWeightChoices } from "../repos/weightChoiceRepo";
 
 const Id = z.string("Must be an id.").regex(UUID_RE, "Must be a UUID.").transform((s) => s.toLowerCase());
 const UnitTypeField = z.enum(UNIT_TYPES, `unitType must be ${humanList(UNIT_TYPES)}.`);
@@ -60,6 +61,10 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
     const row = await withTransaction(app.db, async (c) => {
       await checkRefs(c, req.familyId, { subjectIds: [b.subjectId], childIds: b.childIds });
       const id = await createAssignment(c, req.familyId, { ...b, weightPerUnit: w.weightPerUnit ?? null, minutesPerUnit: w.minutesPerUnit ?? null });
+      // Taking the default isn't a choice; the legacy alias never counts (S2b-07, D5).
+      if (b.weightPerUnit != null) {
+        await recordWeightChoices(c, { familyId: req.familyId, assignmentId: id, childIds: b.childIds, unitType: b.unitType, weight: b.weightPerUnit });
+      }
       return (await getAssignment(c, req.familyId, id))!;
     });
     return reply.code(201).send(toAssignmentJson(row));
@@ -83,6 +88,10 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       await checkRefs(c, req.familyId, { subjectIds: newSubject, childIds: (p.childIds ?? []).filter((id) => !cur.child_ids.includes(id)) });
       const w = weightWrite(unitType, p, unitType === "minutes" && cur.unit_type !== "minutes");
       await updateAssignment(c, req.familyId, cur.id, { ...p, ...w });
+      // A new weight (or the same number under a new unit type) is a choice for every child left on the assignment.
+      if (p.weightPerUnit !== undefined && (p.weightPerUnit !== cur.weight_per_unit || unitType !== cur.unit_type)) {
+        await recordWeightChoices(c, { familyId: req.familyId, assignmentId: cur.id, childIds: p.childIds ?? cur.child_ids, unitType, weight: p.weightPerUnit });
+      }
       return (await getAssignment(c, req.familyId, cur.id))!;
     });
     return toAssignmentJson(row);
