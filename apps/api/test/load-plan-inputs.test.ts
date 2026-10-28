@@ -44,7 +44,8 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
     for (const f of fixture) {
       const l = loaded.find((p) => p.assignmentId === idOf("assignment", f.assignmentId) && p.childId === idOf("child", f.childId))!;
       expect(l, `${f.assignmentId}/${f.childId}`).toBeDefined();
-      expect(l.days.map((d) => [d.date, d.units])).toEqual(f.days.map((d) => [d.date, d.units]));
+      expect(l.days.map((d) => [d.date, d.units, d.thickness])).toEqual(f.days.map((d) => [d.date, d.units, d.thickness]));
+      expect([l.weightPerUnit, l.weightSource]).toEqual([f.weightPerUnit, f.weightSource]);
       expect(l.minutesPerUnitEstimated).toBe(f.minutesPerUnitEstimated);
     }
   });
@@ -54,8 +55,26 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
       expect(typeof a.totalUnits).toBe("number");
       expect(a.start).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(a.minutesPerUnit === null || typeof a.minutesPerUnit === "number").toBe(true);
+      expect(a.weightPerUnit === null || typeof a.weightPerUnit === "number").toBe(true);
     }
     for (const e of inputs.ctx.events) expect(typeof e.capacityFraction).toBe("number");
+  });
+
+  it("maps weight_per_unit: 1.4 → 1.4, NULL → null, and a minutes row's 0.75 → 0.75 (S2b-05)", async () => {
+    const ti = fam.ids.assignment.ti!;
+    const poems = fam.ids.assignment.poems!;
+    const piano = fam.ids.assignment.piano!;
+    await pool.query("UPDATE assignment SET weight_per_unit = 1.4 WHERE id = $1", [ti]);
+    await pool.query("UPDATE assignment SET weight_per_unit = 0.75 WHERE id = $1", [piano]);
+    try {
+      const loaded = await loadPlanInputs(pool, fam.familyId);
+      const weightOf = (id: string) => loaded.assignments.find((a) => a.id === id)!.weightPerUnit;
+      expect(weightOf(ti)).toBe(1.4);
+      expect(weightOf(poems)).toBeNull();
+      expect(weightOf(piano)).toBe(0.75);
+    } finally {
+      await pool.query("UPDATE assignment SET weight_per_unit = NULL WHERE id = ANY($1)", [[ti, piano]]);
+    }
   });
 
   it("an event with no event_child rows has childIds: [] (whole family)", async () => {

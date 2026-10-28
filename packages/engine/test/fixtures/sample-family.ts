@@ -1,5 +1,5 @@
 /** The prototype's sample family (proto data.ts), converted to @hh/engine types. Weekdays: 0 = Sun. */
-import type { Assignment, BlockedPeriod, FamilyCalendar, RecurringEvent } from "../../src";
+import { MINUTES_PER_WEIGHT_POINT, type Assignment, type BlockedPeriod, type FamilyCalendar, type RecurringEvent } from "../../src";
 
 export const calendar: FamilyCalendar = { weekStart: "mon", schoolDays: [1, 2, 3, 4, 5] };
 export const blocked: BlockedPeriod[] = [{ id: "xmas", start: "2026-12-21", end: "2027-01-01", kind: "vacation" }];
@@ -9,7 +9,12 @@ export const events: RecurringEvent[] = [
   { id: "piano", name: "Piano – Frank", childIds: ["frank"], weekdays: [5], capacityFraction: 0.25, subjectRules: { music: "skip", math: "lighter" } },
 ];
 const A = (id: string, subjectId: string, childIds: string[], unitType: Assignment["unitType"], totalUnits: number, start: string, end: string, minutesPerUnit?: number): Assignment =>
-  ({ id, subjectId, childIds, unitType, totalUnits, start, end, minutesPerUnit: minutesPerUnit ?? null });
+  ({
+    id, subjectId, childIds, unitType, totalUnits, start, end,
+    minutesPerUnit: minutesPerUnit ?? null,
+    // S2b-05 (D3): 2 minutes = 1 point, so a stored minutes-per-unit becomes weight mpu / 2.
+    weightPerUnit: minutesPerUnit == null ? null : Math.round((minutesPerUnit / MINUTES_PER_WEIGHT_POINT) * 100) / 100,
+  });
 export const assignments: Assignment[] = [
   A("aesop", "lit", ["frank"], "pages", 240, "2026-08-31", "2026-10-16"),
   A("ti", "lit", ["frank"], "pages", 270, "2026-10-19", "2026-11-06"),

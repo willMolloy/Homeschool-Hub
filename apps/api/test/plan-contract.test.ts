@@ -115,4 +115,35 @@ describe.skipIf(!hasDb)("/api/plan reflects schedule data written through the AP
     expect(capacityOn(got, "2026-11-05")).toBe(capacityOn(stage1, "2026-11-05"));
     await req("PATCH", `/api/events/${lighter.id}`, { archived: true });
   });
+
+  it("every plan carries a finite weight and thickness = units × weightPerUnit on each day (S2b-05)", async () => {
+    for (const p of await apiPlan()) {
+      expect(Number.isFinite(p.weightPerUnit), p.assignmentId).toBe(true);
+      expect(["assignment", "subject", "default"]).toContain(p.weightSource);
+      for (const d of p.days) {
+        expect(Number.isFinite(d.thickness)).toBe(true);
+        expect(d.thickness).toBeCloseTo(d.units * p.weightPerUnit, 9);
+      }
+    }
+  });
+
+  it("a minutes row with no weight uses the built-in 0.5; a stored weight shows source 'assignment' (S2b-05)", async () => {
+    const res = await req("POST", "/api/assignments", {
+      subjectId: subject, title: "Piano", unitType: "minutes", totalUnits: 600,
+      startDate: "2026-11-02", endDate: "2026-11-26", childIds: [child],
+    });
+    expect(res.statusCode).toBe(201);
+    const id = res.json().id as string;
+    try {
+      const planOf = async () => (await apiPlan()).find((p) => p.assignmentId === id)!;
+      const unset = await planOf();
+      expect([unset.weightPerUnit, unset.weightSource]).toEqual([0.5, "default"]);
+      await pool.query("UPDATE assignment SET weight_per_unit = 0.75 WHERE id = $1", [id]);
+      const stored = await planOf();
+      expect([stored.weightPerUnit, stored.weightSource]).toEqual([0.75, "assignment"]);
+      for (const d of stored.days) expect(d.thickness).toBeCloseTo(d.units * 0.75, 9);
+    } finally {
+      await req("PATCH", `/api/assignments/${id}`, { archived: true });
+    }
+  });
 });
