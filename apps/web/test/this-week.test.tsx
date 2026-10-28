@@ -109,6 +109,10 @@ describe("Make an adjustment", () => {
     expect(await screen.findByRole("button", { name: "Make an adjustment for Frank" })).toHaveTextContent("Make an adjustment");
     expect(screen.getByRole("button", { name: "Make an adjustment for Margaret" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Old Kid/ })).toBeNull();
+    // Beside the student's name, above their table (which keeps its caption as its name).
+    const frank = screen.getByRole("button", { name: "Make an adjustment for Frank" });
+    expect(frank.closest(".plan-child-head")).toHaveTextContent(/^Frank/);
+    expect(screen.getByRole("table", { name: "Frank" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(fakeApi.calls.some((c) => c.path.startsWith("/api/check-ins?weekStart="))).toBe(false);
   });

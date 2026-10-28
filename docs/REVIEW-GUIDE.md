@@ -56,13 +56,12 @@ Without `DATABASE_URL=…_test`, the integration tests are **skipped**, not fail
 
 Sign in at http://localhost:5173 with `demo@example.com` / `demo-password`. Try a narrow browser window too; the app is built mobile-first (360 px).
 
-1. **Plan (`/`)**
-   - This is a *debug view*: one table per child, with effort (units × weight) per subject per day. See [Weights](#weights).
-   - Use **Prev/Next** to change the week.
-   - Set **"Plan as of"** to `2026-10-19` and go to the week of Oct 26. Frank's Literature reads 45 a day.
-   - Clear "as of" (so it means today). The numbers stay the same: the plan assumes the scheduled work was done, so nothing rolls forward. See [Progress](#progress).
-   - Above the table, the card asks "How did last week go?". Try *Adjust*, move a slider, pick how to absorb the difference and save; the following weeks change. *Skip* counts as done. Under the table, **Review a past week** reopens an earlier week.
-   - A `~` means a cell uses the built-in weight for its unit; an `s` means it uses the subject's default weight.
+1. **Plan (`/`), the This Week page**
+   - One table per child, with effort (units × weight) per subject per day. See [Weights](#weights).
+   - Use the **‹ This week ›** switcher in the header to change the week.
+   - Above the tables, the card asks "How did last week go?". Try *Adjust*: tap an assignment to open it, move a slider, pick how to absorb the difference and save. The following weeks change. *Skip* counts as done.
+   - Each child has **Make an adjustment** beside their name. It opens that child's rows for last week (or for the week shown, once it's over) in a sheet: a bottom drawer on a phone, a dialog on a wide screen. To revisit an earlier week, go back to it with the switcher and use the same button.
+   - Developer extras ("Plan as of", weight markers `~`/`s`, the engine version) show only in a dev build with `?debug=1` in the URL. For example, `/?debug=1&asOf=2026-10-19&week=2026-10-26` shows Frank's Literature at 45 a day.
 2. **Kids and Subjects**
    - Add, rename, recolor, archive, and use "Show archived".
    - Try adding a subject whose name already exists. You get a 409 with a field message.

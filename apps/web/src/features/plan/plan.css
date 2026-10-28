@@ -40,7 +40,7 @@
 .week-switcher-step { min-width: 44px; min-height: 44px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: 1.3rem; line-height: 1; color: inherit; cursor: pointer; }
 .week-switcher-step:hover { background: var(--line); }
 .week-switcher-label { min-width: 7.5em; text-align: center; font-variant-numeric: tabular-nums; }
-/* Each student's "Make an adjustment", beside their name. */
-.plan-child-action { margin: 0 0 8px; }
-.plan-child-only { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.plan-child-only .plan-child-action { margin: 0; }
+/* Each student's name with "Make an adjustment" beside it. */
+.plan-child-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; }
+.plan-child-name { font-weight: 600; overflow-wrap: anywhere; }
+.plan-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

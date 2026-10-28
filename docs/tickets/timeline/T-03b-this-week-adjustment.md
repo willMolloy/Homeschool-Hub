@@ -78,6 +78,8 @@ The This Week page (the app's "Plan" page, at `/`) shows the week, a small week 
 - **Pastel tint** is set as the custom property `--checkin-row-tint` on the row, and CSS paints it. Assignments the sheet can't map to a subject stay untinted.
 - **A save in one card refreshes the other check-in cards on the page,** through the existing `checkInsVersion` signal. After a sheet save, last week's prompt goes away without a reload.
 - **The debug flag** (`src/lib/useDebugFlag.ts`) needs a dev build and `?debug=1`, so a production build never shows it. `?asOf=` is read only with the flag.
+- **The button sits beside the student's name,** in a row above their table. The table keeps its caption as its accessible name (visually hidden). On a phone, the Drawer sits above the bottom nav, and its padding allows for the home-indicator inset (found in the preview).
+- **The review guide's Plan section** is updated for the switcher, the sheet and the debug flag.
 - **The page keeps its name** ("Plan", at `/`). The tests and the nav rely on it, and renaming is out of scope.
 
 ## Out of scope

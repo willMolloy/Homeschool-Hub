@@ -126,9 +126,8 @@ export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDeb
         <>
           <p>Nothing planned this week.</p>
           {childAction && activeChildren.map((c) => (
-            <div key={c.id} className="plan-debug-child plan-child-only">
-              <span>{c.name}</span>
-              <div className="plan-child-action">{childAction(c.id, c.name)}</div>
+            <div key={c.id} className="plan-debug-child">
+              <ChildHead name={c.name} action={childAction(c.id, c.name)} />
             </div>
           ))}
         </>
@@ -136,10 +135,10 @@ export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDeb
         <>
           {tables.map((t) => (
             <div key={t.childId} className="plan-debug-child">
-              {childAction && <div className="plan-child-action">{childAction(t.childId, childName(t.childId))}</div>}
+              {childAction && <ChildHead name={childName(t.childId)} action={childAction(t.childId, childName(t.childId))} />}
               <div className="plan-debug-scroll">
                 <table className="plan-debug-table">
-                  <caption>{childName(t.childId)}</caption>
+                  <caption className={childAction ? "plan-sr-only" : undefined}>{childName(t.childId)}</caption>
                   <thead>
                     <tr>
                       <th scope="col">Subject</th>
@@ -180,8 +179,8 @@ export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDeb
           ))}
           {unplanned.map((c) => (
             <div key={c.id} className="plan-debug-child">
+              {childAction && <ChildHead name={c.name} action={childAction(c.id, c.name)} />}
               <p className="plan-debug-unplanned">{c.name}: nothing planned this week.</p>
-              {childAction && <div className="plan-child-action">{childAction(c.id, c.name)}</div>}
             </div>
           ))}
           {debug && usedDefaults.length > 0 ? (
@@ -193,5 +192,15 @@ export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDeb
         </>
       )}
     </section>
+  );
+}
+
+/** A student's name with their action beside it (T-03b). The name is visual only; the table caption names the table. */
+function ChildHead({ name, action }: { name: string; action: ReactNode }) {
+  return (
+    <div className="plan-child-head">
+      <span className="plan-child-name" aria-hidden="true">{name}</span>
+      {action}
+    </div>
   );
 }
