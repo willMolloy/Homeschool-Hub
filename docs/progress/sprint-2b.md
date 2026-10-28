@@ -29,7 +29,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-15 migration 007 drops minutes_per_unit | 57309e4 | |
 | S2b-16 tester pass: weight edge cases | 1cebc14 | |
 | S2b-37 tester pass: subject defaults and precedence | 89986ca | |
-| S2b-17 update docs for weights | (this commit) | |
+| S2b-17 update docs for weights | cb7e0a6 | |
+| S2b-18 assume scheduled work was done (engine 0.4.0) | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -71,6 +72,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-37 — what "learned" and "archived" mean here.** The plan never reads history (S2b-05: assignment → subject → built-in), so case 1's "history + subject → learned" is checked where D19 applies, in the suggestion, and the saved prefilled value then plans as `assignment` (case 2 shows it doesn't follow a later subject change). Case 5's "its assignments still use its default" meets Sprint 1's rule that an archived subject's assignments aren't planned: the test pins that they drop out while archived, that `loadPlanInputs` still carries the default (S2b-33), that a suggestion with the subject uses it, and that unarchiving plans them at it. No behaviour was changed. One Info finding, T4-1 (the subject column rounds 3 decimals, like T3-1).
 
 - **S2b-17 — where the decisions went, and the done-when check.** "Copy the README decisions table, with the dates decided" names no target, so the table went into a new "Weights" section of `docs/REVIEW-GUIDE.md` (next to the rules it explains), with D4 and the Oct 28 settled items added and every row dated Oct 28, 2026 (the day DeeDee settled D1/D5/D6/D14/D17 and approved the rest as written). The done-when `rg` is run as written but with `**/` globs (`--glob '!**/tickets/**'` etc.): with the ticket's `'!reviews/**'` form, ripgrep matches the globs against `docs/…` paths and still searches reviews and progress, which are history and stay as written. The guide's stale lines ("Sprint 1 and 2a", "CI has never run", the old `*` estimate marker) and `db/README.md`'s "no migration runner yet" were also brought up to date.
+
+- **S2b-18 — the 184 pages, doneUnits and past-end.** The ticket's regression names "the sample family's 184-page assignment starting 2026-10-19"; the only such assignment is Treasure Island, which is 270 pages (12 school days × 22.5), so the named test uses it and still checks the ticket's numbers (22.5/day, 90 pages in the week of Oct 26, not 135). With logs ignored, `doneUnits` is 0 and `remainingUnits` is the total (nothing is *reported* done; assumed days are not counted as done, since S2b-20's check-ins own that). `past-end` can no longer happen (the plan always starts at the start), so it is no longer emitted but stays in the `PlanWarning` union, marked deprecated, so the debug view's label and older API clients keep compiling. The returned range is now exactly start..effective end (logs outside it no longer widen it). Tests that pinned catch-up were rewritten to pin the new behaviour: `plan.progress.test.ts` (now the S2b-18 suite), one aggregate case, one multi-child case, the no-minutes kind set, two tester asOf-edge cases and the adversarial "planned days" filter. The proto BUG 3 "no free day left" check now uses a one-week assignment instead of a late asOf.
 
 ## Deferred
 

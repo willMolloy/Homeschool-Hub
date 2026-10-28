@@ -1,132 +1,116 @@
+/** S2b-18: the plan assumes scheduled work was done; asOf only labels days and logs never move bars. */
 import { describe, expect, it } from "vitest";
-import { planChild, type ProgressEntry } from "../src";
+import { planAll, planChild, type ChildPlan, type PlanContext, type ProgressEntry } from "../src";
+import { addDays } from "../src/dates";
+import * as S from "./fixtures/sample-family";
 import { book, expectConserved, expectSane, MON_FRI, unitsBetween, unitsOn } from "./helpers";
 
 // 100 pages, Mon Sep 7 - Fri Sep 18 (10 days, 10/day)
 const log = (date: string, units: number, childId = "frank"): ProgressEntry => ({ assignmentId: "a1", childId, date, units });
+const units = (p: ChildPlan) => p.days.map((d) => [d.date, d.units] as const);
+const kindOn = (p: ChildPlan, date: string) => p.days.find((d) => d.date === date)!.kind;
+const sampleCtx: PlanContext = { calendar: S.calendar, events: S.events, blocked: S.blocked };
+const ti = S.assignments.find((a) => a.id === "ti")!;
 
-describe("progress partly logged", () => {
-  it("behind: remaining is spread over the remaining days from asOf", () => {
-    // Week 1 logged only 30 pages (plan said 50); today is Mon Sep 14
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-07", 10), log("2026-09-08", 20)] });
+describe("assumed progress (S2b-18)", () => {
+  it("unlogged work does not roll forward (DeeDee, Oct 28)", () => {
+    const p = planChild(ti, "frank", { ...sampleCtx, asOf: "2026-10-26" });
     expectSane(p);
-    expectConserved(p);
-    expect(p.doneUnits).toBe(30);
-    expect(p.remainingUnits).toBe(70);
-    expect(p.baseRate).toBeCloseTo(14);
-    expect(unitsOn(p, "2026-09-14")).toBeCloseTo(14);
-    // past days show what was actually logged
-    expect(unitsOn(p, "2026-09-07")).toBe(10);
-    expect(unitsOn(p, "2026-09-09")).toBe(0);
-    expect(p.days.find((d) => d.date === "2026-09-07")!.kind).toBe("logged");
-    expect(p.days.find((d) => d.date === "2026-09-14")!.kind).toBe("planned");
+    // The ticket says 184 pages; the sample family's Treasure Island is 270 pages (12 days x 22.5). See sprint-2b.md.
+    expect(ti.totalUnits).toBe(270);
+    expect(ti.start).toBe("2026-10-19");
+    expect(p.baseRate).toBeCloseTo(22.5);
+    expect(unitsBetween(p, "2026-10-26", "2026-10-30")).toBeCloseTo(90);
+    expect(unitsBetween(p, "2026-10-26", "2026-10-30")).not.toBeCloseTo(135);
   });
 
-  it("ahead: later days thin out", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-07", 80)] });
-    expect(p.baseRate).toBeCloseTo(4);
-    expectConserved(p);
+  it("asOf 2026-10-19, 2026-10-26 and 2026-11-30 give identical units; only kinds differ", () => {
+    const [a, b, c] = ["2026-10-19", "2026-10-26", "2026-11-30"].map((asOf) => planChild(ti, "frank", { ...sampleCtx, asOf }));
+    expect(units(b!)).toEqual(units(a!));
+    expect(units(c!)).toEqual(units(a!));
+    expect(kindOn(a!, "2026-10-19")).toBe("planned");
+    expect(kindOn(b!, "2026-10-19")).toBe("assumed");
+    expect(kindOn(b!, "2026-10-26")).toBe("planned");
+    expect(c!.days.every((d) => d.kind === "assumed" || d.date >= "2026-11-30")).toBe(true);
   });
 
-  it("finished early: complete, all future days zero", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-07", 60), log("2026-09-11", 40)] });
-    expect(p.complete).toBe(true);
-    expect(p.remainingUnits).toBe(0);
-    expect(unitsBetween(p, "2026-09-14", "2026-09-18")).toBe(0);
-    expectSane(p);
+  it("asOf invariance: every sample-family plan is the same for 5 random asOf dates", () => {
+    let seed = 18;
+    const r = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+    const base = planAll(S.assignments, sampleCtx);
+    for (let i = 0; i < 5; i += 1) {
+      const asOf = addDays("2026-08-01", Math.floor(r() * 400));
+      const other = planAll(S.assignments, { ...sampleCtx, asOf });
+      expect(other.map(units), asOf).toEqual(base.map(units));
+      expect(other.map((p) => [p.rate, p.baseRate, p.end, p.unplacedUnits]), asOf).toEqual(base.map((p) => [p.rate, p.baseRate, p.end, p.unplacedUnits]));
+      for (const p of other) for (const d of p.days) expect(d.kind === "assumed", `${p.assignmentId} ${d.date}`).toBe(d.date < asOf);
+    }
   });
 
-  it("over-logged (more than the total): remaining clamps at 0", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-07", 130)] });
-    expect(p.remainingUnits).toBe(0);
-    expect(p.doneUnits).toBe(130);
-    expectSane(p);
+  it("asOf invariance on the book fixture, with and without overrides", () => {
+    const overrides = [{ assignmentId: "a1", weekStart: "2026-09-14", plannedUnits: 20, mode: "pushEndDate" as const }];
+    for (const ctx of [{ calendar: MON_FRI }, { calendar: MON_FRI, overrides }]) {
+      const base = planChild(book(), "frank", ctx);
+      for (const asOf of ["2026-08-01", "2026-09-09", "2026-09-14", "2026-09-18", "2027-01-04"]) {
+        expect(units(planChild(book(), "frank", { ...ctx, asOf }))).toEqual(units(base));
+      }
+    }
   });
 
-  it("negative correction entries reduce done but never below 0", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-07", 20), log("2026-09-08", -5)] });
-    expect(p.doneUnits).toBe(15);
-    const q = planChild(book(), "frank", { calendar: MON_FRI, progress: [log("2026-09-07", -50)] });
-    expect(q.doneUnits).toBe(0);
-    // a day whose net log is negative draws 0, never a negative bar
-    const r = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-07", 20), log("2026-09-08", -5)] });
-    expect(unitsOn(r, "2026-09-08")).toBe(0);
-    expect(r.doneUnits).toBe(15);
+  it("progress entries have no effect", () => {
+    const base = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14" });
+    for (const progress of [[log("2026-09-07", 30)], [log("2026-09-07", 130)], [log("2026-09-08", -5)], [log("2026-09-04", 5)], [log("2026-09-08", 50, "margaret")]]) {
+      const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress });
+      expect(p).toEqual(base);
+    }
+    expect(base.doneUnits).toBe(0);
+    expect(base.remainingUnits).toBe(100);
+    expect(base.complete).toBe(false);
+    expectConserved(base);
   });
 
-  it("without asOf, logs still count toward done and the plan starts at the start date", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, progress: [log("2026-09-07", 20)] });
-    expect(p.remainingUnits).toBe(80);
-    expect(p.baseRate).toBeCloseTo(8);
-  });
-
-  it("asOf before the start behaves like the start", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-08-01" });
-    expect(p.baseRate).toBeCloseTo(10);
-  });
-
-  it("asOf after the end with work left: past-end, no capacity, unplaced, no NaN", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-21", progress: [log("2026-09-10", 50)] });
-    expectSane(p);
-    expect(p.warnings).toContain("past-end");
-    expect(p.noCapacity).toBe(true);
-    expect(p.unplacedUnits).toBe(50);
-  });
-
-  it("asOf on the last day puts everything left on that day", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-18", progress: [log("2026-09-10", 50)] });
-    expect(unitsOn(p, "2026-09-18")).toBeCloseTo(50);
-  });
-
-  it("logs dated before the start or after the end extend the returned range", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-04", 5)] });
-    expect(p.days[0]!.date).toBe("2026-09-04");
-    expect(unitsOn(p, "2026-09-04")).toBe(5);
-    expect(p.days.find((d) => d.date === "2026-09-04")!.capacity).toBe(0);
-  });
-
-  it("several logs on one day sum (check-off + sessions)", () => {
-    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-08", 10), log("2026-09-08", 5)] });
-    expect(unitsOn(p, "2026-09-08")).toBe(15);
-  });
-
-  it("other children's logs don't count for this child", () => {
-    const a = book({ childIds: ["frank", "margaret"] });
-    const p = planChild(a, "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-08", 50, "margaret")] });
-    expect(p.doneUnits).toBe(0);
-    expect(p.baseRate).toBeCloseTo(20);
-  });
-
-  it("progress + keepEndDate override this week", () => {
+  it("days before asOf are assumed, the rest planned or override", () => {
     const p = planChild(book(), "frank", {
-      calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-07", 40)],
+      calendar: MON_FRI, asOf: "2026-09-10",
       overrides: [{ assignmentId: "a1", weekStart: "2026-09-14", plannedUnits: 20, mode: "keepEndDate" }],
     });
-    // 60 left; this week fixed at 20; but this week is the last week -> 40 unplaced? No: the override week is the only week left.
-    expect(unitsBetween(p, "2026-09-14", "2026-09-18")).toBeCloseTo(20);
-    expect(p.unplacedUnits).toBeCloseTo(40);
-    expect(p.warnings).toContain("keep-no-free-capacity");
-    expectConserved(p);
+    for (const d of p.days) {
+      if (d.date < "2026-09-10") expect(d.kind).toBe("assumed");
+      else if (d.date >= "2026-09-14") expect(d.kind).toBe("override");
+      else expect(d.kind).toBe("planned");
+    }
+    expect(unitsOn(p, "2026-09-07")).toBeCloseTo(16);
   });
 
-  it("progress + pushEndDate override this week", () => {
-    const p = planChild(book(), "frank", {
-      calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-07", 40)],
-      overrides: [{ assignmentId: "a1", weekStart: "2026-09-14", plannedUnits: 20, mode: "pushEndDate" }],
-    });
-    // old pace = 60 / 5 = 12/day; 40 left after this week -> 3 days + 4 -> Mon Sep 21 .. Thu Sep 24
-    expect(p.baseRate).toBeCloseTo(12);
-    expect(p.end).toBe("2026-09-24");
-    expect(unitsOn(p, "2026-09-24")).toBeCloseTo(4);
-    expectConserved(p);
+  it("a past override week keeps its override units (kind assumed, mode kept)", () => {
+    const overrides = [{ assignmentId: "a1", weekStart: "2026-09-07", plannedUnits: 5, mode: "pushEndDate" as const }];
+    const before = planChild(book(), "frank", { calendar: MON_FRI, overrides });
+    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", overrides });
+    expect(unitsBetween(p, "2026-09-07", "2026-09-11")).toBeCloseTo(5);
+    expect(kindOn(p, "2026-09-07")).toBe("assumed");
+    expect(kindOn(before, "2026-09-07")).toBe("override");
+    expect(p.mode).toBe("pushEndDate");
+    expect(p.warnings).not.toContain("override-outside-range");
+    expect(units(p)).toEqual(units(before));
   });
 
-  it("override earlier than asOf is ignored (past weeks are history)", () => {
-    const p = planChild(book(), "frank", {
-      calendar: MON_FRI, asOf: "2026-09-14", progress: [log("2026-09-07", 50)],
-      overrides: [{ assignmentId: "a1", weekStart: "2026-09-07", plannedUnits: 5, mode: "keepEndDate" }],
-    });
-    expect(p.warnings).toContain("override-outside-range");
+  it("asOf before the start: nothing assumed", () => {
+    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-08-01" });
     expect(p.baseRate).toBeCloseTo(10);
+    expect(p.days.some((d) => d.kind === "assumed")).toBe(false);
+  });
+
+  it("asOf after the end: every day assumed, nothing unplaced, no past-end warning", () => {
+    const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-21" });
+    expectSane(p);
+    expect(p.days.every((d) => d.kind === "assumed")).toBe(true);
+    expect(p.unplacedUnits).toBe(0);
+    expect(p.noCapacity).toBe(false);
+    expect(p.warnings).not.toContain("past-end");
+    expect(p.complete).toBe(false);
+  });
+
+  it("a zero-unit assignment is still complete", () => {
+    expect(planChild(book({ totalUnits: 0 }), "frank", { calendar: MON_FRI, asOf: "2026-09-14" }).complete).toBe(true);
   });
 });

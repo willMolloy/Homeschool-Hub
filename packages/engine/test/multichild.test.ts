@@ -34,7 +34,7 @@ describe("assignments shared by several children", () => {
     expect(unitsOn(m!, "2026-09-11")).toBeCloseTo(2);
   });
 
-  it("per-child progress: Frank 5 lessons, Margaret 3", () => {
+  it("per-child logs no longer move either child's plan (S2b-18)", () => {
     const ctx: PlanContext = {
       calendar: MON_FRI, asOf: "2026-09-14",
       progress: [
@@ -43,10 +43,10 @@ describe("assignments shared by several children", () => {
       ],
     };
     const [f, m] = planAssignment(shared, ctx);
-    expect(f!.remainingUnits).toBe(15);
-    expect(m!.remainingUnits).toBe(17);
-    expect(f!.baseRate).toBeCloseTo(3);
-    expect(m!.baseRate).toBeCloseTo(3.4);
+    expect(f!.remainingUnits).toBe(20);
+    expect(m!.remainingUnits).toBe(20);
+    expect(f!.baseRate).toBeCloseTo(m!.baseRate);
+    expect(f!.days.map((d) => d.units)).toEqual(m!.days.map((d) => d.units));
   });
 
   it("family blocks apply to every child", () => {

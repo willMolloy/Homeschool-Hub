@@ -73,15 +73,15 @@ describe("semantic zoom aggregation", () => {
     expect(weeklySummary(p.days, "mon").at(-1)!.weekStart).toBe("2026-09-21");
   });
 
-  it("logged work on a non-school day counts in its week (no divide-by-zero)", () => {
+  it("an assumed (past) week averages like any other; logs on a non-school day change nothing (S2b-18)", () => {
     const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", progress: [{ assignmentId: "a1", childId: "frank", date: "2026-09-12", units: 10 }] });
     const w = weeklySummary(p.days, "mon").find((x) => x.weekStart === "2026-09-07")!;
-    // Mon-Fri still have capacity (nothing logged there), plus the Saturday that has logged work.
-    expect(w.capacityDays).toBe(6);
-    expect(w.totalThickness).toBeCloseTo(10);
+    expect(w.capacityDays).toBe(5);
+    expect(w.totalThickness).toBeCloseTo(50);
     expect(w).not.toHaveProperty("totalMinutes"); // S2b-14
-    expect(w.average).toBeCloseTo(10 / 6);
-    expect(val(aggregate(p.days, "weekly", "mon"), "2026-09-12")).toBeCloseTo(10 / 6);
+    expect(w.average).toBeCloseTo(10);
+    expect(val(aggregate(p.days, "weekly", "mon"), "2026-09-11")).toBeCloseTo(10);
+    expect(val(aggregate(p.days, "weekly", "mon"), "2026-09-12")).toBe(0);
   });
 
   it("lane merge: a mid-week hand-off between two books averages over the lane's days", () => {

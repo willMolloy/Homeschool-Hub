@@ -49,7 +49,8 @@ function subjectDefaultFor(a: Assignment, ctx: PlanContext): SubjectWeight | nul
  * Plan one assignment for one child.
  *
  * - capacity(d) comes from the calendar, blocked periods, and events (see capacity.ts).
- * - remaining = totalUnits - everything logged for this child.
+ * - The plan runs from the assignment's start, as if every scheduled day before today was done (S2b-18).
+ *   Logs don't move bars; `ctx.asOf` only labels earlier days `assumed`.
  * - Override weeks are fixed first: their units are spread over that week's capacity.
  * - keepEndDate: rate = remaining after overrides / sum of capacity on the other days up to the end.
  * - pushEndDate: the other days keep the old pace (baseRate) and the end moves to where the work runs out.
@@ -69,22 +70,13 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   const E = toDayNumber(a.end);
   const total = a.totalUnits;
 
-  // Progress
-  const logs = (ctx.progress ?? []).filter((p) => p.assignmentId === a.id && p.childId === childId);
-  const loggedByDay = new Map<number, number>();
-  let done = 0;
-  for (const p of logs) {
-    const u = finiteOr0(p.units);
-    const d = toDayNumber(p.date);
-    loggedByDay.set(d, (loggedByDay.get(d) ?? 0) + u);
-    done += u;
-  }
-  done = Math.max(0, done);
-  const remaining = Math.max(0, total - done);
+  // Assumed progress (S2b-18): nothing is reported done, so the whole total is planned from the start.
+  const done = 0;
+  const remaining = Math.max(0, total);
   const complete = remaining <= EPS;
 
   const asOf = ctx.asOf ? toDayNumber(ctx.asOf) : S;
-  const planFrom = Math.max(S, asOf);
+  const planFrom = S;
 
   const planned = new Map<number, number>();
   const kinds = new Map<number, DayKind>();
@@ -111,7 +103,6 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     };
     let baseCap = 0;
     for (let d = planFrom; d <= E; d += 1) baseCap += c(d);
-    if (planFrom > E) warn("past-end");
 
     if (baseCap <= EPS) {
       // Nothing can be placed before the end date (fully inside a vacation, every day skipped, or already past the end).
@@ -196,24 +187,14 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     }
   }
 
-  // Output range: start..max(end, effective end) plus any logged days outside it.
-  let lo = S;
-  let hi = Math.max(E, endDay);
-  for (const d of loggedByDay.keys()) {
-    lo = Math.min(lo, d);
-    hi = Math.max(hi, d);
-  }
+  // Output range: start..max(end, effective end). Days before asOf are labelled assumed (presumed done as planned).
   const days: DayLoad[] = [];
-  for (let d = lo; d <= hi; d += 1) {
-    const isPast = d < planFrom;
-    const logged = loggedByDay.get(d) ?? 0;
-    // A day's net logged work is shown as at least 0 (a correction can't draw a negative bar).
-    const units = isPast ? Math.max(0, logged) : planned.get(d) ?? 0;
-    const kind: DayKind = isPast ? "logged" : kinds.get(d) ?? "planned";
-    const inRange = d >= S && d <= Math.max(E, endDay);
+  for (let d = S; d <= Math.max(E, endDay); d += 1) {
+    const units = planned.get(d) ?? 0;
+    const kind: DayKind = d < asOf ? "assumed" : kinds.get(d) ?? "planned";
     days.push({
       date: fromDayNumber(d),
-      capacity: inRange ? cap.capacity(d, childId, a.subjectId) : 0,
+      capacity: cap.capacity(d, childId, a.subjectId),
       schoolDay: cap.schoolDay(d, childId),
       units,
       thickness: units * weight,

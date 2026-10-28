@@ -55,11 +55,12 @@ describe.skipIf(!hasDb)("GET /api/plan (integration)", () => {
     }
   });
 
-  it("asOf=2026-10-26 with nothing logged: the unlogged week of Oct 19 rolls forward (33.75/day, 135 pages)", async () => {
+  it("asOf=2026-10-26 with nothing logged: the week of Oct 19 is assumed done, so Oct 26 is still 90 pages (S2b-18)", async () => {
     const body = (await get("?from=2026-10-26&to=2026-10-30&asOf=2026-10-26")).json<PlanResponse>();
     const ti = body.plans.find((p) => p.assignmentId === fam.ids.assignment.ti && p.childId === fam.ids.child.frank)!;
-    expect(ti.rate).toBeCloseTo(33.75);
-    expect(ti.days.reduce((s, d) => s + d.units, 0)).toBeCloseTo(135);
+    expect(ti.rate).toBeCloseTo(22.5);
+    expect(ti.days.reduce((s, d) => s + d.units, 0)).toBeCloseTo(90);
+    expect(ti.days.every((d) => d.kind === "planned")).toBe(true);
   });
 
   it("October 2026 has plans for both kids", async () => {

@@ -70,8 +70,8 @@ function expectAll(p: ChildPlan, label: string) {
   try {
     expectSane(p);
     expectConserved(p);
-    // Planned (non-logged) days must sit inside [planFrom, effective end] and never before start.
-    for (const d of p.days) if (d.kind !== "logged" && d.units > 1e-9) {
+    // Placed days must sit inside [start, effective end] (S2b-18: assumed days are planned days too).
+    for (const d of p.days) if (d.units > 1e-9) {
       expect(d.date >= addDays(p.plannedEnd, -100000)).toBe(true);
       expect(d.capacity).toBeGreaterThan(0); // work is only ever placed on days with capacity
     }
@@ -284,7 +284,7 @@ describe("tester: overlapping events", () => {
 
 describe("tester: multi-child divergence", () => {
   const shared = book({ childIds: ["frank", "margaret"], totalUnits: 100 });
-  it("one child's progress, blocked days and override never move the other child's plan", () => {
+  it("one child's logs, blocked days and override never move the other child's plan", () => {
     const alone = planChild(shared, "margaret", { calendar: MON_FRI });
     const ctx: PlanContext = {
       calendar: MON_FRI,
@@ -295,13 +295,14 @@ describe("tester: multi-child divergence", () => {
     };
     const [f, m] = planAssignment(shared, ctx);
     expect(f!.childId).toBe("frank");
-    expect(f!.doneUnits).toBe(40);
+    expect(f!.doneUnits).toBe(0); // S2b-18: logs are ignored
     expect(f!.mode).toBe("pushEndDate");
     expect(m!.mode).toBe(null);
     expect(m!.doneUnits).toBe(0);
-    // Margaret is unaffected except that days before asOf are history for her too.
+    // Margaret is unaffected; asOf only labels her early days assumed.
     const mAsOf = planChild(shared, "margaret", { calendar: MON_FRI, asOf: "2026-09-08" });
     expect(m!.days.map((d) => d.units)).toEqual(mAsOf.days.map((d) => d.units));
+    expect(m!.days.map((d) => d.units)).toEqual(alone.days.map((d) => d.units));
     expect(alone.rate).toBeCloseTo(10, 9);
     expectConserved(f!); expectConserved(m!);
   });
@@ -318,14 +319,16 @@ describe("tester: multi-child divergence", () => {
 });
 
 describe("tester: asOf edges", () => {
-  it("asOf exactly on end: all remaining work lands on the last day", () => {
+  it("asOf exactly on end: the last day keeps its normal share (S2b-18, no pile-up)", () => {
     const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-18" });
-    expect(unitsOn(p, "2026-09-18")).toBeCloseTo(100, 9);
+    expect(unitsOn(p, "2026-09-18")).toBeCloseTo(10, 9);
+    expect(p.days.find((d) => d.date === "2026-09-18")!.kind).toBe("planned");
   });
-  it("asOf one day after end: past-end + no-capacity, all unplaced", () => {
+  it("asOf one day after end: every day assumed, nothing unplaced, no warnings (S2b-18)", () => {
     const p = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-19" });
-    expect(p.warnings).toEqual(expect.arrayContaining(["past-end", "no-capacity"]));
-    expect(p.unplacedUnits).toBe(100);
+    expect(p.warnings).toEqual([]);
+    expect(p.unplacedUnits).toBe(0);
+    expect(p.days.every((d) => d.kind === "assumed")).toBe(true);
   });
   it("push mode after the end date still finds the work a home (not unplaced)", () => {
     // Parent chose "push the end date" on the last week; then the term ended with work left.

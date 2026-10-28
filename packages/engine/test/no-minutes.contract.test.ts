@@ -35,9 +35,9 @@ describe("no minutes in a serialized plan (S2b-14)", () => {
     expect(minuteKeys({ a: [{ b: { totalMinutes: 1 } }], minutes: 2, unitType: "minutes" })).toEqual(["$.a[0].b.totalMinutes", "$.minutes"]);
   });
 
-  it("every ChildPlan, all unit types, logged, planned and override days included", () => {
+  it("every ChildPlan, all unit types, assumed, planned and override days included", () => {
     expect(new Set(plans.map((p) => p.unitType))).toEqual(new Set(["pages", "chapters", "lessons", "minutes"]));
-    expect(new Set(plans.flatMap((p) => p.days.map((d) => d.kind)))).toEqual(new Set(["logged", "planned", "override"]));
+    expect(new Set(plans.flatMap((p) => p.days.map((d) => d.kind)))).toEqual(new Set(["assumed", "planned", "override"]));
     expect(plans.every((p) => p.engineVersion === ENGINE_VERSION)).toBe(true);
     expect(minuteKeys(plans)).toEqual([]);
   });

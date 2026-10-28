@@ -92,10 +92,10 @@ export interface PlanContext {
   events?: RecurringEvent[];
   blocked?: BlockedPeriod[];
   overrides?: WeekOverride[];
+  /** @deprecated — ignored since S2b-18 (logs no longer move bars); removed in S2b-19. */
   progress?: ProgressEntry[];
   /**
-   * First day still to plan (usually today). Days before it show only logged work.
-   * Every logged entry, whatever its date, counts toward done units.
+   * Usually today. Days before it are labelled assumed; it does not change the plan (S2b-18).
    * Default: the assignment's start.
    */
   asOf?: LocalDate | null;
@@ -103,7 +103,8 @@ export interface PlanContext {
   subjectWeights?: SubjectWeight[];
 }
 
-export type DayKind = "logged" | "planned" | "override";
+/** assumed = before asOf, presumed done as planned (S2b-18). */
+export type DayKind = "assumed" | "planned" | "override";
 
 export interface DayLoad {
   date: LocalDate;
@@ -120,6 +121,7 @@ export interface DayLoad {
 export type PlanWarning =
   | "invalid-range"
   | "no-capacity"
+  /** @deprecated — no longer emitted since S2b-18 (the plan always runs from the start). */
   | "past-end"
   | "override-misaligned"
   | "override-duplicate-week"

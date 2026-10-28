@@ -19,7 +19,8 @@ export function book(over: Partial<Assignment> = {}): Assignment {
 }
 
 export const sumUnits = (p: ChildPlan): number => p.days.reduce((s, d) => s + d.units, 0);
-export const sumPlanned = (p: ChildPlan): number => p.days.filter((d) => d.kind !== "logged").reduce((s, d) => s + d.units, 0);
+/** Every day's units, assumed days included (S2b-18: the plan runs from the start). */
+export const sumPlanned = (p: ChildPlan): number => p.days.reduce((s, d) => s + d.units, 0);
 export const unitsOn = (p: ChildPlan, date: string): number => p.days.find((d) => d.date === date)?.units ?? 0;
 export const unitsBetween = (p: ChildPlan, from: string, to: string): number =>
   p.days.filter((d) => d.date >= from && d.date <= to).reduce((s, d) => s + d.units, 0);
@@ -39,7 +40,7 @@ export function expectSane(p: ChildPlan): void {
   }
 }
 
-/** Placed + unplaced work = what was left to do (+ logged history). */
+/** Placed + unplaced work = what was left to do. */
 export function expectConserved(p: ChildPlan): void {
   expect(sumPlanned(p) + p.unplacedUnits).toBeCloseTo(p.remainingUnits, 6);
 }

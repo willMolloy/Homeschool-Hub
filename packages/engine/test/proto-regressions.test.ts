@@ -50,7 +50,8 @@ describe("prototype bugs (fixed in @hh/engine)", () => {
     expect(unitsOn(n, "2026-09-07")).toBeCloseTo(18);
     expectConserved(n);
     // And when there truly is no free day left, it says so instead of moving the end.
-    const m = planChild(book(), "frank", { calendar: MON_FRI, asOf: "2026-09-14", overrides: [{ assignmentId: "a1", weekStart: "2026-09-14", plannedUnits: 10, mode: "keepEndDate" }] });
+    // S2b-18: asOf no longer moves the plan, so a one-week assignment stands in for "only the override week is left".
+    const m = planChild(book({ start: "2026-09-14" }), "frank", { calendar: MON_FRI, overrides: [{ assignmentId: "a1", weekStart: "2026-09-14", plannedUnits: 10, mode: "keepEndDate" }] });
     expect(m.end).toBe("2026-09-18");
     expect(m.unplacedUnits).toBeCloseTo(90);
     expect(m.warnings).toContain("keep-no-free-capacity");
