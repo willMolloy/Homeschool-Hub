@@ -119,3 +119,96 @@ Also checked and true:
 4. **Name policy:** count graphemes for the 60 limit, and reject C0 controls and bidi overrides in names.
 5. **Engine guard:** clamp or warn on non-finite minutes (T-ENG-2), for non-DB callers.
 6. **Update the S1-08 wording** (`_dev` or `_test`), and run the S1-02 red/green check on the first PR.
+
+## Round 2 (Sprint 2a)
+
+Independent tester pass on Sprint 2a (`3650efb..cecff2d`), run 03:58–04:10 CT on the box only. Nothing was pushed or sent.
+
+### Counts
+
+- **Tests added:** 33 API tests in `apps/api/test/tester2.schedule.test.ts`, plus one headless smoke scenario (`tester-smoke/tester2-odd.mjs` with seed `tester-smoke/tester2-seed-odd.mts`) run at 360 and 1280 px, giving 16 screens (`screens/tester2-*`).
+- **Bugs:** 1 found and fixed (T2-1). 2 documented and not fixed (T2-2, T2-3).
+- **Ticket audit:** 16 of 16 S2a tickets are ticked done. 1 wording mismatch (S2a-02). 3 tickets (S2a-14 to S2a-16) were not fully true until the T2-1 fix.
+- **Commits:** `474e7b0` (tests, with T2-1 as `it.fails`), `b2d2384` (`fix(tester)`), and this report commit.
+- **Gate:** green. Lint, typecheck, build, `npm test` (API 446, web 153, engine 132, db 8), `test:tz`, and `db validate` on a scratch database (ALL CHECKS PASSED).
+
+### Bugs
+
+| ID | Severity | What | Status |
+|---|---|---|---|
+| T2-1 | Medium (reachable in the UI) | Suppose a child was archived after being linked to an assignment, event or day off. Editing that item to add another child returned **400 invalid_reference**, because the PATCH re-checked every child sent and the form keeps the archived child ticked. The assignment PATCH also refused re-sending its own since-archived subject, which contradicts its own comment ("only newly named references are checked"). | **Fixed** in `b2d2384`. The three PATCH routes now check only newly named children (and the assignment's subject only when it changes). 4 tests, written first as `it.fails`. Re-verified in the smoke: all three edits now save. |
+| T2-2 | Low (quirk) | `AMERICA/CHICAGO` is accepted, because the regex allows capitals and ICU is case-insensitive. It is stored exactly as sent. `america/chicago` is rejected. | Documented. The test pins the current behaviour. |
+| T2-3 | Low (depends on the environment) | The Settings time-zone picker lists the **browser's** `Intl.supportedValuesOf("timeZone")`, but the API validates with **Node's** ICU (Node 20.19.2, tzdata 2024b). Chrome 156 offers 418 zones. All of them pass the API except **`America/Coyhaique`** (added in tzdata 2025b), so picking it gets a 400. All 417 of Node's own zones pass. | Not fixed. There is no minimal fix without upgrading Node/ICU or having the web build the list from the API. Recommended ticket below. |
+
+### Ticket audit (S2a "Done when")
+
+- **S2a-01 to S2a-11** (time-zone validation, family API, limits, assignments, blocked ranges, events, plan contract): verified by the developer's tests and this suite.
+- **S2a-02 mismatch:** the ticket says the time-zone list comes from `Intl.supportedValuesOf`. The API deliberately uses a regex plus an ICU check instead. Only the web form (S2a-13) uses `supportedValuesOf`, which is the root of T2-3.
+- **S2a-12** (Schedule nav, no overflow at 360/1280): verified in the smoke.
+- **S2a-13** (Settings): verified in the smoke. It shows the stored `Asia/Kolkata` and lists 419 options.
+- **S2a-14 to S2a-16** (Assignments, Days off, Events screens): an "edit" with an archived child still linked failed until T2-1 was fixed. Verified in the smoke after the fix.
+- T-API-3 from round 1 was fixed by S2a-01 (the test was flipped by the developer).
+
+### Security (cross-family)
+
+There were no leaks on any of the 12 new route/method pairs:
+- Lists from another family come back empty.
+- PATCH or DELETE on a foreign id returns 404, upper-cased ids included.
+- A foreign subject or child in any create or update returns `invalid_reference`.
+- `family_id` in a body is ignored. The strict `PATCH /api/family` rejects it with a 400.
+- Anonymous and expired sessions get 401.
+
+### Validation
+
+These all hold:
+- **Dates:** years 2000–2100, leap days (2100-02-29 rejected), exact maximum spans (1096 days for assignments, 366 for blocked ranges), end < start (including merged PATCHes).
+- **Children:** shared children are de-duplicated case-insensitively, capped at 20, and returned in roster order.
+- **Numbers:** `1e309`, negatives and too many decimals are rejected.
+- **Bodies and ids:** non-object bodies return 400, and malformed path ids return 404.
+- **Event rules:** archived subject, duplicate key by case, 101 entries and `__proto__` are all rejected.
+- **Time-zone aliases:** `US/Central`, `Asia/Kolkata`, `Europe/Kyiv` and `Etc/GMT-14` are accepted and stored as sent. `EST`, `GMT`, `CST6CDT`, `Zulu`, lowercase names, offsets and `Etc/GMT+15` are rejected. `asOf` handles the Kiritimati and Pago Pago extremes.
+
+### Plan vs engine
+
+`/api/plan` deep-equals `planAll` for a tricky family:
+- 3 kids, 3 subjects and 5 assignments;
+- 5 overlapping events (lighter on lighter, capacity 0, open start, default skip);
+- 4 overlapping blocked ranges.
+
+It still matches after archiving a subject and a child and deleting a duplicate range. The largest allowed assignment plans finitely.
+
+### Concurrency
+
+There were no 500s and no merged child or rule sets in any of these:
+- 10 parallel `childIds` replacements;
+- 10 parallel event-rule replacements;
+- 8 parallel DELETEs (exactly one 204, seven 404);
+- PATCH racing DELETE;
+- 20 mixed creates.
+
+Known minor race: archiving a child at the same moment it is linked can leave a link to an archived child. The plan ignores it and the UI can now edit it (T2-1).
+
+### Web smoke (odd data, 360 and 1280 px)
+
+The odd family had:
+- Sunday week start and school days Sun/Tue/Thu/Sat, time zone `Asia/Kolkata`;
+- 60-character family and child names, Arabic, emoji and `<b>` names;
+- an archived child and an archived subject that are still linked;
+- a 120-character event every day at capacity 0.001, with a rule for the archived subject;
+- a 366-day vacation, duplicate overlapping sick days, and items dated 2100.
+
+The run covered the Plan, the hub, Settings, the Assignments, Days off and Events lists, and three edits that add a child while an archived one stays ticked.
+
+Result: **no horizontal overflow, no console errors, no HTTP ≥ 400, no failed requests or dialogs** at either width. `<b>Bold</b>` renders as text. The stale archived-subject rule is shown with its "kept unless you change the rules" note. The seeded family was deleted from `hh_dev` afterwards.
+
+### Not tested / risks
+
+- Real multi-process races: tests run against a single API process.
+- DST edges for non-Chicago family zones beyond `asOf`.
+- Screen readers on the long Event cards.
+
+### Recommended tickets
+
+1. **T2-3:** serve the supported zone list from the API (or filter the picker through the API's validator) so the browser and server agree.
+2. **T2-2:** normalise or reject time-zone names that differ only in case.
+3. Lock the archive-versus-link race with `SELECT … FOR SHARE` on referenced rows, if it ever matters.
