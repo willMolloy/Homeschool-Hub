@@ -154,6 +154,11 @@ export interface WeekCheckIn {
   weekEnd: string;
   status: WeekReviewStatus | null;
   items: CheckInItem[];
+  /**
+   * Active pairs with nothing planned that week and work left (S2c-06): plannedFrom = plannedTo = where the
+   * week started. "Add progress" offers these; once saved, a pair shows in `items`.
+   */
+  addable: CheckInItem[];
 }
 
 /** PUT /api/check-ins/:weekStart body (S2b-24). Items left out count as done as planned. */

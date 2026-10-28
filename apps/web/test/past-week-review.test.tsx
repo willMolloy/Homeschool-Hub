@@ -16,8 +16,8 @@ const item = (over: Partial<CheckInItem>): CheckInItem => ({
 });
 const TI = item({ actual: 60, mode: "pushEndDate" });
 const HIST = item({ assignmentId: "hist", title: "Story of the World", plannedFrom: 100, plannedTo: 140, totalUnits: 400 });
-const OCT12: WeekCheckIn = { weekStart: "2026-10-12", weekEnd: "2026-10-18", status: "reviewed", items: [TI, HIST] };
-const OCT5: WeekCheckIn = { weekStart: "2026-10-05", weekEnd: "2026-10-11", status: "skipped", items: [item({}), HIST] };
+const OCT12: WeekCheckIn = { weekStart: "2026-10-12", weekEnd: "2026-10-18", status: "reviewed", items: [TI, HIST], addable: [] };
+const OCT5: WeekCheckIn = { weekStart: "2026-10-05", weekEnd: "2026-10-11", status: "skipped", items: [item({}), HIST], addable: [] };
 const WEEKS: PastWeek[] = [
   { weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, hasCheckIns: false },
   { weekStart: "2026-10-12", weekEnd: "2026-10-18", status: "reviewed", hasCheckIns: true },
@@ -173,7 +173,7 @@ describe("initialAnswers", () => {
 
 /** S2c-05 (L3): a save on the home card updates the past-week labels without a reload. */
 describe("the past-week list after a home-card save", () => {
-  const LAST: WeekCheckIn = { weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, items: [item({})] };
+  const LAST: WeekCheckIn = { weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, items: [item({})], addable: [] };
   const homeCard = () => screen.findByRole("region", { name: /How did last week go\?/ });
 
   function stubHome() {
@@ -213,3 +213,32 @@ describe("the past-week list after a home-card save", () => {
   });
 });
 
+
+describe("Add progress in a past week (S2c-06)", () => {
+  const SCI = item({ assignmentId: "sci", title: "Science", unitType: "lessons", plannedFrom: 12, plannedTo: 12, totalUnits: 120 });
+  const EMPTY: WeekCheckIn = { weekStart: "2026-09-28", weekEnd: "2026-10-04", status: null, items: [], addable: [SCI] };
+  const label = weekRangeText(EMPTY.weekStart, EMPTY.weekEnd);
+
+  it("a week with nothing planned still offers Add progress; saving sends the added row, and it reopens as 'nothing planned'", async () => {
+    stub([...WEEKS, { weekStart: EMPTY.weekStart, weekEnd: EMPTY.weekEnd, status: null, hasCheckIns: false }]);
+    let stored: WeekCheckIn = EMPTY;
+    fakeApi.on(`GET /api/check-ins?weekStart=${EMPTY.weekStart}`, () => [200, stored]);
+    fakeApi.on(`PUT /api/check-ins/${EMPTY.weekStart}`, () => {
+      stored = { ...EMPTY, status: "reviewed", items: [{ ...SCI, actual: 15, mode: "keepEndDate" }], addable: [] };
+      return [200, { ...stored, planChanged: true }];
+    });
+    const card = await openWeek(label);
+    await userEvent.click(within(card).getByRole("button", { name: "Add progress" }));
+    await userEvent.click(within(card).getByRole("button", { name: "Frank — Science" }));
+    const field = within(within(card).getByRole("group", { name: "Progress on Science for Frank" })).getByRole("spinbutton");
+    await userEvent.clear(field);
+    await userEvent.type(field, "15");
+    await userEvent.click(within(card).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    expect(puts()[0]!.body).toEqual({ status: "reviewed", items: [{ assignmentId: "sci", childId: "c1", position: 15, mode: "keepEndDate" }] });
+    const reopened = await screen.findByRole("region", { name: new RegExp(`Week of ${label}`) });
+    expect(await within(reopened).findByText("Science — nothing planned")).toBeInTheDocument();
+    expect(within(reopened).queryByRole("button", { name: "Add progress" })).toBeNull();
+    expect(within(reopened).queryByRole("button", { name: /Remove/ })).toBeNull();
+  });
+});

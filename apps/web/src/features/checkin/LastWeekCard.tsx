@@ -6,11 +6,15 @@
  *
  * Edit mode (S2b-27) reopens a finished week: always expanded, prefilled from the stored `actual` and `mode`,
  * and Save sends the whole week (replace), so a row put back to its plan is removed.
+ *
+ * Add progress (S2c-06) adds a row for a pair with nothing planned that week ("nothing planned"); it starts at
+ * the week's start, so it can only go ahead, and it can be removed again before saving.
  */
 import { useId, useState } from "react";
 import type { OverrideMode } from "@hh/engine";
 import type { CheckInItem, SaveWeekBody, WeekCheckIn } from "../../api/types";
 import { AbsorbChoice } from "./AbsorbChoice";
+import { AddProgress } from "./AddProgress";
 import { DEFAULT_MODE, itemKey, outcomeText, rowOutcome, type Direction } from "./absorb";
 import { plannedCountText, plannedRangeText, reviewStatusText, weekRangeText } from "./checkinText";
 import { ProgressAdjuster } from "./ProgressAdjuster";
@@ -50,6 +54,12 @@ export function groupByChild(items: readonly CheckInItem[]): { childId: string; 
   return groups;
 }
 
+/** A row's plan as the parent would say it; an unplanned row (S2c-06) says so. */
+export const rowPlanText = (item: CheckInItem) => (item.plannedTo - item.plannedFrom > 0
+  ? `${plannedRangeText(item.unitType, item.plannedFrom, item.plannedTo)} planned`
+  : NOTHING_PLANNED_ROW);
+export const NOTHING_PLANNED_ROW = "nothing planned";
+
 const DIRECTIONS: readonly Direction[] = ["behind", "ahead"];
 const isDirection = (o: string): o is Direction => o === "behind" || o === "ahead";
 
@@ -86,12 +96,24 @@ export function LastWeekCard({ week, mode = "prompt", busy, error, itemErrors = 
   const [rowModes, setRowModes] = useState<Record<string, OverrideMode>>(start.rowModes);
   const [applyAll, setApplyAll] = useState<Record<Direction, boolean>>(start.applyAll);
   const [groupModes, setGroupModes] = useState<Record<Direction, OverrideMode>>(start.groupModes);
+  /** Rows added with Add progress (S2c-06), by itemKey, in the order added. */
+  const [added, setAdded] = useState<string[]>([]);
   const titleId = useId();
   const listId = useId();
 
+  const addedItems = added.flatMap((k) => week.addable.filter((a) => itemKey(a) === k));
+  const rows = [...week.items, ...addedItems];
+  const notAdded = week.addable.filter((a) => !added.includes(itemKey(a)));
+  const remove = (key: string) => {
+    setAdded((a) => a.filter((k) => k !== key));
+    const drop = <T,>(r: Record<string, T>) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== key));
+    setPositions(drop);
+    setRowModes(drop);
+  };
+
   const positionOf = (item: CheckInItem) => positions[itemKey(item)] ?? item.plannedTo;
   const outcomeOf = (item: CheckInItem) => rowOutcome(item, positionOf(item));
-  const rowsGoing = (d: Direction) => week.items.filter((i) => outcomeOf(i) === d);
+  const rowsGoing = (d: Direction) => rows.filter((i) => outcomeOf(i) === d);
   /** Whether a direction's rows share one answer: "apply to all" ticked and more than one row. */
   const grouped = (d: Direction) => applyAll[d] && rowsGoing(d).length > 1;
   const modeOf = (item: CheckInItem): OverrideMode | null => {
@@ -99,7 +121,7 @@ export function LastWeekCard({ week, mode = "prompt", busy, error, itemErrors = 
     if (!isDirection(o)) return null;
     return grouped(o) ? groupModes[o] : rowModes[itemKey(item)] ?? DEFAULT_MODE;
   };
-  const changed = week.items.filter((i) => outcomeOf(i) !== "asPlanned");
+  const changed = rows.filter((i) => outcomeOf(i) !== "asPlanned");
   const save = () => onSave(changed.map((i) => ({
     assignmentId: i.assignmentId, childId: i.childId, position: positionOf(i), mode: modeOf(i),
   })));
@@ -143,7 +165,7 @@ export function LastWeekCard({ week, mode = "prompt", busy, error, itemErrors = 
       <div id={listId} hidden={!expanded}>
         {expanded && (
           <>
-            {groupByChild(week.items).map((g) => (
+            {groupByChild(rows).map((g) => (
               <div key={g.childId} className="checkin-child">
                 <h3>{g.childName}</h3>
                 <ul className="checkin-rows">
@@ -153,8 +175,14 @@ export function LastWeekCard({ week, mode = "prompt", busy, error, itemErrors = 
                     return (
                       <li key={key} className="checkin-row">
                         <span className="checkin-row-title">
-                          {item.title} — {plannedRangeText(item.unitType, item.plannedFrom, item.plannedTo)} planned
+                          {item.title} — {rowPlanText(item)}
                         </span>
+                        {added.includes(key) && (
+                          <button type="button" className="btn-link" disabled={busy} onClick={() => remove(key)}
+                            aria-label={`Remove ${item.title} for ${item.childName}`}>
+                            Remove
+                          </button>
+                        )}
                         <ProgressAdjuster plannedFrom={item.plannedFrom} plannedTo={item.plannedTo}
                           totalUnits={item.totalUnits} unitType={item.unitType} position={positionOf(item)}
                           name={`${item.title} for ${item.childName}`}
@@ -172,6 +200,7 @@ export function LastWeekCard({ week, mode = "prompt", busy, error, itemErrors = 
                 </ul>
               </div>
             ))}
+            <AddProgress options={notAdded} disabled={busy} onAdd={(i) => setAdded((a) => [...a, itemKey(i)])} />
             {DIRECTIONS.filter((d) => rowsGoing(d).length > 1).map((d) => (
               <div key={d} className="checkin-group-choice">
                 <label className="checkin-apply-all">

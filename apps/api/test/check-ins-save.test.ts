@@ -217,6 +217,60 @@ describe.skipIf(!hasDb)("PUT /api/check-ins/:weekStart (integration)", () => {
     expect(atStart.statusCode, atStart.body).toBe(200);
   });
 
+  describe("progress on a pair with nothing planned (S2c-06)", () => {
+    // Frank was sick all of Oct 19–23, so nothing was planned for him that week.
+    let sick = "";
+    beforeAll(async () => {
+      sick = (await pool.query("INSERT INTO blocked_range (family_id, label, kind, start_date, end_date) VALUES ($1, 'Sick', 'sick', '2026-10-19', '2026-10-23') RETURNING id", [fam.familyId])).rows[0]!.id;
+      await pool.query("INSERT INTO blocked_range_child (blocked_range_id, child_id, family_id) VALUES ($1, $2, $3)", [sick, frank, fam.familyId]);
+    });
+    afterAll(async () => {
+      await pool.query("DELETE FROM blocked_range WHERE id = $1", [sick]);
+    });
+    type Row = { assignmentId: string; childId: string; plannedFrom: number; plannedTo: number };
+    const week = async () => (await app.inject({ method: "GET", url: `/api/check-ins?weekStart=${W}`, cookies })).json<{ items: Row[]; addable: Row[] }>();
+
+    it("the week offers Frank's pairs as addable, not as items", async () => {
+      const w = await week();
+      expect(w.items.filter((i) => i.childId === frank)).toEqual([]);
+      expect(w.addable.find((i) => i.assignmentId === ti && i.childId === frank)).toMatchObject({ plannedFrom: 0, plannedTo: 0 });
+      expect(w.addable.some((i) => i.childId === margaret)).toBe(false);
+    });
+
+    it.each(["keepEndDate", "pushEndDate"])("ahead on an unplanned pair with %s: stored, the plan places it that week, and it shows in items", async (mode) => {
+      const body = await saved({ status: "reviewed", items: [tiItem(20, mode)] });
+      expect(body).toMatchObject({ planChanged: true });
+      expect(await rows()).toEqual([{ position: 20, mode }]);
+      const p = await tiPlan();
+      const thisWeek = p.days.filter((d) => d.date >= W && d.date <= "2026-10-25").reduce((n, d) => n + d.units, 0);
+      expect(thisWeek).toBeCloseTo(20);
+      expect(p.warnings).toContain("unplanned-progress");
+      const w = await week();
+      expect(w.items.find((i) => i.assignmentId === ti && i.childId === frank)).toMatchObject({ plannedFrom: 0, plannedTo: 0 });
+      expect(w.addable.find((i) => i.assignmentId === ti && i.childId === frank)).toBeUndefined();
+    });
+
+    it("at the start with no mode is not stored", async () => {
+      await saved({ status: "reviewed", items: [tiItem(0)] });
+      expect(await rows()).toEqual([]);
+    });
+
+    it("below the start → 400; archived, unrelated or not-yet-started pairs → invalid_reference", async () => {
+      const hist = (await week()).addable.find((i) => i.assignmentId === fam.ids.assignment.hist && i.childId === frank)!;
+      expect(hist.plannedFrom).toBeGreaterThan(1);
+      await bad({ status: "reviewed", items: [{ assignmentId: hist.assignmentId, childId: frank, position: 0, mode: "keepEndDate" }] }, "invalid_request", /items\.0\.position: can't be below where the week started/);
+      await bad({ status: "reviewed", items: [{ assignmentId: fam.ids.assignment.crusoe, childId: frank, position: 5, mode: "keepEndDate" }] }, "invalid_reference", /items\.0/);
+      await bad({ status: "reviewed", items: [tiItem(20, "keepEndDate", margaret)] }, "invalid_reference", /items\.0/);
+      await pool.query("UPDATE assignment SET archived_at = now() WHERE id = $1", [fam.ids.assignment.fair]);
+      try {
+        await bad({ status: "reviewed", items: [{ assignmentId: fam.ids.assignment.fair, childId: frank, position: 2, mode: "keepEndDate" }] }, "invalid_reference", /items\.0/);
+      } finally {
+        await pool.query("UPDATE assignment SET archived_at = NULL WHERE id = $1", [fam.ids.assignment.fair]);
+      }
+      expect(await rows()).toEqual([]);
+    });
+  });
+
   it("a failure part-way through writes nothing", async () => {
     // Fail the last write (week_review), for this family only, so other suites sharing the DB are unaffected.
     await pool.query(`CREATE OR REPLACE FUNCTION s2b24_fail() RETURNS trigger LANGUAGE plpgsql AS $$

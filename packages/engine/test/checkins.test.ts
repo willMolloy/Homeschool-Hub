@@ -129,6 +129,21 @@ describe("check-ins (S2b-20)", () => {
         expect([p.end, p.rate, p.baseRate, p.mode, p.unplacedUnits]).toEqual([ref.end, ref.rate, ref.baseRate, ref.mode, ref.unplacedUnits]);
       }
     });
+    it.each(["pushEndDate", "keepEndDate"] as const)("S2c-06: progress added on an unplanned week 1, then week 2 %s: editing week 1 changes nothing after week 2", (mode2) => {
+      // Week 1 was planned at zero, so its check-in is unplanned progress (S2c-06's "Add progress").
+      const zero: PlanContext = { ...base, overrides: [{ assignmentId: "a1", weekStart: "2026-09-07", plannedUnits: 0, mode: "keepEndDate" }] };
+      expect(plannedRangeForWeek(plan([], zero), "2026-09-07").hasPlannedWork).toBe(false);
+      const ref = plan([ci("2026-09-07", 30, "keepEndDate"), ci("2026-09-14", 140, mode2)], zero);
+      expect(ref.warnings).toContain("unplanned-progress");
+      for (const edit of [ci("2026-09-07", 45, "keepEndDate"), ci("2026-09-07", 10, "pushEndDate")]) {
+        const p = plan([edit, ci("2026-09-14", 140, mode2)], zero);
+        expectInvariants(p);
+        expect(positionAt(p, "2026-09-13")).toBeCloseTo(edit.position);
+        expect(positionAt(p, "2026-09-20")).toBeCloseTo(140);
+        expect(after(p)).toEqual(after(ref));
+        expect([p.end, p.rate, p.baseRate, p.mode, p.unplacedUnits]).toEqual([ref.end, ref.rate, ref.baseRate, ref.mode, ref.unplacedUnits]);
+      }
+    });
     it("week 2 push keeps the original pace, whatever week 1 said", () => {
       const p = plan([ci("2026-09-07", 50, "pushEndDate"), ci("2026-09-14", 140, "pushEndDate")]);
       expect(p.rate).toBeCloseTo(16);

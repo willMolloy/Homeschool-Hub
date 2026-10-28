@@ -10,6 +10,8 @@
 .checkin-row { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); }
 .checkin-row-title { overflow-wrap: anywhere; }
 .checkin-footer { margin-top: 12px; }
+.checkin-add { margin-top: 10px; }
+.checkin-add-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
 .checkin-thanks { color: var(--muted); margin: 0 0 12px; }
 
 /* One row's progress control (S2b-36). */

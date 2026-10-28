@@ -144,6 +144,51 @@ describe.skipIf(!hasDb)("GET /api/check-ins (integration)", () => {
     expect(item(w, "fracs", "margaret")!.plannedTo).toBeGreaterThan(item(w, "fracs", "margaret")!.plannedFrom);
   });
 
+  describe("addable: active pairs with nothing planned that week (S2c-06)", () => {
+    const addable = (w: WeekCheckInJson, assignment: string, child: string) =>
+      w.addable.find((i) => i.assignmentId === fam.ids.assignment[assignment] && i.childId === fam.ids.child[child]);
+
+    it("a normal week has none: every active pair with work left is planned", async () => {
+      expect((await ok("?weekStart=2026-10-12")).addable).toEqual([]);
+    });
+
+    it("a vacation week: pairs with work left, from = to = where the week starts; not finished or not-yet-started work", async () => {
+      const w = await ok("?weekStart=2026-12-21", january);
+      expect(w.items).toEqual([]);
+      const hist = addable(w, "hist", "frank")!;
+      expect(hist).toMatchObject({ childName: "Frank", unitType: "lessons", totalUnits: 140, actual: null, mode: null });
+      expect(hist.plannedFrom).toBeGreaterThan(0);
+      expect(hist.plannedTo).toBe(hist.plannedFrom);
+      expect(addable(w, "hist", "margaret")).toBeDefined();
+      expect(addable(w, "aesop", "frank")).toBeUndefined(); // finished
+      expect(addable(w, "ti", "frank")).toBeUndefined(); // finished
+      expect(addable(w, "crusoe", "frank")).toBeUndefined(); // the week is entirely before its start
+      const keys = w.addable.map((i) => `${i.childName}/${i.title}`);
+      expect(w.addable.map((i) => i.childName)).toEqual([...w.addable.map((i) => i.childName)].sort());
+      expect(new Set(keys).size).toBe(keys.length);
+    });
+
+    it("once saved, the unplanned pair shows in items with its actual, and leaves addable", async () => {
+      const before = addable(await ok("?weekStart=2026-12-21", january), "sci", "frank")!;
+      await store("sci", "frank", "2026-12-21", before.plannedFrom + 2, "keepEndDate");
+      const w = await ok("?weekStart=2026-12-21", january);
+      expect(item(w, "sci", "frank")).toMatchObject({ plannedFrom: before.plannedFrom, plannedTo: before.plannedFrom, actual: before.plannedFrom + 2, mode: "keepEndDate" });
+      expect(addable(w, "sci", "frank")).toBeUndefined();
+      // The next week starts from the reported position.
+      const next = item(await ok("?weekStart=2026-12-28", january), "sci", "frank");
+      expect(next ?? addable(await ok("?weekStart=2026-12-28", january), "sci", "frank")).toMatchObject({ plannedFrom: before.plannedFrom + 2 });
+    });
+
+    it("archived pairs are never addable", async () => {
+      await pool.query("UPDATE assignment SET archived_at = now() WHERE id = $1", [fam.ids.assignment.math5]);
+      try {
+        expect(addable(await ok("?weekStart=2026-12-21", january), "math5", "frank")).toBeUndefined();
+      } finally {
+        await pool.query("UPDATE assignment SET archived_at = NULL WHERE id = $1", [fam.ids.assignment.math5]);
+      }
+    });
+  });
+
   it("family isolation: another family sees only its own (empty) week", async () => {
     const w = await ok("", app, other.cookies);
     expect(w.items).toEqual([]);

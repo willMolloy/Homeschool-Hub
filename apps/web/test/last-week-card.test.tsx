@@ -142,3 +142,91 @@ describe("LastWeekCard", () => {
     expect(within(c).getByText("Treasure Island — pp. 1–80 planned")).toBeInTheDocument();
   });
 });
+
+describe("Add progress on assignments with nothing planned (S2c-06)", () => {
+  const SCI = item({ assignmentId: "sci", title: "Science", unitType: "lessons", plannedFrom: 12, plannedTo: 12, totalUnits: 120 });
+  const PIANO = item({ assignmentId: "piano", title: "Piano", unitType: "minutes", plannedFrom: 300, plannedTo: 300, totalUnits: 1800 });
+  const ART_M = item({ assignmentId: "art", childId: "c2", childName: "Margaret", title: "Art", unitType: "lessons", plannedFrom: 4, plannedTo: 4, totalUnits: 30 });
+  const ADDABLE: WeekCheckIn = { ...WEEK, addable: [SCI, ART_M, PIANO] };
+  const openAdd = async (c: HTMLElement) => {
+    await userEvent.click(within(c).getByRole("button", { name: "Adjust" }));
+    const add = within(c).getByRole("button", { name: "Add progress" });
+    expect(add).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(add);
+    return within(c).getByRole("list", { name: "Assignments with nothing planned" });
+  };
+  const gotTo = (c: HTMLElement, name: string) =>
+    within(within(c).getByRole("group", { name: `Progress on ${name}` })).getByRole("spinbutton");
+
+  it("lists the pairs by child, then title; choosing one adds a 'nothing planned' row at the week's start", async () => {
+    const c = await showCard(ADDABLE);
+    const list = await openAdd(c);
+    expect(within(list).getAllByRole("button").map((b) => b.textContent)).toEqual(["Frank — Piano", "Frank — Science", "Margaret — Art"]);
+    await userEvent.click(within(list).getByRole("button", { name: "Frank — Science" }));
+    expect(within(c).queryByRole("list", { name: "Assignments with nothing planned" })).toBeNull();
+    const frank = within(c).getByRole("heading", { name: "Frank" }).parentElement!;
+    expect(within(frank).getByText("Science — nothing planned")).toBeInTheDocument();
+    expect(gotTo(c, "Science for Frank")).toHaveValue(12);
+    expect(gotTo(c, "Science for Frank")).toHaveAttribute("min", "12");
+    expect(within(c).getByRole("slider", { name: "Where Science for Frank got to" })).toHaveAttribute("min", "12");
+    // An added row left at its start is done as planned: nothing to save yet.
+    expect(within(c).getByRole("button", { name: "Save" })).toBeDisabled();
+    // It's no longer offered.
+    await userEvent.click(within(c).getByRole("button", { name: "Add progress" }));
+    expect(within(c).queryByRole("button", { name: "Frank — Science" })).toBeNull();
+  });
+
+  it("moving an added row ahead asks the ahead question, joins Apply one choice to all, and saves it", async () => {
+    fakeApi.on(PUT, (body) => [200, { ...ADDABLE, status: (body as { status: string }).status, planChanged: true }]);
+    const c = await showCard(ADDABLE);
+    await userEvent.click(within(await openAdd(c)).getByRole("button", { name: "Frank — Science" }));
+    await userEvent.clear(gotTo(c, "Science for Frank"));
+    await userEvent.type(gotTo(c, "Science for Frank"), "15");
+    expect(within(c).getByText("Frank is 3 lessons ahead on Science.")).toBeInTheDocument();
+    const own = within(c).getByRole("group", { name: "How should the plan absorb this? (Science for Frank)" });
+    expect(within(own).getByRole("radio", { name: "Thin the remaining bars" })).toBeChecked();
+    // A planned row ahead too: one shared choice for both.
+    await userEvent.clear(gotTo(c, "Treasure Island for Frank"));
+    await userEvent.type(gotTo(c, "Treasure Island for Frank"), "90");
+    expect(within(c).getByRole("checkbox", { name: "Apply one choice to all 2 rows ahead" })).toBeChecked();
+    expect(within(c).queryByRole("group", { name: "How should the plan absorb this? (Science for Frank)" })).toBeNull();
+    const shared = within(c).getByRole("group", { name: "How should the plan absorb this? (the 2 rows ahead)" });
+    await userEvent.click(within(shared).getByRole("radio", { name: "Pull the end date in" }));
+    await userEvent.click(within(c).getByRole("button", { name: "Save" }));
+    await screen.findByRole("status");
+    expect(puts().map((p) => p.body)).toEqual([{ status: "reviewed", items: [
+      { assignmentId: "ti", childId: "c1", position: 90, mode: "pushEndDate" },
+      { assignmentId: "sci", childId: "c1", position: 15, mode: "pushEndDate" },
+    ] }]);
+  });
+
+  it("an added row can be removed before saving, and is offered again", async () => {
+    const c = await showCard(ADDABLE);
+    await userEvent.click(within(await openAdd(c)).getByRole("button", { name: "Margaret — Art" }));
+    await userEvent.clear(gotTo(c, "Art for Margaret"));
+    await userEvent.type(gotTo(c, "Art for Margaret"), "6");
+    expect(within(c).getByRole("button", { name: "Save" })).toBeEnabled();
+    await userEvent.click(within(c).getByRole("button", { name: "Remove Art for Margaret" }));
+    expect(within(c).queryByText("Art — nothing planned")).toBeNull();
+    expect(within(c).getByRole("button", { name: "Save" })).toBeDisabled();
+    await userEvent.click(within(c).getByRole("button", { name: "Add progress" }));
+    await userEvent.click(within(c).getByRole("button", { name: "Margaret — Art" }));
+    expect(gotTo(c, "Art for Margaret")).toHaveValue(4);
+    // Planned rows have no Remove.
+    expect(within(c).queryByRole("button", { name: /Remove Treasure Island/ })).toBeNull();
+  });
+
+  it("no Add progress when there's nothing to add", async () => {
+    const c = await showCard();
+    await userEvent.click(within(c).getByRole("button", { name: "Adjust" }));
+    expect(within(c).queryByRole("button", { name: "Add progress" })).toBeNull();
+  });
+
+  it("the home card stays hidden when last week had no planned rows, even with addable pairs", async () => {
+    fakeApi.on("GET /api/check-ins", 200, { ...EMPTY_WEEK, addable: [SCI] });
+    renderAt("/");
+    expect(await screen.findByRole("heading", { name: "Plan" })).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(card()).toBeNull();
+  });
+});

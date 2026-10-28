@@ -58,7 +58,7 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
 };
 
 /** S2b-25: last week as GET /api/check-ins returns it with nothing planned, so the card stays hidden by default. */
-export const EMPTY_WEEK = { weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, items: [] };
+export const EMPTY_WEEK = { weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, items: [], addable: [] };
 
 function bodyKeyProblems(method: string, pathname: string, body: unknown): string[] {
   if (body === undefined || method === "GET") return [];

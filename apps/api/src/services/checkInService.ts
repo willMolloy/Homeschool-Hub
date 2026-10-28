@@ -32,6 +32,11 @@ export interface WeekCheckInJson {
   weekEnd: LocalDate;
   status: WeekReviewStatus | null;
   items: CheckInItemJson[];
+  /**
+   * Active pairs with nothing planned and nothing stored that week, which the card can add progress for
+   * (S2c-06, D27): `plannedFrom = plannedTo` = where the week started, `actual: null`. Same order as `items`.
+   */
+  addable: CheckInItemJson[];
 }
 
 /** How the service reads plan inputs; a fake one makes it testable without the loader's SQL. */
@@ -81,6 +86,13 @@ function plansBefore(inputs: PlanInputs, w0: LocalDate, today: LocalDate) {
   return { ctx, plans: planAll(inputs.assignments, ctx) };
 }
 
+/**
+ * Whether the engine would apply a check-in for week `w0` (S2c-06): not entirely before the start, nor after both
+ * the end date and the plan's own end (it ignores those with `checkin-outside-range`).
+ */
+const inCheckInRange = (a: Assignment, plan: ChildPlan, w0: LocalDate): boolean =>
+  addDays(w0, 6) >= a.start && w0 <= (a.end > plan.end ? a.end : plan.end);
+
 /** The week's view, given its inputs: planned ranges (earlier check-ins only), stored actuals and status. */
 async function weekView(db: Queryable, familyId: string, inputs: PlanInputs, w0: LocalDate, today: LocalDate): Promise<WeekCheckInJson> {
   const stored = await storedFor(db, familyId, w0);
@@ -105,26 +117,28 @@ async function weekView(db: Queryable, familyId: string, inputs: PlanInputs, w0:
     byPair.set(key(a.id, r.child_id), { a, plan: planChild(a, r.child_id, ctx) });
   }
 
-  const items: (CheckInItemJson & { subjectName: string })[] = [];
+  type Row = CheckInItemJson & { subjectName: string };
+  const row = (a: Assignment, childId: string, from: number, to: number, s: StoredRow | undefined): Row => ({
+    assignmentId: a.id, childId, childName: childNames.get(childId) ?? "", title: a.title ?? "", unitType: a.unitType,
+    plannedFrom: round2(from), plannedTo: round2(to), totalUnits: a.totalUnits,
+    // A total edited below a stored position: show what the engine plans from (it clamps, S2b-28 case 10).
+    actual: s ? Math.min(Number(s.position), a.totalUnits) : null, mode: s?.mode ?? null,
+    subjectName: subjectNames.get(a.subjectId) ?? "",
+  });
+  const items: Row[] = [];
+  const addable: Row[] = [];
   for (const [k, { a, plan }] of byPair) {
     const range = plannedRangeForWeek(plan, w0);
     const s = storedBy.get(k);
-    if (!range.hasPlannedWork && !s) continue;
-    items.push({
-      assignmentId: a.id, childId: plan.childId, childName: childNames.get(plan.childId) ?? "", title: a.title ?? "", unitType: a.unitType,
-      plannedFrom: round2(range.from), plannedTo: round2(range.to), totalUnits: a.totalUnits,
-      // A total edited below a stored position: show what the engine plans from (it clamps, S2b-28 case 10).
-      actual: s ? Math.min(Number(s.position), a.totalUnits) : null, mode: s?.mode ?? null,
-      subjectName: subjectNames.get(a.subjectId) ?? "",
-    });
+    if (range.hasPlannedWork || s) items.push(row(a, plan.childId, range.from, range.to, s));
+    // Only loader-planned (active) pairs reach here without a stored row; finished work has nothing to add.
+    else if (inCheckInRange(a, plan, w0) && round2(range.from) < a.totalUnits) addable.push(row(a, plan.childId, range.from, range.from, undefined));
   }
   const cmp = (x: string, y: string) => x.localeCompare(y, "en", { sensitivity: "base" });
-  items.sort((x, y) => cmp(x.childName, y.childName) || cmp(x.subjectName, y.subjectName) || cmp(x.title, y.title)
-    || x.assignmentId.localeCompare(y.assignmentId) || x.childId.localeCompare(y.childId));
-  return {
-    weekStart: w0, weekEnd: addDays(w0, 6), status: review[0]?.status ?? null,
-    items: items.map(({ subjectName: _s, ...item }) => item),
-  };
+  const order = (x: Row, y: Row) => cmp(x.childName, y.childName) || cmp(x.subjectName, y.subjectName) || cmp(x.title, y.title)
+    || x.assignmentId.localeCompare(y.assignmentId) || x.childId.localeCompare(y.childId);
+  const json = (rows: Row[]): CheckInItemJson[] => rows.sort(order).map(({ subjectName: _s, ...item }) => item);
+  return { weekStart: w0, weekEnd: addDays(w0, 6), status: review[0]?.status ?? null, items: json(items), addable: json(addable) };
 }
 
 /** Read one finished week (S2b-23). `todayIn(zone)` is the family's local today. */
@@ -242,7 +256,8 @@ export async function saveWeek(
   const today = req.todayIn(inputs.timeZone);
   const w0 = resolveWeek(inputs.calendar.weekStart, today, req.weekStart);
   const before = await weekView(tx, familyId, inputs, w0, today);
-  const planned = new Map(before.items.map((i) => [key(i.assignmentId, i.childId), i]));
+  // This week's rows, plus the pairs with nothing planned that the card can add (S2c-06); same checks for both.
+  const planned = new Map([...before.items, ...before.addable].map((i) => [key(i.assignmentId, i.childId), i]));
 
   const keep: CheckInWrite[] = [];
   const seen = new Set<string>();
