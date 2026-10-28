@@ -34,6 +34,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run build
       - run: npm run db:reset
       - run: npm test
       - run: npm run test:tz
+      # Same gate as scripts/check.sh. Makes and drops hh_validate_test on the service (hh is superuser).
+      - run: npm run db:validate

@@ -15,8 +15,8 @@ CI runs the same gate as the box: it adds `npm run build` and `npm run db:valida
 2. Add `npm run db:validate` after test:tz. It uses the job's `DATABASE_URL` server to make and drop its scratch database.
 
 ## Done when
-- [ ] The workflow lists lint, typecheck, build, db:reset, test, test:tz, db:validate.
-- [ ] The YAML parses.
+- [x] The workflow lists lint, typecheck, build, db:reset, test, test:tz, db:validate.
+- [x] The YAML parses.
 
 ## Tests
 - A YAML parse check on the box (nothing is pushed, so CI itself doesn't run here).
