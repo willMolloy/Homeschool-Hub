@@ -21,7 +21,8 @@
     "dev:web": "npm run dev -w @hh/web",
     "dev:api": "npm run dev -w @hh/api",
     "db:migrate": "tsx db/migrate.ts",
-    "db:reset": "tsx db/migrate.ts --reset"
+    "db:reset": "tsx db/migrate.ts --reset",
+    "db:seed": "tsx db/seed.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

@@ -17,8 +17,8 @@ Every screen built after this needs realistic data. The sample family already ex
 5. Add root script `"db:seed": "tsx db/seed.ts"`.
 
 ## Done when
-- [ ] Seed runs twice without errors or duplicates.
-- [ ] Row counts: 2 children, 5 subjects, 14 assignments, 16 assignment_child rows, 3 events, 1 blocked range.
+- [x] Seed runs twice without errors or duplicates.
+- [x] Row counts: 2 children, 5 subjects, 14 assignments, 16 assignment_child rows, 3 events, 1 blocked range.
 
 ## Tests
 - Integration test: seed then count rows as above
