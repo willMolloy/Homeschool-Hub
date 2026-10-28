@@ -17,8 +17,8 @@ The engine always uses 1 minute per unit for `minutes` (a unit *is* a minute), b
 4. Migration `003_minutes_unit.sql`: clear any stored value on minutes rows, then add `CHECK (unit_type <> 'minutes' OR minutes_per_unit IS NULL)`. Extend `validate.sql`.
 
 ## Done when
-- [ ] No path can store a `minutesPerUnit` on a minutes assignment.
-- [ ] Plans don't change (the engine already ignored it).
+- [x] No path can store a `minutesPerUnit` on a minutes assignment.
+- [x] Plans don't change (the engine already ignored it).
 
 ## Tests
 - API: POST minutes + 30 → 400, minutes + null → 201; PATCH set a value on a minutes row → 400; PATCH pages→minutes with a stored value → 400, with `minutesPerUnit: null` → 200; minutes→pages with a value → 200.

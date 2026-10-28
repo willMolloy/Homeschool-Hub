@@ -120,7 +120,7 @@ A route reads like this (from `routes/children.ts`): a zod schema describes the 
 
 ### Database (`db/`)
 
-- `001_init.sql`, `002_auth.sql`: forward-only migrations, applied in order by `db/migrate.ts` and recorded in `schema_migration` (like Flyway's history table).
+- `001_init.sql`, `002_auth.sql`, `003_minutes_unit.sql`: forward-only migrations, applied in order by `db/migrate.ts` and recorded in `schema_migration` (like Flyway's history table).
 - `npm run db:migrate` applies pending migrations; `npm run db:reset` drops and re-migrates. It only works on `*_dev` or `*_test` databases.
 - `npm run db:seed`: the demo family (hh_dev only). `npm run demo`: reset + seed + servers.
 - `db/test/validate.sql`: SQL assertions about the schema (constraints, cascades, indexes), run by `node db/test/validate.cjs`. See `db/README.md`.

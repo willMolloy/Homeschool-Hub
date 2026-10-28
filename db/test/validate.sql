@@ -166,4 +166,18 @@ DO $$ BEGIN
   RAISE NOTICE 'ok   deleting a family removes its sessions';
 END $$;
 
+-- 10. minutes assignments carry no minutes_per_unit (003_minutes_unit)
+INSERT INTO family (id, name, week_start) VALUES ('f0000000-0000-0000-0000-0000000000d0', 'Minutes family', 'mon');
+INSERT INTO subject (id, family_id, name) VALUES ('50000000-0000-0000-0000-0000000000d0', 'f0000000-0000-0000-0000-0000000000d0', 'Music');
+SELECT pg_temp.expect_error($$INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, minutes_per_unit, start_date, end_date)
+  VALUES ('f0000000-0000-0000-0000-0000000000d0', '50000000-0000-0000-0000-0000000000d0', 'Piano', 'minutes', 600, 30, '2026-11-02', '2026-11-27')$$,
+  '23514', 'a minutes assignment cannot store minutes_per_unit');
+INSERT INTO assignment (id, family_id, subject_id, title, unit_type, total_units, minutes_per_unit, start_date, end_date) VALUES
+  ('a0000000-0000-0000-0000-0000000000d1', 'f0000000-0000-0000-0000-0000000000d0', '50000000-0000-0000-0000-0000000000d0', 'Reader', 'pages', 100, 3, '2026-11-02', '2026-11-27');
+SELECT pg_temp.expect_error($$UPDATE assignment SET unit_type = 'minutes' WHERE id = 'a0000000-0000-0000-0000-0000000000d1'$$,
+  '23514', 'switching to minutes while minutes_per_unit is set is rejected');
+UPDATE assignment SET unit_type = 'minutes', minutes_per_unit = NULL WHERE id = 'a0000000-0000-0000-0000-0000000000d1';
+UPDATE assignment SET unit_type = 'pages', minutes_per_unit = 2 WHERE id = 'a0000000-0000-0000-0000-0000000000d1';
+DO $$ BEGIN RAISE NOTICE 'ok   minutes with NULL, and back to pages with a value, are fine'; END $$;
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

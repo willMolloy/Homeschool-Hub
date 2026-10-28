@@ -1,6 +1,6 @@
 /** /api/assignments (S2a-04..06). */
 import type { FastifyInstance } from "fastify";
-import { humanList, UNIT_TYPES } from "@hh/engine";
+import { humanList, UNIT_TYPES, type UnitType } from "@hh/engine";
 import { z } from "zod";
 import { withTransaction } from "../db";
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, MinutesPerUnit, Title, TotalUnits } from "../http/scheduleLimits";
@@ -43,6 +43,17 @@ const PatchBody = z
 
 const notFound = () => new HttpError(404, "not_found", "No such assignment.");
 
+/**
+ * One `minutes` unit is one minute, so a minutes assignment has no minutes-per-unit (RF-10; the
+ * engine ignores it and the 003 CHECK forbids storing it). Checked on the merged row for PATCH.
+ */
+function checkMinutesUnit(unitType: UnitType, minutesPerUnit: number | null | undefined, switching = false): void {
+  if (unitType !== "minutes" || minutesPerUnit == null) return;
+  throw new HttpError(400, "invalid_request", switching
+    ? "minutesPerUnit: doesn't apply to minutes; send minutesPerUnit: null when switching to minutes."
+    : "minutesPerUnit: doesn't apply to minutes; leave it empty.");
+}
+
 export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/assignments", async (req) => {
     const { includeArchived } = parseListQuery(req.query);
@@ -52,6 +63,7 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   app.post("/api/assignments", async (req, reply) => {
     const b = parseBody(CreateBody, req.body);
     checkDateOrder(b.startDate, b.endDate, MAX_ASSIGNMENT_DAYS);
+    checkMinutesUnit(b.unitType, b.minutesPerUnit);
     const row = await withTransaction(app.db, async (c) => {
       await checkRefs(c, req.familyId, { subjectIds: [b.subjectId], childIds: b.childIds });
       const id = await createAssignment(c, req.familyId, { ...b, minutesPerUnit: b.minutesPerUnit ?? null });
@@ -69,6 +81,8 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       if (!cur) throw notFound();
       // Dates are checked on the merged row, so moving only one end can't invert the range.
       checkDateOrder(p.startDate ?? cur.start_date, p.endDate ?? cur.end_date, MAX_ASSIGNMENT_DAYS);
+      checkMinutesUnit(p.unitType ?? cur.unit_type, p.minutesPerUnit !== undefined ? p.minutesPerUnit : cur.minutes_per_unit,
+        p.unitType === "minutes" && cur.unit_type !== "minutes" && p.minutesPerUnit === undefined);
       // Only newly named references are checked: an assignment may keep a subject that was archived later.
       // Ids already linked may stay even if archived since (the forms keep them ticked); new ones must be active.
       const newSubject = p.subjectId && p.subjectId !== cur.subject_id ? [p.subjectId] : [];

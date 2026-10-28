@@ -132,6 +132,16 @@ describe("Assignments screen", () => {
     expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { minutesPerUnit: null } }]);
   });
 
+  it("switching a pages assignment with its own minutes to minutes sends minutesPerUnit: null (RF-10)", async () => {
+    const user = await setup();
+    await user.click(screen.getByRole("button", { name: /Charlotte's Web/ }));
+    const form = screen.getByRole("form", { name: "Edit Charlotte's Web" });
+    await user.selectOptions(within(form).getByLabelText("Unit"), "minutes");
+    expect(within(form).queryByLabelText(/Minutes per/)).not.toBeInTheDocument();
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "minutes", minutesPerUnit: null } }]);
+  });
+
   it("end before start → error, no request", async () => {
     const user = await setup();
     await user.click(screen.getByRole("button", { name: /Saxon 5\/4/ }));
