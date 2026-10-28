@@ -15,7 +15,7 @@ Body: `{ name: string, color?: string }`. `family_id` comes from the session.
 3. Insert via `childRepo.createChild` and return 201 with the JSON shape from the list endpoint.
 
 ## Done when
-- [ ] Creating a child shows up in `GET /api/children`.
+- [x] Creating a child shows up in `GET /api/children`.
 
 ## Tests
 - valid → 201 + row in DB with session family_id

@@ -32,3 +32,13 @@ export async function listChildren(db: Queryable, familyId: string, includeArchi
     [familyId, includeArchived]);
   return rows;
 }
+
+/** Insert a child at the end of the family's list (sort_order = max + 1). */
+export async function createChild(db: Queryable, familyId: string, input: { name: string; color?: string | null }): Promise<ChildRow> {
+  const { rows } = await db.query<ChildRow>(
+    `INSERT INTO child (family_id, name, color, sort_order)
+     SELECT $1, $2, $3, COALESCE(MAX(sort_order), -1) + 1 FROM child WHERE family_id = $1
+     RETURNING ${COLS}`,
+    [familyId, input.name, input.color ?? null]);
+  return rows[0]!;
+}
