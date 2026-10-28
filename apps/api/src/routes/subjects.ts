@@ -3,14 +3,21 @@ import { z } from "zod";
 import { withTransaction } from "../db";
 import { HttpError } from "../http/errors";
 import { isUniqueViolation } from "../http/pgErrors";
+import { DefaultWeight } from "../http/scheduleLimits";
 import { Color, Name, SortOrder, UUID_RE, parseBody, parseListQuery } from "../http/validate";
 import { SUBJECT_NAME_INDEX, createSubject, listSubjects, toSubjectJson, updateSubject } from "../repos/subjectRepo";
 
 // Unknown keys (e.g. family_id) are dropped: ownership always comes from the session.
-const CreateBody = z.strictObject({ name: Name, color: Color.optional() });
+const CreateBody = z.strictObject({ name: Name, color: Color.optional(), defaultWeight: DefaultWeight.nullable().optional() });
 const PatchBody = z
-  .strictObject({ name: Name.optional(), color: Color.nullable().optional(), sortOrder: SortOrder.optional(), archived: z.boolean().optional() })
-  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, color, sortOrder, archived.");
+  .strictObject({
+    name: Name.optional(),
+    color: Color.nullable().optional(),
+    sortOrder: SortOrder.optional(),
+    archived: z.boolean().optional(),
+    defaultWeight: DefaultWeight.nullable().optional(),
+  })
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, color, sortOrder, archived, defaultWeight.");
 
 const notFound = () => new HttpError(404, "not_found", "No such subject.");
 

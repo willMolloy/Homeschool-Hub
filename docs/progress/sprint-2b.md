@@ -14,7 +14,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-06 `weightPerUnit` on the assignment endpoints | eecac3b | |
 | S2b-07 record weight choices on save | b93c01d | |
 | S2b-08 a child's usual weight | 97275a2 | |
-| S2b-30 migration 006 subject default weight | (this commit) | |
+| S2b-30 migration 006 subject default weight | 643a260 | |
+| S2b-31 `defaultWeight` on the subject endpoints | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -29,6 +30,7 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-07 — what counts as a changed weight.** A PATCH records choices when it sends `weightPerUnit` and the value differs from the stored one, or the unit type changes (lessons 15 → pages 15 is a new pages choice). The legacy alias never records.
 - **S2b-08 — suggestion details.** `source` is `child` when exactly one child has history and `children` when two or more do. An even count of children takes the mean of the middle two, then rounds. `choicesFor` drops cleared assignments before ranking, so a clear doesn't take one of the 5 slots (the rule's order: latest per assignment, drop clears, then newest 5). Rounding is `roundWeight`, exported for the endpoint.
 - **S2b-30 — named constraints.** The two column CHECKs are named (`subject_default_weight_unit`, `subject_default_weight_range`) next to the ticket's `subject_default_weight_pair`, so errors name what failed. validate section 13 also rejects an unknown unit.
+- **S2b-31 — the roster repo grows table-specific columns.** `rosterRepo(table, extraCols)` lets subject add `default_weight_unit` / `default_weight` without forking the shared child/subject SQL; unknown extra keys throw. `UnitTypeField` moved to `http/scheduleLimits.ts` beside the new `DefaultWeight` schema, so assignments and subjects share one unit validator.
 
 ## Deferred
 
