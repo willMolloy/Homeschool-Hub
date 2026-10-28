@@ -1,6 +1,7 @@
 /** Independent tester: plan-route robustness edges (Oct 28, 2026). */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
+import { localToday } from "../src/routes/plan";
 import { testConfig } from "./helpers/config";
 import { hasDb, testPool } from "./helpers/db";
 import { signedInFamily } from "./helpers/session";
@@ -30,12 +31,14 @@ describe.skipIf(!hasDb)("tester: plan route edges", () => {
     expect(res.json().plans).toEqual([]);
   });
 
-  // Risk T-API-3 (not fixed: family.time_zone has no CHECK and no S1 route writes it). A bad zone in the
-  // row makes localToday() throw a RangeError, so every /api/plan without asOf is a 500.
-  it.fails("a family row with an invalid time_zone still plans (no 500)", async () => {
+  // T-API-3, fixed in S2a-01: a bad zone in the row used to make localToday() throw (500).
+  // Now it falls back to America/Chicago.
+  it("a family row with an invalid time_zone still plans (no 500)", async () => {
     await pool.query("UPDATE family SET time_zone = 'Mars/Olympus_Mons' WHERE id = $1", [fam.familyId]);
     try {
-      expect((await plan("from=2026-09-01&to=2026-09-30")).statusCode).toBe(200);
+      const res = await plan("from=2026-09-01&to=2026-09-30");
+      expect(res.statusCode).toBe(200);
+      expect(res.json().asOf).toBe(localToday("America/Chicago"));
     } finally {
       await pool.query("UPDATE family SET time_zone = 'America/Chicago' WHERE id = $1", [fam.familyId]);
     }

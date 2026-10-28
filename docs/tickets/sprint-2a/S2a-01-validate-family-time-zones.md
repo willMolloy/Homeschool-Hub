@@ -15,7 +15,7 @@ Tester finding **T-API-3**: `family.time_zone` is free text; `localToday()` thro
 3. Flip the tester's `it.fails` in `tester.robustness.test.ts` to a normal passing test.
 
 ## Done when
-- [ ] `UPDATE family SET time_zone='Mars/Olympus_Mons'` then `GET /api/plan?from=…&to=…` → 200 with asOf = today in America/Chicago.
+- [x] `UPDATE family SET time_zone='Mars/Olympus_Mons'` then `GET /api/plan?from=…&to=…` → 200 with asOf = today in America/Chicago.
 
 ## Tests
 - `isIanaTimeZone`: America/Chicago, Europe/London, UTC → true; `Mars/Olympus_Mons`, `''`, `+05:00`, `america/chicago`? (document whichever Intl says), NUL → false

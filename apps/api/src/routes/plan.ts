@@ -5,6 +5,7 @@
 import type { FastifyInstance } from "fastify";
 import { ENGINE_VERSION, EngineInputError, planAll, toDayNumber, type ChildPlan } from "@hh/engine";
 import { HttpError } from "../app";
+import { safeTimeZone } from "../http/timeZone";
 import { loadPlanInputs } from "../plan/loadPlanInputs";
 
 /** Longest range one request may ask for, counting both ends. A school year is ~300 days. */
@@ -52,7 +53,8 @@ export async function planRoutes(app: FastifyInstance): Promise<void> {
     if (!asOf) {
       const { rows } = await app.db.query<{ time_zone: string }>("SELECT time_zone FROM family WHERE id = $1", [req.familyId]);
       if (!rows[0]) throw new HttpError(401, "unauthenticated", "Your family no longer exists.");
-      asOf = localToday(rows[0].time_zone);
+      // A bad stored zone (no DB CHECK is possible) falls back to the default instead of a RangeError 500.
+      asOf = localToday(safeTimeZone(rows[0].time_zone, (bad) => req.log.warn({ familyId: req.familyId, timeZone: bad }, "invalid family time_zone; using default")));
     }
 
     const { assignments, ctx } = await loadPlanInputs(app.db, req.familyId);
