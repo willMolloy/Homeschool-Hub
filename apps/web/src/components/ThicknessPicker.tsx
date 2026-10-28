@@ -69,7 +69,7 @@ export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width
         {options.map((o) => (
           <label key={o.key} className="thickness-preset">
             <input type="radio" name={name} value={o.key} checked={selected === o.key} onChange={() => choose(o.key)} />
-            <span>{o.label}{o.detail ? <span className="thickness-detail"> {o.detail}</span> : null}</span>
+            <span className="thickness-chip">{o.label}{o.detail ? <>{" "}<span className="thickness-detail">{o.detail}</span></> : null}</span>
           </label>
         ))}
       </div>

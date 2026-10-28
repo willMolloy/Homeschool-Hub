@@ -103,6 +103,13 @@ describe("ThicknessPicker", () => {
     expect(screen.getByText("30 minutes a day ≈ 30 min of work")).toBeInTheDocument();
   });
 
+  it("each preset label has a space between its name and value (\"Light 7.5\")", () => {
+    render(<Host unitType="lessons" />);
+    const group = screen.getByRole("group", { name: "Bar width" });
+    expect(within(group).getByRole("radio", { name: "Light 7.5" })).toBeInTheDocument();
+    expect(within(group).getByRole("radio", { name: "Very heavy 30" }).closest("label")).toHaveTextContent(/^Very heavy 30$/);
+  });
+
   it("keyboard: arrow keys move through the presets and emit", async () => {
     const spy = vi.fn();
     render(<Host spy={spy} />);

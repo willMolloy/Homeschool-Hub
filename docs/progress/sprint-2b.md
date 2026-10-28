@@ -43,7 +43,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-27 Edit a past week's check-in | 48fdfeb | |
 | S2b-28 Tester pass: check-in edge cases | c80d72b | |
 | S2b-29 Update docs for assumed progress and check-ins | d3be7c8 | |
-| S2b-38 Make the latest check-in authoritative | (this commit) | |
+| S2b-38 Make the latest check-in authoritative | e9d9aad | |
+| Thickness picker label spacing ("Light 7.5") | (this commit) | Tester nit |
 
 ## Decisions (conservative calls on ambiguous points)
 
