@@ -1,0 +1,9 @@
+{
+  "name": "Homeschool Hub",
+  "short_name": "Homeschool",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f3a5f",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

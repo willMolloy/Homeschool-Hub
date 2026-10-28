@@ -1,0 +1,16 @@
+{
+  "name": "homeschool-hub",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Homeschool Hub: year timeline planner with low-friction logging",
+  "workspaces": ["packages/*", "apps/*"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "test:tz": "npm run test:tz -w @hh/engine",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "dev:web": "npm run dev -w @hh/web",
+    "dev:api": "npm run dev -w @hh/api"
+  }
+}
