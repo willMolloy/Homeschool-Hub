@@ -172,3 +172,7 @@ Nothing below is final. Every title is **pending pilot results**: the pilots wil
 ## Sprint 2a: schedule data (pilot-independent)
 
 See [sprint-2a/README.md](sprint-2a/README.md): family settings, assignments, days off, recurring events, plain forms, plan contract tests. No timeline UI; the week-overrides API waits for DeeDee's decision on the override-mode rule.
+
+## Review fixes (after the SOLID / best-practices reviews)
+
+See [review-fixes/README.md](review-fixes/README.md): the agreed "do now" items from the developer and tester reviews, RF-01 to RF-12, one commit each.
