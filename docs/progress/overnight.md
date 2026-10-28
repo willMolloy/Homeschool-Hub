@@ -2,7 +2,7 @@
 
 All times are America/Chicago (CT). The work was done on the build box only. Nothing was pushed, posted, or sent.
 
-## Morning summary (02:50 CT)
+## Morning summary (02:46 CT)
 
 **Done:** all 37 Sprint 1 tickets are committed, one commit per ticket with the ticket id prefix. This round finished S1-20 → S1-37, then a hardening pass with 2 more commits. Every commit left the gate green. The working tree is clean and nothing was pushed.
 - **API:** auth/session, children CRUD, subjects CRUD, `loadPlanInputs`, `GET /api/plan`.
