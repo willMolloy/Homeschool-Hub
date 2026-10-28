@@ -16,8 +16,8 @@ The PWA passes Chrome's installability check on Android and shows a proper home-
 4. Run `npm run build -w @hh/web && npm run preview -w @hh/web` and check Chrome DevTools → Application → Manifest shows no errors.
 
 ## Done when
-- [ ] DevTools shows the app as installable.
-- [ ] Adding to the home screen on an iPhone shows the icon.
+- [x] DevTools shows the app as installable. (Box, headless Chrome on the `vite preview` build: CDP `Page.getAppManifest` errors [] and `Page.getInstallabilityErrors` [], with the SW registered.)
+- [ ] Adding to the home screen on an iPhone shows the icon. (Not verifiable on the box. The 180×180 opaque apple-touch-icon is linked; needs a real iPhone.)
 
 ## Tests
 - Manual check above (record the result in the PR).
