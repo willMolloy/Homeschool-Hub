@@ -1,0 +1,163 @@
+/**
+ * The one place where database rows become `@hh/engine` inputs (S1-34).
+ * One small query per table, every one filtered by family_id; child/rule rows are grouped in JS.
+ * Archived children, subjects, assignments and events are left out of planning.
+ * `asOf` is not set here: the route decides it.
+ */
+import type {
+  Assignment, BlockedPeriod, FamilyCalendar, PlanContext, ProgressEntry, RecurringEvent,
+  SubjectRule, UnitType, WeekOverride, WeekStart, Weekday,
+} from "@hh/engine";
+import { query, type Queryable } from "../db";
+
+export interface PlanInputs {
+  calendar: FamilyCalendar;
+  assignments: Assignment[];
+  ctx: PlanContext & {
+    events: RecurringEvent[];
+    blocked: BlockedPeriod[];
+    overrides: WeekOverride[];
+    progress: ProgressEntry[];
+  };
+}
+
+export class FamilyNotFoundError extends Error {
+  constructor(familyId: string) {
+    super(`family ${familyId} not found`);
+  }
+}
+
+/** Group `[key, value]` rows into key → values. */
+function groupBy<R>(rows: R[], key: (r: R) => string, value: (r: R) => string): Map<string, string[]> {
+  const m = new Map<string, string[]>();
+  for (const r of rows) {
+    const k = key(r);
+    const list = m.get(k);
+    if (list) list.push(value(r));
+    else m.set(k, [value(r)]);
+  }
+  return m;
+}
+
+export async function loadPlanInputs(db: Queryable, familyId: string): Promise<PlanInputs> {
+  const [family] = await query<{ week_start: WeekStart; school_days: number[] }>(db,
+    "SELECT week_start, school_days FROM family WHERE id = $1", [familyId]);
+  if (!family) throw new FamilyNotFoundError(familyId);
+  const calendar: FamilyCalendar = {
+    weekStart: family.week_start,
+    schoolDays: [...family.school_days].sort((a, b) => a - b) as Weekday[],
+  };
+
+  const [children, subjects, assignmentRows, assignmentChildren, eventRows, eventChildren, ruleRows,
+    blockedRows, blockedChildren, overrideRows, progressRows] = await Promise.all([
+    query<{ id: string }>(db, "SELECT id FROM child WHERE family_id = $1 AND archived_at IS NULL", [familyId]),
+    query<{ id: string }>(db, "SELECT id FROM subject WHERE family_id = $1 AND archived_at IS NULL", [familyId]),
+    query<{
+      id: string; subject_id: string; title: string; unit_type: UnitType; total_units: number;
+      start_date: string; end_date: string; minutes_per_unit: number | null;
+    }>(db,
+      `SELECT id, subject_id, title, unit_type, total_units, start_date, end_date, minutes_per_unit
+         FROM assignment WHERE family_id = $1 AND archived_at IS NULL ORDER BY start_date, id`, [familyId]),
+    query<{ assignment_id: string; child_id: string }>(db,
+      "SELECT assignment_id, child_id FROM assignment_child WHERE family_id = $1 ORDER BY child_id", [familyId]),
+    query<{
+      id: string; name: string; weekdays: number[]; start_date: string | null; end_date: string | null;
+      capacity_fraction: number; default_rule: SubjectRule;
+    }>(db,
+      `SELECT id, name, weekdays, start_date, end_date, capacity_fraction, default_rule
+         FROM event WHERE family_id = $1 AND archived_at IS NULL ORDER BY id`, [familyId]),
+    query<{ event_id: string; child_id: string }>(db,
+      "SELECT event_id, child_id FROM event_child WHERE family_id = $1 ORDER BY child_id", [familyId]),
+    query<{ event_id: string; subject_id: string; rule: SubjectRule }>(db,
+      "SELECT event_id, subject_id, rule FROM event_subject_rule WHERE family_id = $1", [familyId]),
+    query<{ id: string; kind: string; start_date: string; end_date: string }>(db,
+      "SELECT id, kind, start_date, end_date FROM blocked_range WHERE family_id = $1 ORDER BY start_date, id", [familyId]),
+    query<{ blocked_range_id: string; child_id: string }>(db,
+      "SELECT blocked_range_id, child_id FROM blocked_range_child WHERE family_id = $1 ORDER BY child_id", [familyId]),
+    query<{ assignment_id: string; child_id: string | null; week_start: string; planned_units: number; mode: WeekOverride["mode"] }>(db,
+      `SELECT assignment_id, child_id, week_start, planned_units, mode
+         FROM week_override WHERE family_id = $1 ORDER BY week_start`, [familyId]),
+    // log_child_progress has no family_id of its own; it is scoped through its log_entry.
+    query<{ assignment_id: string; child_id: string; log_date: string; units: number }>(db,
+      `SELECT p.assignment_id, p.child_id, p.log_date, sum(p.units) AS units
+         FROM log_child_progress p JOIN log_entry e ON e.id = p.log_entry_id
+        WHERE e.family_id = $1
+        GROUP BY p.assignment_id, p.child_id, p.log_date
+        ORDER BY p.log_date`, [familyId]),
+  ]);
+
+  const activeChild = new Set(children.map((c) => c.id));
+  const activeSubject = new Set(subjects.map((s) => s.id));
+  const keepChildren = (ids: string[] | undefined) => (ids ?? []).filter((id) => activeChild.has(id));
+
+  const childrenOf = groupBy(assignmentChildren, (r) => r.assignment_id, (r) => r.child_id);
+  const assignments: Assignment[] = [];
+  for (const a of assignmentRows) {
+    if (!activeSubject.has(a.subject_id)) continue;
+    const childIds = keepChildren(childrenOf.get(a.id));
+    if (childIds.length === 0) continue; // nobody left to plan for
+    assignments.push({
+      id: a.id,
+      childIds,
+      subjectId: a.subject_id,
+      title: a.title,
+      unitType: a.unit_type,
+      totalUnits: Number(a.total_units),
+      start: a.start_date,
+      end: a.end_date,
+      minutesPerUnit: a.minutes_per_unit == null ? null : Number(a.minutes_per_unit),
+    });
+  }
+  const planned = new Set(assignments.map((a) => a.id));
+
+  const eventChildIds = groupBy(eventChildren, (r) => r.event_id, (r) => r.child_id);
+  const rulesOf = new Map<string, Record<string, SubjectRule>>();
+  for (const r of ruleRows) {
+    const rules = rulesOf.get(r.event_id) ?? {};
+    rules[r.subject_id] = r.rule;
+    rulesOf.set(r.event_id, rules);
+  }
+  const events: RecurringEvent[] = [];
+  for (const e of eventRows) {
+    const listed = eventChildIds.get(e.id);
+    const childIds = keepChildren(listed);
+    // An event for specific children whose children are all archived must not turn into a whole-family event.
+    if (listed && listed.length > 0 && childIds.length === 0) continue;
+    events.push({
+      id: e.id,
+      name: e.name,
+      childIds,
+      weekdays: [...e.weekdays].sort((a, b) => a - b) as Weekday[],
+      start: e.start_date,
+      end: e.end_date,
+      capacityFraction: Number(e.capacity_fraction),
+      subjectRules: rulesOf.get(e.id) ?? {},
+      defaultRule: e.default_rule,
+    });
+  }
+
+  const blockedChildIds = groupBy(blockedChildren, (r) => r.blocked_range_id, (r) => r.child_id);
+  const blocked: BlockedPeriod[] = [];
+  for (const b of blockedRows) {
+    const listed = blockedChildIds.get(b.id);
+    const childIds = keepChildren(listed);
+    if (listed && listed.length > 0 && childIds.length === 0) continue;
+    blocked.push({ id: b.id, start: b.start_date, end: b.end_date, childIds: childIds.length ? childIds : null, kind: b.kind });
+  }
+
+  const overrides: WeekOverride[] = overrideRows
+    .filter((o) => planned.has(o.assignment_id) && (o.child_id == null || activeChild.has(o.child_id)))
+    .map((o) => ({
+      assignmentId: o.assignment_id,
+      childId: o.child_id,
+      weekStart: o.week_start,
+      plannedUnits: Number(o.planned_units),
+      mode: o.mode,
+    }));
+
+  const progress: ProgressEntry[] = progressRows
+    .filter((p) => planned.has(p.assignment_id) && activeChild.has(p.child_id))
+    .map((p) => ({ assignmentId: p.assignment_id, childId: p.child_id, date: p.log_date, units: Number(p.units) }));
+
+  return { calendar, assignments, ctx: { calendar, events, blocked, overrides, progress } };
+}

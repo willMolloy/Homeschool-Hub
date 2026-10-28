@@ -24,7 +24,7 @@ Archived children/subjects/assignments are excluded from planning inputs.
 5. Leave `asOf` out of the loader. The route decides it (S1-35).
 
 ## Done when
-- [ ] Loading the seeded family gives inputs that make the engine produce the same numbers as `packages/engine/test/sample-family.test.ts`.
+- [x] Loading the seeded family gives inputs that make the engine produce the same numbers as `packages/engine/test/sample-family.test.ts`.
 
 ## Tests
 - integration: seed → load → `planChild(ti, 'frank')` baseRate ≈ 22.5 and the week of Oct 26 sums to 90 pages (same as the engine test)
