@@ -8,7 +8,7 @@ From the Timeline Tools Page (stack, colour and typography choices for the year 
 | T-01b | [Colour-blind-safe default palette](T-01b-colour-blind-safe-default-palette.md) | T-01 | S |
 | T-02 | [Timeline view model](T-02-timeline-view-model.md) | T-01b | M |
 | T-02b | [Hand-test fixes: contrast, no events in the demo, hidden adjust buttons](T-02b-hand-test-fixes.md) | T-02 | S |
-| T-03 | Layout function *(written when started)* | T-02 | M |
+| T-03 | [Layout function: no-overlap rows, full-width plot, bar opacity](T-03-layout-function.md) | T-02 | M |
 | T-04 | Static SVG timeline at Year zoom, reachable in the app *(written when started)* | T-03 | M |
 | T-05 | Zoom presets Year / Fall / Spring with crossfade *(written when started)* | T-04 | M |
 | T-06 | Names inside the bars *(written when started)* | T-05 | M |

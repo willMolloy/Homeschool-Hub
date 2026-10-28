@@ -7,7 +7,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-01 Generate the timeline design tokens | 9df15da | `scripts/palette.ts` → `src/styles/tokens.css` + `tokens.theme.css`; Tailwind v4 without Preflight; shadcn/ui `base-nova` config + `cn()`; no components yet |
 | T-01b Colour-blind-safe default palette | a58731e | Okabe–Ito-based "safe" palette is the default; T-01 hues kept as `data-palette="vivid"`; per-swatch label tokens; `--tl-subject-N-pastel` tints; `src/lib/timelinePalette.ts` helper (no UI) |
 | T-02 Timeline view model | 13209a6 | `features/timeline/{grid,marks,model}.ts`: subject lanes → child sub-lanes, daily + weekly-smoothed thickness per assignment on one daily grid, breaks, event days, Today, totals. Pure; nothing renders yet |
-| T-02b Hand-test fixes | (this commit) | App declared light-only and native fields given explicit colours, with a CSS contrast test. The demo family can't add events (button hidden, `POST /api/events` → 403). The hide-until-selected rule for the adjust buttons is recorded for T-07 |
+| T-02b Hand-test fixes | 2282106 | App declared light-only and native fields given explicit colours, with a CSS contrast test. The demo family can't add events (button hidden, `POST /api/events` → 403). The hide-until-selected rule for the adjust buttons is recorded for T-07 |
+| T-03 Layout function | (this commit) | `features/timeline/{zoom,xscale,paths,rows,layout,hit}.ts`: no-overlap rows, labels above lanes (no label column), 44 px tap targets, shared scale 2.8 px/pt, `--tl-bar-opacity: 0.82`. Pure; nothing renders yet |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -104,3 +105,39 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **The adjust buttons are prototype-only.** "End one week earlier/later" and "Reset" don't exist in the app yet. The hide-until-selected rule is written into the T-07 requirements.
 - **Existing screens are flagged, not redesigned.** Things on the This Week screen that may break the design principles are listed in the T-02b report.
 
+
+## T-03 — layout decisions
+
+- **No-overlap rows.**
+  - A child's assignments are packed greedily, by first drawn day, then assignment id, into the first row that is free. "Free" means the row's last bar ended before this one starts, so touching bars share a row.
+  - The extent covers the daily and the weekly-smoothed series, so a row is the same at every zoom.
+  - In the sample family this turns 10 sub-lanes into more rows (Literature, Math and Science each have overlapping assignments).
+  - The prototype's in-lane stacking, and its 1 px gap between stacked bars, is gone: a row now holds one bar at a time.
+- **Row spacing:** each row is as tall as its own thickest point, at any zoom, with a 2 px floor. Rows sit 4 px apart, with 8 px more before each subject. Centerlines never move between zooms.
+- **Horizontal room.**
+  - The 58 px / 132 px label column is gone. Each child's rows get one 16 px label line above them, at the plot's left edge.
+  - The label is the subject name on a subject's first child, plus " · child" only when the family has more than one child; later children show just their name.
+  - The plot is the full width less 4 px a side: 352 of 360 px (was 294) and 1272 of 1280 px (was 1140).
+  - Full-bleed on phones and "nothing beside it" are renderer rules, so T-04 carries them.
+  - Trade-off: about 16 px more height per child sub-lane, in exchange for 20% more width on a phone.
+- **Tap targets:** `hit.ts` gives every bar run a box at least 44 × 44 px about its centre. When boxes meet, the nearer centerline wins, then the nearer edge. In dense areas a bar's own 44 px zone is shared with its neighbours, split between them, so a tap always resolves to exactly one bar. Labels aren't interactive.
+- **Scale:** `PX_PER_THICKNESS` changed from 2 to 2.8 (the product owner's call, matching the prototype's "Exaggerated" feel). It is one constant in `features/plan/scale.ts`, shared with the thickness picker.
+  - The picker's 20-pages reference bar is now 56 px (was 40).
+  - Its 100 px cap is now reached at thickness 35.7 (was 50).
+- **Bar opacity:**
+  - **Before: 1.0.** The prototype's bars are opaque, and the repo had no value. **After: 0.82**, one token `--tl-bar-opacity` on `:root` (18 points lower, approved by the product owner).
+  - Re-checked as drawn (composited in sRGB over `--tl-background` and `--tl-card`):
+
+    | Vision | Safe, light | Safe, dark | Okabe–Ito, opaque → 0.82 (light) |
+    |---|---|---|---|
+    | Normal | 0.156 → 0.134 | 0.156 → 0.134 | 0.156 → 0.134 |
+    | Deuteranopia | 0.094 → 0.075 | 0.094 → 0.079 | 0.098 → 0.078 |
+    | Protanopia | 0.088 → 0.071 | 0.088 → 0.075 | 0.086 → 0.069 |
+    | Tritanopia | 0.086 → 0.068 | 0.086 → 0.072 | 0.096 → 0.076 |
+
+  - **Flag:** at 0.82 the as-drawn minimum (0.068) is under T-01b's 0.08 floor for opaque colours. Any opacity below about 0.95 does this, because transparency pulls every colour toward the background. Okabe–Ito itself drops to 0.069.
+  - So the as-drawn gate is a separate floor, `CVD_MIN_DISTANCE_AT_BAR_OPACITY = 0.065`, and the opaque 0.08 gate is unchanged. Lanes are also told apart by position and their label, so colour is never the only cue.
+  - **Label contrast:** on the translucent bar alone, some safe swatches can't reach 4.5:1 with either label colour. The worst are subject 8 light, at 4.25–4.34:1 on light, and subject 2 dark, at 4.45:1 on dark. So T-06 draws in-bar names on a solid, opacity 1 patch of the bar's own swatch, where every label meets AA (tested).
+- **Screenshots** (sample family, Fall zoom, rendered from this layout's output with the real tokens):
+  - before: `screens/t-03-bar-opacity-before-360.png`, `-before-1280.png`
+  - after: `screens/t-03-bar-opacity-after-360.png`, `-after-1280.png`

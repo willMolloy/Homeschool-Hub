@@ -21,9 +21,30 @@ export const STEP_NAMES: readonly StepName[] = ["base", "light", "dark"];
 export const AA_TEXT = 4.5;
 /** The safe palette's floor: smallest OKLab distance between any two subjects under every vision simulation. Okabe–Ito itself is 0.086. */
 export const CVD_MIN_DISTANCE = 0.08;
+/**
+ * Bars are semi-transparent (agreed), emitted as the one token `--tl-bar-opacity`. 0.82 is 18 points
+ * below the prototype's opaque bars (DeeDee asked for a bit more transparency; product owner approved
+ * 0.82 as the starting value, 2026-10-28).
+ */
+export const BAR_OPACITY = 0.82;
+/**
+ * The floor for bars as seen on the page (composited at BAR_OPACITY). Transparency pulls every colour
+ * toward the background, so distances shrink: Okabe–Ito's own seven colours fall from 0.086 to 0.069.
+ */
+export const CVD_MIN_DISTANCE_AT_BAR_OPACITY = 0.065;
 
 const oklch = (l: number, c: number, h: number): Oklch => ({ mode: "oklch", l, c, h });
 const toOklch = converter("oklch");
+const toRgb = converter("rgb");
+
+/** A colour drawn at `opacity` over `bg`, as the browser blends it (in sRGB). */
+export function composite(color: Color | string, bg: Color | string, opacity: number): Oklch {
+  const c = toRgb(color);
+  const b = toRgb(bg);
+  if (!c || !b) throw new Error("Not a colour");
+  const mix = (x: number, y: number) => x * opacity + y * (1 - opacity);
+  return toOklch({ mode: "rgb", r: mix(c.r, b.r), g: mix(c.g, b.g), b: mix(c.b, b.b) }) as Oklch;
+}
 
 /** The two label colours; each swatch takes whichever contrasts more with it. */
 export const LABEL_INK = oklch(0.2, 0.01, 260);
@@ -266,6 +287,7 @@ export function renderTokensCss(): string {
     "  --tl-text-lg: 20px;",
     "  --tl-numeric: tabular-nums;",
     "  --tl-radius: 0.5rem;",
+    `  --tl-bar-opacity: ${BAR_OPACITY};`,
     "}",
     '[data-theme="dark"] {',
     ...chromeLines("dark"),
@@ -312,7 +334,16 @@ export function renderReport(): string {
     const refs = Object.entries(REFERENCE_PALETTES).map(([k, pal]) => `${k} ${minPairwiseDistance(pal, sim).toFixed(3)}`);
     return `${v.padEnd(13)} ${[...ours, ...refs].join("  ")}`;
   });
-  return ["Smallest OKLab distance between any two subjects (higher = easier to tell apart):", ...rows].join("\n");
+  const bars = Object.entries(VISION).map(([v, sim]) => {
+    const ours = THEME_NAMES.map((t) => `safe ${t} ${minPairwiseDistance(baseColors("safe", t).map((c) => composite(c, CHROME[t].background!, BAR_OPACITY)), sim).toFixed(3)}`);
+    return `${v.padEnd(13)} ${ours.join("  ")}`;
+  });
+  return [
+    "Smallest OKLab distance between any two subjects (higher = easier to tell apart):",
+    ...rows,
+    `As drawn, at --tl-bar-opacity ${BAR_OPACITY} over the page background:`,
+    ...bars,
+  ].join("\n");
 }
 
 async function main(): Promise<void> {

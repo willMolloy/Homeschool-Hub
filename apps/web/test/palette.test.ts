@@ -6,7 +6,7 @@ import { compile } from "tailwindcss";
 import { converter, displayable } from "culori";
 import { describe, expect, it } from "vitest";
 import {
-  AA_TEXT, CHROME, CHROME_TEXT_PAIRS, CVD_MIN_DISTANCE, DEFAULT_PALETTE, LABEL_INK, LABEL_PAPER, PALETTE_NAMES, REFERENCE_PALETTES,
+  AA_TEXT, BAR_OPACITY, CHROME, CVD_MIN_DISTANCE_AT_BAR_OPACITY, composite, CHROME_TEXT_PAIRS, CVD_MIN_DISTANCE, DEFAULT_PALETTE, LABEL_INK, LABEL_PAPER, PALETTE_NAMES, REFERENCE_PALETTES,
   STEP_NAMES, SUBJECT_COUNT, THEME_NAMES, VISION, VIVID, baseColors, contrast, minPairwiseDistance, pastel, renderThemeCss,
   renderTokensCss, swatches, vividChroma, vividHues,
 } from "../scripts/palette";
@@ -196,5 +196,46 @@ describe("generated CSS", () => {
     expect(out).toContain("color-mix(in oklab, var(--tl-subject-4) 40%, transparent)");
     expect(out).toContain("background-color: var(--tl-subject-2-pastel)");
     expect(out).toContain("color: var(--tl-subject-3-label)");
+  });
+});
+
+describe("bar opacity (T-03: one token, a bit more transparent)", () => {
+  const backgrounds = (t: (typeof THEME_NAMES)[number]) => [CHROME[t].background!, CHROME[t].card!];
+
+  it("is one token on :root, 15–20 points below the prototype's opaque bars", () => {
+    expect(BAR_OPACITY).toBe(0.82);
+    expect(1 - BAR_OPACITY).toBeGreaterThanOrEqual(0.15);
+    expect(1 - BAR_OPACITY).toBeLessThanOrEqual(0.2);
+    const css = renderTokensCss();
+    expect(css.match(/--tl-bar-opacity:/g)).toHaveLength(1);
+    expect(css.slice(0, css.indexOf("}"))).toContain(`--tl-bar-opacity: ${BAR_OPACITY};`);
+    expect(styles("tokens.css")).toContain(`--tl-bar-opacity: ${BAR_OPACITY};`);
+  });
+
+  it.each(THEME_NAMES.flatMap((t) => Object.entries(VISION).map(([v, sim]) => [t, v, sim] as const)))(
+    `safe, %s, %s: bars as drawn stay at least ${CVD_MIN_DISTANCE_AT_BAR_OPACITY} apart on the page and on cards`,
+    (theme, _v, sim) => {
+      for (const bg of backgrounds(theme)) {
+        const drawn = baseColors("safe", theme).map((c) => composite(c, bg, BAR_OPACITY));
+        expect(minPairwiseDistance(drawn, sim)).toBeGreaterThanOrEqual(CVD_MIN_DISTANCE_AT_BAR_OPACITY);
+      }
+    },
+  );
+
+  it("as drawn, the safe set stays within 0.01 of Okabe–Ito's own seven colours at the same opacity", () => {
+    for (const t of THEME_NAMES) {
+      const bg = CHROME[t].background!;
+      for (const [, sim] of Object.entries(VISION)) {
+        const ours = minPairwiseDistance(baseColors("safe", t).map((c) => composite(c, bg, BAR_OPACITY)), sim);
+        const oi = minPairwiseDistance(REFERENCE_PALETTES["Okabe–Ito"]!.slice(0, 7).map((c) => composite(c, bg, BAR_OPACITY)), sim);
+        expect(ours).toBeGreaterThan(oi - 0.01);
+      }
+    }
+  });
+
+  it("names go on a solid (opacity 1) backing of their own swatch, where every label meets AA", () => {
+    // On the translucent bar alone a few safe swatches reach under 4.5:1 with either label colour (see docs/progress/timeline.md),
+    // so T-06 draws in-bar names on an opaque patch of the same swatch.
+    for (const [p, t] of COMBOS) for (const s of swatches(p, t)) expect(contrast(s.label, s.color)).toBeGreaterThanOrEqual(AA_TEXT);
   });
 });
