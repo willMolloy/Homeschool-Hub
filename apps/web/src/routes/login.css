@@ -1,0 +1,21 @@
+.login {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 16px;
+  box-sizing: border-box;
+}
+.login .card {
+  width: 100%;
+  max-width: 380px;
+}
+.login-app {
+  color: var(--brand);
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.login .btn {
+  width: 100%;
+}

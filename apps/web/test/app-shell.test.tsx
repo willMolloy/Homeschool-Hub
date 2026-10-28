@@ -33,7 +33,7 @@ describe("AppShell", () => {
 
   it("login is outside the shell", async () => {
     renderAt("/login");
-    await screen.findByRole("heading", { name: "Login" });
+    await screen.findByRole("heading", { name: "Sign in" });
     expect(screen.queryByRole("navigation")).toBeNull();
   });
 });

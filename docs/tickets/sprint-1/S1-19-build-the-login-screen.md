@@ -16,7 +16,7 @@ Single family login, no signup link (accounts are created with the CLI from S1-1
 4. Works at 360 px; input font-size ≥ 16 px so iOS doesn't zoom.
 
 ## Done when
-- [ ] Logging in with the demo account lands on Plan.
+- [x] Logging in with the demo account lands on Plan.
 
 ## Tests
 - Render test with mocked api: success navigates; 401 shows the message; button disabled while pending
