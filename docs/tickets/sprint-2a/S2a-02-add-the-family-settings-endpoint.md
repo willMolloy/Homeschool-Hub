@@ -15,7 +15,7 @@ Columns: `name`, `week_start` ('mon'|'sun'), `school_days` (smallint[] of 0–6,
 3. Add `timeZone` to `/api/me` (and the web `Me` type).
 
 ## Done when
-- [ ] A PATCH is visible in `GET /api/family` and `GET /api/me`, and the plan uses the new school days.
+- [x] A PATCH is visible in `GET /api/family` and `GET /api/me`, and the plan uses the new school days.
 
 ## Tests
 - GET → settings of the session family only

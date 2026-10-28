@@ -6,6 +6,7 @@ import type { Config } from "./config";
 import { createPool, type Db } from "./db";
 import { authRoutes } from "./routes/auth";
 import { meRoutes } from "./routes/me";
+import { familyRoutes } from "./routes/family";
 import { childrenRoutes } from "./routes/children";
 import { subjectsRoutes } from "./routes/subjects";
 import { planRoutes } from "./routes/plan";
@@ -79,6 +80,7 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
 
   app.register(authRoutes);
   app.register(meRoutes);
+  app.register(familyRoutes);
   app.register(childrenRoutes);
   app.register(subjectsRoutes);
   app.register(planRoutes);

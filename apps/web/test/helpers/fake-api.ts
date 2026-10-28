@@ -17,6 +17,7 @@ export const DEMO_ME: Me = {
   name: "Demo family",
   weekStart: "mon",
   schoolDays: [1, 2, 3, 4, 5],
+  timeZone: "America/Chicago",
 };
 
 class FakeApi {

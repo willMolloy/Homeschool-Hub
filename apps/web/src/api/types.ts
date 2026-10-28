@@ -13,7 +13,12 @@ export interface Me {
   name: string;
   weekStart: "mon" | "sun";
   schoolDays: number[];
+  /** IANA zone, e.g. "America/Chicago" (S2a-02). */
+  timeZone: string;
 }
+
+/** GET/PATCH /api/family */
+export type FamilySettings = Omit<Me, "familyId">;
 
 /** POST /api/auth/login */
 export interface LoginResponse {
