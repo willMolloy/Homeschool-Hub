@@ -14,3 +14,4 @@ All times are America/Chicago (CT). The work was done on the build box only. Not
 | Ticket | Status | Commit | Notes |
 |---|---|---|---|
 | S1-01 | done | (this commit) | install, typecheck, test (128 + 2), test:tz (7 zones), `/api/health` → `{"ok":true,"engineVersion":"0.1.0"}`, and the web page renders `Engine v0.1.0` in headless Chrome. Finding: `npm run dev:web -- --port N` doesn't forward the flag through the two npm layers (use `npm run dev -w @hh/web -- --port N`). Fixed the ticket text to match the placeholder. |
+| S1-02 | done (partly unverified) | | `.github/workflows/ci.yml` written. I simulated the CI steps in a fresh clone (`npm ci`, typecheck, tests) and they pass. **Not verified:** there's no GitHub remote yet, so the green PR check, the red/green test, and branch protection are still for DeeDee to do. |
