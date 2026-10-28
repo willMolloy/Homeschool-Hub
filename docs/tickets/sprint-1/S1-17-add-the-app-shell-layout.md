@@ -16,8 +16,8 @@ Pilot users include many phone users. The shell must work at 360 px wide from da
 4. Use semantic HTML and visible focus styles. Nav links have `aria-current` (NavLink does this).
 
 ## Done when
-- [ ] Looks right at 360 px and 1280 px wide (check in browser dev tools).
-- [ ] Keyboard tabbing reaches every nav link.
+- [x] Looks right at 360 px and 1280 px wide (check in browser dev tools).
+- [x] Keyboard tabbing reaches every nav link.
 
 ## Tests
 - Render test: shell shows the three nav links; the active one has aria-current=page

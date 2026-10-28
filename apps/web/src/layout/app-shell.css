@@ -1,0 +1,147 @@
+/* App shell. Mobile first: under 640px the nav is a fixed bottom bar. */
+.shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+.skip-link:focus {
+  left: 8px;
+  top: 8px;
+  z-index: 100;
+  background: #fff;
+  padding: 8px 12px;
+}
+.shell-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  background: var(--brand);
+  color: #fff;
+}
+.shell-brand {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.shell-app {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.shell-family {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shell-actions button {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.shell-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+.shell-nav a {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* phone: bottom tab bar */
+.shell-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: #fff;
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.shell-nav li {
+  flex: 1;
+}
+.shell-nav a {
+  color: var(--muted);
+  text-align: center;
+  padding: 14px 4px;
+  font-weight: 600;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+.shell-nav a[aria-current="page"] {
+  color: var(--brand);
+  box-shadow: inset 0 3px 0 var(--brand);
+}
+.shell-main {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+  outline: none;
+}
+.shell-footer {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 12px 16px;
+  /* keep clear of the bottom bar */
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+
+/* tablet/desktop: links in the header */
+@media (min-width: 640px) {
+  .shell-header {
+    padding: 12px 24px;
+  }
+  .shell-brand {
+    flex: 0 1 auto;
+    margin-right: 24px;
+  }
+  .shell-nav {
+    position: static;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    flex: 1;
+  }
+  .shell-nav li {
+    flex: 0 0 auto;
+  }
+  .shell-nav a {
+    color: rgba(255, 255, 255, 0.85);
+    padding: 8px 14px;
+    border-radius: 6px;
+    min-height: 0;
+  }
+  .shell-nav a[aria-current="page"] {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow: none;
+  }
+  .shell-main {
+    padding: 24px;
+  }
+  .shell-footer {
+    padding-bottom: 16px;
+  }
+}
