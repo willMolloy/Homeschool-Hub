@@ -10,11 +10,14 @@ export interface LaneDay {
   /** Day counts toward a weekly average when any assignment in the lane has capacity, or work was logged. */
   counts: boolean;
   schoolDay: boolean;
+  /** @deprecated — removed in S2b-14. */
   minutes: number;
+  /** Summed bar thickness (relative effort). */
+  thickness: number;
 }
 
 function toLaneDays(days: DayLoad[]): LaneDay[] {
-  return days.map((d) => ({ date: d.date, counts: d.capacity > 0 || d.units > 0, schoolDay: d.schoolDay, minutes: d.minutes }));
+  return days.map((d) => ({ date: d.date, counts: d.capacity > 0 || d.units > 0, schoolDay: d.schoolDay, minutes: d.minutes, thickness: d.thickness }));
 }
 
 /**
@@ -33,6 +36,7 @@ export function mergeLane(series: Array<ChildPlan | DayLoad[] | LaneDay[]>): Lan
       if (!cur) map.set(n, { ...d });
       else {
         cur.minutes += d.minutes;
+        cur.thickness += d.thickness;
         cur.counts = cur.counts || d.counts;
         cur.schoolDay = cur.schoolDay || d.schoolDay;
       }
@@ -46,30 +50,37 @@ function asLane(days: DayLoad[] | LaneDay[]): LaneDay[] {
   return "capacity" in (days[0] as object) ? toLaneDays(days as DayLoad[]) : (days as LaneDay[]);
 }
 
-/** Per-week totals and averages. A week's average = its minutes / its capacity days (not / 5). */
+/** Per-week totals and averages. A week's average = its thickness / its capacity days (not / 5). */
 export function weeklySummary(days: DayLoad[] | LaneDay[], weekStart: WeekStart): WeekSummary[] {
-  const weeks = new Map<number, { total: number; n: number }>();
+  const weeks = new Map<number, { total: number; minutes: number; n: number }>();
   for (const d of asLane(days)) {
     const w = weekStartOfDayNumber(toDayNumber(d.date), weekStart);
-    const e = weeks.get(w) ?? { total: 0, n: 0 };
-    e.total += d.minutes;
+    const e = weeks.get(w) ?? { total: 0, minutes: 0, n: 0 };
+    e.total += d.thickness;
+    e.minutes += d.minutes;
     if (d.counts) e.n += 1;
     weeks.set(w, e);
   }
   return [...weeks.entries()]
     .sort((x, y) => x[0] - y[0])
-    .map(([w, e]) => ({ weekStart: fromDayNumber(w), totalMinutes: e.total, capacityDays: e.n, average: e.n > 0 ? e.total / e.n : 0 }));
+    .map(([w, e]) => ({
+      weekStart: fromDayNumber(w),
+      totalMinutes: e.minutes,
+      totalThickness: e.total,
+      capacityDays: e.n,
+      average: e.n > 0 ? e.total / e.n : 0,
+    }));
 }
 
 /**
  * The one aggregation function behind semantic zoom.
- * - daily: each day's minutes as-is.
+ * - daily: each day's thickness as-is.
  * - weekly: the week's average drawn flat across that week's school days (and any counted day),
- *   0 elsewhere. Invariant: average x capacityDays = the week's total minutes.
+ *   0 elsewhere. Invariant: average x capacityDays = the week's total thickness.
  */
 export function aggregate(days: DayLoad[] | LaneDay[], detail: Detail, weekStart: WeekStart): DisplayDay[] {
   const lane = asLane(days);
-  if (detail === "daily") return lane.map((d) => ({ date: d.date, value: d.minutes }));
+  if (detail === "daily") return lane.map((d) => ({ date: d.date, value: d.thickness }));
   const avg = new Map<string, number>(weeklySummary(lane, weekStart).map((w) => [w.weekStart, w.average]));
   return lane.map((d) => {
     const w = fromDayNumber(weekStartOfDayNumber(toDayNumber(d.date), weekStart));

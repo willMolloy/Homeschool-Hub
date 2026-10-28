@@ -10,6 +10,7 @@
  * The API rejects unknown body keys (RF-09), so the fake records any body key not in
  * BODY_KEYS as a violation and test/setup.ts fails the test.
  */
+import { ENGINE_VERSION } from "@hh/engine";
 import type { Me } from "../../src/api/types";
 
 type Reply = [status: number, body?: unknown];
@@ -67,7 +68,7 @@ class FakeApi {
     this.on("GET /api/me", 200, DEMO_ME);
     this.on("POST /api/auth/logout", 204);
     this.on("GET /api/timezones", 200, { zones: ["America/Chicago", "America/New_York", "Asia/Kolkata", "Europe/London", "UTC"] });
-    this.on("GET /api/health", 200, { ok: true, engineVersion: "0.1.0", db: "ok" });
+    this.on("GET /api/health", 200, { ok: true, engineVersion: ENGINE_VERSION, db: "ok" });
   }
 
   on(key: string, statusOrFn: number | Handler, body?: unknown) {

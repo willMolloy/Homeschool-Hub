@@ -10,16 +10,16 @@ const val = (xs: { date: string; value: number }[], date: string) => xs.find((x)
 
 function weeklyInvariant(p: ChildPlan, weekStart: "mon" | "sun") {
   for (const w of weeklySummary(p.days, weekStart)) {
-    expect(w.average * w.capacityDays).toBeCloseTo(w.totalMinutes, 9);
+    expect(w.average * w.capacityDays).toBeCloseTo(w.totalThickness, 9);
     if (w.capacityDays === 0) expect(w.average).toBe(0);
   }
 }
 
 describe("semantic zoom aggregation", () => {
-  it("daily detail is the engine's daily minutes, unchanged", () => {
+  it("daily detail is the engine's daily thickness, unchanged", () => {
     const p = planChild(book(), "frank", { calendar: MON_FRI, events: [coop] });
     const daily = aggregate(p.days, "daily", "mon");
-    expect(daily.map((d) => d.value)).toEqual(p.days.map((d) => d.minutes));
+    expect(daily.map((d) => d.value)).toEqual(p.days.map((d) => d.thickness));
   });
 
   it("weekly: average x capacity days = the week's total (invariant)", () => {
@@ -30,10 +30,10 @@ describe("semantic zoom aggregation", () => {
 
   it("weekly: a co-op skip week is not diluted (divides by 4, not 5)", () => {
     const p = planChild(book(), "frank", { calendar: MON_FRI, events: [coop] });
-    // 100 pages / 8 capacity days = 12.5 pages = 25 min per working day
+    // 100 pages / 8 capacity days = 12.5 pages = thickness 12.5 (weight 1) per working day
     const w = aggregate(p.days, "weekly", "mon");
-    expect(val(w, "2026-09-07")).toBeCloseTo(25);
-    expect(val(w, "2026-09-08")).toBeCloseTo(25); // drawn flat, even on the skipped Tuesday (no notch)
+    expect(val(w, "2026-09-07")).toBeCloseTo(12.5);
+    expect(val(w, "2026-09-08")).toBeCloseTo(12.5); // drawn flat, even on the skipped Tuesday (no notch)
     expect(val(w, "2026-09-12")).toBe(0); // weekend
   });
 
@@ -47,7 +47,7 @@ describe("semantic zoom aggregation", () => {
   it("weekly: a partial vacation week averages over the days that remain; vacation days draw 0", () => {
     const p = planChild(book(), "frank", { calendar: MON_FRI, blocked: [{ id: "v", start: "2026-09-10", end: "2026-09-11" }] });
     const w = aggregate(p.days, "weekly", "mon");
-    expect(val(w, "2026-09-07")).toBeCloseTo(p.days[0]!.minutes);
+    expect(val(w, "2026-09-07")).toBeCloseTo(p.days[0]!.thickness);
     expect(val(w, "2026-09-10")).toBe(0);
   });
 
@@ -78,31 +78,32 @@ describe("semantic zoom aggregation", () => {
     const w = weeklySummary(p.days, "mon").find((x) => x.weekStart === "2026-09-07")!;
     // Mon-Fri still have capacity (nothing logged there), plus the Saturday that has logged work.
     expect(w.capacityDays).toBe(6);
-    expect(w.totalMinutes).toBeCloseTo(20);
-    expect(w.average).toBeCloseTo(20 / 6);
-    expect(val(aggregate(p.days, "weekly", "mon"), "2026-09-12")).toBeCloseTo(20 / 6);
+    expect(w.totalThickness).toBeCloseTo(10);
+    expect(w.totalMinutes).toBeCloseTo(20); // deprecated field, removed in S2b-14
+    expect(w.average).toBeCloseTo(10 / 6);
+    expect(val(aggregate(p.days, "weekly", "mon"), "2026-09-12")).toBeCloseTo(10 / 6);
   });
 
   it("lane merge: a mid-week hand-off between two books averages over the lane's days", () => {
-    // Book A Mon-Wed at 10 pages/day (20 min), Book B Thu-Fri at 10 pages/day (20 min)
+    // Book A Mon-Wed at 10 pages/day, Book B Thu-Fri at 10 pages/day (thickness 10 each at weight 1)
     const a = planChild(book({ id: "A", totalUnits: 30, start: "2026-09-07", end: "2026-09-09" }), "frank", { calendar: MON_FRI });
     const b = planChild(book({ id: "B", totalUnits: 20, start: "2026-09-10", end: "2026-09-11" }), "frank", { calendar: MON_FRI });
     const lane = mergeLane([a, b]);
     const w = aggregate(lane, "weekly", "mon");
-    expect(val(w, "2026-09-07")).toBeCloseTo(20); // a typical day in this lane is 20 min
+    expect(val(w, "2026-09-07")).toBeCloseTo(10); // a typical day in this lane is thickness 10
     // Per-assignment series only cover their own dates, so summing them also gives 20 here.
-    // proto-0.6 drew each assignment's average across the whole week and got 40; see proto-regressions.test.ts.
+    // proto-0.6 drew each assignment's average across the whole week and got double; see proto-regressions.test.ts.
     const perAssignment = sumByDate([aggregate(a.days, "weekly", "mon"), aggregate(b.days, "weekly", "mon")]);
-    expect(val(perAssignment, "2026-09-07")).toBeCloseTo(20);
-    expect(val(perAssignment, "2026-09-10")).toBeCloseTo(20);
+    expect(val(perAssignment, "2026-09-07")).toBeCloseTo(10);
+    expect(val(perAssignment, "2026-09-10")).toBeCloseTo(10);
   });
 
   it("lane merge sums overlapping assignments and keeps the invariant", () => {
     const a = planChild(book({ id: "A" }), "frank", { calendar: MON_FRI, events: [coop] });
     const b = planChild(book({ id: "B", subjectId: "lit", totalUnits: 50 }), "frank", { calendar: MON_FRI });
     const lane = mergeLane([a, b]);
-    for (const w of weeklySummary(lane, "mon")) expect(w.average * w.capacityDays).toBeCloseTo(w.totalMinutes, 9);
-    expect(lane.find((d) => d.date === "2026-09-07")!.minutes).toBeCloseTo(a.days[0]!.minutes + b.days[0]!.minutes);
+    for (const w of weeklySummary(lane, "mon")) expect(w.average * w.capacityDays).toBeCloseTo(w.totalThickness, 9);
+    expect(lane.find((d) => d.date === "2026-09-07")!.thickness).toBeCloseTo(a.days[0]!.thickness + b.days[0]!.thickness);
   });
 
   it("total strip = sum of the lanes' values per date (each lane its own denominator)", () => {
@@ -110,7 +111,7 @@ describe("semantic zoom aggregation", () => {
     const math = planChild(book({ id: "M", subjectId: "math", unitType: "lessons", totalUnits: 10 }), "frank", { calendar: MON_FRI, events: [coop] });
     const lanes = [aggregate(lit.days, "weekly", "mon"), aggregate(math.days, "weekly", "mon")];
     const strip = sumByDate(lanes);
-    expect(val(strip, "2026-09-07")).toBeCloseTo(25 + 20); // lit 25 (÷4 days), math 20 (÷5 days)
+    expect(val(strip, "2026-09-07")).toBeCloseTo(12.5 + 15); // lit 12.5 (÷4 days), math 1 lesson × 15 (÷5 days)
   });
 
   it("detailForZoom: Auto switches to daily at >= 8 px per day; Daily/Weekly override", () => {
@@ -121,6 +122,17 @@ describe("semantic zoom aggregation", () => {
     expect(detailForZoom(50, "weekly")).toBe("weekly");
     expect(detailForZoom(Number.NaN)).toBe("weekly");
     expect(detailForZoom(5, "auto", 4)).toBe("daily");
+  });
+
+  it("two weighted assignments in one lane sum thickness; the weekly average uses thickness", () => {
+    const a = planChild(book({ id: "A", weightPerUnit: 1.4 }), "frank", { calendar: MON_FRI }); // 10/day × 1.4 = 14
+    const b = planChild(book({ id: "B", unitType: "minutes", totalUnits: 300 }), "frank", { calendar: MON_FRI }); // 30/day × 0.5 = 15
+    const lane = mergeLane([a, b]);
+    expect(lane.find((d) => d.date === "2026-09-07")!.thickness).toBeCloseTo(29);
+    const w = weeklySummary(lane, "mon")[0]!;
+    expect(w.totalThickness).toBeCloseTo(29 * 5);
+    expect(w.average).toBeCloseTo(29);
+    expect(val(aggregate(lane, "daily", "mon"), "2026-09-08")).toBeCloseTo(29);
   });
 
   it("empty inputs give empty outputs", () => {

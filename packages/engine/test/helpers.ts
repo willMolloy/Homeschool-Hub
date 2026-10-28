@@ -26,12 +26,13 @@ export const unitsBetween = (p: ChildPlan, from: string, to: string): number =>
 
 /** Every number in the plan is finite and non-negative. */
 export function expectSane(p: ChildPlan): void {
-  for (const k of ["baseRate", "rate", "unplacedUnits", "doneUnits", "remainingUnits", "minutesPerUnit"] as const) {
+  for (const k of ["baseRate", "rate", "unplacedUnits", "doneUnits", "remainingUnits", "minutesPerUnit", "weightPerUnit"] as const) {
     expect(Number.isFinite(p[k]), `${k}=${p[k]}`).toBe(true);
     expect(p[k]).toBeGreaterThanOrEqual(0);
   }
   for (const d of p.days) {
-    expect(Number.isFinite(d.units) && Number.isFinite(d.minutes) && Number.isFinite(d.capacity), `${d.date}`).toBe(true);
+    expect(Number.isFinite(d.units) && Number.isFinite(d.minutes) && Number.isFinite(d.thickness) && Number.isFinite(d.capacity), `${d.date}`).toBe(true);
+    expect(d.thickness).toBeGreaterThanOrEqual(0);
     expect(d.units).toBeGreaterThanOrEqual(0);
     expect(d.capacity).toBeGreaterThanOrEqual(0);
     expect(d.capacity).toBeLessThanOrEqual(1);

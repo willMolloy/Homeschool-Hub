@@ -28,7 +28,7 @@ describe("randomized invariants (seeded, 400 cases)", () => {
       const n = Math.floor(r() * 3);
       for (let k = 0; k < n; k += 1) overrides.push({ assignmentId: "a1", weekStart: addDays(start, Math.floor(r() * 120)), plannedUnits: Math.floor(r() * 80), mode: pick(["keepEndDate", "pushEndDate"] as const) });
       ctx.overrides = overrides;
-      const a = book({ totalUnits: Math.floor(r() * 500), start, end, minutesPerUnit: r() < 0.5 ? null : r() * 5 });
+      const a = book({ totalUnits: Math.floor(r() * 500), start, end, minutesPerUnit: r() < 0.5 ? null : r() * 5, weightPerUnit: r() < 0.5 ? null : Math.round(r() * 1000) / 100 + 0.01 });
       let p;
       try {
         p = planChild(a, "frank", ctx);
@@ -37,8 +37,12 @@ describe("randomized invariants (seeded, 400 cases)", () => {
       }
       expectSane(p);
       expectConserved(p);
+      for (const d of p.days) {
+        expect(Number.isFinite(d.thickness) && d.thickness >= 0).toBe(true);
+        expect(d.thickness).toBe(d.units * p.weightPerUnit);
+      }
       if (p.mode === "keepEndDate" && end >= start) expect(p.end <= end || p.days.length === 0 || p.end === end).toBe(true);
-      for (const w of weeklySummary(p.days, weekStart)) expect(w.average * w.capacityDays).toBeCloseTo(w.totalMinutes, 6);
+      for (const w of weeklySummary(p.days, weekStart)) expect(w.average * w.capacityDays).toBeCloseTo(w.totalThickness, 6);
       for (const d of aggregate(p.days, "weekly", weekStart)) expect(Number.isFinite(d.value)).toBe(true);
     }
   });

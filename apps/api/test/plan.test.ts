@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ENGINE_VERSION } from "@hh/engine";
 import { buildApp } from "../src/app";
 import type { PlanResponse } from "../src/routes/plan";
 import { localToday } from "../src/http/today";
@@ -45,7 +46,7 @@ describe.skipIf(!hasDb)("GET /api/plan (integration)", () => {
     const res = await get("?from=2026-10-26&to=2026-10-30&asOf=2026-10-19");
     expect(res.statusCode).toBe(200);
     const body = res.json<PlanResponse>();
-    expect(body).toMatchObject({ engineVersion: "0.1.0", asOf: "2026-10-19", from: "2026-10-26", to: "2026-10-30" });
+    expect(body).toMatchObject({ engineVersion: ENGINE_VERSION, asOf: "2026-10-19", from: "2026-10-26", to: "2026-10-30" });
     const ti = body.plans.find((p) => p.assignmentId === fam.ids.assignment.ti && p.childId === fam.ids.child.frank)!;
     expect(ti.baseRate).toBeCloseTo(22.5);
     expect(ti.days.reduce((s, d) => s + d.units, 0)).toBeCloseTo(90);

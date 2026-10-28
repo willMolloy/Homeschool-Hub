@@ -11,7 +11,7 @@ describe("Engine version", () => {
     renderAt("/kids");
     const footer = await screen.findByRole("contentinfo");
     expect(footer).toHaveTextContent(`Engine ${ENGINE_VERSION}`);
-    expect(ENGINE_VERSION).toBe("0.1.0");
+    expect(ENGINE_VERSION).toBe("0.2.0");
   });
 
   it("same version on the API → no banner; /api/health asked once", async () => {
@@ -23,11 +23,11 @@ describe("Engine version", () => {
   });
 
   it("different version on the API → banner with Reload", async () => {
-    fakeApi.on("GET /api/health", 200, { ok: true, engineVersion: "0.2.0", db: "ok" });
+    fakeApi.on("GET /api/health", 200, { ok: true, engineVersion: "9.9.0", db: "ok" });
     renderAt("/kids");
     expect(await screen.findByText("App update available — reload.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reload" })).toBeInTheDocument();
-    expect(screen.getByText(/server has 0\.2\.0/)).toBeInTheDocument();
+    expect(screen.getByText(/server has 9\.9\.0/)).toBeInTheDocument();
   });
 
   it("health check failing → no banner", async () => {

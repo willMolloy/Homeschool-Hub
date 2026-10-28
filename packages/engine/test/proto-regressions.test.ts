@@ -11,7 +11,7 @@ const P = (over: Partial<proto.Assignment>): proto.Assignment => ({ id: "x", tit
 
 describe("prototype bugs (fixed in @hh/engine)", () => {
   it("BUG 1: weekly view double-counts a mid-week hand-off between two books in one lane", () => {
-    // Book A Mon-Wed 30 pages, Book B Thu-Fri 20 pages: 10 pages (20 min) every day.
+    // Book A Mon-Wed 30 pages, Book B Thu-Fri 20 pages: 10 pages every day. Compared in units (pages at weight 1).
     const a = P({ id: "A", total: 30, start: "2026-09-07", end: "2026-09-09" });
     const b = P({ id: "B", total: 20, start: "2026-09-10", end: "2026-09-11" });
     const cols = proto.colsFor(proto.dayOf("2026-09-07"), proto.dayOf("2026-09-11"));
@@ -19,13 +19,13 @@ describe("prototype bugs (fixed in @hh/engine)", () => {
     const pb = proto.plan(b, []);
     const wa = proto.aggregate(pa.daily, cols, "weekly", pa.capDay);
     const wb = proto.aggregate(pb.daily, cols, "weekly", pb.capDay);
-    const protoMonday = (wa[0]! + wb[0]!) * 2; // minutes
-    expect(protoMonday).toBeCloseTo(40); // wrong: a typical day is 20 min
+    const protoMonday = wa[0]! + wb[0]!; // pages
+    expect(protoMonday).toBeCloseTo(20); // wrong: a typical day is 10 pages
 
     const na = planChild(book({ id: "A", totalUnits: 30, start: "2026-09-07", end: "2026-09-09" }), "frank", { calendar: MON_FRI });
     const nb = planChild(book({ id: "B", totalUnits: 20, start: "2026-09-10", end: "2026-09-11" }), "frank", { calendar: MON_FRI });
     const w = aggregate(mergeLane([na, nb]), "weekly", "mon");
-    expect(w[0]!.value).toBeCloseTo(20);
+    expect(w[0]!.value).toBeCloseTo(10); // thickness = pages × weight 1
   });
 
   it("BUG 2: weekly view draws an assignment before it starts (Tue start shows on Monday)", () => {

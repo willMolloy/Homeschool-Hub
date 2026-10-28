@@ -3,4 +3,5 @@
  * the API's value so a stale PWA service worker never computes with old rules.
  * MAJOR: semantics change; MINOR: new outputs; PATCH: bug fix that changes numbers.
  */
-export const ENGINE_VERSION = "0.1.0";
+// Pre-1.0, a MINOR bump is breaking (0.2.0: thickness from weight, S2b-02).
+export const ENGINE_VERSION = "0.2.0";

@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ChildPlan, DayLoad } from "@hh/engine";
+import { ENGINE_VERSION, type ChildPlan, type DayLoad } from "@hh/engine";
 import type { PlanResponse } from "../src/api/types";
 import { buildDebugTables } from "../src/features/plan/debugTable";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
@@ -9,11 +9,11 @@ import { renderAt } from "./render";
 
 const WEEK = ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"];
 const days = (minutes: number[]): DayLoad[] =>
-  WEEK.map((date, i) => ({ date, capacity: 1, schoolDay: i < 5, units: (minutes[i] ?? 0) / 2, minutes: minutes[i] ?? 0, kind: "planned" }));
+  WEEK.map((date, i) => ({ date, capacity: 1, schoolDay: i < 5, units: (minutes[i] ?? 0) / 2, minutes: minutes[i] ?? 0, thickness: (minutes[i] ?? 0) / 2, kind: "planned" }));
 
 const plan = (over: Partial<ChildPlan>): ChildPlan => ({
-  engineVersion: "0.1.0", assignmentId: "a1", childId: "c1", subjectId: "lit", unitType: "pages",
-  minutesPerUnit: 2, minutesPerUnitEstimated: false, totalUnits: 100, doneUnits: 0, remainingUnits: 100,
+  engineVersion: ENGINE_VERSION, assignmentId: "a1", childId: "c1", subjectId: "lit", unitType: "pages",
+  minutesPerUnit: 2, minutesPerUnitEstimated: false, weightPerUnit: 1, weightSource: "assignment", totalUnits: 100, doneUnits: 0, remainingUnits: 100,
   baseRate: 22.5, rate: 22.5, plannedEnd: "2026-11-06", end: "2026-11-06", mode: null, unplacedUnits: 0,
   noCapacity: false, complete: false, days: days([]), warnings: [], ...over,
 });
@@ -25,7 +25,7 @@ const PLANS: ChildPlan[] = [
   plan({ assignmentId: "math5", subjectId: "math", unitType: "lessons", minutesPerUnitEstimated: true, days: days([40.4, 40.4, 0, 40.4, 40.4]) }),
   plan({ assignmentId: "math3", childId: "c2", subjectId: "math", days: days([20, 20, 20, 20, 20]), warnings: ["past-end"] }),
 ];
-const RESPONSE: PlanResponse = { engineVersion: "0.1.0", asOf: "2026-10-26", from: WEEK[0]!, to: WEEK[6]!, plans: PLANS };
+const RESPONSE: PlanResponse = { engineVersion: ENGINE_VERSION, asOf: "2026-10-26", from: WEEK[0]!, to: WEEK[6]!, plans: PLANS };
 
 function setup() {
   fakeApi.on("GET /api/plan", 200, RESPONSE);

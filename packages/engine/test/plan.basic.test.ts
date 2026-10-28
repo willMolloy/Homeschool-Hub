@@ -81,6 +81,26 @@ describe("basic plan", () => {
     }
   });
 
+  it("thickness = units × the built-in weight when the weight is null (1, 10, 15, 0.5)", () => {
+    for (const [unitType, w] of [["pages", 1], ["chapters", 10], ["lessons", 15], ["minutes", 0.5]] as const) {
+      const p = planChild(book({ unitType, weightPerUnit: null }), "frank", ctx);
+      expect(p.weightPerUnit).toBe(w);
+      expect(p.weightSource).toBe("default");
+      expect(p.days[0]!.thickness).toBeCloseTo(10 * w);
+    }
+  });
+
+  it("an explicit weight sets thickness: 10 pages a day at 1.4 → 14", () => {
+    const p = planChild(book({ weightPerUnit: 1.4 }), "frank", ctx);
+    expect(p.weightSource).toBe("assignment");
+    expect(p.days[0]!.thickness).toBeCloseTo(14);
+  });
+
+  it("minutes: 30 a day with no weight → 15 (= 15 pages at weight 1); an explicit weight 1 → 30", () => {
+    expect(planChild(book({ unitType: "minutes", totalUnits: 300 }), "frank", ctx).days[0]!.thickness).toBeCloseTo(15);
+    expect(planChild(book({ unitType: "minutes", totalUnits: 300, weightPerUnit: 1 }), "frank", ctx).days[0]!.thickness).toBeCloseTo(30);
+  });
+
   it("returns the full start..end range including weekends, with schoolDay flags", () => {
     const p = planChild(book(), "frank", ctx);
     expect(p.days).toHaveLength(12);

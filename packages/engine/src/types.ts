@@ -1,4 +1,5 @@
 import type { BlockedKind, OverrideMode, SubjectRule, UnitType, WeekStart } from "./enums";
+import type { WeightSource } from "./weights";
 export type { BlockedKind, OverrideMode, SubjectRule, UnitType, WeekStart };
 
 /** A local calendar date, "YYYY-MM-DD". Never a timestamp. */
@@ -25,7 +26,10 @@ export interface Assignment {
   start: LocalDate;
   /** Inclusive planned end date. */
   end: LocalDate;
-  /** Empty means "use the unitType default" and the UI shows it as estimated. */
+  /**
+   * Empty means "use the unitType default" and the UI shows it as estimated.
+   * @deprecated — removed in S2b-14; use weightPerUnit.
+   */
   minutesPerUnit?: number | null;
   /** Relative effort per unit. null = subject default, then built-in (S2b-01). */
   weightPerUnit?: number | null;
@@ -104,7 +108,10 @@ export interface DayLoad {
   /** A school weekday that isn't blocked for this child (base capacity 1, before events). */
   schoolDay: boolean;
   units: number;
+  /** @deprecated — removed in S2b-14. Bars use `thickness`; hours come only from real logs. */
   minutes: number;
+  /** Relative effort; units × weight (1 point ≈ 2 minutes, D1). */
+  thickness: number;
   kind: DayKind;
 }
 
@@ -126,9 +133,14 @@ export interface ChildPlan {
   childId: string;
   subjectId: string;
   unitType: UnitType;
+  /** @deprecated — removed in S2b-14. */
   minutesPerUnit: number;
-  /** True when minutesPerUnit came from the unitType default. */
+  /** True when minutesPerUnit came from the unitType default. @deprecated — removed in S2b-14. */
   minutesPerUnitEstimated: boolean;
+  /** The weight per unit every day's thickness uses. */
+  weightPerUnit: number;
+  /** Where weightPerUnit came from ("default" = the built-in, shown as estimated). */
+  weightSource: WeightSource;
   totalUnits: number;
   doneUnits: number;
   remainingUnits: number;
@@ -153,15 +165,18 @@ export type DetailChoice = "auto" | Detail;
 
 export interface DisplayDay {
   date: LocalDate;
-  /** Minutes drawn for this day (bar thickness). */
+  /** Bar thickness drawn for this day (relative effort, units × weight). */
   value: number;
 }
 
 export interface WeekSummary {
   weekStart: LocalDate;
+  /** @deprecated — removed in S2b-14. */
   totalMinutes: number;
+  /** Sum of the week's thickness. */
+  totalThickness: number;
   /** Days that count in the denominator: capacity > 0 or something logged. */
   capacityDays: number;
-  /** totalMinutes / capacityDays (0 when capacityDays is 0). */
+  /** totalThickness / capacityDays (0 when capacityDays is 0). */
   average: number;
 }

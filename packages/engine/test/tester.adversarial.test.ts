@@ -61,6 +61,7 @@ function randomCase(r: () => number) {
     unitType: pick(["pages", "chapters", "lessons", "minutes"] as const),
     totalUnits: pick([0, 1, 7, 100, 333.33, 99999999.99]),
     start, end, minutesPerUnit: pick([null, undefined, 0, 2.5, 120, Number.NaN, -1]),
+    weightPerUnit: pick([null, undefined, 0.01, 1.4, 100, Number.NaN, -5, 0]),
   });
   return { a, ctx };
 }
@@ -76,6 +77,7 @@ function expectAll(p: ChildPlan, label: string) {
     }
     // Every numeric field the UI draws is finite.
     for (const d of p.days) expect(Number.isFinite(d.minutes), `${d.date} minutes`).toBe(true);
+    for (const d of p.days) expect(Number.isFinite(d.thickness) && d.thickness >= 0, `${d.date} thickness`).toBe(true);
     expect(p.unplacedUnits).toBeLessThanOrEqual(p.remainingUnits + 1e-6);
     if (p.complete) expect(sumPlanned(p)).toBeCloseTo(0, 9);
   } catch (e) {
@@ -98,7 +100,7 @@ describe("tester: fuzz (600 seeded cases, 3 children)", () => {
       for (const p of plans) for (const ws of ["mon", "sun"] as const)
         for (const w of weeklySummary(p.days, ws)) {
           expect(Number.isFinite(w.average)).toBe(true);
-          expect(w.average * w.capacityDays).toBeCloseTo(w.totalMinutes, 4);
+          expect(w.average * w.capacityDays).toBeCloseTo(w.totalThickness, 4);
           expect(weekdayOf(w.weekStart)).toBe(ws === "sun" ? 0 : 1);
         }
     }
@@ -179,8 +181,8 @@ describe("tester: week boundaries Sun vs Mon", () => {
     const p = planChild(book({ start: "2026-12-27", end: "2027-01-09", totalUnits: 70 }), "frank", { calendar: cal("mon") });
     for (const ws of ["mon", "sun"] as const) {
       const weeks = weeklySummary(p.days, ws);
-      const total = weeks.reduce((s, w) => s + w.totalMinutes, 0);
-      expect(total).toBeCloseTo(p.days.reduce((s, d) => s + d.minutes, 0), 9);
+      const total = weeks.reduce((s, w) => s + w.totalThickness, 0);
+      expect(total).toBeCloseTo(p.days.reduce((s, d) => s + d.thickness, 0), 9);
       for (const w of weeks) expect(weekdayOf(w.weekStart)).toBe(ws === "sun" ? 0 : 1);
     }
   });
@@ -231,6 +233,16 @@ describe("tester: calendar edges", () => {
   it.fails("absurd units beyond any column (1e306 x 999 min/unit on one day) don't draw Infinity minutes", () => {
     const p = planChild(book({ start: "2026-09-09", end: "2026-09-09", totalUnits: 1e306, minutesPerUnit: 999 }), "frank", { calendar: MON_FRI });
     expect(p.days.every((d) => Number.isFinite(d.minutes))).toBe(true);
+  });
+  it("weight 100 × 100 000 units stays finite; NaN or -5 weights fall back to the built-in", () => {
+    const p = planChild(book({ start: "2026-09-09", end: "2026-09-09", totalUnits: 100000, weightPerUnit: 100 }), "frank", { calendar: MON_FRI });
+    expect(p.days[0]!.thickness).toBe(1e7);
+    for (const bad of [Number.NaN, -5]) {
+      const q = planChild(book({ weightPerUnit: bad }), "frank", { calendar: MON_FRI });
+      expect(q.weightPerUnit).toBe(1);
+      expect(q.weightSource).toBe("default");
+      expect(q.days[0]!.thickness).toBeCloseTo(10);
+    }
   });
   it("all days blocked: no-capacity, all work unplaced, no NaN", () => {
     const p = planChild(book(), "frank", { calendar: MON_FRI, blocked: [{ id: "v", start: "2026-01-01", end: "2027-12-31" }] });
