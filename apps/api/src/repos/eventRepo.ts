@@ -111,3 +111,25 @@ export async function createEvent(db: Queryable, familyId: string, e: EventInput
   await setRules(db, familyId, id, e.subjectRules);
   return id;
 }
+
+export type EventPatch = Partial<EventInput> & { archived?: boolean };
+
+/** Call inside a transaction, after lockEvent. `subjectRules`/`childIds`, when given, replace the whole set. */
+export async function updateEvent(db: Queryable, familyId: string, id: string, p: EventPatch): Promise<void> {
+  const cols: Record<string, unknown> = {
+    name: p.name, weekdays: p.weekdays, start_date: p.startDate, end_date: p.endDate,
+    capacity_fraction: p.capacityFraction, default_rule: p.defaultRule,
+  };
+  const sets: string[] = [];
+  const params: unknown[] = [id, familyId];
+  for (const [col, v] of Object.entries(cols)) {
+    if (v === undefined) continue; // null is a real value here (clears a date)
+    params.push(v);
+    sets.push(`${col} = $${params.length}`);
+  }
+  if (p.archived !== undefined) sets.push(p.archived ? "archived_at = COALESCE(archived_at, now())" : "archived_at = NULL");
+  sets.push("updated_at = now()");
+  await db.query(`UPDATE event SET ${sets.join(", ")} WHERE id = $1 AND family_id = $2`, params);
+  if (p.childIds) await setChildren(db, familyId, id, p.childIds);
+  if (p.subjectRules) await setRules(db, familyId, id, p.subjectRules);
+}

@@ -13,7 +13,7 @@ Same fields as create, all optional, plus `archived`. `subjectRules` and `childI
 1. Load for the family (404 otherwise), validate merged dates, update in one transaction, return the list shape.
 
 ## Done when
-- [ ] Archiving an event removes its effect from `/api/plan`.
+- [x] Archiving an event removes its effect from `/api/plan`.
 
 ## Tests
 - each field alone

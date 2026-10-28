@@ -1,10 +1,11 @@
 /** /api/events (S2a-08..10): recurring events such as co-op or piano. */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { HttpError } from "../app";
 import { withTransaction } from "../db";
 import { CapacityFraction, checkDateOrder, IdList, LocalDate, MAX_TITLE, Weekdays } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
-import { createEvent, getEvent, listEvents, toEventJson } from "../repos/eventRepo";
+import { createEvent, getEvent, listEvents, lockEvent, toEventJson, updateEvent } from "../repos/eventRepo";
 import { checkRefs } from "../repos/refs";
 
 const ListQuery = z.object({ includeArchived: z.enum(["true", "false"]).optional() });
@@ -62,6 +63,22 @@ const CreateBody = z.object({
   childIds: Children.optional(),
 });
 
+const PatchBody = z
+  .object({
+    name: Name.optional(),
+    weekdays: Weekdays.optional(),
+    startDate: LocalDate.nullable().optional(),
+    endDate: LocalDate.nullable().optional(),
+    capacityFraction: CapacityFraction.optional(),
+    defaultRule: Rule.optional(),
+    subjectRules: SubjectRules.optional(),
+    childIds: Children.optional(),
+    archived: z.boolean("archived must be true or false.").optional(),
+  })
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.");
+
+const notFound = () => new HttpError(404, "not_found", "No such event.");
+
 /** Open-ended events have no length limit; only the order is checked. */
 const checkOrder = (start: string | null | undefined, end: string | null | undefined) => {
   if (start && end) checkDateOrder(start, end, Number.POSITIVE_INFINITY);
@@ -87,5 +104,21 @@ export async function eventsRoutes(app: FastifyInstance): Promise<void> {
       return (await getEvent(c, req.familyId, id))!;
     });
     return reply.code(201).send(toEventJson(row));
+  });
+
+  app.patch<{ Params: { id: string } }>("/api/events/:id", async (req) => {
+    if (!UUID_RE.test(req.params.id)) throw notFound();
+    const p = parseBody(PatchBody, req.body);
+    const row = await withTransaction(app.db, async (c) => {
+      const cur = await lockEvent(c, req.familyId, req.params.id);
+      if (!cur) throw notFound();
+      // Merged dates: `null` clears, `undefined` keeps.
+      checkOrder(p.startDate === undefined ? cur.start_date : p.startDate, p.endDate === undefined ? cur.end_date : p.endDate);
+      // Sent rules/children replace the set, so every one of them must be active now.
+      await checkRefs(c, req.familyId, { subjectIds: p.subjectRules ? Object.keys(p.subjectRules) : [], childIds: p.childIds ?? [] });
+      await updateEvent(c, req.familyId, cur.id, p);
+      return (await getEvent(c, req.familyId, cur.id))!;
+    });
+    return toEventJson(row);
   });
 }
