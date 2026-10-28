@@ -188,6 +188,37 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
     }
   });
 
+  it("maps check-ins (position as a number), only this family's, skipping archived children (S2b-22)", async () => {
+    const ti = fam.ids.assignment.ti!;
+    const frank = fam.ids.child.frank!;
+    const margaret = fam.ids.child.margaret!;
+    const shared = S.assignments.find((a) => a.childIds.includes("frank") && a.childIds.includes("margaret"))!;
+    const sharedId = fam.ids.assignment[shared.id]!;
+    const theirs = other.ids.assignment.ti!;
+    await pool.query(
+      `INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position, mode) VALUES
+         ($1, $2, $3, '2026-10-19', 65.5, 'keepEndDate'),
+         ($1, $4, $5, '2026-10-19', 3, NULL),
+         ($6, $7, $8, '2026-10-19', 10, 'pushEndDate')`,
+      [fam.familyId, ti, frank, sharedId, margaret, other.familyId, theirs, other.ids.child.frank]);
+    try {
+      const loaded = await loadPlanInputs(pool, fam.familyId);
+      expect(loaded.ctx.checkIns).toEqual([
+        { assignmentId: ti, childId: frank, weekStart: "2026-10-19", position: 65.5, mode: "keepEndDate" },
+        { assignmentId: sharedId, childId: margaret, weekStart: "2026-10-19", position: 3, mode: null },
+      ].sort((x, y) => x.assignmentId.localeCompare(y.assignmentId)));
+      expect(typeof loaded.ctx.checkIns[0]!.position).toBe("number");
+      expect((await loadPlanInputs(pool, other.familyId)).ctx.checkIns).toEqual([
+        { assignmentId: theirs, childId: other.ids.child.frank, weekStart: "2026-10-19", position: 10, mode: "pushEndDate" },
+      ]);
+      await pool.query("UPDATE child SET archived_at = now() WHERE id = $1", [margaret]);
+      expect((await loadPlanInputs(pool, fam.familyId)).ctx.checkIns.map((c) => c.childId)).toEqual([frank]);
+    } finally {
+      await pool.query("UPDATE child SET archived_at = NULL WHERE id = $1", [margaret]);
+      await pool.query("DELETE FROM progress_checkin WHERE family_id = ANY($1)", [[fam.familyId, other.familyId]]);
+    }
+  });
+
   it("another family's rows never appear", async () => {
     const mine = await loadPlanInputs(pool, fam.familyId);
     const theirs = await loadPlanInputs(pool, other.familyId);

@@ -6,10 +6,11 @@
  * Archived children, subjects, assignments and events are left out of planning. Subject default weights (S2b-33)
  * are read for every subject, archived ones included, and only matter for assignments that are planned.
  * `asOf` is not set here: the route decides it.
+ * Check-ins (S2b-22) follow the overrides' rule: only for planned assignments and active children.
  * The log tables are never read: they feed hours and exports only (S2b-18/19).
  */
 import type {
-  Assignment, BlockedPeriod, FamilyCalendar, PlanContext, RecurringEvent,
+  Assignment, BlockedPeriod, FamilyCalendar, PlanContext, ProgressCheckIn, RecurringEvent,
   SubjectRule, SubjectWeight, UnitType, WeekOverride, WeekStart, Weekday,
 } from "@hh/engine";
 import { query, withReadSnapshot, type Db, type Queryable } from "../db";
@@ -24,6 +25,7 @@ export interface PlanInputs {
     blocked: BlockedPeriod[];
     overrides: WeekOverride[];
     subjectWeights: SubjectWeight[];
+    checkIns: ProgressCheckIn[];
   };
 }
 
@@ -89,6 +91,9 @@ async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInpu
   const overrideRows = await query<{ assignment_id: string; child_id: string | null; week_start: string; planned_units: number; mode: WeekOverride["mode"] }>(db,
     `SELECT assignment_id, child_id, week_start, planned_units, mode
        FROM week_override WHERE family_id = $1 ORDER BY week_start`, [familyId]);
+  const checkInRows = await query<{ assignment_id: string; child_id: string; week_start: string; position: number; mode: ProgressCheckIn["mode"] }>(db,
+    `SELECT assignment_id, child_id, week_start, position, mode
+       FROM progress_checkin WHERE family_id = $1 ORDER BY week_start, assignment_id, child_id`, [familyId]);
 
   const activeChild = new Set(children.map((c) => c.id));
   const activeSubject = new Set(subjects.filter((s) => !s.archived).map((s) => s.id));
@@ -159,10 +164,14 @@ async function readPlanInputs(db: Queryable, familyId: string): Promise<PlanInpu
       mode: o.mode,
     }));
 
+  const checkIns: ProgressCheckIn[] = checkInRows
+    .filter((r) => planned.has(r.assignment_id) && activeChild.has(r.child_id))
+    .map((r) => ({ assignmentId: r.assignment_id, childId: r.child_id, weekStart: r.week_start, position: Number(r.position), mode: r.mode }));
+
   // Both columns are set or both NULL (subject_default_weight_pair); a subject with none is simply not listed.
   const subjectWeights: SubjectWeight[] = subjects
     .filter((s) => s.default_weight_unit != null && s.default_weight != null)
     .map((s) => ({ subjectId: s.id, unitType: s.default_weight_unit!, weightPerUnit: Number(s.default_weight) }));
 
-  return { timeZone: family.time_zone, calendar, assignments, ctx: { calendar, events, blocked, overrides, subjectWeights } };
+  return { timeZone: family.time_zone, calendar, assignments, ctx: { calendar, events, blocked, overrides, subjectWeights, checkIns } };
 }

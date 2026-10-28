@@ -127,6 +127,29 @@ describe.skipIf(!hasDb)("/api/plan reflects schedule data written through the AP
     }
   });
 
+  it("a stored check-in reaches the plan; position is finite and non-decreasing on every plan (S2b-22)", async () => {
+    await pool.query(
+      `INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position, mode)
+       VALUES ($1, $2, $3, '2026-11-01', 3, 'pushEndDate')`, [fam.familyId, assignment.id, child]);
+    try {
+      const plans = await apiPlan();
+      const p = plans.find((x) => x.assignmentId === assignment.id)!;
+      expect(p.checkInWeeks).toEqual(["2026-11-01"]);
+      expect(p.doneUnits).toBe(3);
+      expect(p.days.find((d) => d.date === "2026-11-07")!.position).toBeCloseTo(3, 9);
+      for (const x of plans) {
+        let last = -Infinity;
+        for (const d of x.days) {
+          expect(Number.isFinite(d.position)).toBe(true);
+          expect(d.position).toBeGreaterThanOrEqual(last - 1e-9);
+          last = d.position;
+        }
+      }
+    } finally {
+      await pool.query("DELETE FROM progress_checkin WHERE assignment_id = $1", [assignment.id]);
+    }
+  });
+
   it("a minutes row with no weight uses the built-in 0.5; a stored weight shows source 'assignment' (S2b-05)", async () => {
     const res = await req("POST", "/api/assignments", {
       subjectId: subject, title: "Piano", unitType: "minutes", totalUnits: 600,
