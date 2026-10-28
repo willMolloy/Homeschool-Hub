@@ -117,8 +117,6 @@ SELECT pg_temp.expect_error($$INSERT INTO assignment (family_id, subject_id, tit
   '23514', 'assignment end before start is rejected');
 SELECT pg_temp.expect_error($$INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, start_date, end_date) VALUES ('f0000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','x','verses',1,'2026-01-01','2026-01-31')$$,
   '23514', 'unknown unit_type is rejected');
-SELECT pg_temp.expect_error($$INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, start_date, end_date, minutes_per_unit) VALUES ('f0000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','x','pages',1,'2026-01-01','2026-01-31',-1)$$,
-  '23514', 'negative minutes_per_unit is rejected');
 SELECT pg_temp.expect_error($$INSERT INTO event (family_id, name, weekdays, capacity_fraction) VALUES ('f0000000-0000-0000-0000-000000000001','x','{2}',1.5)$$,
   '23514', 'capacity_fraction must be 0..1');
 SELECT pg_temp.expect_error($$INSERT INTO event (family_id, name, weekdays) VALUES ('f0000000-0000-0000-0000-000000000001','x','{}')$$,
@@ -166,19 +164,7 @@ DO $$ BEGIN
   RAISE NOTICE 'ok   deleting a family removes its sessions';
 END $$;
 
--- 10. minutes assignments carry no minutes_per_unit (003_minutes_unit)
-INSERT INTO family (id, name, week_start) VALUES ('f0000000-0000-0000-0000-0000000000d0', 'Minutes family', 'mon');
-INSERT INTO subject (id, family_id, name) VALUES ('50000000-0000-0000-0000-0000000000d0', 'f0000000-0000-0000-0000-0000000000d0', 'Music');
-SELECT pg_temp.expect_error($$INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, minutes_per_unit, start_date, end_date)
-  VALUES ('f0000000-0000-0000-0000-0000000000d0', '50000000-0000-0000-0000-0000000000d0', 'Piano', 'minutes', 600, 30, '2026-11-02', '2026-11-27')$$,
-  '23514', 'a minutes assignment cannot store minutes_per_unit');
-INSERT INTO assignment (id, family_id, subject_id, title, unit_type, total_units, minutes_per_unit, start_date, end_date) VALUES
-  ('a0000000-0000-0000-0000-0000000000d1', 'f0000000-0000-0000-0000-0000000000d0', '50000000-0000-0000-0000-0000000000d0', 'Reader', 'pages', 100, 3, '2026-11-02', '2026-11-27');
-SELECT pg_temp.expect_error($$UPDATE assignment SET unit_type = 'minutes' WHERE id = 'a0000000-0000-0000-0000-0000000000d1'$$,
-  '23514', 'switching to minutes while minutes_per_unit is set is rejected');
-UPDATE assignment SET unit_type = 'minutes', minutes_per_unit = NULL WHERE id = 'a0000000-0000-0000-0000-0000000000d1';
-UPDATE assignment SET unit_type = 'pages', minutes_per_unit = 2 WHERE id = 'a0000000-0000-0000-0000-0000000000d1';
-DO $$ BEGIN RAISE NOTICE 'ok   minutes with NULL, and back to pages with a value, are fine'; END $$;
+-- 10. (removed in S2b-15: RF-10's minutes_per_unit checks; 007 dropped the column. db/test/drop-mpu.test.ts covers it.)
 
 -- 11. weight_per_unit is 0.01..100 or NULL, on every unit type (004_weight_per_unit)
 INSERT INTO family (id, name, week_start) VALUES ('f0000000-0000-0000-0000-0000000000e0', 'Weight family', 'mon');

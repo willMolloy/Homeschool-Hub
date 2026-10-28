@@ -1,4 +1,7 @@
-/** 003_minutes_unit (RF-10): existing minutes rows lose their (ignored) minutes_per_unit, then a CHECK keeps it that way. */
+/**
+ * 003_minutes_unit (RF-10): existing minutes rows lose their (ignored) minutes_per_unit, then a CHECK keeps it that way.
+ * 007 drops the column (S2b-15), but this still runs: it migrates a temp dir holding only 001–003.
+ */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { migrate } from "../migrate";
 import { createScratch, dropScratch, hasDb, migrationsThrough, q } from "./scratch";

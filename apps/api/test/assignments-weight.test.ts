@@ -1,4 +1,4 @@
-/** S2b-06: weightPerUnit on POST/PATCH /api/assignments, its bounds, the unit-change rule (D7) and the legacy alias. */
+/** S2b-06: weightPerUnit on POST/PATCH /api/assignments, its bounds, and the unit-change rule (D7). (The legacy minutesPerUnit alias went in S2b-13.) */
 import type { ChildPlan } from "@hh/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";

@@ -25,7 +25,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 | S2b-11 prefill the weight and show its source | 4068ed6 | |
 | S2b-12 thickness in the plan debug view | aa80013 | |
 | S2b-13 retire minutesPerUnit from the API and web | 87d4421 | |
-| S2b-14 remove minute outputs from the engine (0.3.0) | (this commit) | |
+| S2b-14 remove minute outputs from the engine (0.3.0) | ddecdda | |
+| S2b-15 migration 007 drops minutes_per_unit | (this commit) | |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -59,6 +60,8 @@ Tickets: `docs/tickets/sprint-2b-weights/`, built in the README's order. One tic
 - **S2b-13 — one legacy line stays until 007.** The API no longer reads, returns or accepts `minutesPerUnit` (it is now an unknown key → 400 naming it, POST and PATCH). One exception the ticket's "only the 400 test" check doesn't allow for: migration 003's CHECK `assignment_minutes_unit_no_mpu` would turn a pre-S2b-13 row with a legacy value into a 500 when its unit is switched to minutes, so `updateAssignment` still clears `minutes_per_unit` on that switch (marked `TODO(S2b-15)`). Other edits leave an old row's legacy value alone; nothing new is written there. `checkWeightFields`/`weightWrite`/`weightFromLegacyMinutes` were deleted (only `checkUnitChange` is left in `assignmentWeight.ts`), and the `MinutesPerUnit` bounds tests became `WeightPerUnit` bounds tests. Tester2's suite bodies were converted to `weightPerUnit` (half the minutes, inside 0.01–100) and it now also expects 400 for `minutesPerUnit`. The engine's own `minutesPerUnit` outputs (plan.test, the debug fixture, sample-family) are S2b-14's; `db/seed.ts` is S2b-15's.
 
 - **S2b-14 — what replaced the minute checks.** `units.ts` had no other users, so it was deleted with `DEFAULT_MINUTES_PER_UNIT` and `minutesPerUnitOf`. `MINUTES_PER_WEIGHT_POINT` stays (it is the normalization constant the done-when allows). Tests that checked `minutes` now check `thickness` with the same meaning (zero on a day off, > 0 on a work day, finite). The minutes-per-unit default tests in `plan.basic` became one "plans carry no minutes" test, and a new `no-minutes.contract.test.ts` walks every serialized plan, lane, weekly summary and display series for a key named like "minutes" (the unit type value `"minutes"` is data and allowed). The tester's known-failing `it.fails` overflow case (T-ENG-2) now overflows thickness (1e307 units × weight 100) instead of minutes, so it still documents the same limit. The sample family takes weights directly (the prototype's 30 min a unit → 15, as before). `db/seed.ts` no longer writes `minutes_per_unit`, since its source field is gone; the column itself goes in S2b-15.
+
+- **S2b-15 — dropping the column.** `007_drop_minutes_per_unit.sql` drops 003's `assignment_minutes_unit_no_mpu` explicitly and then the column; 001–004 are history and keep their mentions (noted in `db/README.md`). With the column gone, S2b-13's `TODO(S2b-15)` line in `updateAssignment` was removed and `weight-rules.test.ts` lost its legacy-column tests (the D7/D21 behaviour tests stay). `validate.sql` lost RF-10's checks (section 10 and the negative-value check), and `minutes-unit.test.ts` still runs because it migrates only 001–003. New `drop-mpu.test.ts` covers 003 data → 006 → 007 (weights and subject defaults untouched, column and constraint gone, writing it fails with 42703) and runs `validate.sql` on a 003 → latest upgrade, checking its `assignment` columns equal a fresh database's.
 
 ## Deferred
 

@@ -98,9 +98,6 @@ export async function updateAssignment(tx: Tx, familyId: string, id: string, p: 
   const { set, params } = buildUpdateSet({
     subject_id: p.subjectId, title: p.title, unit_type: p.unitType, total_units: p.totalUnits,
     weight_per_unit: p.weightPerUnit, start_date: p.startDate, end_date: p.endDate,
-    // TODO(S2b-15): 003's CHECK still forbids a stored minutes-per-unit on a minutes row, and rows written
-    // before S2b-13 may hold one. Clearing it on a switch to minutes keeps that a 200; migration 007 drops both.
-    minutes_per_unit: p.unitType === "minutes" ? null : undefined,
   }, { firstParam: 3, archived: p.archived });
   await tx.query(`UPDATE assignment SET ${set} WHERE id = $1 AND family_id = $2`, [id, familyId, ...params]);
   if (p.childIds) await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: p.childIds });

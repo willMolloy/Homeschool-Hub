@@ -13,6 +13,7 @@ records itself in `schema_migration`. There is no migration runner yet — that'
 | `004_weight_per_unit.sql` | S2b-03, expand step: `assignment.weight_per_unit` (0.01–100, NULL = subject default, then built-in), backfilled from `minutes_per_unit` ÷ 2 (2 minutes = 1 point) |
 | `005_weight_choice.sql` | S2b-04: append-only `weight_choice` history (child, pages/chapters, weight or NULL, `chosen_at`), backfilled one row per child from weighted pages/chapters assignments |
 | `006_subject_default_weight.sql` | S2b-30: optional subject default bar width, `default_weight_unit` + `default_weight` (0.01–100), both or neither |
+| `007_drop_minutes_per_unit.sql` | S2b-15, contract step: drops `assignment.minutes_per_unit` and 003's `assignment_minutes_unit_no_mpu`. Older migrations still mention the column; they are history and are never edited |
 
 ## Tables (001_init.sql)
 
@@ -21,7 +22,7 @@ records itself in `schema_migration`. There is no migration runner yet — that'
 | `family` | The household. `week_start` (`mon`/`sun`) is the one definition of a week; `school_days` (0=Sun..6=Sat) |
 | `child` | A kid in the family |
 | `subject` | Literature, Math, ... (name unique per family, case-insensitive) |
-| `assignment` | A book/course with total units, start/end DATE, optional minutes per unit (NULL = estimated default) |
+| `assignment` | A book/course with total units, start/end DATE, optional `weight_per_unit` (004; NULL = subject default, then built-in). 001's `minutes_per_unit` was dropped by 007 |
 | `assignment_child` | Which kids do an assignment (several rows = shared) |
 | `event` | Weekly recurring event (co-op, piano): weekdays, capacity fraction, default rule |
 | `event_child` | Kids the event takes time from (no rows = whole family) |
