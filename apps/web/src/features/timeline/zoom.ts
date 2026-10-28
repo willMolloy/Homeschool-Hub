@@ -23,3 +23,17 @@ export function zoomRange(model: Pick<TimelineModel, "dates">, zoom: Zoom): [num
     zoom === "fall" ? (split === 0 ? null : [0, split < 0 ? n - 1 : split - 1]) : split < 0 ? null : [split, n - 1];
   return range ?? [0, n - 1];
 }
+
+/**
+ * T-05: the zooms worth offering. Fall and Spring only when the grid spans New Year; otherwise either half is the
+ * whole grid again, so only Year is offered (and the page shows no zoom control at all).
+ */
+export function availableZooms(model: Pick<TimelineModel, "dates">): Zoom[] {
+  const n = model.dates.length;
+  if (n === 0) return ["year"];
+  const newYear = `${Number(model.dates[0]!.slice(0, 4)) + 1}-01-01`;
+  const split = model.dates.findIndex((d) => d >= newYear);
+  return split > 0 ? [...ZOOMS] : ["year"];
+}
+
+export const ZOOM_LABEL: Record<Zoom, string> = { year: "Year", fall: "Fall", spring: "Spring" };

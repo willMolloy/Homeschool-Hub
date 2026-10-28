@@ -1,6 +1,17 @@
 /* T-04: the Year timeline. Every colour is a --tl-* token. */
-.timeline-page-header { margin-bottom: 8px; }
+.timeline-page-header { margin-bottom: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .timeline-page-header h1 { margin: 0; }
+/* T-05: zoom presets. Plain text buttons; the chosen one is bold on a soft fill. No borders. */
+.tl-zoom { display: flex; gap: 4px; }
+.tl-zoom button { font: inherit; color: inherit; background: transparent; border: 0; border-radius: 999px; padding: 0 14px; min-height: 44px; cursor: pointer; }
+.tl-zoom button[aria-pressed="true"] { font-weight: 600; background: var(--line); }
+/* T-05: crossfade between zooms (keep in step with FADE_MS in useZoomFade.ts). */
+.tl-stage { position: relative; }
+.tl-leaving { position: absolute; top: 0; left: 0; pointer-events: none; animation: tl-fade-out 200ms ease-out forwards; }
+.tl-entering { animation: tl-fade-in 200ms ease-out; }
+@keyframes tl-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes tl-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tl-leaving { display: none; } .tl-entering { animation: none; } }
 /* Full-bleed on phones (the shell pads main by 16 px there). */
 .timeline-bleed { margin-inline: -16px; }
 @media (min-width: 640px) { .timeline-bleed { margin-inline: 0; } }

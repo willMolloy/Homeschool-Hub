@@ -10,7 +10,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-02b Hand-test fixes | 2282106 | App declared light-only and native fields given explicit colours, with a CSS contrast test. The demo family can't add events (button hidden, `POST /api/events` → 403). The hide-until-selected rule for the adjust buttons is recorded for T-07 |
 | T-03 Layout function | a0a1a77 | `features/timeline/{zoom,xscale,paths,rows,layout,hit}.ts`: no-overlap rows, labels above lanes (no label column), 44 px tap targets, shared scale 2.8 px/pt, `--tl-bar-opacity: 0.82`. Pure; nothing renders yet |
 | T-03b This Week: "Make an adjustment" | a8a43a0, f04a4f5 | A "Make an adjustment" button per active child opens a Drawer (phones) or Dialog (≥ 640 px) with that child's check-in rows on subject pastels; collapsed rows; one week switcher replaces Prev/Next and "Review a past week"; debug items and the engine footer only in a dev build with `?debug=1`; borders replaced by spacing; quiet Skip |
-| T-04 Static SVG timeline at Year zoom | (this commit) | `/timeline` route and a Timeline nav item; `Timeline.tsx` draws the T-03 layout (hatched breaks, month lines, labels above lanes, one path per band, Total strip, event strips, Today line and pill); Aug 1 – Jun 30 school year trimmed to planned weeks; screen-reader lane list; +5.6 KB gzip |
+| T-04 Static SVG timeline at Year zoom | ed51f34 | `/timeline` route and a Timeline nav item; `Timeline.tsx` draws the T-03 layout (hatched breaks, month lines, labels above lanes, one path per band, Total strip, event strips, Today line and pill); Aug 1 – Jun 30 school year trimmed to planned weeks; screen-reader lane list; +5.6 KB gzip |
+| T-05 Zoom presets Year / Fall / Spring | (this commit) | Text toggle buttons beside the title; 200 ms opacity crossfade (old zoom on top, aria-hidden), instant with reduced motion; Today at its date in every zoom; no control when the grid doesn't cross New Year |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -165,3 +166,12 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 - **Bundle:** +5.3 KB JS and +0.3 KB CSS gzip (139.26 vs 133.95 KB JS), so the route is not lazy-loaded.
 - **Accessibility:** one labelled image, plus a visually hidden list of every lane's assignments with dates. Lanes become focusable groups when selection arrives (T-07).
 - Screenshots: `screens/t04-timeline-390.png`, `screens/t04-timeline-1280.png`.
+
+## T-05 — Zoom decisions
+
+- **"Anchored":** every zoom fits the width, so there is no scroll to keep. Today is drawn at its own date in every zoom that shows it, and is absent in Spring while it's still fall. Zoom state lives on the page, so T-07's selection can sit beside it and survive zoom changes.
+- **Starts at Year** on every visit. It isn't remembered and doesn't jump to the half holding today. That's conservative and easy to change after the hand-test.
+- **Crossfade:** opacity only, 200 ms. The old picture sits on top and is `aria-hidden`. It's removed on `animationend` or by a timer, and is instant under reduced motion. Measured in the preview: 0.62 opacity at about 60 ms, then one layer left.
+- **No control** when the planned weeks don't cross New Year (both halves would repeat Year).
+- **Text buttons, not chips**, because chips have borders.
+- Screenshots: `screens/t05-timeline-fall-390.png`, `screens/t05-timeline-fall-1280.png`.

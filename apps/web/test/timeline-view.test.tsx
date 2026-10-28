@@ -103,15 +103,16 @@ describe("the Year timeline page", () => {
     expect(list.textContent).toContain("Literature, Frank: Aesop's Fables, Aug 31, 2026");
   });
 
-  it("shows only what's essential: the title and the picture, no buttons, helper text or badges", async () => {
+  it("shows only what's essential: the title, the zoom presets and the picture, no helper text or badges", async () => {
     stubSample();
     await openTimeline();
     const main = screen.getByRole("main");
-    expect(within(main).queryAllByRole("button")).toEqual([]);
+    expect(within(main).getAllByRole("button").map((b) => b.textContent)).toEqual(["Year", "Fall", "Spring"]);
     expect(within(main).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Timeline"]);
     // Below the title: the picture, and the lane list that only screen readers get. Nothing else.
     const bleed = main.querySelector(".timeline-bleed")!;
-    expect([...bleed.children].map((e) => `${e.tagName.toLowerCase()}.${e.getAttribute("class")}`)).toEqual(["svg.tl-svg", "ul.sr-only"]);
+    expect([...bleed.children].map((e) => `${e.tagName.toLowerCase()}.${e.getAttribute("class")}`)).toEqual(["div.tl-stage", "ul.sr-only"]);
+    expect(bleed.querySelectorAll("svg")).toHaveLength(1);
   });
 
   it("says so when nothing is planned", async () => {

@@ -1,28 +1,42 @@
 /**
- * T-04: the year at a glance. One title, then the timeline at Year zoom across the page's full width
- * (full-bleed on phones). Nothing else: zoom presets arrive in T-05, names in the bars in T-06.
+ * T-04/T-05: the year at a glance. A title with the zoom presets beside it, then the timeline across the page's
+ * full width (full-bleed on phones). Changing zoom crossfades the old picture out over the new one. Names in the
+ * bars arrive in T-06.
  */
 import { useMemo } from "react";
 import { layoutTimeline } from "../features/timeline/layout";
+import type { TimelineModel } from "../features/timeline/model";
 import { Timeline } from "../features/timeline/Timeline";
 import { TimelineLanesList } from "../features/timeline/TimelineLanesList";
 import { useElementWidth } from "../features/timeline/useElementWidth";
 import { useTimelineData } from "../features/timeline/useTimelineData";
+import { useZoomFade } from "../features/timeline/useZoomFade";
+import { availableZooms, ZOOM_LABEL, type Zoom } from "../features/timeline/zoom";
+import { ZoomPresets } from "../features/timeline/ZoomPresets";
 import "../features/timeline/timeline.css";
 
 /** Width used before anything can be measured (the smallest phone we design for). */
 const FALLBACK_WIDTH = 360;
 
+const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, width: number) =>
+  model && zoom ? layoutTimeline(model, { zoom, width }) : undefined;
+
 export function TimelinePage() {
   const { model, loading, failed, reload } = useTimelineData();
   const { ref, width } = useElementWidth<HTMLDivElement>(FALLBACK_WIDTH);
-  const layout = useMemo(() => (model ? layoutTimeline(model, { zoom: "year", width }) : undefined), [model, width]);
+  const { zoom, leaving, setZoom, settle } = useZoomFade("year");
+  const zooms = useMemo(() => (model ? availableZooms(model) : (["year"] as Zoom[])), [model]);
+  const shownZoom = zooms.includes(zoom) ? zoom : "year";
+  const layout = useMemo(() => layoutFor(model, shownZoom, width), [model, shownZoom, width]);
+  const leavingLayout = useMemo(() => layoutFor(model, leaving, width), [model, leaving, width]);
   const empty = model !== undefined && model.lanes.length === 0;
+  const ready = !failed && !loading && model && layout && !empty;
 
   return (
     <>
       <header className="timeline-page-header">
         <h1>Timeline</h1>
+        {ready && <ZoomPresets zooms={zooms} value={shownZoom} onChange={setZoom} />}
       </header>
       <div ref={ref} className="timeline-bleed">
         {failed ? (
@@ -35,7 +49,16 @@ export function TimelinePage() {
           <p>Nothing planned yet.</p>
         ) : (
           <>
-            <Timeline layout={layout} label="Year timeline" />
+            <div className="tl-stage">
+              <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
+                <Timeline layout={layout} label={`${ZOOM_LABEL[shownZoom]} timeline`} />
+              </div>
+              {leavingLayout && (
+                <div className="tl-leaving" aria-hidden="true" onAnimationEnd={settle}>
+                  <Timeline layout={leavingLayout} label="" />
+                </div>
+              )}
+            </div>
             <TimelineLanesList model={model} />
           </>
         )}
