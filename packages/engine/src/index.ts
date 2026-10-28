@@ -2,7 +2,6 @@ export { ENGINE_VERSION } from "./version";
 export * from "./types";
 export { BLOCKED_KINDS, OVERRIDE_MODES, SUBJECT_RULES, UNIT_TYPES, WEEK_STARTS, humanList } from "./enums";
 export * from "./dates";
-export { DEFAULT_MINUTES_PER_UNIT, minutesPerUnitOf } from "./units";
 export {
   DEFAULT_WEIGHT_PER_UNIT,
   LEARNED_UNIT_TYPES,

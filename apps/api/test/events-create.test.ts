@@ -131,7 +131,7 @@ describe.skipIf(!hasDb)("POST /api/events (integration)", () => {
     expect((await day("2026-11-04")).capacity).toBe(1);
     // Wednesday co-op that skips Math.
     await r("POST", "/api/events", { name: "Co-op", weekdays: [3], subjectRules: { [subjectIds[0]!]: "skip" } });
-    expect(await day("2026-11-04")).toMatchObject({ schoolDay: true, capacity: 0, units: 0, minutes: 0 });
+    expect(await day("2026-11-04")).toMatchObject({ schoolDay: true, capacity: 0, units: 0, thickness: 0 });
     expect(await day("2026-11-11")).toMatchObject({ capacity: 0, units: 0 });
     expect((await day("2026-11-05")).capacity).toBe(1);
     // A rule for another subject leaves Math's Thursdays alone.

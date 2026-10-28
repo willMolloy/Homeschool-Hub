@@ -482,9 +482,9 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       expect(api).toEqual(eng);
       // sanity on the combos: overlapping days off zero out, and there is real work to compare
       for (const ben of api.filter((p) => p.childId === kids[1])) {
-        for (const d of ["2026-11-24", "2026-11-30", "2026-12-02"]) expect(ben.days.find((x) => x.date === d)?.minutes ?? 0).toBe(0);
+        for (const d of ["2026-11-24", "2026-11-30", "2026-12-02"]) expect(ben.days.find((x) => x.date === d)?.thickness ?? 0).toBe(0);
       }
-      expect(api.flatMap((p) => p.days).some((d) => d.minutes > 0)).toBe(true);
+      expect(api.flatMap((p) => p.days).some((d) => d.thickness > 0)).toBe(true);
     });
 
     it("still matches after archiving a subject named in rules, archiving a child named in events/days off, and deleting a duplicate day off", async () => {
@@ -505,7 +505,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
         const api = byChild(await apiPlan());
         expect(api).toEqual(eng);
         expect(api.map((p) => p.childId)).not.toContain(ava);
-        for (const p of api.filter((x) => x.childId === cy)) expect(p.days.find((d) => d.date === "2026-11-14")?.minutes ?? 0).toBe(0);
+        for (const p of api.filter((x) => x.childId === cy)) expect(p.days.find((d) => d.date === "2026-11-14")?.thickness ?? 0).toBe(0);
       } finally {
         await F.req("PATCH", `/api/subjects/${read}`, { archived: false });
         await F.req("PATCH", `/api/children/${ava}`, { archived: false });
@@ -521,7 +521,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       expect(res.statusCode).toBe(200);
       const days = (res.json() as PlanResponse).plans[0]!.days;
       for (const d of days) {
-        expect(Number.isFinite(d.minutes)).toBe(true);
+        expect(Number.isFinite(d.thickness)).toBe(true);
         expect(Number.isFinite(d.capacity)).toBe(true);
       }
     });

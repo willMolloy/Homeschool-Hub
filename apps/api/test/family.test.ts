@@ -92,14 +92,14 @@ describe.skipIf(!hasDb)("PATCH /api/family → /api/plan", () => {
     await pool.end();
   });
 
-  const wednesdayMinutes = async () => {
+  const wednesdayThickness = async () => {
     const body: PlanResponse = (await app.inject({ method: "GET", url: "/api/plan?from=2026-10-26&to=2026-11-01&asOf=2026-10-26", cookies })).json();
-    return body.plans.flatMap((p) => p.days).filter((d) => d.date === "2026-10-28").reduce((s, d) => s + d.minutes, 0);
+    return body.plans.flatMap((p) => p.days).filter((d) => d.date === "2026-10-28").reduce((s, d) => s + d.thickness, 0);
   };
 
   it("removing Wednesday from schoolDays stops planning on Wednesday", async () => {
-    expect(await wednesdayMinutes()).toBeGreaterThan(0);
+    expect(await wednesdayThickness()).toBeGreaterThan(0);
     expect((await app.inject({ method: "PATCH", url: "/api/family", payload: { schoolDays: [1, 2, 4, 5] }, cookies })).statusCode).toBe(200);
-    expect(await wednesdayMinutes()).toBe(0);
+    expect(await wednesdayThickness()).toBe(0);
   });
 });

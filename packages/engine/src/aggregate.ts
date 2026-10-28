@@ -10,14 +10,12 @@ export interface LaneDay {
   /** Day counts toward a weekly average when any assignment in the lane has capacity, or work was logged. */
   counts: boolean;
   schoolDay: boolean;
-  /** @deprecated — removed in S2b-14. */
-  minutes: number;
   /** Summed bar thickness (relative effort). */
   thickness: number;
 }
 
 function toLaneDays(days: DayLoad[]): LaneDay[] {
-  return days.map((d) => ({ date: d.date, counts: d.capacity > 0 || d.units > 0, schoolDay: d.schoolDay, minutes: d.minutes, thickness: d.thickness }));
+  return days.map((d) => ({ date: d.date, counts: d.capacity > 0 || d.units > 0, schoolDay: d.schoolDay, thickness: d.thickness }));
 }
 
 /**
@@ -35,7 +33,6 @@ export function mergeLane(series: Array<ChildPlan | DayLoad[] | LaneDay[]>): Lan
       const cur = map.get(n);
       if (!cur) map.set(n, { ...d });
       else {
-        cur.minutes += d.minutes;
         cur.thickness += d.thickness;
         cur.counts = cur.counts || d.counts;
         cur.schoolDay = cur.schoolDay || d.schoolDay;
@@ -52,12 +49,11 @@ function asLane(days: DayLoad[] | LaneDay[]): LaneDay[] {
 
 /** Per-week totals and averages. A week's average = its thickness / its capacity days (not / 5). */
 export function weeklySummary(days: DayLoad[] | LaneDay[], weekStart: WeekStart): WeekSummary[] {
-  const weeks = new Map<number, { total: number; minutes: number; n: number }>();
+  const weeks = new Map<number, { total: number; n: number }>();
   for (const d of asLane(days)) {
     const w = weekStartOfDayNumber(toDayNumber(d.date), weekStart);
-    const e = weeks.get(w) ?? { total: 0, minutes: 0, n: 0 };
+    const e = weeks.get(w) ?? { total: 0, n: 0 };
     e.total += d.thickness;
-    e.minutes += d.minutes;
     if (d.counts) e.n += 1;
     weeks.set(w, e);
   }
@@ -65,7 +61,6 @@ export function weeklySummary(days: DayLoad[] | LaneDay[], weekStart: WeekStart)
     .sort((x, y) => x[0] - y[0])
     .map(([w, e]) => ({
       weekStart: fromDayNumber(w),
-      totalMinutes: e.minutes,
       totalThickness: e.total,
       capacityDays: e.n,
       average: e.n > 0 ? e.total / e.n : 0,

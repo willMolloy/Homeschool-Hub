@@ -11,7 +11,7 @@ describe("Engine version", () => {
     renderAt("/kids");
     const footer = await screen.findByRole("contentinfo");
     expect(footer).toHaveTextContent(`Engine ${ENGINE_VERSION}`);
-    expect(ENGINE_VERSION).toBe("0.2.1");
+    expect(ENGINE_VERSION).toBe("0.3.0");
   });
 
   it("same version on the API → no banner; /api/health asked once", async () => {

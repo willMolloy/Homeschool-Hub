@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_MINUTES_PER_UNIT, ENGINE_VERSION, planChild, type RecurringEvent } from "../src";
+import { ENGINE_VERSION, planChild, type RecurringEvent } from "../src";
 import { book, expectConserved, expectSane, MON_FRI, sumUnits, unitsOn } from "./helpers";
 
 const ctx = { calendar: MON_FRI };
@@ -44,40 +44,12 @@ describe("basic plan", () => {
     expectConserved(p);
   });
 
-  it("thickness is minutes per day via default minutes per unit, flagged estimated", () => {
-    const p = planChild(book(), "frank", ctx);
-    expect(p.minutesPerUnit).toBe(DEFAULT_MINUTES_PER_UNIT.pages);
-    expect(p.minutesPerUnitEstimated).toBe(true);
-    expect(p.days.find((d) => d.date === "2026-09-07")!.minutes).toBeCloseTo(10 * DEFAULT_MINUTES_PER_UNIT.pages);
-  });
-
-  it("a parent-set minutesPerUnit clears the estimated flag (0 is a valid choice)", () => {
-    const p = planChild(book({ minutesPerUnit: 3 }), "frank", ctx);
-    expect(p.minutesPerUnit).toBe(3);
-    expect(p.minutesPerUnitEstimated).toBe(false);
-    const z = planChild(book({ minutesPerUnit: 0 }), "frank", ctx);
-    expect(z.minutesPerUnit).toBe(0);
-    expect(z.minutesPerUnitEstimated).toBe(false);
-  });
-
-  it("null / negative / NaN minutesPerUnit falls back to the default", () => {
-    for (const v of [null, undefined, -2, Number.NaN, Number.POSITIVE_INFINITY]) {
-      const p = planChild(book({ minutesPerUnit: v as number | null | undefined }), "frank", ctx);
-      expect(p.minutesPerUnit).toBe(2);
-      expect(p.minutesPerUnitEstimated).toBe(true);
-    }
-  });
-
-  it("minutes unit is always 1 min per unit and never estimated", () => {
-    const p = planChild(book({ unitType: "minutes", totalUnits: 300, minutesPerUnit: 5 }), "frank", ctx);
-    expect(p.minutesPerUnit).toBe(1);
-    expect(p.minutesPerUnitEstimated).toBe(false);
-    expect(p.days[0]!.minutes).toBeCloseTo(30);
-  });
-
-  it("each unit type has its own default", () => {
+  it("plans carry no minutes: no minutesPerUnit, no estimated flag, no per-day minutes (S2b-14)", () => {
     for (const unitType of ["pages", "chapters", "lessons", "minutes"] as const) {
-      expect(planChild(book({ unitType }), "frank", ctx).minutesPerUnit).toBe(DEFAULT_MINUTES_PER_UNIT[unitType]);
+      const p = planChild(book({ unitType }), "frank", ctx);
+      expect(p).not.toHaveProperty("minutesPerUnit");
+      expect(p).not.toHaveProperty("minutesPerUnitEstimated");
+      for (const d of p.days) expect(d).not.toHaveProperty("minutes");
     }
   });
 

@@ -26,11 +26,6 @@ export interface Assignment {
   start: LocalDate;
   /** Inclusive planned end date. */
   end: LocalDate;
-  /**
-   * Empty means "use the unitType default" and the UI shows it as estimated.
-   * @deprecated — removed in S2b-14; use weightPerUnit.
-   */
-  minutesPerUnit?: number | null;
   /** Relative effort per unit. null = subject default, then built-in (S2b-01). */
   weightPerUnit?: number | null;
 }
@@ -117,8 +112,6 @@ export interface DayLoad {
   /** A school weekday that isn't blocked for this child (base capacity 1, before events). */
   schoolDay: boolean;
   units: number;
-  /** @deprecated — removed in S2b-14. Bars use `thickness`; hours come only from real logs. */
-  minutes: number;
   /** Relative effort; units × weight (1 point ≈ 2 minutes, D1). */
   thickness: number;
   kind: DayKind;
@@ -136,16 +129,16 @@ export type PlanWarning =
   | "push-horizon-exceeded"
   | "keep-no-free-capacity";
 
+/**
+ * One child's plan for one assignment.
+ * Thickness is relative effort. For time spent, sum `log_entry.minutes_spent`; plans never estimate it.
+ */
 export interface ChildPlan {
   engineVersion: string;
   assignmentId: string;
   childId: string;
   subjectId: string;
   unitType: UnitType;
-  /** @deprecated — removed in S2b-14. */
-  minutesPerUnit: number;
-  /** True when minutesPerUnit came from the unitType default. @deprecated — removed in S2b-14. */
-  minutesPerUnitEstimated: boolean;
   /** The weight per unit every day's thickness uses. */
   weightPerUnit: number;
   /** Where weightPerUnit came from ("default" = the built-in, shown as estimated). */
@@ -180,8 +173,6 @@ export interface DisplayDay {
 
 export interface WeekSummary {
   weekStart: LocalDate;
-  /** @deprecated — removed in S2b-14. */
-  totalMinutes: number;
   /** Sum of the week's thickness. */
   totalThickness: number;
   /** Days that count in the denominator: capacity > 0 or something logged. */

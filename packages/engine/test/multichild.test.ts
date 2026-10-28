@@ -57,12 +57,12 @@ describe("assignments shared by several children", () => {
 
 describe("overlapping assignments sum in a lane", () => {
   it("two books in the same week add up per day", () => {
-    const a = book({ id: "a", totalUnits: 50, minutesPerUnit: 2 }); // 5/day -> 10 min
-    const b = book({ id: "b", totalUnits: 100, minutesPerUnit: 1, start: "2026-09-14" }); // 20/day -> 20 min, second week only
+    const a = book({ id: "a", totalUnits: 50, weightPerUnit: 2 }); // 5/day -> thickness 10
+    const b = book({ id: "b", totalUnits: 100, weightPerUnit: 1, start: "2026-09-14" }); // 20/day -> thickness 20, second week only
     const plans = planAll([a, b], { calendar: MON_FRI });
     const lane = mergeLane(plans);
-    expect(lane.find((d) => d.date === "2026-09-07")!.minutes).toBeCloseTo(10);
-    expect(lane.find((d) => d.date === "2026-09-14")!.minutes).toBeCloseTo(30);
+    expect(lane.find((d) => d.date === "2026-09-07")!.thickness).toBeCloseTo(10);
+    expect(lane.find((d) => d.date === "2026-09-14")!.thickness).toBeCloseTo(30);
   });
 
   it("planAll covers every child of every assignment", () => {

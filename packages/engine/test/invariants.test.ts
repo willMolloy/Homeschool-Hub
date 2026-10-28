@@ -28,7 +28,7 @@ describe("randomized invariants (seeded, 400 cases)", () => {
       const n = Math.floor(r() * 3);
       for (let k = 0; k < n; k += 1) overrides.push({ assignmentId: "a1", weekStart: addDays(start, Math.floor(r() * 120)), plannedUnits: Math.floor(r() * 80), mode: pick(["keepEndDate", "pushEndDate"] as const) });
       ctx.overrides = overrides;
-      const a = book({ totalUnits: Math.floor(r() * 500), start, end, minutesPerUnit: r() < 0.5 ? null : r() * 5, weightPerUnit: r() < 0.5 ? null : Math.round(r() * 1000) / 100 + 0.01 });
+      const a = book({ totalUnits: Math.floor(r() * 500), start, end, weightPerUnit: r() < 0.5 ? null : Math.round(r() * 1000) / 100 + 0.01 });
       let p;
       try {
         p = planChild(a, "frank", ctx);

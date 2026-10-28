@@ -1,5 +1,5 @@
 /** The prototype's sample family (proto data.ts), converted to @hh/engine types. Weekdays: 0 = Sun. */
-import { MINUTES_PER_WEIGHT_POINT, type Assignment, type BlockedPeriod, type FamilyCalendar, type RecurringEvent, type SubjectWeight } from "../../src";
+import { type Assignment, type BlockedPeriod, type FamilyCalendar, type RecurringEvent, type SubjectWeight } from "../../src";
 
 export const calendar: FamilyCalendar = { weekStart: "mon", schoolDays: [1, 2, 3, 4, 5] };
 /** S2b-33: subject default weights. Math's lessons are 20 a lesson, so "Fractions unit" (no weight of its own) plans from it. */
@@ -10,12 +10,11 @@ export const events: RecurringEvent[] = [
   { id: "violin", name: "Violin – Margaret", childIds: ["margaret"], weekdays: [4], capacityFraction: 0.25, subjectRules: { music: "skip" } },
   { id: "piano", name: "Piano – Frank", childIds: ["frank"], weekdays: [5], capacityFraction: 0.25, subjectRules: { music: "skip", math: "lighter" } },
 ];
-const A = (id: string, subjectId: string, childIds: string[], unitType: Assignment["unitType"], totalUnits: number, start: string, end: string, minutesPerUnit?: number): Assignment =>
+const A = (id: string, subjectId: string, childIds: string[], unitType: Assignment["unitType"], totalUnits: number, start: string, end: string, weightPerUnit?: number): Assignment =>
   ({
     id, subjectId, childIds, unitType, totalUnits, start, end,
-    minutesPerUnit: minutesPerUnit ?? null,
-    // S2b-05 (D3): 2 minutes = 1 point, so a stored minutes-per-unit becomes weight mpu / 2.
-    weightPerUnit: minutesPerUnit == null ? null : Math.round((minutesPerUnit / MINUTES_PER_WEIGHT_POINT) * 100) / 100,
+    // The prototype's 30 minutes a unit, as weight (2 minutes = 1 point, D3).
+    weightPerUnit: weightPerUnit ?? null,
   });
 export const assignments: Assignment[] = [
   A("aesop", "lit", ["frank"], "pages", 240, "2026-08-31", "2026-10-16"),
@@ -24,8 +23,8 @@ export const assignments: Assignment[] = [
   A("garden", "lit", ["margaret"], "pages", 330, "2026-09-08", "2026-11-20"),
   A("poems", "lit", ["margaret"], "pages", 80, "2026-10-05", "2026-10-30"),
   A("heidi", "lit", ["margaret"], "pages", 280, "2027-01-04", "2027-04-30"),
-  A("math5", "math", ["frank"], "chapters", 144, "2026-08-31", "2027-05-21", 30),
-  A("math3", "math", ["margaret"], "lessons", 150, "2026-08-31", "2027-05-21", 30),
+  A("math5", "math", ["frank"], "chapters", 144, "2026-08-31", "2027-05-21", 15),
+  A("math3", "math", ["margaret"], "lessons", 150, "2026-08-31", "2027-05-21", 15),
   A("fracs", "math", ["margaret"], "lessons", 16, "2026-10-05", "2026-10-30"),
   A("hist", "hist", ["frank", "margaret"], "lessons", 140, "2026-09-08", "2027-05-14"),
   A("sci", "sci", ["frank", "margaret"], "lessons", 120, "2026-09-08", "2027-05-14"),

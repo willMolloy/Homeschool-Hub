@@ -1,6 +1,5 @@
 import { buildCapacityModel, type CapacityModel } from "./capacity";
 import { EngineInputError, fromDayNumber, isValidLocalDate, toDayNumber, weekStartOfDayNumber } from "./dates";
-import { minutesPerUnitOf } from "./units";
 import { weightPerUnitOf } from "./weights";
 import { ENGINE_VERSION } from "./version";
 import type { Assignment, ChildPlan, DayKind, DayLoad, OverrideMode, PlanContext, PlanWarning, SubjectWeight, WeekOverride } from "./types";
@@ -64,7 +63,6 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     if (!warnings.includes(w)) warnings.push(w);
   };
   const cap = model ?? buildCapacityModel(ctx.calendar, ctx.events, ctx.blocked);
-  const { minutesPerUnit, estimated } = minutesPerUnitOf(a);
   const { weight, source: weightSource } = weightPerUnitOf(a, subjectDefaultFor(a, ctx));
 
   const S = toDayNumber(a.start);
@@ -218,7 +216,6 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
       capacity: inRange ? cap.capacity(d, childId, a.subjectId) : 0,
       schoolDay: cap.schoolDay(d, childId),
       units,
-      minutes: units * minutesPerUnit,
       thickness: units * weight,
       kind,
     });
@@ -230,8 +227,6 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     childId,
     subjectId: a.subjectId,
     unitType: a.unitType,
-    minutesPerUnit,
-    minutesPerUnitEstimated: estimated,
     weightPerUnit: weight,
     weightSource,
     totalUnits: total,

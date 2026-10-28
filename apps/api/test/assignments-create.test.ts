@@ -70,7 +70,7 @@ describe.skipIf(!hasDb)("POST /api/assignments (integration)", () => {
     const plan: PlanResponse = (await req("GET", "/api/plan?from=2026-11-02&to=2026-11-08&asOf=2026-11-02")).json();
     const mine = plan.plans.filter((p) => p.assignmentId === id);
     expect(mine.map((p) => p.childId).sort()).toEqual([...kids].sort());
-    expect(mine[0]!.days.some((d) => d.minutes > 0)).toBe(true);
+    expect(mine[0]!.days.some((d) => d.thickness > 0)).toBe(true);
   });
 
   it("unknown keys (family_id, familyId, archived) → 400 naming them; nothing inserted (RF-09)", async () => {

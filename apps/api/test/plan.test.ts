@@ -90,10 +90,10 @@ describe.skipIf(!hasDb)("GET /api/plan (integration)", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).not.toMatch(/NaN|Infinity/);
     const body = res.json<PlanResponse>();
-    const numberFields = ["totalUnits", "doneUnits", "remainingUnits", "baseRate", "rate", "unplacedUnits", "minutesPerUnit"] as const;
+    const numberFields = ["totalUnits", "doneUnits", "remainingUnits", "baseRate", "rate", "unplacedUnits", "weightPerUnit"] as const;
     for (const p of body.plans) {
       for (const f of numberFields) expect(Number.isFinite(p[f]), `${p.assignmentId} ${f}`).toBe(true);
-      for (const d of p.days) for (const f of ["capacity", "units", "minutes"] as const) {
+      for (const d of p.days) for (const f of ["capacity", "units", "thickness"] as const) {
         expect(Number.isFinite(d[f]), `${p.assignmentId} ${d.date} ${f}`).toBe(true);
       }
     }

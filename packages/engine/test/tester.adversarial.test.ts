@@ -60,7 +60,7 @@ function randomCase(r: () => number) {
     childIds: kids.filter(() => r() < 0.7).concat("frank"),
     unitType: pick(["pages", "chapters", "lessons", "minutes"] as const),
     totalUnits: pick([0, 1, 7, 100, 333.33, 99999999.99]),
-    start, end, minutesPerUnit: pick([null, undefined, 0, 2.5, 120, Number.NaN, -1]),
+    start, end,
     weightPerUnit: pick([null, undefined, 0.01, 1.4, 100, Number.NaN, -5, 0]),
   });
   return { a, ctx };
@@ -76,7 +76,6 @@ function expectAll(p: ChildPlan, label: string) {
       expect(d.capacity).toBeGreaterThan(0); // work is only ever placed on days with capacity
     }
     // Every numeric field the UI draws is finite.
-    for (const d of p.days) expect(Number.isFinite(d.minutes), `${d.date} minutes`).toBe(true);
     for (const d of p.days) expect(Number.isFinite(d.thickness) && d.thickness >= 0, `${d.date} thickness`).toBe(true);
     expect(p.unplacedUnits).toBeLessThanOrEqual(p.remainingUnits + 1e-6);
     if (p.complete) expect(sumPlanned(p)).toBeCloseTo(0, 9);
@@ -224,15 +223,16 @@ describe("tester: calendar edges", () => {
     expect(p.warnings).toEqual([]);
   });
   it("huge units within the DB column (numeric(10,2)) stay finite and conserved", () => {
-    const p = planChild(book({ totalUnits: 99999999.99, minutesPerUnit: 999999.99 }), "frank", { calendar: MON_FRI });
+    const p = planChild(book({ totalUnits: 99999999.99, weightPerUnit: 100 }), "frank", { calendar: MON_FRI });
     expectSane(p);
     expectConserved(p);
   });
   // Known, not fixed: the engine's "never Infinity" promise only holds for inputs the DB columns allow
-  // (numeric(10,2) units x numeric(8,2) min/unit). See docs/progress/tester-report.md (T-ENG-2).
-  it.fails("absurd units beyond any column (1e306 x 999 min/unit on one day) don't draw Infinity minutes", () => {
-    const p = planChild(book({ start: "2026-09-09", end: "2026-09-09", totalUnits: 1e306, minutesPerUnit: 999 }), "frank", { calendar: MON_FRI });
-    expect(p.days.every((d) => Number.isFinite(d.minutes))).toBe(true);
+  // (numeric(10,2) units x a weight of at most 100). See docs/progress/tester-report.md (T-ENG-2).
+  // S2b-14: minutes are gone, so the same overflow now shows up in thickness.
+  it.fails("absurd units beyond any column (1e307 x weight 100 on one day) don't draw Infinity thickness", () => {
+    const p = planChild(book({ start: "2026-09-09", end: "2026-09-09", totalUnits: 1e307, weightPerUnit: 100 }), "frank", { calendar: MON_FRI });
+    expect(p.days.every((d) => Number.isFinite(d.thickness))).toBe(true);
   });
   it("weight 100 × 100 000 units stays finite; NaN or -5 weights fall back to the built-in", () => {
     const p = planChild(book({ start: "2026-09-09", end: "2026-09-09", totalUnits: 100000, weightPerUnit: 100 }), "frank", { calendar: MON_FRI });

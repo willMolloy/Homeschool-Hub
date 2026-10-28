@@ -48,7 +48,7 @@ describe.skipIf(!hasDb)("/api/plan reflects schedule data written through the AP
   const predicted = (events: RecurringEvent[] = [], blocked: BlockedPeriod[] = []): ChildPlan[] =>
     JSON.parse(JSON.stringify(planAll([assignment], { calendar, events, blocked, asOf: AS_OF })
       .map((p) => ({ ...p, days: p.days.filter((d) => d.date >= FROM && d.date <= TO) }))));
-  const minutesOn = (plans: ChildPlan[], date: string) => plans[0]!.days.find((d) => d.date === date)!.minutes;
+  const thicknessOn = (plans: ChildPlan[], date: string) => plans[0]!.days.find((d) => d.date === date)!.thickness;
   const capacityOn = (plans: ChildPlan[], date: string) => plans[0]!.days.find((d) => d.date === date)!.capacity;
 
   let stage1: ChildPlan[] = [];
@@ -70,8 +70,8 @@ describe.skipIf(!hasDb)("/api/plan reflects schedule data written through the AP
     };
     stage1 = await apiPlan();
     expect(stage1).toEqual(predicted());
-    expect(minutesOn(stage1, "2026-11-04")).toBeGreaterThan(0); // a Wednesday
-    expect(minutesOn(stage1, "2026-11-06")).toBe(0); // Friday is no longer a school day
+    expect(thicknessOn(stage1, "2026-11-04")).toBeGreaterThan(0); // a Wednesday
+    expect(thicknessOn(stage1, "2026-11-06")).toBe(0); // Friday is no longer a school day
   });
 
   it("stage 2: a Wednesday 'skip' event zeroes Wednesdays and moves the work as predicted", async () => {
@@ -80,19 +80,19 @@ describe.skipIf(!hasDb)("/api/plan reflects schedule data written through the AP
     eventId = res.json().id;
     const got = await apiPlan();
     expect(got).toEqual(predicted([skipWednesday()]));
-    for (const wed of ["2026-11-04", "2026-11-11", "2026-11-18", "2026-11-25"]) expect(minutesOn(got, wed)).toBe(0);
-    expect(minutesOn(got, "2026-11-05")).toBeGreaterThan(minutesOn(stage1, "2026-11-05"));
+    for (const wed of ["2026-11-04", "2026-11-11", "2026-11-18", "2026-11-25"]) expect(thicknessOn(got, wed)).toBe(0);
+    expect(thicknessOn(got, "2026-11-05")).toBeGreaterThan(thicknessOn(stage1, "2026-11-05"));
   });
 
-  it("stage 3: a vacation week zeroes those days and raises minutes elsewhere as predicted", async () => {
+  it("stage 3: a vacation week zeroes those days and raises thickness elsewhere as predicted", async () => {
     const before = await apiPlan();
     const res = await req("POST", "/api/blocked-ranges", { startDate: "2026-11-16", endDate: "2026-11-20", label: "Thanksgiving trip" });
     expect(res.statusCode).toBe(201);
     vacationId = res.json().id;
     const got = await apiPlan();
     expect(got).toEqual(predicted([skipWednesday()], [vacation()]));
-    for (const d of ["2026-11-16", "2026-11-17", "2026-11-19"]) expect(minutesOn(got, d)).toBe(0);
-    expect(minutesOn(got, "2026-11-23")).toBeGreaterThan(minutesOn(before, "2026-11-23"));
+    for (const d of ["2026-11-16", "2026-11-17", "2026-11-19"]) expect(thicknessOn(got, d)).toBe(0);
+    expect(thicknessOn(got, "2026-11-23")).toBeGreaterThan(thicknessOn(before, "2026-11-23"));
   });
 
   it("stage 4: archiving the event and deleting the vacation restores the first plan", async () => {

@@ -5,4 +5,5 @@
  */
 // Pre-1.0, a MINOR bump is breaking (0.2.0: thickness from weight, S2b-02).
 // 0.2.1: subject default weights (S2b-32); output changes only when the new input is given.
-export const ENGINE_VERSION = "0.2.1";
+// 0.3.0: minute outputs removed (S2b-14); plans carry only units and thickness.
+export const ENGINE_VERSION = "0.3.0";

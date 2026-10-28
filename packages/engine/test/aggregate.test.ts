@@ -79,7 +79,7 @@ describe("semantic zoom aggregation", () => {
     // Mon-Fri still have capacity (nothing logged there), plus the Saturday that has logged work.
     expect(w.capacityDays).toBe(6);
     expect(w.totalThickness).toBeCloseTo(10);
-    expect(w.totalMinutes).toBeCloseTo(20); // deprecated field, removed in S2b-14
+    expect(w).not.toHaveProperty("totalMinutes"); // S2b-14
     expect(w.average).toBeCloseTo(10 / 6);
     expect(val(aggregate(p.days, "weekly", "mon"), "2026-09-12")).toBeCloseTo(10 / 6);
   });

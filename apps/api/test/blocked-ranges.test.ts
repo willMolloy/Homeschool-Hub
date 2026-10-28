@@ -72,10 +72,10 @@ describe.skipIf(!hasDb)("/api/blocked-ranges (integration)", () => {
       return p.plans.find((x) => x.assignmentId === asg)!.days.find((d) => d.date === date)!;
     };
     expect(await day("2026-11-04")).toMatchObject({ schoolDay: true });
-    expect((await day("2026-11-04")).minutes).toBeGreaterThan(0);
+    expect((await day("2026-11-04")).thickness).toBeGreaterThan(0);
     const v = (await req("POST", "/api/blocked-ranges", { startDate: "2026-11-04", endDate: "2026-11-06" })).json();
-    expect(await day("2026-11-04")).toMatchObject({ schoolDay: false, capacity: 0, minutes: 0 });
-    expect(await day("2026-11-06")).toMatchObject({ schoolDay: false, minutes: 0 });
+    expect(await day("2026-11-04")).toMatchObject({ schoolDay: false, capacity: 0, thickness: 0 });
+    expect(await day("2026-11-06")).toMatchObject({ schoolDay: false, thickness: 0 });
     // Only for Ada → Frank's plan is unaffected.
     await req("PATCH", `/api/blocked-ranges/${v.id}`, { childIds: [kids[1]] });
     expect((await day("2026-11-04")).schoolDay).toBe(true);
