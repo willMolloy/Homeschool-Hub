@@ -14,7 +14,7 @@
 import { weekdayOf } from "@hh/engine";
 import { PX_PER_THICKNESS } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
-import { estimateTextWidth, placeName, placeOutsideName, type MeasureText } from "./names";
+import { estimateTextWidth, outsideNameLimit, placeName, placeOutsideName, type MeasureText } from "./names";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows } from "./rows";
 import { sumSeries } from "./grid";
@@ -391,8 +391,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
         // T-10: bars with no inside name get a label past their end, up to the next bar in the row.
         for (const p of placed) {
           if (p.named) continue;
-          const end = Math.max(...p.columns.flatMap((c) => (c ? [c.x1] : [])));
-          const limit = Math.min(plotX + plotWidth, ...placed.filter((o) => o !== p && o.start >= end).map((o) => o.start));
+          const limit = outsideNameLimit(placed.map((o) => o.start), p.start, plotX + plotWidth);
           const label = placeOutsideName(p.a.title, p.columns, y, height, cy, limit, measure);
           if (label) names.push({ rowKey: key, assignmentId: p.a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...label, outside: true });
         }

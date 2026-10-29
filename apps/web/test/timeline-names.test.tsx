@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import {
-  ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, placeName, placeOutsideName,
+  ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, outsideNameLimit, placeName, placeOutsideName,
 } from "../src/features/timeline/names";
 import type { BandColumn } from "../src/features/timeline/paths";
 import { Timeline } from "../src/features/timeline/Timeline";
@@ -78,8 +78,20 @@ describe("placing a label past a short bar (T-10)", () => {
   });
 });
 
+describe("where a label past a bar must stop", () => {
+  it("at the next bar in the row, even when the edges differ only by rounding", () => {
+    // From the demo at 390 px: The Hobbit starts a hair before Treasure Island's computed end.
+    expect(outsideNameLimit([4, 24.105263157894736, 54.26315789473684, 114.57894736842105], 24.105263157894736, 386)).toBe(54.26315789473684);
+  });
+
+  it("at the plot's right edge after the last bar", () => {
+    expect(outsideNameLimit([4, 24, 305], 305, 386)).toBe(386);
+  });
+});
+
 describe("names in the layout", () => {
-  for (const [zoom, width] of [["year", 1280], ["fall", 1280], ["year", 360]] as const) {
+
+  for (const [zoom, width] of [["year", 1280], ["fall", 1280], ["year", 390], ["year", 360], ["year", 320]] as const) {
     it(`at ${zoom} / ${width} px every name sits inside its own bar or just past it, one at most per bar`, () => {
       const l = layoutTimeline(sample, { zoom, width });
       const seen = new Set<string>();
@@ -93,6 +105,10 @@ describe("names in the layout", () => {
           expect(n.x).toBeGreaterThanOrEqual(end);
           for (const o of l.bands.filter((b) => b.rowKey === n.rowKey && b !== band)) {
             for (const r of o.runs) expect(r.x0 >= n.x + n.width || r.x1 <= n.x).toBe(true);
+          }
+          // Nor over another bar's name.
+          for (const m of l.names.filter((m) => m.rowKey === n.rowKey && m !== n)) {
+            expect(m.x >= n.x + n.width || m.x + m.width <= n.x).toBe(true);
           }
           expect(n.x + n.width).toBeLessThanOrEqual(l.plot.x + l.plot.width + 0.01);
           expect(n.text === band.title || band.title.startsWith(n.text.slice(0, -1))).toBe(true);

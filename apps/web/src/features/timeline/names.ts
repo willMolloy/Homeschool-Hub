@@ -109,3 +109,12 @@ export function placeOutsideName(
   if (!text) return null;
   return { text, x, y: rowTop, width: measure(text), height: rowHeight, textX: x, textY: cy };
 }
+
+/**
+ * T-10: the x a label past a bar must stop at: the next bar's start in the row, else the plot's right edge.
+ * Bars in a row never overlap, so "later" means a later start; comparing with this bar's end instead would
+ * miss a neighbour whose start rounds a hair below it.
+ */
+export function outsideNameLimit(rowStarts: readonly number[], ownStart: number, right: number): number {
+  return Math.min(right, ...rowStarts.filter((s) => s > ownStart));
+}
