@@ -2,15 +2,15 @@
  * T-03b: This Week — one week switcher in the header, and a "Make an adjustment" sheet per student (Drawer on
  * phones, Dialog wider) that edits that child's rows of the finished week. Ports S2b-27's past-week editing.
  */
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
 import type { CheckInItem, PastWeek, WeekCheckIn } from "../src/api/types";
 import { forChild, withOtherChildren } from "../src/features/checkin/childWeek";
-import { LATER_NOTE, laterCheckInsExist } from "../src/features/checkin/ChildAdjustment";
+import { LATER_NOTE, laterCheckInsExist, sheetTitle } from "../src/features/checkin/ChildAdjustment";
 import { shownWeek } from "../src/features/plan/useShownWeek";
-import { openRows } from "./helpers/checkin";
+import { choose, rowFor, step } from "./helpers/checkin";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
@@ -117,12 +117,12 @@ describe("Make an adjustment", () => {
     expect(fakeApi.calls.some((c) => c.path.startsWith("/api/check-ins?weekStart="))).toBe(false);
   });
 
-  it("wide screens get a Dialog, phones a Drawer; both titled with the child and week", async () => {
+  it("wide screens get a Dialog, phones a Drawer; both titled with the child and Last week · its dates (T-09)", async () => {
     stub();
     phone(false);
     const dialog = await openSheet();
     expect(dialog).toHaveAttribute("data-sheet", "dialog");
-    expect(dialog).toHaveAccessibleName("Frank · Oct 19–25");
+    expect(dialog).toHaveAccessibleName("Frank · Last week · Oct 19–25");
     await userEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
@@ -132,31 +132,33 @@ describe("Make an adjustment", () => {
     phone(true);
     const drawer = await openSheet("Margaret");
     expect(drawer).toHaveAttribute("data-sheet", "drawer");
-    expect(drawer).toHaveAccessibleName("Margaret · Oct 19–25");
+    expect(drawer).toHaveAccessibleName("Margaret · Last week · Oct 19–25");
   });
 
-  it("shows only that child's rows, collapsed, each tinted with its subject's pastel", async () => {
+  it("shows only that child's rows, in the same calm rows as the card, each tinted with its subject's pastel", async () => {
     stub();
     const sheet = await openSheet();
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/check-ins?weekStart=2026-10-19");
     const toggles = await within(sheet).findAllByRole("button", { expanded: false });
-    expect(toggles.map((t) => t.textContent)).toEqual(["Treasure Island✓ Done as planned", "Math 5✓ Done as planned"]);
+    expect(toggles.map((t) => t.textContent)).toEqual(["Treasure Islandpp. 1–80✓As planned", "Math 5Lessons 11–15✓As planned"]);
     expect(within(sheet).queryByText(/Violin/)).toBeNull();
-    expect(within(sheet).queryByRole("heading", { name: "Frank" })).toBeNull();
+    expect(within(sheet).queryByRole("group", { name: "Child" })).toBeNull();
     const rows = within(sheet).getAllByRole("listitem");
     expect(rows.map((r) => r.style.getPropertyValue("--checkin-row-tint"))).toEqual(["var(--tl-subject-1-pastel)", "var(--tl-subject-2-pastel)"]);
     // No prompt buttons or card header in the sheet, just Save (edit mode: re-saving unchanged is allowed).
     expect(within(sheet).queryByRole("button", { name: "Skip" })).toBeNull();
-    expect(within(sheet).queryByText(/assignments? (was|were) planned/)).toBeNull();
+    expect(within(sheet).queryByRole("button", { name: "Looks right" })).toBeNull();
     expect(within(sheet).getByRole("button", { name: "Save" })).toBeEnabled();
   });
 
   it("saving sends this child's change and keeps the other children's stored rows (the PUT replaces the week)", async () => {
     stub();
     const sheet = await openSheet();
-    await openRows(await within(sheet).findByRole("list"));
-    const ti = within(sheet).getByRole("group", { name: "Progress on Treasure Island for Frank" });
-    fireEvent.change(within(ti).getByRole("spinbutton"), { target: { value: "65" } });
+    await within(sheet).findByRole("list");
+    const ti = await rowFor(sheet, "Treasure Island");
+    await choose(ti, "Less");
+    await step(ti, "One less", 14);
+    expect(ti.querySelector(".checkin-row-state")).toHaveTextContent("65 of 80 pp.");
     await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
     expect(puts().at(-1)).toMatchObject({
       path: "/api/check-ins/2026-10-19",
@@ -185,19 +187,34 @@ describe("Make an adjustment", () => {
     await waitFor(() => expect(screen.queryByRole("region", { name: /How did last week go\?/ })).toBeNull());
   });
 
-  it("a past shown week is adjusted as itself; a skipped week saves as reviewed", async () => {
+  it("a past shown week is adjusted as itself, prefilled and keeping its stored mode; a skipped week saves as reviewed", async () => {
     stub();
     const sheet = await openSheet("Frank", "/?week=2026-10-14");
     expect(sheet).toHaveAccessibleName("Frank · Oct 12–18");
-    await openRows(await within(sheet).findByRole("list"));
+    await within(sheet).findByRole("list");
     expect(within(sheet).queryByText(/skipped/)).toBeNull();
-    expect(within(sheet).getByRole("spinbutton")).toHaveValue(60);
-    fireEvent.change(within(sheet).getByRole("spinbutton"), { target: { value: "70" } });
+    const ti = await rowFor(sheet, "Treasure Island");
+    expect(ti.querySelector(".checkin-row-state")).toHaveTextContent("60 of 80 pp.");
+    await step(ti, "One more", 10);
     await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
     expect(puts().at(-1)).toMatchObject({
       path: "/api/check-ins/2026-10-12",
       body: { status: "reviewed", items: [{ assignmentId: "ti", position: 70, mode: "keepEndDate" }] },
     });
+  });
+
+  it("Undo on a stored row removes it from the week on Save", async () => {
+    stub();
+    const sheet = await openSheet("Frank", "/?week=2026-10-14");
+    await within(sheet).findByRole("list");
+    await userEvent.click(within(sheet).getByRole("button", { name: "Undo Treasure Island for Frank" }));
+    await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
+    expect(puts().at(-1)).toMatchObject({ path: "/api/check-ins/2026-10-12", body: { status: "reviewed", items: [] } });
+  });
+
+  it("sheetTitle says Last week only for last week", () => {
+    expect(sheetTitle("Frank", "2026-10-19", "2026-10-25", true)).toBe("Frank · Last week · Oct 19–25");
+    expect(sheetTitle("Frank", "2026-10-12", "2026-10-18", false)).toBe("Frank · Oct 12–18");
   });
 
   it("the later-check-ins note shows only when a later week has check-ins", async () => {

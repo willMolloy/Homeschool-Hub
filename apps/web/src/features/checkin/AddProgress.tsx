@@ -28,7 +28,7 @@ export function AddProgress({ options, disabled, onAdd }: AddProgressProps) {
     <div className="checkin-add">
       <button type="button" className="btn-link" aria-expanded={open} aria-controls={listId} disabled={disabled}
         onClick={() => setOpen((o) => !o)}>
-        Add progress
+        Add progress on something else
       </button>
       <ul id={listId} className="checkin-add-list" aria-label="Assignments with nothing planned" hidden={!open}>
         {open && addOrder(options).map((o) => (

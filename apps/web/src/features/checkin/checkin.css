@@ -1,57 +1,58 @@
-/* "How did last week go?" (S2b-25): quiet, one line until Adjust. */
-.checkin-card { margin: 0 0 16px; padding: 14px 16px; }
-.checkin-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.checkin-question { margin: 0; overflow-wrap: anywhere; }
-.checkin-actions { align-items: center; }
-/* T-03b: Skip stays, quietly — muted text, no button chrome. */
-.checkin-skip { color: var(--muted); background: none; border: 0; padding: 4px 6px; font: inherit; font-size: 0.9rem; cursor: pointer; min-height: 32px; }
+/* "How did last week go?" (S2b-25; T-09): calm, centred, pastel rows, nothing until a row is tapped. */
+.checkin-card { max-width: 560px; margin: 0 auto 16px; padding: 16px; }
+.checkin-title { font-size: 1.05rem; font-weight: 600; margin: 0 0 10px; }
+.checkin-summary { margin: 0 0 10px; }
+.checkin-footer { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; }
+.checkin-footer .btn { min-height: 44px; }
+.checkin-skip { color: var(--muted); background: none; border: 0; padding: 0 10px; font: inherit; cursor: pointer;
+  min-height: 44px; min-width: 44px; }
 .checkin-skip:hover { text-decoration: underline; }
 .checkin-error { color: var(--danger); margin: 8px 0 0; }
-.checkin-child h3 { font-size: 1rem; margin: 14px 0 6px; }
-/* T-03b: rows are spaced, not ruled; each starts as one tappable line (assignment + state). A host may tint
-   a row with --checkin-row-tint (This Week's subject pastels). */
+.checkin-thanks { color: var(--muted); max-width: 560px; margin: 0 auto 12px; }
+
+/* The child picker: plain pills; the picked one is filled softly. */
+.checkin-kids { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.checkin-kids button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent;
+  font: inherit; color: var(--muted); cursor: pointer; }
+.checkin-kids button[aria-pressed="true"] { background: color-mix(in srgb, currentColor 8%, transparent); color: inherit; font-weight: 600; }
+
+/* One row per planned assignment, tinted with its subject's pastel (--checkin-row-tint from the host). */
 .checkin-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.checkin-row { border-radius: 8px; background: var(--checkin-row-tint, transparent); }
-.checkin-row-toggle { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; width: 100%;
-  min-height: 44px; padding: 8px 10px; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-.checkin-row-title { overflow-wrap: anywhere; }
-.checkin-row-state { color: var(--muted); font-size: 0.9rem; }
-.checkin-row-detail { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 10px 10px; }
+.checkin-row { border-radius: 10px; background: var(--checkin-row-tint, color-mix(in srgb, currentColor 4%, transparent)); }
+.checkin-row-head { display: flex; align-items: center; }
+.checkin-row-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 12px;
+  border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.checkin-row-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.checkin-row-plan { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+.checkin-row-state { min-width: 1.5em; text-align: right; color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+.checkin-row.is-changed .checkin-row-state { color: inherit; font-weight: 600; }
+.checkin-undo { min-height: 44px; min-width: 44px; padding: 0 12px 0 4px; border: 0; background: none; font: inherit;
+  font-size: 0.9rem; color: var(--muted); cursor: pointer; }
+.checkin-undo:hover { text-decoration: underline; }
+.checkin-row-detail { display: grid; gap: 8px; padding: 0 12px 12px; }
 .checkin-row-detail[hidden] { display: none; }
-.checkin-row-plan { margin: 0; color: var(--muted); }
-.checkin-row > .checkin-error { padding: 0 10px 8px; }
-/* The collapsed line already says the state; inside a row the adjuster's own label is for screen readers. */
-.checkin-row .progress-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.checkin-footer { margin-top: 12px; }
-.checkin-add { margin-top: 10px; }
-.checkin-add-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
-.checkin-thanks { color: var(--muted); margin: 0 0 12px; }
+.checkin-row > .checkin-error { padding: 0 12px 8px; }
 
-/* One row's progress control (S2b-36). */
-.progress-adjuster { flex-basis: 100%; display: grid; gap: 6px; margin-top: 6px; }
-.progress-chips { flex-wrap: wrap; align-items: center; gap: 6px; }
-.chip { border: 1px solid var(--line); border-radius: 999px; background: transparent; padding: 4px 12px; cursor: pointer; font: inherit; color: inherit; min-height: 32px; }
-.chip[aria-pressed="true"] { border-color: currentColor; font-weight: 600; }
-.progress-bar { position: relative; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
-.progress-bar span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
-.progress-bar-planned { background: color-mix(in srgb, currentColor 25%, transparent); }
-.progress-bar .progress-bar-actual { background: currentColor; opacity: 0.7; top: 2px; bottom: 2px; }
-.progress-slider { width: 100%; }
-.progress-field { display: flex; align-items: center; gap: 8px; }
-.progress-field input { width: 7em; }
-.progress-error { color: var(--danger); margin: 0; }
-.progress-label { color: var(--muted); margin: 0; }
+/* As planned / Less / More: one soft segmented control. */
+.checkin-choice { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; border-radius: 10px;
+  background: color-mix(in srgb, var(--surface, #fff) 70%, transparent); }
+.checkin-choice button { min-height: 44px; border: 0; border-radius: 8px; background: none; font: inherit; color: inherit; cursor: pointer; }
+.checkin-choice button[aria-pressed="true"] { background: var(--surface, #fff); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+.checkin-choice button:disabled { opacity: 0.4; cursor: default; }
 
-/* How to absorb a difference (S2b-26). */
-.checkin-outcome { flex-basis: 100%; margin: 6px 0 0; }
-.absorb-choice { flex-basis: 100%; border: 0; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
-.absorb-choice legend { padding: 0; margin-bottom: 4px; color: var(--muted); }
-.absorb-option { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
-.checkin-group-choice { margin-top: 16px; }
-.checkin-apply-all { display: inline-flex; align-items: center; gap: 6px; }
+/* The amount stepper: − value + */
+.checkin-stepper { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.checkin-stepper button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--surface, #fff);
+  font-size: 1.25rem; line-height: 1; color: inherit; cursor: pointer; }
+.checkin-stepper button:disabled { opacity: 0.4; cursor: default; }
+.checkin-stepper output { min-width: 7em; text-align: center; font-variant-numeric: tabular-nums; }
+
+.checkin-add { margin-top: 12px; }
+.checkin-add > .btn-link { min-height: 44px; color: var(--muted); }
+.checkin-add-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; }
+.checkin-add-list .btn-link { min-height: 44px; }
 .checkin-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* The adjustment sheet's note (T-03b), shown only when later weeks have check-ins. */
+/* The adjustment sheet (T-03b): the same rows; the note only when later weeks have check-ins. */
 .checkin-note { color: var(--muted); margin: 0 0 8px; }
-.checkin-status { color: var(--muted); }
-.checkin-sheet .checkin-footer { margin-top: 16px; }
+.checkin-sheet .checkin-footer { margin: 16px 0 0; }

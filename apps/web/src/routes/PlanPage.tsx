@@ -23,7 +23,8 @@ export function PlanPage() {
       <LastWeekCheckIn />
       <PlanDebugView weekStart={week.weekStart} debug={debug}
         childAction={(childId, childName) => (
-          <ChildAdjustment childId={childId} childName={childName} weekStart={checkIn.start} weekEnd={checkIn.end} />
+          <ChildAdjustment childId={childId} childName={childName} weekStart={checkIn.start} weekEnd={checkIn.end}
+            lastWeek={checkIn.start === addDays(week.currentWeekStart, -7)} />
         )} />
     </PlanRefreshProvider>
   );

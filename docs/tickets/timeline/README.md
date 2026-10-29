@@ -23,9 +23,8 @@ From the Timeline Tools Page (stack, colour and typography choices for the year 
 | T-08 | [Drag a bar to change its dates](T-08-drag-bars.md) | T-07e, T-07f | M |
 | T-08b | [Polish after the drag hand-test](T-08b-polish.md) | T-08 | S |
 | T-08c | [Bar opacity halfway to solid](T-08c-bar-opacity.md) | T-08b | S |
+| T-09 | ["How did last week go?" redesign](T-09-last-week-redesign.md) | T-03b, T-08c | M |
 | T-07b | Manual zoom: pinch, ctrl+wheel and pan; the presets just jump *(written when started)* | T-05c, T-07 | M |
-| T-08 | Drag to resize *(written when started)* | T-07 | M |
-| T-09 | Drag to move *(written when started)* | T-08 | M |
 
 The order is the Tools Page's build order. The parent pilot gate was dropped by DeeDee (they will test the timeline themselves), so these no longer wait for pilot results. Each ticket doc is written when its work starts, in the same format. The tester's verification pass is run separately and is not in this list.
 

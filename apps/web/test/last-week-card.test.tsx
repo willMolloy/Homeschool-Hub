@@ -1,80 +1,89 @@
-/** S2b-25: the "How did last week go?" card on the plan page. */
-import { screen, within } from "@testing-library/react";
+/**
+ * S2b-25 → T-09: "How did last week go?" on This Week. The default is that everything went as planned;
+ * rows adjust inline with As planned / Less / More and a stepper, and save through the same check-in API.
+ */
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { CheckInItem, WeekCheckIn } from "../src/api/types";
-import { plannedCountText, plannedRangeText } from "../src/features/checkin/checkinText";
+import { rowOutcome } from "../src/features/checkin/absorb";
+import { AS_PLANNED_LINE } from "../src/features/checkin/LastWeekCard";
+import { THANKS_MS } from "../src/features/checkin/LastWeekCheckIn";
+import { itemErrorOf } from "../src/features/checkin/useLastWeekCheckIn";
 import { EMPTY_WEEK, fakeApi } from "./helpers/fake-api";
-import { openRows } from "./helpers/checkin";
+import { choose, rowFor, step } from "./helpers/checkin";
 import { renderAt } from "./render";
 
 const item = (over: Partial<CheckInItem>): CheckInItem => ({
   assignmentId: "ti", childId: "c1", childName: "Frank", title: "Treasure Island", unitType: "pages",
   plannedFrom: 0, plannedTo: 80, totalUnits: 270, actual: null, mode: null, ...over,
 });
-const WEEK: WeekCheckIn = {
-  ...EMPTY_WEEK, status: null,
-  items: [
-    item({}),
-    item({ assignmentId: "hist", title: "Story of the World", unitType: "chapters", plannedFrom: 3, plannedTo: 5 }),
-    item({ assignmentId: "hist", childId: "c2", childName: "Margaret", title: "Story of the World", unitType: "chapters", plannedFrom: 3, plannedTo: 5 }),
-    item({ assignmentId: "violin", childId: "c2", childName: "Margaret", title: "Violin practice", unitType: "minutes", plannedFrom: 600, plannedTo: 750 }),
-  ],
-};
+const TI = item({});
+const SOTW_F = item({ assignmentId: "sotw", title: "Story of the World", unitType: "chapters", plannedFrom: 3, plannedTo: 6, totalUnits: 42 });
+const SOTW_M = item({ ...SOTW_F, childId: "c2", childName: "Margaret" });
+const VIOLIN_M = item({ assignmentId: "violin", childId: "c2", childName: "Margaret", title: "Violin", unitType: "minutes", plannedFrom: 600, plannedTo: 750, totalUnits: 3000 });
+const WEEK: WeekCheckIn = { ...EMPTY_WEEK, status: null, items: [TI, SOTW_F, SOTW_M, VIOLIN_M] };
 const PUT = `PUT /api/check-ins/${WEEK.weekStart}`;
-const card = () => screen.queryByRole("region", { name: /How did last week go\?/ });
+const card = () => screen.queryByRole("region", { name: "How did last week go?" });
 const puts = () => fakeApi.calls.filter((c) => c.method === "PUT");
 
 async function showCard(week: WeekCheckIn = WEEK) {
   fakeApi.on("GET /api/check-ins", 200, week);
+  fakeApi.on(PUT, (body) => [200, { ...week, status: (body as { status: string }).status, planChanged: true }]);
   renderAt("/");
-  return screen.findByRole("region", { name: /How did last week go\?/ });
+  return screen.findByRole("region", { name: "How did last week go?" });
 }
 
-describe("checkin text", () => {
-  it("counts and ranges", () => {
-    expect(plannedCountText(6)).toBe("6 assignments were planned.");
-    expect(plannedCountText(1)).toBe("1 assignment was planned.");
-    expect(plannedRangeText("pages", 0, 80)).toBe("pp. 1–80");
-    expect(plannedRangeText("pages", 80, 81)).toBe("p. 81");
-    expect(plannedRangeText("pages", 22.5, 45)).toBe("pp. 23–45");
-    expect(plannedRangeText("chapters", 3, 5)).toBe("chapters 4–5");
-    expect(plannedRangeText("lessons", 9, 10)).toBe("lesson 10");
-    expect(plannedRangeText("minutes", 600, 750)).toBe("150 minutes");
-    expect(plannedRangeText("minutes", 0, 1)).toBe("1 minute");
-  });
-});
-
-describe("LastWeekCard", () => {
-  it("collapsed by default, with the count", async () => {
+describe("the default: everything went as planned", () => {
+  it("the week, one line, Looks right and Skip; the first child's rows, all checked, no controls", async () => {
     const c = await showCard();
-    expect(within(c).getByText(/4 assignments were planned\./)).toBeInTheDocument();
-    expect(within(c).getByRole("button", { name: "Adjust" })).toHaveAttribute("aria-expanded", "false");
-    expect(within(c).queryByText(/Treasure Island/)).toBeNull();
+    expect(within(c).getByRole("heading", { name: "Last week · Oct 19–25" })).toBeInTheDocument();
+    expect(within(c).getByText(AS_PLANNED_LINE)).toBeInTheDocument();
+    expect(within(c).getByRole("button", { name: "Looks right" })).toBeEnabled();
+    expect(within(c).getByRole("button", { name: "Skip" })).toBeInTheDocument();
+    const rows = within(c).getAllByRole("listitem");
+    expect(rows.map((r) => r.querySelector(".checkin-row-toggle")!.textContent))
+      .toEqual(["Treasure Islandpp. 1–80✓As planned", "Story of the WorldCh. 4–6✓As planned"]);
+    expect(c.querySelectorAll("[aria-pressed], [role='spinbutton'], [role='slider'], input")).toHaveLength(2); // the child picker
+    // Nothing non-essential: no count, no helper text, no Adjust.
+    expect(within(c).queryByText(/assignments? (was|were) planned|counts as done/)).toBeNull();
+    expect(within(c).queryByRole("button", { name: "Adjust" })).toBeNull();
   });
 
-  it("Went as planned → exactly one PUT (reviewed, no items) and the card is gone", async () => {
+  it("a child picker when there is more than one child", async () => {
     const c = await showCard();
-    await userEvent.click(within(c).getByRole("button", { name: "Last week went as planned" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Thanks!");
+    const picker = within(c).getByRole("group", { name: "Child" });
+    expect(within(picker).getAllByRole("button").map((b) => [b.textContent, b.getAttribute("aria-pressed")]))
+      .toEqual([["Frank", "true"], ["Margaret", "false"]]);
+    await userEvent.click(within(picker).getByRole("button", { name: "Margaret" }));
+    expect(within(c).getAllByRole("listitem").map((r) => r.querySelector(".checkin-row-title")!.textContent)).toEqual(["Story of the World", "Violin"]);
+  });
+
+  it("no picker with one child", async () => {
+    const c = await showCard({ ...WEEK, items: [TI, SOTW_F] });
+    expect(within(c).queryByRole("group", { name: "Child" })).toBeNull();
+  });
+
+  it("Looks right → exactly one PUT (reviewed, no items), a brief thanks, and the card is gone", async () => {
+    const c = await showCard();
+    await userEvent.click(within(c).getByRole("button", { name: "Looks right" }));
+    expect(await screen.findByRole("status")).toHaveTextContent(/^Thanks/);
     expect(card()).toBeNull();
     expect(puts()).toEqual([{ method: "PUT", path: `/api/check-ins/${WEEK.weekStart}`, body: { status: "reviewed", items: [] } }]);
   });
 
   it("Skip → skipped, and the card is gone", async () => {
     const c = await showCard();
-    const skip = within(c).getByRole("button", { name: "Skip" });
-    expect(skip).toHaveAttribute("title", "Skipping counts as done");
-    await userEvent.click(skip);
+    await userEvent.click(within(c).getByRole("button", { name: "Skip" }));
     await screen.findByRole("status");
     expect(card()).toBeNull();
     expect(puts().map((p) => p.body)).toEqual([{ status: "skipped", items: [] }]);
   });
 
   it("a failed save keeps the card with an inline error", async () => {
-    fakeApi.on(PUT, 500, { error: "internal" });
     const c = await showCard();
-    await userEvent.click(within(c).getByRole("button", { name: "Last week went as planned" }));
+    fakeApi.on(PUT, 500, { error: "internal" });
+    await userEvent.click(within(c).getByRole("button", { name: "Looks right" }));
     expect(await within(c).findByRole("alert")).toHaveTextContent(/Couldn't save/);
     expect(card()).not.toBeNull();
   });
@@ -83,169 +92,140 @@ describe("LastWeekCard", () => {
     ["the week was reviewed", () => fakeApi.on("GET /api/check-ins", 200, { ...WEEK, status: "reviewed" })],
     ["the week was skipped", () => fakeApi.on("GET /api/check-ins", 200, { ...WEEK, status: "skipped" })],
     ["nothing was planned", () => fakeApi.on("GET /api/check-ins", 200, EMPTY_WEEK)],
+    ["nothing was planned, even with addable pairs", () => fakeApi.on("GET /api/check-ins", 200, { ...EMPTY_WEEK, addable: [item({ plannedTo: 0 })] })],
     ["the request fails", () => fakeApi.on("GET /api/check-ins", 500, { error: "internal" })],
   ])("hidden when %s, and the plan still renders", async (_n, arrange) => {
     arrange();
-    fakeApi.on("GET /api/plan", 200, { engineVersion: "x", asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [] });
-    fakeApi.on("GET /api/children", 200, []);
-    fakeApi.on("GET /api/subjects", 200, []);
     renderAt("/");
     expect(await screen.findByRole("heading", { name: "Plan" })).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 20));
     expect(card()).toBeNull();
     expect(fakeApi.calls.some((c) => c.path === "/api/check-ins")).toBe(true);
   });
+});
 
-  it("Adjust expands the rows: planned ranges, grouped by child, one row per child on multi-child assignments", async () => {
+describe("adjusting a row", () => {
+  it("Less on one row: the summary counts it, Looks right becomes Save, and only that row is sent (keepEndDate)", async () => {
     const c = await showCard();
-    await userEvent.click(within(c).getByRole("button", { name: "Adjust" }));
-    expect(within(c).getByRole("button", { name: "Adjust" })).toHaveAttribute("aria-expanded", "true");
-    const frank = within(c).getByRole("heading", { name: "Frank" }).parentElement!;
-    const margaret = within(c).getByRole("heading", { name: "Margaret" }).parentElement!;
-    // T-03b: rows start collapsed to the assignment and its state; no controls until one is opened.
-    const toggles = (el: HTMLElement) => within(el).getAllByRole("button", { expanded: false }).map((b) => b.textContent);
-    expect(toggles(frank)).toEqual(["Treasure Island✓ Done as planned", "Story of the World✓ Done as planned"]);
-    expect(toggles(margaret)).toEqual(["Story of the World✓ Done as planned", "Violin practice✓ Done as planned"]);
-    expect(within(c).queryByRole("spinbutton")).toBeNull();
-    await openRows(c);
-    expect(within(frank).getByText("pp. 1–80 planned")).toBeInTheDocument();
-    expect(within(frank).getByText("chapters 4–5 planned")).toBeInTheDocument();
-    expect(within(margaret).getByText("chapters 4–5 planned")).toBeInTheDocument();
-    expect(within(margaret).getByText("150 minutes planned")).toBeInTheDocument();
-    expect(within(c).getAllByRole("spinbutton")).toHaveLength(4);
-    expect(within(c).getByRole("button", { name: "Save" })).toBeDisabled();
-    // The footer's "went as planned" saves like the collapsed one.
-    const confirms = within(c).getAllByRole("button", { name: "Last week went as planned" });
-    expect(confirms).toHaveLength(2);
-    await userEvent.click(confirms[1]!);
+    const sotw = await rowFor(c, "Story of the World");
+    await choose(sotw, "Less");
+    expect(sotw.querySelector(".checkin-row-state")).toHaveTextContent("2 of 3 ch.");
+    expect(within(c).getByText("1 change from the plan.")).toBeInTheDocument();
+    expect(within(c).queryByRole("button", { name: "Looks right" })).toBeNull();
+    await userEvent.click(within(c).getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Thanks — plan updated");
+    expect(puts().map((p) => p.body)).toEqual([{ status: "reviewed", items: [
+      { assignmentId: "sotw", childId: "c1", position: 5, mode: "keepEndDate" },
+    ] }]);
+    expect(fakeApi.bodyKeyViolations).toEqual([]);
+  });
+
+  it("changes on both children save together; a finished row sends mode null", async () => {
+    const c = await showCard({ ...WEEK, items: [item({ totalUnits: 81 }), SOTW_F, SOTW_M, VIOLIN_M] });
+    await choose(await rowFor(c, "Treasure Island"), "More");
+    await userEvent.click(within(within(c).getByRole("group", { name: "Child" })).getByRole("button", { name: "Margaret" }));
+    const violin = await rowFor(c, "Violin");
+    await choose(violin, "Less");
+    await step(violin, "One less", 2);
+    expect(violin.querySelector(".checkin-row-state")).toHaveTextContent("135 of 150 min");
+    expect(within(c).getByText("2 changes from the plan.")).toBeInTheDocument();
+    await userEvent.click(within(c).getByRole("button", { name: "Save" }));
     await screen.findByRole("status");
-    expect(puts().map((p) => p.body)).toEqual([{ status: "reviewed", items: [] }]);
+    expect(puts().map((p) => p.body)).toEqual([{ status: "reviewed", items: [
+      { assignmentId: "ti", childId: "c1", position: 81, mode: null },
+      { assignmentId: "violin", childId: "c2", position: 735, mode: "keepEndDate" },
+    ] }]);
   });
 
-  it("each row has its own progress control (S2b-36); changing one leaves the others as planned", async () => {
+  it("Undo puts a row back, and the card is back to its default", async () => {
     const c = await showCard();
-    await userEvent.click(within(c).getByRole("button", { name: "Adjust" }));
-    await openRows(c);
-    const frankHist = within(c).getByRole("group", { name: "Progress on Story of the World for Frank" });
-    await userEvent.click(within(frankHist).getByRole("button", { name: "Didn't start" }));
-    expect(within(frankHist).getByText("Got to chapter 3 of 5 planned (2 behind)")).toBeInTheDocument();
-    // The collapsed state follows too.
-    expect(within(frankHist.closest("li")!).getByRole("button", { expanded: true })).toHaveTextContent("Story of the WorldGot to chapter 3 of 5 planned (2 behind)");
-    const margaretHist = within(c).getByRole("group", { name: "Progress on Story of the World for Margaret" });
-    expect(within(margaretHist).getByText("✓ Done as planned")).toBeInTheDocument();
-    expect(puts()).toEqual([]);
+    await choose(await rowFor(c, "Treasure Island"), "Less");
+    await userEvent.click(within(c).getByRole("button", { name: "Undo Treasure Island for Frank" }));
+    expect(within(c).getByText(AS_PLANNED_LINE)).toBeInTheDocument();
+    expect(within(c).getByRole("button", { name: "Looks right" })).toBeInTheDocument();
   });
 
-  it("keyboard: every control is reachable and labelled", async () => {
+  it("Save PUTs, then refetches the plan in place, then thanks and goes after ~3 s", async () => {
     const c = await showCard();
-    const user = userEvent.setup();
-    within(c).getByRole("button", { name: "Last week went as planned" }).focus();
-    expect(document.activeElement).toHaveAccessibleName("Last week went as planned");
-    await user.tab();
-    expect(document.activeElement).toHaveAccessibleName("Adjust");
-    await user.tab();
-    expect(document.activeElement).toHaveAccessibleName("Skip");
-    expect(document.activeElement).toHaveAccessibleDescription("Skipping counts as done");
-    await user.keyboard("{Shift>}{Tab}{/Shift}");
-    await user.keyboard("{Enter}");
-    // The rows open from the keyboard too (after the header's Skip).
-    await user.tab();
-    expect(document.activeElement).toHaveAccessibleName("Skip");
-    await user.tab();
-    expect(document.activeElement).toHaveTextContent("Treasure Island✓ Done as planned");
-    await user.keyboard("{Enter}");
-    expect(document.activeElement).toHaveAttribute("aria-expanded", "true");
-    expect(within(c).getByText("pp. 1–80 planned")).toBeInTheDocument();
+    await choose(await rowFor(c, "Treasure Island"), "More");
+    const before = fakeApi.calls.length;
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      await userEvent.click(within(c).getByRole("button", { name: "Save" }));
+      expect(await screen.findByRole("status")).toHaveTextContent("Thanks — plan updated");
+      const after = fakeApi.calls.slice(before).map((x) => `${x.method} ${x.path.split("?")[0]}`);
+      expect(after.indexOf("PUT /api/check-ins/2026-10-19")).toBe(0);
+      expect(after.indexOf("GET /api/plan")).toBeGreaterThan(0);
+      expect(screen.getByRole("heading", { name: "Plan" })).toBeInTheDocument(); // no page reload
+      await act(async () => { vi.advanceTimersByTime(THANKS_MS + 10); });
+      expect(screen.queryByRole("status")).toBeNull();
+      expect(card()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a 400 shows on its row, opened, and the card stays", async () => {
+    const c = await showCard();
+    fakeApi.on(PUT, 400, { error: "invalid_request", message: "items.1.position: can't be more than the total (42)." });
+    await choose(await rowFor(c, "Treasure Island"), "More");
+    await choose(await rowFor(c, "Story of the World"), "More");
+    await userEvent.click(within(c).getByRole("button", { name: "Save" }));
+    const sotw = await rowFor(c, "Story of the World");
+    expect(await within(sotw).findByRole("alert")).toHaveTextContent("can't be more than the total (42).");
+    expect(within(await rowFor(c, "Treasure Island")).queryByRole("alert")).toBeNull();
+  });
+
+  it("outcome and 400 parsing helpers", () => {
+    expect(rowOutcome(TI, 80.4)).toBe("asPlanned");
+    expect(rowOutcome(TI, 70)).toBe("behind");
+    expect(rowOutcome(TI, 270)).toBe("finished");
+    expect(itemErrorOf("items.1.position: can't be more than the total (270).")).toEqual({ index: 1, text: "can't be more than the total (270)." });
+    expect(itemErrorOf("status: bad")).toBeNull();
   });
 });
 
-describe("Add progress on assignments with nothing planned (S2c-06)", () => {
+describe("Add progress on something else (S2c-06), at the bottom", () => {
   const SCI = item({ assignmentId: "sci", title: "Science", unitType: "lessons", plannedFrom: 12, plannedTo: 12, totalUnits: 120 });
   const PIANO = item({ assignmentId: "piano", title: "Piano", unitType: "minutes", plannedFrom: 300, plannedTo: 300, totalUnits: 1800 });
   const ART_M = item({ assignmentId: "art", childId: "c2", childName: "Margaret", title: "Art", unitType: "lessons", plannedFrom: 4, plannedTo: 4, totalUnits: 30 });
   const ADDABLE: WeekCheckIn = { ...WEEK, addable: [SCI, ART_M, PIANO] };
   const openAdd = async (c: HTMLElement) => {
-    await userEvent.click(within(c).getByRole("button", { name: "Adjust" }));
-    await openRows(c);
-    const add = within(c).getByRole("button", { name: "Add progress" });
+    const add = within(c).getByRole("button", { name: "Add progress on something else" });
     expect(add).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(add);
     return within(c).getByRole("list", { name: "Assignments with nothing planned" });
   };
-  const gotTo = (c: HTMLElement, name: string) =>
-    within(within(c).getByRole("group", { name: `Progress on ${name}` })).getByRole("spinbutton");
 
-  it("lists the pairs by child, then title; choosing one adds a 'nothing planned' row at the week's start", async () => {
+  it("offers the shown child's pairs; an added row opens with only the stepper, and saves once moved", async () => {
     const c = await showCard(ADDABLE);
     const list = await openAdd(c);
-    expect(within(list).getAllByRole("button").map((b) => b.textContent)).toEqual(["Frank — Piano", "Frank — Science", "Margaret — Art"]);
+    expect(within(list).getAllByRole("button").map((b) => b.textContent)).toEqual(["Frank — Piano", "Frank — Science"]);
     await userEvent.click(within(list).getByRole("button", { name: "Frank — Science" }));
-    expect(within(c).queryByRole("list", { name: "Assignments with nothing planned" })).toBeNull();
-    const frank = within(c).getByRole("heading", { name: "Frank" }).parentElement!;
-    // An added row opens by itself.
-    expect(within(frank).getByRole("button", { name: /^Science/ })).toHaveAttribute("aria-expanded", "true");
-    expect(within(frank).getByText("nothing planned")).toBeInTheDocument();
-    expect(gotTo(c, "Science for Frank")).toHaveValue(12);
-    expect(gotTo(c, "Science for Frank")).toHaveAttribute("min", "12");
-    expect(within(c).getByRole("slider", { name: "Where Science for Frank got to" })).toHaveAttribute("min", "12");
-    // An added row left at its start is done as planned: nothing to save yet.
-    expect(within(c).getByRole("button", { name: "Save" })).toBeDisabled();
-    // It's no longer offered.
-    await userEvent.click(within(c).getByRole("button", { name: "Add progress" }));
-    expect(within(c).queryByRole("button", { name: "Frank — Science" })).toBeNull();
-  });
-
-  it("moving an added row ahead asks the ahead question, joins Apply one choice to all, and saves it", async () => {
-    fakeApi.on(PUT, (body) => [200, { ...ADDABLE, status: (body as { status: string }).status, planChanged: true }]);
-    const c = await showCard(ADDABLE);
-    await userEvent.click(within(await openAdd(c)).getByRole("button", { name: "Frank — Science" }));
-    await userEvent.clear(gotTo(c, "Science for Frank"));
-    await userEvent.type(gotTo(c, "Science for Frank"), "15");
-    expect(within(c).getByText("Frank is 3 lessons ahead on Science.")).toBeInTheDocument();
-    const own = within(c).getByRole("group", { name: "How should the plan absorb this? (Science for Frank)" });
-    expect(within(own).getByRole("radio", { name: "Thin the remaining bars" })).toBeChecked();
-    // A planned row ahead too: one shared choice for both.
-    await userEvent.clear(gotTo(c, "Treasure Island for Frank"));
-    await userEvent.type(gotTo(c, "Treasure Island for Frank"), "90");
-    expect(within(c).getByRole("checkbox", { name: "Apply one choice to all 2 rows ahead" })).toBeChecked();
-    expect(within(c).queryByRole("group", { name: "How should the plan absorb this? (Science for Frank)" })).toBeNull();
-    const shared = within(c).getByRole("group", { name: "How should the plan absorb this? (the 2 rows ahead)" });
-    await userEvent.click(within(shared).getByRole("radio", { name: "Pull the end date in" }));
+    const sci = await rowFor(c, "Science");
+    expect(sci.querySelector(".checkin-row-plan")).toHaveTextContent("Not planned");
+    expect(within(sci).queryByRole("group", { name: /^How / })).toBeNull();
+    expect(within(c).getByRole("button", { name: "Looks right" })).toBeInTheDocument(); // left at 0, nothing to save
+    await step(sci, "One more", 3);
+    expect(sci.querySelector(".checkin-row-state")).toHaveTextContent("+3 lessons");
     await userEvent.click(within(c).getByRole("button", { name: "Save" }));
     await screen.findByRole("status");
     expect(puts().map((p) => p.body)).toEqual([{ status: "reviewed", items: [
-      { assignmentId: "ti", childId: "c1", position: 90, mode: "pushEndDate" },
-      { assignmentId: "sci", childId: "c1", position: 15, mode: "pushEndDate" },
+      { assignmentId: "sci", childId: "c1", position: 15, mode: "keepEndDate" },
     ] }]);
   });
 
-  it("an added row can be removed before saving, and is offered again", async () => {
+  it("an added row can be removed, and is offered again; planned rows have no Remove", async () => {
     const c = await showCard(ADDABLE);
-    await userEvent.click(within(await openAdd(c)).getByRole("button", { name: "Margaret — Art" }));
-    await userEvent.clear(gotTo(c, "Art for Margaret"));
-    await userEvent.type(gotTo(c, "Art for Margaret"), "6");
-    expect(within(c).getByRole("button", { name: "Save" })).toBeEnabled();
-    await userEvent.click(within(c).getByRole("button", { name: "Remove Art for Margaret" }));
-    expect(within(c).queryByRole("button", { name: /^Art/ })).toBeNull();
-    expect(within(c).getByRole("button", { name: "Save" })).toBeDisabled();
-    await userEvent.click(within(c).getByRole("button", { name: "Add progress" }));
-    await userEvent.click(within(c).getByRole("button", { name: "Margaret — Art" }));
-    expect(gotTo(c, "Art for Margaret")).toHaveValue(4);
-    // Planned rows have no Remove.
+    await userEvent.click(within(await openAdd(c)).getByRole("button", { name: "Frank — Piano" }));
+    await userEvent.click(within(c).getByRole("button", { name: "Remove Piano for Frank" }));
+    expect(within(c).queryByText("Piano")).toBeNull();
+    expect(within(await openAdd(c)).getByRole("button", { name: "Frank — Piano" })).toBeInTheDocument();
     expect(within(c).queryByRole("button", { name: /Remove Treasure Island/ })).toBeNull();
   });
 
-  it("no Add progress when there's nothing to add", async () => {
+  it("no link when there's nothing to add", async () => {
     const c = await showCard();
-    await userEvent.click(within(c).getByRole("button", { name: "Adjust" }));
-    expect(within(c).queryByRole("button", { name: "Add progress" })).toBeNull();
-  });
-
-  it("the home card stays hidden when last week had no planned rows, even with addable pairs", async () => {
-    fakeApi.on("GET /api/check-ins", 200, { ...EMPTY_WEEK, addable: [SCI] });
-    renderAt("/");
-    expect(await screen.findByRole("heading", { name: "Plan" })).toBeInTheDocument();
-    await new Promise((r) => setTimeout(r, 20));
-    expect(card()).toBeNull();
+    expect(within(c).queryByRole("button", { name: /Add progress/ })).toBeNull();
   });
 });

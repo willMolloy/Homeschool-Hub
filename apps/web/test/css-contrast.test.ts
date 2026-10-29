@@ -19,7 +19,6 @@ const SKIP = new Set(["styles/tokens.css", "styles/tokens.theme.css", "styles/ta
 const NON_TEXT = new Set([
   ".thickness-reference",
   ".thickness-chosen",
-  ".progress-bar",
   ".skeleton .color-dot",
   ".confirm-dialog::backdrop",
   ".sheet-backdrop",
