@@ -35,15 +35,17 @@ export interface TimelineProps {
   selectedId?: string | null;
   /** T-07: a click or tap on the picture, in its own coordinates. */
   onPick?: (x: number, y: number) => void;
+  /** T-10: a just-added assignment, briefly highlighted. */
+  flashId?: string | null;
 }
 
-export function Timeline({ layout, label, selectedId = null, onPick }: TimelineProps) {
+export function Timeline({ layout, label, selectedId = null, onPick, flashId = null }: TimelineProps) {
   const hatchId = `tl-hatch-${useId().replace(/:/g, "")}`;
   /** T-05c: zoomed out, breaks are a very faint plain tint instead of a hatch. */
   const quiet = layout.detail === "smooth";
   const bottom = Math.max(layout.lanesBottom, layout.totals.y + layout.totals.height);
   const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
-  const dim = (id: string) => (selectedId === null ? "" : id === selectedId ? " tl-selected" : " tl-dim");
+  const dim = (id: string) => (selectedId === null ? "" : id === selectedId ? " tl-selected" : " tl-dim") + (id === flashId ? " tl-flash" : "");
   // T-08b: one pair of grips per lane the selected assignment is drawn in, at its outer ends.
   const handles = selectedId === null ? [] : layout.bands.filter((b, i, all) => b.assignmentId === selectedId && b.d
     && all.findIndex((o) => o.assignmentId === selectedId && o.laneKey === b.laneKey && o.d) === i).flatMap((b) => {
@@ -105,8 +107,14 @@ export function Timeline({ layout, label, selectedId = null, onPick }: TimelineP
       <g className="tl-names" aria-hidden="true">
         {layout.names.map((n) => (
           <g key={`${n.rowKey}-${n.assignmentId}`} className={dim(n.assignmentId).trim() || undefined} data-name-for={n.assignmentId}>
-            <rect className="tl-name-patch" x={n.x} y={n.y} width={n.width} height={n.height} style={{ fill: bandFill(n.paletteSlot, n.step) }} />
-            <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step) }}>{n.text}</text>
+            {n.outside ? (
+              <text className="tl-name tl-name-outside" x={n.textX} y={n.textY} dominantBaseline="central">{n.text}</text>
+            ) : (
+              <>
+                <rect className="tl-name-patch" x={n.x} y={n.y} width={n.width} height={n.height} style={{ fill: bandFill(n.paletteSlot, n.step) }} />
+                <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step) }}>{n.text}</text>
+              </>
+            )}
           </g>
         ))}
       </g>

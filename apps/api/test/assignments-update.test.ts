@@ -121,6 +121,8 @@ describe.skipIf(!hasDb)("PATCH /api/assignments/:id (integration)", () => {
     ["childIds empty", { childIds: [] }],
     ["totalUnits 0", { totalUnits: 0 }],
     ["title null", { title: null }],
+    ["blank title (T-10)", { title: "   " }],
+    ["empty title (T-10)", { title: "" }],
     ["archived string", { archived: "yes" }],
   ])("%s → 400 invalid_request", async (_l, body) => {
     const res = await patch(body);

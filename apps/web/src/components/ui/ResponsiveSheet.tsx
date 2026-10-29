@@ -1,5 +1,6 @@
 /**
  * A sheet that is a bottom Drawer on phones and a centred Dialog on wider screens (T-03b), both from Base UI.
+ * T-10: `wide="side"` makes the wide version a panel along the right edge.
  * Controlled: the caller owns `open`. Callers don't know which one renders, so swapping either is local.
  */
 import type { ReactNode } from "react";
@@ -16,9 +17,11 @@ export interface ResponsiveSheetProps {
   onOpenChange: (open: boolean) => void;
   title: ReactNode;
   children: ReactNode;
+  /** T-10: on wider screens, a panel along the right edge instead of a centred dialog. */
+  wide?: "dialog" | "side";
 }
 
-export function ResponsiveSheet({ open, onOpenChange, title, children }: ResponsiveSheetProps) {
+export function ResponsiveSheet({ open, onOpenChange, title, children, wide = "dialog" }: ResponsiveSheetProps) {
   const phone = useMediaQuery(PHONE_QUERY);
   if (phone) {
     return (
@@ -44,7 +47,7 @@ export function ResponsiveSheet({ open, onOpenChange, title, children }: Respons
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="sheet-backdrop" />
-        <Dialog.Popup className="sheet-popup sheet-dialog" data-sheet="dialog">
+        <Dialog.Popup className={`sheet-popup ${wide === "side" ? "sheet-side" : "sheet-dialog"}`} data-sheet={wide}>
           <div className="sheet-head">
             <Dialog.Title className="sheet-title">{title}</Dialog.Title>
             <Dialog.Close className="sheet-close" aria-label="Close">×</Dialog.Close>

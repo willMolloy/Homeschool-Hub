@@ -41,19 +41,20 @@ export function WithLookups({ title, children }: { title: string; children: (l: 
       </section>
     );
   }
-  const childList = [...kids.data].sort(bySort);
-  const subjectList = [...subs.data].sort(bySort);
+  return <>{children(makeLookups(kids.data, subs.data))}</>;
+}
+
+/** T-10: the lookups from lists already loaded elsewhere (the timeline has them), sorted the same way. */
+export function makeLookups(kids: readonly Child[], subs: readonly Subject[]): Lookups {
+  const childList = [...kids].sort(bySort);
+  const subjectList = [...subs].sort(bySort);
   const cMap = new Map(childList.map((c) => [c.id, c]));
   const sMap = new Map(subjectList.map((s) => [s.id, s]));
-  return (
-    <>
-      {children({
-        children: childList,
-        subjects: subjectList,
-        childName: (id) => cMap.get(id)?.name ?? "Unknown child",
-        subjectName: (id) => sMap.get(id)?.name ?? "Unknown subject",
-        subjectDefault: (id) => sMap.get(id)?.defaultWeight ?? null,
-      })}
-    </>
-  );
+  return {
+    children: childList,
+    subjects: subjectList,
+    childName: (id) => cMap.get(id)?.name ?? "Unknown child",
+    subjectName: (id) => sMap.get(id)?.name ?? "Unknown subject",
+    subjectDefault: (id) => sMap.get(id)?.defaultWeight ?? null,
+  };
 }

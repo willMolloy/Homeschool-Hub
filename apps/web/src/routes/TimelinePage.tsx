@@ -5,8 +5,13 @@
  * (T-06: names sit inside the bars wherever they fit). T-07/T-07e: tapping a bar selects it and shows the edit bar at the bottom.
  * T-08: bars can be dragged (body moves, edges change the start or end), previewing live and saving on release.
  * T-07c: with two or more children, a chip row (All, then each child) narrows it to one child, kept in `?child=`.
+ * T-10: "+ Add assignment" in the header opens the assignment form; the new bar appears at once, briefly highlighted.
  */
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Assignment } from "../api/types";
+import { AddAssignmentButton, AddAssignmentSheet } from "../features/timeline/AddAssignment";
+import { makeLookups } from "../features/schedule/lookups";
+import { afterAdd } from "../features/timeline/afterAdd";
 import { EditBar } from "../features/timeline/EditBar";
 import { useAssignmentEdit } from "../features/timeline/useAssignmentEdit";
 import { useKeepAbove } from "../features/timeline/useKeepAbove";
@@ -33,13 +38,15 @@ import "../features/timeline/timeline.css";
 
 /** Width used before anything can be measured (the smallest phone we design for). */
 const FALLBACK_WIDTH = 360;
+/** T-10: how long a just-added bar stays highlighted (keep in step with tl-flash in timeline.css). */
+export const FLASH_MS = 2400;
 
 interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail }
 const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: LayoutArgs) =>
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
 export function TimelinePage() {
-  const { model: family, loading, failed, reload, assignments, applyAssignment, children } = useTimelineData();
+  const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, children, subjects } = useTimelineData();
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
   const [childParam, setChild] = useChildParam();
   const childId = shownChild(childParam, childList);
@@ -87,6 +94,24 @@ export function TimelinePage() {
     onSelect: select, onPreview: setPreview, onCommit: edit.save,
   });
   const closeEdit = useCallback(() => setSelectedId(null), []);
+  // T-10: adding an assignment. The new bar flashes once it is drawn, with the filter and month moved to show it.
+  const [adding, setAdding] = useState(false);
+  const lookups = useMemo(() => makeLookups(children, subjects), [children, subjects]);
+  const [flashId, setFlashId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!flashId) return;
+    const t = setTimeout(() => setFlashId(null), FLASH_MS);
+    return () => clearTimeout(t);
+  }, [flashId]);
+  const added = (created: Assignment) => {
+    setAdding(false);
+    addAssignment(created);
+    const next = afterAdd(created, { childId, zoom: shownZoom, month, months });
+    if (next.showAllChildren) setChild(null);
+    if (next.month) setMonth(next.month);
+    select(null);
+    setFlashId(created.id);
+  };
   const empty = model !== undefined && model.lanes.length === 0;
   const ready = !failed && !loading && model && layout && !empty;
 
@@ -94,6 +119,7 @@ export function TimelinePage() {
     <>
       <header className="timeline-page-header">
         <h1>Timeline</h1>
+        {!failed && !loading && model && <AddAssignmentButton onClick={() => setAdding(true)} />}
         {ready && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} />}
       </header>
       {ready && <ChildFilter childList={childList} value={childId} onChange={setChild} />}
@@ -112,7 +138,7 @@ export function TimelinePage() {
             <div ref={stage} className="tl-stage" data-drag-ready={selection ? "" : undefined} {...drag}>
               <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
                 <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : ZOOM_LABEL[shownZoom]} timeline`}
-                  selectedId={selection ? selectedId : null} onPick={pick} />
+                  selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} />
               </div>
               {leavingLayout && (
                 <div className="tl-leaving" aria-hidden="true" onAnimationEnd={settle}>
@@ -131,6 +157,7 @@ export function TimelinePage() {
           </>
         )}
       </div>
+      <AddAssignmentSheet open={adding} lookups={lookups} onSaved={added} onClose={() => setAdding(false)} />
     </>
   );
 }

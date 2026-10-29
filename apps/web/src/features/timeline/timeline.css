@@ -35,6 +35,7 @@
 /* T-06: names on a solid patch of their own swatch (AA on every swatch; translucent alone misses it). */
 .tl-name-patch { fill-opacity: 1; }
 .tl-name { font-size: 11px; font-weight: 500; }
+.tl-name-outside { fill: var(--tl-foreground); }
 .tl-totals { fill: var(--tl-total); fill-opacity: var(--tl-bar-opacity); }
 .tl-event { fill: var(--tl-muted-foreground); fill-opacity: 0.6; }
 .tl-today line { stroke: var(--tl-today); stroke-width: 2; }
@@ -82,3 +83,14 @@
 /* T-08: once a bar is selected, a finger dragging sideways moves it; vertical pans and pinches stay the browser's. */
 .tl-stage[data-drag-ready] .tl-svg { touch-action: pan-y pinch-zoom; }
 .tl-stage .tl-svg { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+/* T-10: "+ Add assignment" beside the title: a quiet text button. A just-added bar pulses gently, once. */
+.tl-add-btn { font: inherit; color: var(--brand); background: transparent; border: 0; border-radius: 999px; padding: 0 12px; min-height: 44px; cursor: pointer; font-weight: 500; }
+.tl-add-btn:hover { background: var(--line); }
+.timeline-page-header h1 + .tl-add-btn { margin-right: auto; }
+.tl-svg .tl-flash { animation: tl-flash 2400ms ease-in-out; }
+@keyframes tl-flash { 0%, 50% { opacity: 0.35; } 25%, 75%, 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tl-svg .tl-flash { animation: none; } }
+.tl-add-form .schedule-form { border: 0; padding: 0; margin: 0; background: transparent; }
+@media (max-width: 639px) {
+  .timeline-page-header h1 + .tl-add-btn { margin-right: 0; margin-left: auto; }
+}

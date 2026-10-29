@@ -3,8 +3,10 @@
  *
  * A name sits on a solid (opacity 1) patch of its bar's own swatch, inside the bar, pinned to the bar's left
  * edge: the first stretch of the bar thick enough for the patch. It is the full title when it fits, otherwise
- * the longest prefix plus "…" that fits, and only when at least MIN_NAME_CHARS characters survive. Otherwise the
- * bar has no name (the title is still in the lane list and the edit bar).
+ * the longest prefix plus "…" that fits, and only when at least MIN_NAME_CHARS characters survive.
+ * T-10: a bar too short for an inside name gets a plain label just past its end instead (placeOutsideName), when
+ * its row is thick enough to hold the text and there is room before the next bar. Otherwise the bar has no name
+ * (the title is still in the lane list and, when selected, in full in the edit bar).
  */
 import type { BandColumn } from "./paths";
 
@@ -85,4 +87,25 @@ export function placeName(title: string, columns: readonly (BandColumn | null)[]
     return { text, x, y: top, width, height: bottom - top, textX: x + NAME_PAD_PX, textY: cy };
   }
   return null;
+}
+
+/**
+ * T-10: a label just right of the bar's last drawn column, for a bar with no inside name. Only in rows at least
+ * NAME_PATCH_PX thick (so the text stays inside its own row) and only up to `limit` (the next bar, or the plot's
+ * right edge). No patch: the returned box is just the text's extent.
+ */
+export function placeOutsideName(
+  title: string, columns: readonly (BandColumn | null)[], rowTop: number, rowHeight: number, cy: number, limit: number,
+  measure: MeasureText = estimateTextWidth,
+): NamePlacement | null {
+  if (rowHeight < NAME_PATCH_PX) return null;
+  const drawn = columns.filter((c): c is BandColumn => c !== null);
+  if (drawn.length === 0) return null;
+  const end = Math.max(...drawn.map((c) => c.x1));
+  const x = end + NAME_PAD_PX;
+  const room = limit - x - NAME_PAD_PX;
+  if (room <= 0) return null;
+  const text = fitName(title, room, measure);
+  if (!text) return null;
+  return { text, x, y: rowTop, width: measure(text), height: rowHeight, textX: x, textY: cy };
 }

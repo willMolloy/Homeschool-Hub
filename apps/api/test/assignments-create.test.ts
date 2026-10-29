@@ -118,6 +118,9 @@ describe.skipIf(!hasDb)("POST /api/assignments (integration)", () => {
     ["missing subject", { subjectId: undefined }, "invalid_request"],
     ["malformed subject", { subjectId: "abc" }, "invalid_request"],
     ["blank title", { title: "  " }, "invalid_request"],
+    ["empty title", { title: "" }, "invalid_request"],
+    ["whitespace-only title (tabs, newlines; T-10)", { title: "\t\n \u00a0" }, "invalid_request"],
+    ["missing title (T-10)", { title: undefined }, "invalid_request"],
     ["NUL title", { title: "a\u0000" }, "invalid_request"],
   ])("%s → 400 %s", async (_l, over, code) => {
     const res = await req("POST", "/api/assignments", { ...valid(), ...over });

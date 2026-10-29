@@ -1,10 +1,11 @@
 // Hand-test fixes: the demo family can look around but can't add events (UI hides the button; the API enforces it).
+// T-10: it can add assignments (the timeline's "+ Add assignment").
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
 import { DEMO_LOGIN_EMAIL, isDemoLogin } from "../src/auth/demo";
 import { testConfig } from "./helpers/config";
 import { hasDb, testPool } from "./helpers/db";
-import { inject } from "./helpers/schedule";
+import { inject, rosterFor } from "./helpers/schedule";
 import { signedInFamily } from "./helpers/session";
 
 describe("isDemoLogin", () => {
@@ -47,6 +48,17 @@ describe.skipIf(!hasDb)("demo family is read-only for events (integration)", () 
     expect(res.json()).toEqual({ error: "demo_read_only", message: "The demo family can't add events." });
     const { rows } = await pool.query("SELECT count(*)::int AS n FROM event WHERE family_id = $1", [demo.familyId]);
     expect(rows[0].n).toBe(0);
+  });
+
+  it("POST /api/assignments → 201 for the demo (T-10), while events stay blocked", async () => {
+    const r = await rosterFor(app, demo.cookies, ["Frank"], ["History"]);
+    const res = await inject(app, demo.cookies)("POST", "/api/assignments", {
+      subjectId: r.subjectIds[0], title: "Ancient Egypt", unitType: "lessons", totalUnits: 10, weightPerUnit: null,
+      startDate: "2026-11-02", endDate: "2026-12-18", childIds: [r.childIds[0]],
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json()).toMatchObject({ title: "Ancient Egypt" });
+    expect((await inject(app, demo.cookies)("POST", "/api/events", { name: "Co-op", weekdays: [3] })).statusCode).toBe(403);
   });
 
   it("other families still add events", async () => {

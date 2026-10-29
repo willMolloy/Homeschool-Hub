@@ -14,7 +14,7 @@
 import { weekdayOf } from "@hh/engine";
 import { PX_PER_THICKNESS } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
-import { estimateTextWidth, placeName, type MeasureText } from "./names";
+import { estimateTextWidth, placeName, placeOutsideName, type MeasureText } from "./names";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows } from "./rows";
 import { sumSeries } from "./grid";
@@ -124,6 +124,8 @@ export interface BarName {
   height: number;
   textX: number;
   textY: number;
+  /** T-10: a plain label past the bar's end (no patch), for a bar too short for a name inside it. */
+  outside?: true;
 }
 
 export interface BreakRect {
@@ -376,7 +378,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
           key, laneKey: child.key, row: r, subjectId: subject.subjectId, subjectName: subject.name, childId: child.childId,
           childName: child.childName, paletteSlot: subject.paletteSlot, step: child.step, y, height, cy,
         });
-        for (const a of members) {
+        const placed = members.map((a) => {
           const columns = columnsFor(seriesFor(a), cy, pxPerPoint, height);
           bands.push({
             rowKey: key, laneKey: child.key, assignmentId: a.assignmentId, childId: a.childId, title: a.title,
@@ -384,6 +386,15 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
           });
           const name = placeName(a.title, columns, cy, measure);
           if (name) names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...name });
+          return { a, columns, named: name !== null, start: Math.min(...columns.flatMap((c) => (c ? [c.x0] : []))) };
+        });
+        // T-10: bars with no inside name get a label past their end, up to the next bar in the row.
+        for (const p of placed) {
+          if (p.named) continue;
+          const end = Math.max(...p.columns.flatMap((c) => (c ? [c.x1] : [])));
+          const limit = Math.min(plotX + plotWidth, ...placed.filter((o) => o !== p && o.start >= end).map((o) => o.start));
+          const label = placeOutsideName(p.a.title, p.columns, y, height, cy, limit, measure);
+          if (label) names.push({ rowKey: key, assignmentId: p.a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...label, outside: true });
         }
         y += height;
       });

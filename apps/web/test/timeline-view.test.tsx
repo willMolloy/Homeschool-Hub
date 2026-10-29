@@ -109,9 +109,9 @@ describe("the Year timeline page", () => {
     stubSample();
     await openTimeline();
     const main = screen.getByRole("main");
-    // The visible buttons: the presets, then the child chips (T-07c). (T-07: the lanes list's pick buttons are visually hidden until focused.)
+    // The visible buttons: add (T-10), the presets, then the child chips (T-07c). (T-07: the lanes list's pick buttons are visually hidden until focused.)
     const visible = within(main).getAllByRole("button").filter((b) => !b.closest(".sr-only"));
-    expect(visible.map((b) => b.textContent)).toEqual(["Year", "Fall", "Spring", "This month", "All", "Frank", "Margaret"]);
+    expect(visible.map((b) => b.textContent)).toEqual(["+ Add assignment", "Year", "Fall", "Spring", "This month", "All", "Frank", "Margaret"]);
     expect(within(main).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Timeline"]);
     // Below the title: the picture, and the lane list that only screen readers get. Nothing else.
     const bleed = main.querySelector(".timeline-bleed")!;

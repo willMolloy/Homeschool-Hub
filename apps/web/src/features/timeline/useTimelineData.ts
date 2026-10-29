@@ -17,6 +17,10 @@ export interface TimelineData {
   applyAssignment: (saved: Assignment) => void;
   /** T-07c: the family's children (the filter's chips). */
   children: Child[];
+  /** T-10: the family's subjects (the add form's choices). */
+  subjects: Subject[];
+  /** T-10: after a successful POST, add the new assignment and refetch the plan so its bar appears. */
+  addAssignment: (created: Assignment) => void;
 }
 
 export function useTimelineData(): TimelineData {
@@ -49,6 +53,11 @@ export function useTimelineData(): TimelineData {
     },
     assignments: assignments.data ?? [],
     children: children.data ?? [],
+    subjects: subjects.data ?? [],
+    addAssignment: (created) => {
+      assignments.setData((list) => [...(list ?? []).filter((a) => a.id !== created.id), created]);
+      plan.reload();
+    },
     applyAssignment: (saved) => {
       assignments.setData((list) => list?.map((a) => (a.id === saved.id ? saved : a)));
       plan.reload();

@@ -1,4 +1,7 @@
-/** /schedule/assignments (S2a-14): list, add, edit, archive. */
+/**
+ * /schedule/assignments (S2a-14): list, add, edit, archive. T-10: the same form opens from the timeline, with the
+ * essentials first (subject, title, children, dates, unit and total) and the weight behind "More".
+ */
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, UNIT_TYPES, weightPerUnitOf } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
@@ -54,7 +57,7 @@ function AssignmentCard({ a, l }: { a: Assignment; l: Lookups }) {
 
 type Errors = Partial<Record<"subject" | "title" | "totalUnits" | "weight" | "dates" | "children", string>>;
 
-function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlotProps<Assignment> & { l: Lookups }) {
+export function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlotProps<Assignment> & { l: Lookups }) {
   const activeSubjects = l.subjects.filter((s) => !s.archived || s.id === item?.subjectId);
   const [subjectId, setSubjectId] = useState(item?.subjectId ?? (activeSubjects.length === 1 ? activeSubjects[0]!.id : ""));
   const [title, setTitle] = useState(item?.title ?? "");
@@ -71,6 +74,7 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [more, setMore] = useState(false);
   const ids = { subject: useId(), title: useId(), unit: useId(), total: useId(), weight: useId(), start: useId(), end: useId(), err: useId() };
 
   const { suggestion, pending } = useWeightSuggestion(unitType, childIds, subjectId, suggesting);
@@ -123,6 +127,7 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
     if (d) errs.dates = d;
     if (childIds.length === 0) errs.children = "Pick at least one child.";
     setErrors(errs);
+    if (errs.weight) setMore(true);
     if (Object.keys(errs).length > 0 || typeof total === "string") return;
 
     const full = { subjectId, title: t, unitType, totalUnits: total, weightPerUnit: wpu, startDate, endDate, childIds };
@@ -183,6 +188,13 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
         activeSubjects.length === 0 ? <p className="hint">No subjects yet. Add them under Subjects.</p> : null)}
       {field(ids.title, "Title", errors.title,
         <input id={ids.title} type="text" value={title} autoComplete="off" onChange={(e) => setTitle(e.target.value)} {...inv(errors.title, ids.title)} />)}
+      <ChildPicker options={l.children} value={childIds} onChange={setChildIds} error={errors.children} />
+      <div className="field-row">
+        {field(ids.start, "Start", undefined,
+          <input id={ids.start} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} {...inv(errors.dates, ids.end)} />)}
+        {field(ids.end, "End", errors.dates,
+          <input id={ids.end} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} {...inv(errors.dates, ids.end)} />)}
+      </div>
       <div className="field-row">
         {field(ids.unit, "Unit", undefined,
           <select id={ids.unit} value={unitType} onChange={(e) => changeUnit(e.target.value as UnitType)}>
@@ -194,26 +206,22 @@ function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: Fo
           <input id={ids.total} type="number" inputMode="decimal" min="0" step="any" value={totalUnits}
             onChange={(e) => setTotalUnits(e.target.value)} {...inv(errors.totalUnits, ids.total)} />)}
       </div>
-      {field(ids.weight, `Weight per ${UNIT_LABELS[unitType].one}`, errors.weight,
-        <input id={ids.weight} type="number" inputMode="decimal" min={MIN_WEIGHT_PER_UNIT} max={MAX_WEIGHT_PER_UNIT} step="0.01"
-          value={followsSuggestion ? (suggestion ? formatWeight(suggestion.weightPerUnit) : "") : weight}
-          placeholder={weightPlaceholder}
-          aria-describedby={errors.weight ? `${ids.weight}-err` : `${ids.weight}-hint`}
-          aria-invalid={errors.weight ? true : undefined}
-          onChange={(e) => typeWeight(e.target.value)} />,
-        suggesting && suggestion ? (
-          <WeightHint id={`${ids.weight}-hint`} suggestion={suggestion} subjectName={l.subjectName(subjectId)}
-            typed={typedOverride} onUse={useSuggestion} />
-        ) : (
-          <p id={`${ids.weight}-hint`} className="hint">{weightHint(unitType)}</p>
-        ))}
-      <div className="field-row">
-        {field(ids.start, "Start", undefined,
-          <input id={ids.start} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} {...inv(errors.dates, ids.end)} />)}
-        {field(ids.end, "End", errors.dates,
-          <input id={ids.end} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} {...inv(errors.dates, ids.end)} />)}
-      </div>
-      <ChildPicker options={l.children} value={childIds} onChange={setChildIds} error={errors.children} />
+      <details className="form-more" open={more} onToggle={(e) => setMore(e.currentTarget.open)}>
+        <summary>More</summary>
+        {field(ids.weight, `Weight per ${UNIT_LABELS[unitType].one}`, errors.weight,
+          <input id={ids.weight} type="number" inputMode="decimal" min={MIN_WEIGHT_PER_UNIT} max={MAX_WEIGHT_PER_UNIT} step="0.01"
+            value={followsSuggestion ? (suggestion ? formatWeight(suggestion.weightPerUnit) : "") : weight}
+            placeholder={weightPlaceholder}
+            aria-describedby={errors.weight ? `${ids.weight}-err` : `${ids.weight}-hint`}
+            aria-invalid={errors.weight ? true : undefined}
+            onChange={(e) => typeWeight(e.target.value)} />,
+          suggesting && suggestion ? (
+            <WeightHint id={`${ids.weight}-hint`} suggestion={suggestion} subjectName={l.subjectName(subjectId)}
+              typed={typedOverride} onUse={useSuggestion} />
+          ) : (
+            <p id={`${ids.weight}-hint`} className="hint">{weightHint(unitType)}</p>
+          ))}
+      </details>
       <div className="btn-row">
         <button className="btn" type="submit" disabled={saving || awaitingSuggestion} aria-busy={awaitingSuggestion || undefined}>{saving ? "Saving…" : item ? "Save" : "Add"}</button>
         <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>

@@ -235,3 +235,7 @@
     grid-template-columns: 1fr;
   }
 }
+/* T-10: the weight sits behind "More", after the essentials. */
+.form-more { margin: 0 0 14px; }
+.form-more > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--muted); font-size: 0.95rem; }
+.form-more[open] > summary { margin-bottom: 6px; }
