@@ -44,3 +44,11 @@
 .plan-child-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; }
 .plan-child-name { font-weight: 600; overflow-wrap: anywhere; }
 .plan-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* S4-09: the weekly briefing: plain lines under the title, only when something needs attention. */
+.briefing { margin: 0 0 16px; }
+.briefing-child { margin: 0 0 8px; }
+.briefing-name { margin: 0; font-weight: 600; }
+.briefing-lines { margin: 2px 0 0; padding: 0; list-style: none; overflow-wrap: anywhere; }
+.briefing-line { margin: 0 0 8px; overflow-wrap: anywhere; }
+.briefing-line a { display: inline-block; min-height: 44px; line-height: 44px; }
+.briefing-more { min-height: 44px; padding: 0; border: 0; background: none; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }

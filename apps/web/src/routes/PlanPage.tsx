@@ -1,7 +1,8 @@
 /**
  * This Week (T-03b): the title with one small week switcher, last week's check-in prompt, and the week's plan
- * with a "Make an adjustment" button per student. Debug extras need a dev build and `?debug=1`.
+ * with a "Make an adjustment" button per student. S4-09: a short briefing under the title, only when something needs attention. Debug extras need a dev build and `?debug=1`.
  */
+import { Briefing } from "../features/plan/Briefing";
 import { ChildAdjustment } from "../features/checkin/ChildAdjustment";
 import { LastWeekCheckIn } from "../features/checkin/LastWeekCheckIn";
 import { PlanDebugView } from "../features/plan/PlanDebugView";
@@ -20,6 +21,7 @@ export function PlanPage() {
         <h1>Plan</h1>
         <WeekSwitcher week={week} />
       </header>
+      <Briefing weekStart={week.weekStart} />
       <LastWeekCheckIn />
       <PlanDebugView weekStart={week.weekStart} debug={debug}
         childAction={(childId, childName) => (
