@@ -20,7 +20,7 @@ export const NAME_INSET_PX = 2;
 /** T-11 (DeeDee: "show what we can and append '…' as needed"): one character and the ellipsis is enough. */
 export const MIN_NAME_CHARS = 1;
 /** T-11: zoomed out, a later piece of a bar is named only if it is at least this many times its name's width. */
-export const LATER_PIECE_NAME_FACTOR = 3;
+export const LATER_PIECE_NAME_FACTOR = 2;
 export const ELLIPSIS = "…";
 
 /** Width of a string in CSS px at NAME_FONT_PX. */

@@ -4,10 +4,14 @@ import { describe, expect, it } from "vitest";
 import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import {
-  ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, placeName, placePieceName, placePieceNames,
+  ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, LATER_PIECE_NAME_FACTOR, placeName, placePieceName, placePieceNames,
 } from "../src/features/timeline/names";
 import type { BandColumn } from "../src/features/timeline/paths";
 import { Timeline } from "../src/features/timeline/Timeline";
+import { planAll } from "@hh/engine";
+import type { BlockedRange } from "../src/api/types";
+import { DEMO_FAMILY } from "../../../db/demo-family";
+import { forChild } from "../src/features/timeline/childView";
 import { sampleInput } from "./helpers/timeline-fixtures";
 
 /** 1 px per character, so rooms read as character counts. */
@@ -85,11 +89,12 @@ describe("naming each piece of a bar (T-11)", () => {
     expect(placePieceName("The Hobbit", [col(0, 200, 6)], 50, 45, NAME_PATCH_PX - 1, perChar)).toBeNull();
   });
 
-  it("names every piece with daily detail; zoomed out, later pieces only when at least 3× their name", () => {
-    const pieces = [[col(0, 40, 20)], [col(60, 80, 20)], [col(100, 200, 20)]];
-    expect(placePieceNames("Math", pieces, 50, 40, 20, false, perChar).map((n) => n.piece)).toEqual([0, 1, 2]);
-    // "Math" is 4 + 2 × pad wide: piece 1 (20 px) is too short, piece 2 (100 px) is long enough.
-    expect(placePieceNames("Math", pieces, 50, 40, 20, true, perChar).map((n) => n.piece)).toEqual([0, 2]);
+  it("names every piece with daily detail; zoomed out, later pieces only when at least 2× their name (T-11b)", () => {
+    expect(LATER_PIECE_NAME_FACTOR).toBe(2);
+    const pieces = [[col(0, 40, 20)], [col(60, 80, 20)], [col(100, 130, 20)], [col(150, 250, 20)]];
+    expect(placePieceNames("Math", pieces, 50, 40, 20, false, perChar).map((n) => n.piece)).toEqual([0, 1, 2, 3]);
+    // "Math" is 4 + 2 × pad = 12 px wide: piece 1 (20 px) is under 2×; piece 2 (30 px) is over 2× (under the old 3×).
+    expect(placePieceNames("Math", pieces, 50, 40, 20, true, perChar).map((n) => n.piece)).toEqual([0, 2, 3]);
   });
 });
 
@@ -152,5 +157,33 @@ describe("drawing names", () => {
       expect(text.style.fill).toBe(patch.style.fill.replace(")", "-label)"));
     }
     expect(container.querySelector("svg")!.querySelectorAll("*").length).toBeLessThan(300);
+  });
+});
+
+describe("Black Beauty after Thanksgiving in Frank's Fall view (T-11b)", () => {
+  it("names the piece after the break at 1280 px (a 912 px plot)", () => {
+    const f = DEMO_FAMILY;
+    const plans = planAll(f.assignments, { calendar: f.calendar, events: f.events, blocked: f.blocked, overrides: f.overrides,
+      checkIns: f.checkIns, subjectWeights: f.subjectWeights, asOf: "2026-10-30" });
+    const model = buildTimelineModel(sampleInput({
+      today: "2026-10-30", plans,
+      assignments: f.assignments.map((a) => ({ id: a.id, subjectId: a.subjectId, title: (a as { title?: string }).title ?? a.id, unitType: a.unitType,
+        totalUnits: a.totalUnits, weightPerUnit: a.weightPerUnit ?? null, startDate: a.start, endDate: a.end, childIds: [...a.childIds], archived: false })),
+      subjects: f.subjects.map((s, i) => ({ id: s.key, name: s.name, color: null, sortOrder: i, archived: false, defaultWeight: null })),
+      blocked: f.blocked.map((b) => ({ id: b.id, label: b.label, kind: (b.kind ?? "vacation") as BlockedRange["kind"], startDate: b.start, endDate: b.end, childIds: [...(b.childIds ?? [])] })),
+      events: [],
+    }));
+    // About what the page's canvas measures for the 11 px name font (Treasure Island's text is ~79 px there).
+    const browserish = (t: string) => t.length * 5.3;
+    const l = layoutTimeline(forChild(model, "frank"), { zoom: "fall", width: 912, measureText: browserish });
+    const band = l.bands.find((b) => b.assignmentId === "beauty")!;
+    expect(band.runs).toHaveLength(2);
+    const names = l.names.filter((n) => n.assignmentId === "beauty");
+    expect(names.map((n) => n.piece)).toEqual([0, 1]);
+    const after = names[1]!;
+    expect(after.text.startsWith("Bl")).toBe(true);
+    // Wider than 2× its name but not 3×: this is the piece the old rule left blank.
+    const w = band.runs[1]!.x1 - band.runs[1]!.x0;
+    expect(w).toBeLessThan(3 * after.width);
   });
 });
