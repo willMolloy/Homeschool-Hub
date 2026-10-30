@@ -8,7 +8,7 @@ A piece too thin for a name inside it (under 13 px) gets its name in a small lab
 
 ## Steps
 
-1. `names.ts`: `OUTSIDE_LANE_PX` (14) and `placeOutsideName`, which places the name left-aligned with the piece's start and cuts it with "…" to the piece's width. `placePieceNames` takes the lane's middle and falls back to it; the zoom rules are unchanged (Year: the first piece, plus later pieces at least 2× their name's width; closer views: every piece).
+1. `names.ts`: `OUTSIDE_LANE_PX` (14) and `placeOutsideName`, which places the name left-aligned with the piece's start and cuts it with "…" to the piece's width. `placePieceNames` takes the lane's middle and falls back to it, but only for a piece nowhere 13 px thick (a thick piece too short for its name stays unnamed); the zoom rules are unchanged (Year: the first piece, plus later pieces at least 2× their name's width; closer views: every piece).
 2. `layout.ts`: a row gets the lane (`LaneRow.labelLane`) only when one of its names sits outside. The lane pushes that row and the ones below it down; row height, centerline and hit areas are unchanged.
 3. `Timeline.tsx` / `timeline.css`: `.tl-outside-name` is 11 px page text (`--tl-foreground`). It dims with its bar, and page text at 0.65 still meets AA. Inside names no longer dim, so they stay at full strength over a dimmed bar.
 

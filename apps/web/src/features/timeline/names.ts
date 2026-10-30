@@ -128,7 +128,7 @@ export type PieceName = NamePlacement & { piece: number; outside: boolean };
  * T-11: names for every piece of one bar. With daily detail every piece is named, so the piece after a break is
  * not mistaken for another assignment; zoomed out (`sparse`), the first named piece plus any later piece at least
  * LATER_PIECE_NAME_FACTOR times its name's width. Returns the piece index with each placement.
- * T-11d: with `laneY` (the middle of the row's label lane), a piece too thin for an inside name gets one there.
+ * T-11d: with `laneY` (the middle of the row's label lane), a piece thinner than NAME_PATCH_PX gets its name there.
  */
 export function placePieceNames(
   title: string, pieces: readonly (readonly BandColumn[])[], cy: number, sparse: boolean, measure: MeasureText = estimateTextWidth,
@@ -137,7 +137,9 @@ export function placePieceNames(
   const out: PieceName[] = [];
   pieces.forEach((piece, i) => {
     const inside = placePieceName(title, piece, cy, measure);
-    const name = inside ?? (laneY === undefined ? null : placeOutsideName(title, piece, laneY, measure));
+    // Only a thin piece (nowhere NAME_PATCH_PX thick) goes outside; a thick piece too short for its name stays unnamed.
+    const thin = piece.every((c) => c.bottom - c.top < NAME_PATCH_PX);
+    const name = inside ?? (laneY === undefined || !thin ? null : placeOutsideName(title, piece, laneY, measure));
     if (!name) return;
     const width = piece[piece.length - 1]!.x1 - piece[0]!.x0;
     if (sparse && out.length > 0 && width < LATER_PIECE_NAME_FACTOR * name.width) return;

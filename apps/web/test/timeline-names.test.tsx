@@ -81,6 +81,8 @@ describe("naming each piece of a bar (T-11)", () => {
     const pieces = [[col(0, 40, 4)], [col(50, 100, 20)]];
     expect(placePieceNames("Heidi", pieces, 50, false, perChar, 20).map((n) => [n.piece, n.outside])).toEqual([[0, true], [1, false]]);
     expect(placePieceNames("Heidi", pieces, 50, false, perChar).map((n) => n.piece)).toEqual([1]);
+    // A thick piece too short for its name stays unnamed: only thin pieces go outside.
+    expect(placePieceNames("Heidi", [[col(0, 6, 20)]], 50, false, perChar, 20)).toEqual([]);
     // Zoomed out, the 2× rule still applies to later pieces.
     expect(placePieceNames("Heidi", [[col(0, 40, 4)], [col(50, 58, 4)]], 50, true, perChar, 20).map((n) => n.piece)).toEqual([0]);
   });
@@ -125,7 +127,7 @@ describe("names in the layout", () => {
         expect(n.x).toBeGreaterThanOrEqual(piece.x0 - 0.01);
         expect(n.x + n.width).toBeLessThanOrEqual(piece.x1 + 0.01);
         if (n.outside) {
-          // T-11d: in the row's label lane, left-aligned with the piece's start.
+          // T-11d: only for a thin piece, in the row's label lane, left-aligned with the piece's start.
           expect(row.labelLane).toBe(OUTSIDE_LANE_PX);
           expect(n.x).toBeCloseTo(piece.x0, 5);
           expect(n.y).toBeCloseTo(row.y - OUTSIDE_LANE_PX, 5);
