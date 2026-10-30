@@ -24,6 +24,7 @@ export {
   type WeightSource,
   type WeightSuggestion,
 } from "./weights";
+export { validWeekdays, weekdaysOf, type WeekdaysSource } from "./weekdays";
 export { buildCapacityModel, ruleFactor, type CapacityModel } from "./capacity";
 export { planChild, planAssignment, planAll, EPS, MAX_PUSH_DAYS } from "./plan";
 export { plannedRangeForWeek } from "./checkins";

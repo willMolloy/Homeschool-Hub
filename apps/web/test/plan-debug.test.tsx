@@ -20,7 +20,7 @@ const days = (thickness: number[], weight = 1): DayLoad[] => {
 
 const plan = (over: Partial<ChildPlan>): ChildPlan => ({
   engineVersion: ENGINE_VERSION, assignmentId: "a1", childId: "c1", subjectId: "lit", unitType: "pages",
-  weightPerUnit: 1, weightSource: "assignment", totalUnits: 100, doneUnits: 0, remainingUnits: 100,
+  weightPerUnit: 1, weightSource: "assignment", weekdays: null, weekdaysSource: "default", totalUnits: 100, doneUnits: 0, remainingUnits: 100,
   baseRate: 22.5, rate: 22.5, plannedEnd: "2026-11-06", end: "2026-11-06", mode: null, unplacedUnits: 0,
   noCapacity: false, complete: false, checkInWeeks: [], days: days([]), warnings: [], ...over,
 });

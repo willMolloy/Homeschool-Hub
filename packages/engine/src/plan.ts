@@ -1,9 +1,10 @@
 import { buildCapacityModel, type CapacityModel } from "./capacity";
 import { applyCheckIns, lastCheckInWeekEnd } from "./checkins";
-import { EngineInputError, fromDayNumber, isValidLocalDate, toDayNumber } from "./dates";
+import { EngineInputError, fromDayNumber, isValidLocalDate, toDayNumber, weekdayOfDayNumber } from "./dates";
 import { EPS, MAX_PUSH_DAYS, placeSegment, prepareOverrides, type Placement } from "./placement";
 import { pastMissedDays } from "./missed";
 import { replanFrom } from "./reanchor";
+import { weekdaysOf } from "./weekdays";
 import { weightPerUnitOf } from "./weights";
 import { ENGINE_VERSION } from "./version";
 import type { Assignment, ChildPlan, DayKind, DayLoad, PlanContext, PlanWarning, SubjectWeight } from "./types";
@@ -26,7 +27,8 @@ function subjectDefaultFor(a: Assignment, ctx: PlanContext): SubjectWeight | nul
 /**
  * Plan one assignment for one child.
  *
- * - capacity(d) comes from the calendar, blocked periods, and events (see capacity.ts).
+ * - capacity(d) comes from the calendar, blocked periods, and events (see capacity.ts); it is 0 on a weekday
+ *   outside the assignment's own, else its subject's, weekdays (S4-01).
  * - The plan runs from the assignment's start, as if every scheduled day before today was done (S2b-18).
  *   Logs don't move bars; `ctx.asOf` only labels earlier days `assumed`.
  * - Override weeks are fixed first: their units are spread over that week's capacity.
@@ -45,6 +47,9 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   const fullCap = model ?? buildCapacityModel(ctx.calendar, ctx.events, ctx.blocked);
   const { weight, source: weightSource } = weightPerUnitOf(a, subjectDefaultFor(a, ctx));
 
+  const { weekdays, source: weekdaysSource } = weekdaysOf(a, ctx);
+  const onWeekdays = weekdays ? new Set<number>(weekdays) : null;
+
   const S = toDayNumber(a.start);
   const E = toDayNumber(a.end);
   const total = a.totalUnits;
@@ -58,7 +63,7 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
 
   const capOf = new Map<number, number>();
   const c = (d: number): number => {
-    if (zeroed.has(d)) return 0;
+    if (zeroed.has(d) || (onWeekdays && !onWeekdays.has(weekdayOfDayNumber(d)))) return 0;
     let v = capOf.get(d);
     if (v === undefined) {
       v = cap.capacity(d, childId, a.subjectId);
@@ -122,6 +127,8 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     unitType: a.unitType,
     weightPerUnit: weight,
     weightSource,
+    weekdays,
+    weekdaysSource,
     totalUnits: total,
     doneUnits: done,
     remainingUnits: remaining,

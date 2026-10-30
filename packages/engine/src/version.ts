@@ -10,4 +10,5 @@
 // 0.5.0: actual-progress check-ins (S2b-20); DayLoad.position, checkInWeeks, finishedEarly.
 // 0.6.0: the latest check-in is authoritative (S2b-38); a later check-in replans from the original end and pace.
 // 0.7.0: a missed day on or before asOf carries its work forward (S4-00); days before it stay as planned.
-export const ENGINE_VERSION = "0.7.0";
+// 0.8.0: an assignment is planned only on its weekdays (S4-01); ChildPlan.weekdays and weekdaysSource.
+export const ENGINE_VERSION = "0.8.0";
