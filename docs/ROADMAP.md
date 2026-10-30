@@ -81,7 +81,10 @@ Sprint 3a (`tickets/sprint-3a-setup/`) builds the first three.
 - [ ] **Copy an assignment**, including to another child (for example a younger sibling).
 - [ ] **CSV import** of assignments.
 - [ ] **Book lookup by title.** Type a title and pick the book; its title and page count fill in (Open Library's free API). ISBN barcode scanning comes later.
-- [ ] **Calendar templates.** Year shapes such as 36 weeks, a Sabbath schedule (6 weeks on, 1 off) or three terms, plus US holidays offered as days off, set up in one step.
+- [ ] **Calendar templates for the year's shape** (terms and breaks; the weekly shape is the weekday chips). Set up in one step, with a preview of the breaks it adds; everything stays editable under Days off.
+  - **Built in:** 36 weeks, a Sabbath schedule (6 weeks on, 1 off), three terms of 12 weeks, plus US holidays offered as days off.
+  - **Build your own:** a simple pattern ("__ weeks on, __ weeks off", start and end dates, which holidays to skip), or "Save this year as a template" from breaks set up by hand, reused at rollover.
+  - Sharing a template with friends or a co-op comes later.
 - [ ] **Year rollover and sibling reuse.** Start next year from this one, or copy a plan to a younger child, with the dates shifted.
 
 ### Accounts
