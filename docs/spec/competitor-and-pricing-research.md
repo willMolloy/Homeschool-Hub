@@ -1,6 +1,6 @@
 # Homeschool Planner: Competitor & Pricing Research
 
-> Copied from the shared Page https://cursor.com/canvas/store-05807489-4c87-496a-9870-4cee453dadd4/93025aad-a8f8-42ef-aab9-71942b9f2a14 on 2026-10-30; the repo copy is the working reference until go-live, when docs/spec/ will be removed.
+> **Point-in-time research**, copied from a shared Page on 2026-10-30. The repo copy is now the source of truth (`README.md`); it is not updated as the plan changes. Current plan: [../ROADMAP.md](../ROADMAP.md).
 
 _What existing homeschool planners charge and do, how big the market is and how many kids homeschool families have, and how to price and position your workload timeline app._
 

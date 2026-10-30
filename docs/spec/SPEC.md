@@ -1,10 +1,19 @@
 # Homeschool Hub: Product Spec
 
-> Copied from the shared Page https://cursor.com/canvas/store-05807489-4c87-496a-9870-4cee453dadd4/bb34c3a6-0776-400f-8153-0208d3dd507f on 2026-10-30; the repo copy is the working reference until go-live, when docs/spec/ will be removed.
+> **Source of truth.** Since 2026-10-30 this file is the canonical spec; the shared Page it was copied from (bb34c3a6) is historical. The current plan, scope and open decisions are in [../ROADMAP.md](../ROADMAP.md); where the two differ, the roadmap wins and this file should be updated.
 
 _The living spec for DeeDee's homeschool app: what it is, what we've decided, the data model, the hub features to add, state requirements research, pricing, and open questions._
 
 ## Changelog
+
+2026-10-30
+
+-   The repo copy became the source of truth; the shared Page is historical.
+-   Positioning: a steering tool for the year, with a core plus optional modules that make it a full hub (Vision and positioning).
+-   Thickness is effort, stored as a weight per unit (1 point ≈ 2 minutes), not minutes per unit. Updated the timeline, data model and v1 engineering decisions to match Sprint 2b. The proposed way parents enter effort is in ROADMAP.md, "Effort".
+-   Logging became an optional module. Records (attendance, estimated hours, book list, CSV) are generated from the plan, with no daily input (Low-friction logging).
+-   The validation plan and prototype test script are retired with the parent pilot (dropped 2026-10-28). Kept for history.
+-   Open questions moved to ROADMAP.md, "Open decisions for DeeDee".
 
 2026-10-28
 
@@ -15,7 +24,10 @@ _The living spec for DeeDee's homeschool app: what it is, what we've decided, th
 
 ## Vision and positioning
 
-One homeschool hub where the plan and the record are the same data. Parents plan the year on a visual timeline, run the week from it, and log in seconds, so they never need a second app or spreadsheet.
+One homeschool hub where the plan and the record are the same data. Parents plan the year on a visual timeline, steer it when life happens, and get their records from the same data, so they never need a second app or spreadsheet.
+
+-   **A steering tool, not a daily to-do app.** A parent sees the shape of the year in seconds and corrects course; nothing in the core needs daily input or tedious entry.
+-   **Core plus optional modules.** The core (map, steering, effort, fast setup) is the differentiator and is always on. Optional modules (records, a daily checklist, later templates and more) make it a full hub; they are off by default, read from the plan, and add nothing to the core screens until switched on (ROADMAP.md).
 
 -   Differentiator: a year timeline where bar thickness shows daily workload per subject lane. No competitor in the research shows this.
 -   Second differentiator: recurring events that use up part of a day and ask which subjects give way, with a preview before saving.
@@ -36,7 +48,7 @@ Rough sketch only: thicker bars mean more work per day, the gray band is a break
 
 1.  **One colored lane per subject**: Time runs left to right across the school year. Literature might be dark blue, with math, history, and others in their own lanes.
 2.  **Mobile shows a zoomable window**: A smaller slice of the calendar that zooms out to the whole year.
-3.  **Bar thickness is daily load**: Minutes of work per day from the load engine: units per day (pages, chapters, lessons, or minutes) times minutes per unit, so subjects compare. The parent can also set the width by hand.
+3.  **Bar thickness is daily effort**: Units per day (pages, chapters, lessons, or minutes) times the assignment's effort weight per unit, so subjects compare. One weight point is about 2 minutes. The weight comes from the assignment, else the subject's default, else a built-in default per unit type (Sprint 2b).
 4.  **Drag and stretch to rebalance**: Move a bar or pull its ends and watch it thin or thicken live. Pulling Treasure Island's end from Mar 15 to Feb 15 makes it thicker.
 5.  **Total-load strip**: A strip along the edge sums every lane so heavy weeks stand out without adding bar widths in your head.
 6.  **Assignments belong to one or more children**: One read-aloud can cover several kids.
@@ -61,6 +73,8 @@ Rough sketch only: thicker bars mean more work per day, the gray band is a break
 
 ### Low-friction logging
 
+> **Now optional modules** (ROADMAP.md, "Optional modules"). The first is **Records**: attendance days, estimated hours, a book list and CSV export, all generated from the plan with no daily input. One-tap check-off becomes a later optional daily checklist. The items below are the original design for logging; the positioning rule still applies to everything.
+
 1.  **One-tap check-off**: Today's scheduled items with expected time prefilled; tap done, or tap and adjust.
 2.  **Quick add for unplanned learning**: Subject, duration, and an optional note or photo for a museum trip or nature walk.
 3.  **Log once for several kids**: One check-off covers a shared lesson, with each child's own progress (Frank 5 pages, Margaret 3).
@@ -80,8 +94,8 @@ Positioning rule: a record-keeping helper, never a compliance solution.
 | --- | --- |
 | Family | `id`, `state`, `timeZone`, `schoolYearStart/End` (local dates), `schoolDays` (e.g. Mon-Fri), `weekStart` (Mon or Sun; the one definition of a week, used by This Week, WeekOverride, and weekly averaging), `plan` |
 | Child | `id`, `familyId`, `name`, `birthdate`, `grade` |
-| Subject | `id`, `name`, `color`, `laneOrder`, `stateCategory` (an optional label the family picks for grouping totals; never used to judge whether a requirement is met) |
-| Assignment | `id` (client UUID), `childIds[]`, `subjectId`, `title`, `unitType` (pages, chapters, lessons, minutes), `totalUnits` (native units), `start`, `end` (local dates), `minutesPerUnit?` (empty means the unitType default, shown as estimated), `manualWeight?`, `lessons[]?`, `templateId?` |
+| Subject | `id`, `name`, `color`, `laneOrder`, `defaultWeight?` (unit type and weight per unit), `stateCategory` (an optional label the family picks for grouping totals; never used to judge whether a requirement is met) |
+| Assignment | `id` (client UUID), `childIds[]`, `subjectId`, `title`, `unitType` (pages, chapters, lessons, minutes), `totalUnits` (native units), `start`, `end` (local dates), `weightPerUnit?` (effort per unit; empty means the subject default, else the unitType default), `lessons[]?`, `templateId?` |
 | Lesson | `assignmentId`, `index`, `title`, `units` (from a table of contents or template) |
 | RecurringEvent | `childIds[]`, `rrule` (e.g. weekly Tue), `start`, `durationMin`, `capacityFraction` (0-1), `subjectRules{subjectId: skip, lighter, normal}`, `reminder` |
 | BlockedPeriod | `id`, `start`, `end` (local dates), `childIds[]` or all, `kind` (vacation, holiday, sick) |
@@ -94,9 +108,9 @@ Per-day load comes from capacity. A day's base capacity is 0 if it is blocked or
 
 `rate = (remaining units) / (Σ over remaining days d capacity(d))`
 
-Each day's load is the rate times that day's capacity, unless a manual weight is set. Weeks with a WeekOverride are fixed and removed from the sum first, and pushEndDate extends the end until the rate fits the old pace. Example with made-up numbers: 300 pages over 60 school days is 5 a day; skipping Tuesday co-op removes about 10 days, so 300 / 50 = 6.
+Each day's load is the rate times that day's capacity. Weeks with a WeekOverride are fixed and removed from the sum first, and pushEndDate extends the end until the rate fits the old pace. Example with made-up numbers: 300 pages over 60 school days is 5 a day; skipping Tuesday co-op removes about 10 days, so 300 / 50 = 6.
 
-Bar thickness is minutes per day: units per day times `minutesPerUnit`, which falls back to the unitType default until the parent sets it. Units stay native in the data and in CSV, and the total-load strip always sums minutes. The rate and daily loads are never stored; they are recomputed from these inputs. Attendance, hours, This Week, auto-shift, the student view, and reports are all views over Assignment, LogEntry, and LogChildProgress. Weeks always start on `Family.weekStart`.
+Bar thickness is units per day times the effort weight per unit. Units stay native in the data and in CSV, and the total-load strip sums thickness. The plan assumes scheduled work was done unless a weekly check-in says otherwise (S2b-18, S2b-20); logs do not move the plan. The rate and daily loads are never stored; they are recomputed from these inputs. Attendance, hours, This Week, auto-shift, the student view, and reports are all views over Assignment, LogEntry, and LogChildProgress. Weeks always start on `Family.weekStart`.
 
 Logging has two behaviors. A check-off ("this lesson is done today") is an idempotent upsert keyed on (assignment, date, child), so a double tap from two devices leaves one row. Extra work is a session: each session adds its own LogChildProgress rows, and a day's progress is the check-off plus all sessions summed, so 10 pages in the morning and 5 at night count as 15. Sessions, including quick adds, dedupe only by their client UUID. Changing a log's date (or assignment) updates its LogChildProgress rows in the same transaction, so the copied fields and the index never go stale.
 
@@ -104,8 +118,8 @@ Logging has two behaviors. A check-off ("this lesson is done today") is an idemp
 
 _Agreed Oct 27, 2026. The prototype fakes all of this; revisit once parents confirm they read thickness correctly._
 
-1.  **Thickness is minutes per day**: Every unitType has a default minutes per unit, for example about 2 per page and 20 per lesson, as starting values to tune. Defaults show as estimated until the parent sets their own. Units stay native in the data and CSV, and the total-load strip is always in minutes.
-2.  **Semantic zoom**: Detail follows zoom by default. Full-year zoom shows smooth weekly-averaged bars with no day-level notches. Fall or spring zoom and closer shows daily detail: co-op notches and per-day thickness. Event markers (co-op, violin, piano) are thin dark-gray ticks on a light band, named in the label column, and stop at the year end. On a phone at full-year zoom each event strip collapses to a light tinted band with no ticks; ticks appear once zoomed to fall, spring, or closer. An Auto / Daily / Weekly control overrides it, with Auto as the default. Implementation: the same engine daily output, passed through one aggregation function chosen by a zoom threshold (the prototype switches to daily once a day column is at least 8 px wide), so the two views always agree. A weekly value is the week's minutes divided by the number of that week's days with capacity above 0 for that assignment, not by 5, so a week with a skipped co-op Tuesday or a partial break isn't diluted. It is drawn flat across the week's school days, and weekly value times capacity days equals the week's total. The total strip sums the lanes' weekly values. Because each lane uses its own capacity-day denominator (a lane that skips co-op Tuesday divides by 4, others by 5), the strip means minutes on a typical school day, not the true average of the week's total minutes. That was decided deliberately, and debrief mode labels the strip 'Minutes on a typical school day'; test mode keeps 'All subjects'.
+1.  **Thickness is effort** (revised in Sprint 2b): every unitType has a default weight per unit (page 1, chapter 10, lesson 15, minute 0.5; 1 point ≈ 2 minutes), overridden by a subject default or the assignment's own weight. Units stay native in the data and CSV. The engine outputs no minutes; estimated hours are derived from thickness in the records module.
+2.  **Semantic zoom** (written when thickness was minutes; read "minutes" below as thickness): Detail follows zoom by default. Full-year zoom shows smooth weekly-averaged bars with no day-level notches. Fall or spring zoom and closer shows daily detail: co-op notches and per-day thickness. Event markers (co-op, violin, piano) are thin dark-gray ticks on a light band, named in the label column, and stop at the year end. On a phone at full-year zoom each event strip collapses to a light tinted band with no ticks; ticks appear once zoomed to fall, spring, or closer. An Auto / Daily / Weekly control overrides it, with Auto as the default. Implementation: the same engine daily output, passed through one aggregation function chosen by a zoom threshold (the prototype switches to daily once a day column is at least 8 px wide), so the two views always agree. A weekly value is the week's minutes divided by the number of that week's days with capacity above 0 for that assignment, not by 5, so a week with a skipped co-op Tuesday or a partial break isn't diluted. It is drawn flat across the week's school days, and weekly value times capacity days equals the week's total. The total strip sums the lanes' weekly values. Because each lane uses its own capacity-day denominator (a lane that skips co-op Tuesday divides by 4, others by 5), the strip means minutes on a typical school day, not the true average of the week's total minutes. That was decided deliberately, and debrief mode labels the strip 'Minutes on a typical school day'; test mode keeps 'All subjects'.
 3.  **Shared assignments track progress per child**: One shared read-aloud or lesson is one LogEntry with a LogChildProgress row per child (Frank 5 pages, Margaret 3), so each child's bar and records stay accurate.
 4.  **One load engine everywhere**: A single pure, versioned module runs on the client and the server, so PDFs, hour totals, and plan percentages match the screen. The engine version guards against a stale PWA service worker computing with old rules. School days are local dates, not timestamps, so a sick day logged near midnight never shifts a day. The rate is never persisted, only its inputs.
 5.  **Offline queue that replays safely**: Each LogEntry's client UUID makes replay idempotent. Check-offs are upserts on (assignment, date, child), so the same lesson tapped on two devices is logged once. Sessions and quick adds dedupe by UUID only, so a second reading session or a second nature walk on the same day both count.
@@ -115,6 +129,8 @@ _Agreed Oct 27, 2026. The prototype fakes all of this; revisit once parents conf
 We dropped the normalized-units fallback (thickness as percent of an assignment's total). Percent of total reflects how long an assignment runs, not how much work it is: a 2-week sprint through a thin book would look heavier than a dense 9-month text, so the strip would stop meaning anything.
 
 ### Validation plan
+
+> **Retired.** The parent pilot was dropped on 2026-10-28; validation now runs through DeeDee's own use and a friends beta with agreed go-public signals (ROADMAP.md). The plan and test script below are kept for history.
 
 1.  **Clickable prototype**: Year timeline, recurring events, and This Week with fake data for a made-up family.
 2.  **Pilot sessions first: 2 people outside DeeDee's circle**: Run the full script twice before the 12, with people who don't know us. Use them to fix confusing wording, broken steps, and tasks that are too easy or too hard, and to tune timing. Pilot data does not count toward the decision rules.
@@ -250,7 +266,7 @@ _Filter on the Page: All / MVP / v1.x premium / Later; showing All._
 | Household calendar items (chores, appointments) | Planet | Vendor site | Later |
 | Share or sell family-made plan templates | Syllabird (share courses), Planet marketplace | Vendor sites | Later |
 
-After the v1 scope cut, this whole list is backlog: MVP now means first in line after v1, and kid logins, templates, and state record-keeping helpers wait regardless of their label here.
+Current priorities are in ROADMAP.md; the Priority column below is the original research ranking. After the v1 scope cut, this whole list is backlog: MVP now means first in line after v1, and kid logins, templates, and state record-keeping helpers wait regardless of their label here.
 
 -   MVP adds the everyday basics competitors already have, so families don't need a second app from day one.
 -   Lesson-level plans and templates make the This Week chapter list work without typing a table of contents.
@@ -324,17 +340,11 @@ The strongest fit is New York's quarterly report. Because the timeline already k
 | Founding offer | $39/yr for life (first 500) | Same as Family, for early reviews and word of mouth |
 | Later upsells | Priced separately | Transcripts and report cards for high schoolers; curriculum templates such as Ambleside, Memoria Press, Orthodox overlays |
 
-Pricing follows the research Page: $49/yr matches Homeschool Manager and undercuts Planet ($84.95) and Panda Pro ($79.99). Keeping CSV export free is my suggestion, because owning your data builds trust.
+Billing waits until after the friends beta; friends get every Family feature free (ROADMAP.md). Pricing follows the research Page: $49/yr matches Homeschool Manager and undercuts Planet ($84.95) and Panda Pro ($79.99). Keeping CSV export free is my suggestion, because owning your data builds trust.
 
 ## Open questions for DeeDee
 
--   What default minutes per unit should chapters get? The prototype uses 30 as a placeholder.
--   Which states should get record-keeping helpers (reference links and summaries) first: NY and PA, or the states where your audience lives?
--   Orthodox overlay: New Calendar, Old Calendar, or both? Should fasts affect anything or only display?
--   Is the founding offer worth it, and do transcripts belong in Family or as a separate upsell?
--   Kid logins for children under 13 bring children's privacy rules such as COPPA. Parent-managed profiles only at first?
--   Does the school year follow a fixed Aug-Jun calendar, year-round, or terms the family defines?
--   Working name for the app?
+Moved to [ROADMAP.md](../ROADMAP.md), "Open decisions for DeeDee", on 2026-10-30, and triaged there by phase. The default minutes per unit question is superseded by effort weights.
 
 ## Sources
 

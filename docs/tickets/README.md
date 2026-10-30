@@ -136,40 +136,9 @@ graph LR
   S1_07 --> S1_37
 ```
 
-## Sprint 2–3 outline: titles only, **pending pilot results**
+## Sprint 2–3 outline (retired)
 
-Nothing below is final. Every title is **pending pilot results**: the pilots will decide the timeline interaction, how logging feels on a phone, and what parents call things. Don't write full tickets for these until the pilot notes are in. Some data-entry titles (assignments, events, vacations) will probably survive the pilots. The UI ones are the most likely to change.
-
-### Sprint 2 (pending pilot results)
-
-- Add the list-assignments endpoint *(pending pilot results)*
-- Add the create-assignment endpoint *(pending pilot results)*
-- Add the update-assignment endpoint *(pending pilot results)*
-- Build the add-assignment form *(pending pilot results)*
-- Build the edit-assignment form *(pending pilot results)*
-- Add the recurring-events endpoints *(pending pilot results)*
-- Build the recurring-event form with per-subject rules *(pending pilot results)*
-- Add the vacation/blocked-days endpoints *(pending pilot results)*
-- Build the vacation form *(pending pilot results)*
-- Add the family settings screen (week start, school days) *(pending pilot results)*
-- Add the log-entry sync endpoint (idempotent client UUIDs) *(pending pilot results)*
-- Build the daily check-off screen *(pending pilot results)*
-- Build the log-a-session sheet *(pending pilot results)*
-- Queue log entries offline in IndexedDB *(pending pilot results)*
-- Cache the app shell in the service worker *(pending pilot results)*
-
-### Sprint 3 (pending pilot results)
-
-- Render the year timeline lanes (per child, per subject) *(pending pilot results)*
-- Add semantic zoom (weekly ↔ daily at 8 px/day) *(pending pilot results)*
-- Draw the total-load strip *(pending pilot results)*
-- Add the week-override sheet (keep end date vs push end date) *(pending pilot results)*
-- Add the week-override endpoints *(pending pilot results)*
-- Show warnings (no capacity, unplaced work, past end) on the timeline *(pending pilot results)*
-- Show estimated minutes markers *(pending pilot results)*
-- Add the 'behind / ahead' progress indicator *(pending pilot results)*
-- Add the minutes-per-unit calibration prompt *(pending pilot results)*
-- Add per-child view filters *(pending pilot results)*
+The old "pending pilot results" outline was retired on 2026-10-30, when the parent pilot was dropped. Most of it was built in Sprint 2a, Sprint 2b and the timeline sprint below; logging, the offline queue and the week-override sheet were not. What comes next is the core checklist in [ROADMAP.md](../ROADMAP.md); new tickets go in a new sprint folder from there.
 
 ## Sprint 2a: schedule data (pilot-independent)
 
@@ -179,6 +148,14 @@ See [sprint-2a/README.md](sprint-2a/README.md): family settings, assignments, da
 
 See [review-fixes/README.md](review-fixes/README.md): the agreed "do now" items from the developer and tester reviews, RF-01 to RF-12, one commit each.
 
-## Timeline (design tokens now; the rest pending pilot results)
+## Sprint 2b: effort weights, assumed progress, check-ins
 
-See [timeline/README.md](timeline/README.md): T-01 sets up the design tokens (OKLCH subject palette, light and dark variables, Tailwind v4, shadcn/ui on Base UI). T-02 onwards wait for the pilots.
+See [sprint-2b-weights/README.md](sprint-2b-weights/README.md) (S2b-01 to S2b-38) and `progress/sprint-2b.md`.
+
+## Sprint 2c: fixes from the Sprint 2b verification
+
+See [sprint-2c-fixes/README.md](sprint-2c-fixes/README.md) (S2c-01 to S2c-06) and `progress/sprint-2c.md`.
+
+## Timeline
+
+See [timeline/README.md](timeline/README.md) (T-01 to T-11e) and `progress/timeline.md`. Built after the pilot gate was dropped on 2026-10-28.

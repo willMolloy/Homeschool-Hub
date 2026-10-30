@@ -4,11 +4,13 @@ Start here, then read [ROADMAP.md](ROADMAP.md) and [HOW_WE_WORK.md](HOW_WE_WORK.
 
 ## The product
 
-Homeschool Hub is a freemium homeschool planner. Free covers one child; the Family plan ($5.99/mo or $49/yr) adds unlimited children, so the paywall comes at the 2nd child (`spec/SPEC.md`, "Free vs premium"). It is not built yet.
+Homeschool Hub is a **steering tool for the homeschool year**: a parent sees the shape of the whole year in seconds, corrects course when life happens, and gets their records with no extra work. It is a planning tool, not a daily to-do app; nothing in the core needs daily input. Around that core, optional modules (off by default) make it a full homeschool hub. [ROADMAP.md](ROADMAP.md) has the plan, the core checklist and the module rules.
+
+The planned business model is freemium: Free covers one child, and the Family plan ($5.99/mo or $49/yr) adds unlimited children (`spec/SPEC.md`, "Free vs premium"). Billing is not built and waits until after the friends beta; friends get every Family feature free.
 
 **The core is the year timeline** (`/timeline`):
 - One lane per subject, with sub-lanes per child and sub-rows so bars never overlap.
-- Semi-transparent bars. A bar's thickness shows daily workload: units per day × the assignment's effort weight.
+- Semi-transparent bars. A bar's thickness shows daily effort: units per day × the assignment's effort weight per unit (1 point ≈ 2 minutes). How parents enter effort is being reworked (ROADMAP.md, "Effort").
 - An "All subjects" bar pinned above the lanes shows the summed load.
 - Zoom presets: Year / Fall / Spring / This month.
 - A child filter.
@@ -18,7 +20,7 @@ Homeschool Hub is a freemium homeschool planner. Free covers one child; the Fami
 **Supporting features:**
 - **This Week**, with the optional "How did last week go?" check-in. The plan assumes scheduled work was done unless the parent says otherwise.
 - **Recurring events and days off** (built in Sprint 2a).
-- **Hour logging and export.** The spec has one-tap check-off, quick add, hour and attendance totals, CSV export (free) and PDF records (Family plan) (`spec/SPEC.md`, "Low-friction logging" and "Free vs premium"). None of it is in the code yet, and the repo has no export code.
+- **Records** (planned optional module): attendance days, estimated hours, a book list and CSV export, all generated from the plan. None of it is in the code yet. Daily check-off logging is a later optional module, never required (ROADMAP.md, "Optional modules").
 
 ## Design principles
 
@@ -38,7 +40,8 @@ Every ticket has an acceptance criterion that checks nothing non-essential is sh
 ## Product rules
 
 - **Schedule first.** Planning comes before logging. Logging is optional, and the plan doesn't depend on it (S2b-18, S2b-19).
-- **The parent pilot gate was dropped** on 2026-10-28. DeeDee tests personally. `docs/pilot/` is kept for history.
+- **No tedious entry.** A feature that needs parents to type a lot (lesson titles, required daily check-offs) stays out of the core.
+- **The parent pilot gate was dropped** on 2026-10-28. Validation now runs through DeeDee's own use, then a friends beta with agreed go-public signals (ROADMAP.md). `docs/pilot/` is kept for history.
 - **Logging is a record-keeping helper, never a compliance claim.** No copy may claim the app meets a state's requirements.
 - **Payments and billing come only after live testing.**
 
@@ -60,10 +63,9 @@ Tests use Vitest. The engine is also tested under 7 time zones (`npm run test:tz
 
 ## Links
 
-- Spec: [docs/spec/SPEC.md](spec/SPEC.md), copied from the [Product Spec Page](https://cursor.com/canvas/store-05807489-4c87-496a-9870-4cee453dadd4/bb34c3a6-0776-400f-8153-0208d3dd507f).
-- Timeline Tools Page (the timeline tickets cite it): [docs/spec/timeline-tools-research.md](spec/timeline-tools-research.md), copied from [the Page](https://cursor.com/canvas/store-05807489-4c87-496a-9870-4cee453dadd4/3f0a3869-f09a-4df5-b7ff-317a49259f2c).
-- Competitor and pricing research: [docs/spec/competitor-and-pricing-research.md](spec/competitor-and-pricing-research.md), copied from [the Page](https://cursor.com/canvas/store-05807489-4c87-496a-9870-4cee453dadd4/93025aad-a8f8-42ef-aab9-71942b9f2a14).
-- The repo copies are the working reference until go-live, when `docs/spec/` will be removed (`docs/spec/README.md`).
+- Spec: [docs/spec/SPEC.md](spec/SPEC.md). Since 2026-10-30 the repo is the single source of truth for the spec and research; the shared Pages they were copied from are historical (`docs/spec/README.md`).
+- Timeline Tools research (the timeline tickets call it "the Timeline Tools Page"): [docs/spec/timeline-tools-research.md](spec/timeline-tools-research.md).
+- Competitor and pricing research: [docs/spec/competitor-and-pricing-research.md](spec/competitor-and-pricing-research.md).
 - [ROADMAP.md](ROADMAP.md): what's done, what's next, and the open decisions.
 - [HOW_WE_WORK.md](HOW_WE_WORK.md): roles, ticket format, local dev, rules.
 - [REVIEW-GUIDE.md](REVIEW-GUIDE.md): run it and review it in about 5 minutes.
