@@ -15,7 +15,7 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 | S4-06 Set default weekdays on the subject form | 2011bd4 | "Usual days" chips on `SubjectForm`; `defaultWeekdays`/`weekdays` added to the web types |
 | S4-07 Pick weekdays on the assignment form | 75c0136 | "Days" chips on `AssignmentForm` and Add several (`useWeekdayChoice.ts`); "Set as default for {subject}"; copies carry `weekdays` |
 | S4-09 Show the weekly briefing on This Week | f4486cb | `Briefing.tsx` and `briefingLines.ts` under the title on `PlanPage`; uses the engine's `forecastFinish`, `heavyWeek`, `HEAVY_WEEK_RATIO` |
-| S4-10 Mark a missed day from This Week | (this commit) | `MissedDay.tsx`: "Missed a day?" button in the This Week header and its sheet; saves a `missed` day off |
+| S4-10 Mark a missed day from This Week | c98c864 | `MissedDay.tsx`: "Missed a day?" button in the This Week header and its sheet; saves a `missed` day off |
 
 ## Decisions (conservative calls on ambiguous points)
 

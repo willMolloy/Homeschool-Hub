@@ -5,7 +5,8 @@
  * need more than the shown week).
  */
 import { useEffect, useMemo, useState } from "react";
-import { addDays, toDayNumber, type LocalDate, type Weekday } from "@hh/engine";
+import { addDays, toDayNumber, type ChildPlan, type LocalDate, type Weekday } from "@hh/engine";
+import { apiGet } from "../../api/client";
 import type { Assignment, Child, PastWeek, PlanResponse } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useMe } from "../../auth/AuthProvider";
@@ -20,24 +21,66 @@ const MAX_SPAN = 400;
 const SHOWN = 3;
 export const NUDGE_TEXT = "Last week isn't checked in yet.";
 
-/** From the earliest start to the latest end of the live assignments, widened to the shown week and held to the API's limit. */
-export function briefingRange(assignments: readonly Assignment[], weekStart: LocalDate): { from: LocalDate; to: LocalDate } {
+export interface DateRange {
+  from: LocalDate;
+  to: LocalDate;
+}
+
+/**
+ * The ranges to request (S4b-01): from the earliest start to the latest end of the live assignments, widened to the shown
+ * week. Over the API's limit the far end is cut, never the start (the forecast needs the check-in history). When the shown
+ * week lies beyond the first range a second one ends at the shown week's end; the plans are merged by `mergePlans`.
+ */
+export function briefingRanges(assignments: readonly Assignment[], weekStart: LocalDate): DateRange[] {
   let from = weekStart;
-  let to = addDays(weekStart, 6);
+  const weekEnd = addDays(weekStart, 6);
+  let to = weekEnd;
   for (const a of assignments) {
     if (a.archived) continue;
     if (a.startDate < from) from = a.startDate;
     if (a.endDate > to) to = a.endDate;
   }
-  if (toDayNumber(to) - toDayNumber(from) + 1 > MAX_SPAN) {
-    // Keep the latest MAX_SPAN days, but never lose the shown week.
-    const latest = addDays(to, 1 - MAX_SPAN);
-    from = latest > from ? latest : from;
-    if (from > weekStart) from = weekStart;
-    const last = addDays(from, MAX_SPAN - 1);
-    if (to > last) to = last;
+  if (toDayNumber(to) - toDayNumber(from) + 1 <= MAX_SPAN) return [{ from, to }];
+  const first = { from, to: addDays(from, MAX_SPAN - 1) };
+  if (weekEnd <= first.to) return [first];
+  const secondFrom = addDays(weekEnd, 1 - MAX_SPAN);
+  return [first, { from: secondFrom > addDays(first.to, 1) ? secondFrom : addDays(first.to, 1), to: weekEnd }];
+}
+
+/** One plan per assignment and child: the first range's plan (it has the history), with the days of the others added. */
+export function mergePlans(responses: readonly PlanResponse[]): ChildPlan[] {
+  const merged = new Map<string, ChildPlan>();
+  for (const r of responses) {
+    for (const p of r.plans) {
+      const key = `${p.assignmentId}|${p.childId}`;
+      const have = merged.get(key);
+      if (!have) {
+        merged.set(key, p);
+        continue;
+      }
+      const seen = new Set(have.days.map((d) => d.date));
+      const days = [...have.days, ...p.days.filter((d) => !seen.has(d.date))].sort((x, y) => (x.date < y.date ? -1 : 1));
+      merged.set(key, { ...have, days });
+    }
   }
-  return { from, to };
+  return [...merged.values()];
+}
+
+/** The briefing's plans for `ranges` (one request each, merged); undefined while loading or when any request fails. */
+function usePlans(ranges: readonly DateRange[], refreshKey: number): ChildPlan[] | undefined {
+  const [plans, setPlans] = useState<ChildPlan[] | undefined>(undefined);
+  const key = ranges.map((r) => `/api/plan?from=${r.from}&to=${r.to}`).join(" ");
+  useEffect(() => {
+    let live = true;
+    Promise.all(key.split(" ").map((path) => apiGet<PlanResponse>(path))).then(
+      (rs) => live && setPlans(mergePlans(rs)),
+      () => live && setPlans(undefined),
+    );
+    return () => {
+      live = false;
+    };
+  }, [key, refreshKey]);
+  return plans;
 }
 
 export function Briefing({ weekStart }: { weekStart: LocalDate }) {
@@ -66,26 +109,22 @@ interface BodyProps {
 
 function BriefingBody({ assignments, children, weekStart, nudge }: BodyProps) {
   const me = useMe();
-  const { from, to } = useMemo(() => briefingRange(assignments, weekStart), [assignments, weekStart]);
-  const plan = useApi<PlanResponse>(`/api/plan?from=${from}&to=${to}`);
+  const ranges = useMemo(() => briefingRanges(assignments, weekStart), [assignments, weekStart]);
   // A check-in or adjustment elsewhere on the page changed the plan: refetch in place.
   const { version } = usePlanRefresh();
-  const reloadPlan = plan.reload;
-  useEffect(() => {
-    if (version > 0) reloadPlan();
-  }, [version, reloadPlan]);
+  const plans = usePlans(ranges, version);
 
   const groups = useMemo(() => {
-    if (!plan.data) return [];
+    if (!plans) return [];
     const titles = new Map(assignments.map((a) => [a.id, a.title]));
     return buildBriefing({
-      plans: plan.data.plans,
+      plans,
       children: children.filter((c) => !c.archived).map((c) => ({ id: c.id, name: c.name })),
       titleOf: (id) => titles.get(id) ?? "An assignment",
       weekStart,
       calendar: { weekStart: me.weekStart, schoolDays: me.schoolDays as Weekday[] },
     });
-  }, [plan.data, assignments, children, weekStart, me.weekStart, me.schoolDays]);
+  }, [plans, assignments, children, weekStart, me.weekStart, me.schoolDays]);
 
   if (groups.length === 0 && !nudge) return null;
   return (

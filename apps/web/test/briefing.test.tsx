@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ENGINE_VERSION, planAll, type Assignment as EngineAssignment, type ChildPlan, type ProgressCheckIn } from "@hh/engine";
-import { briefingRange } from "../src/features/plan/Briefing";
+import { briefingRanges, mergePlans } from "../src/features/plan/Briefing";
 import { buildBriefing, weeksLate } from "../src/features/plan/briefingLines";
 import { EMPTY_WEEK, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
@@ -94,13 +94,34 @@ describe("briefing lines (pure)", () => {
     expect(weeksLate("2026-12-18", "2027-01-15")).toBe(4);
   });
 
-  it("asks for the span of the assignments, widened to the shown week and held to 400 days", () => {
+  it("asks for the span of the assignments, widened to the shown week, as one range", () => {
     const a = (startDate: string, endDate: string, archived = false) => ({ ...ASSIGNMENTS[0]!, startDate, endDate, archived }) as never;
-    expect(briefingRange([a("2026-09-07", "2026-12-18")] as never[], "2026-10-26")).toEqual({ from: "2026-09-07", to: "2026-12-18" });
-    expect(briefingRange([a("2026-09-07", "2026-09-30"), a("2020-01-01", "2030-01-01", true)] as never[], "2026-10-26")).toEqual({ from: "2026-09-07", to: "2026-11-01" });
-    const long = briefingRange([a("2024-01-01", "2028-01-01")] as never[], "2026-10-26");
-    expect(long.from <= "2026-10-26" && long.to >= "2026-11-01").toBe(true);
-    expect((Date.parse(long.to) - Date.parse(long.from)) / 86_400_000 + 1).toBeLessThanOrEqual(400);
+    expect(briefingRanges([a("2026-09-07", "2026-12-18")] as never[], "2026-10-26")).toEqual([{ from: "2026-09-07", to: "2026-12-18" }]);
+    expect(briefingRanges([a("2026-09-07", "2026-09-30"), a("2020-01-01", "2030-01-01", true)] as never[], "2026-10-26")).toEqual([{ from: "2026-09-07", to: "2026-11-01" }]);
+  });
+
+  it("over 400 days keeps the earliest start and cuts the far end (S4b-01)", () => {
+    const a = (startDate: string, endDate: string) => ({ ...ASSIGNMENTS[0]!, startDate, endDate }) as never;
+    expect(briefingRanges([a("2026-09-07", "2028-01-20")] as never[], "2026-10-26")).toEqual([{ from: "2026-09-07", to: "2027-10-11" }]);
+  });
+
+  it("with the shown week past the first range, a second range ends at the shown week (S4b-01)", () => {
+    const a = (startDate: string, endDate: string) => ({ ...ASSIGNMENTS[0]!, startDate, endDate }) as never;
+    const ranges = briefingRanges([a("2026-09-07", "2030-01-01")] as never[], "2028-03-06");
+    expect(ranges).toEqual([{ from: "2026-09-07", to: "2027-10-11" }, { from: "2027-10-12", to: "2028-03-12" }]);
+    for (const r of ranges) expect((Date.parse(r.to) - Date.parse(r.from)) / 86_400_000 + 1).toBeLessThanOrEqual(400);
+  });
+
+  it("merges the plans of two ranges per assignment and child, keeping the first plan's fields and every day once", () => {
+    const day = (date: string) => ({ date, capacity: 1, schoolDay: true, units: 1, thickness: 1, kind: "planned" as const, position: 0 });
+    const plan = (days: string[], end: string) => ({ ...onPaceBase("ti", "c1"), end, days: days.map(day) });
+    const res = (plans: ChildPlan[]) => ({ engineVersion: ENGINE_VERSION, asOf: TODAY, from: "", to: "", plans });
+    const merged = mergePlans([
+      res([plan(["2026-09-07", "2026-09-08"], "2026-12-18"), { ...plan(["2026-09-07"], "x"), assignmentId: "other" }]),
+      res([plan(["2026-09-08", "2028-03-06"], "2026-12-18")]),
+    ]);
+    expect(merged).toHaveLength(2);
+    expect(merged[0]!.days.map((d) => d.date)).toEqual(["2026-09-07", "2026-09-08", "2028-03-06"]);
   });
 });
 
@@ -220,5 +241,22 @@ describe("Weekly briefing on This Week (S4-09)", () => {
     renderAt("/");
     await screen.findAllByRole("table");
     expect(region()).toBeNull();
+  });
+
+  it("one very long assignment doesn't hide a short one's late line: the request keeps the earliest start (S4b-01)", async () => {
+    stub([slowPlan()]);
+    fakeApi.on("GET /api/assignments", 200, [...ASSIGNMENTS, { ...ASSIGNMENTS[0], id: "long", title: "Epic", startDate: "2026-09-07", endDate: "2028-06-30" }]);
+    renderAt("/");
+    expect(await screen.findByText(/^Treasure Island will finish about \d+ weeks? late at this pace\.$/)).toBeInTheDocument();
+    const plans = fakeApi.calls.filter((c) => c.path.startsWith("/api/plan?"));
+    expect(plans.map((c) => c.path)).toContain("/api/plan?from=2026-09-07&to=2027-10-11");
+    expect(plans.every((c) => !c.path.startsWith("/api/plan?from=2026-10-26&to=") || c.path.endsWith("2026-11-01"))).toBe(true);
+  });
+
+  it("a normal family makes one briefing request", async () => {
+    stub([onPacePlan()]);
+    renderAt("/");
+    await briefingFetched();
+    expect(fakeApi.calls.filter((c) => c.path.startsWith("/api/plan?from=2026-09-07"))).toHaveLength(1);
   });
 });
