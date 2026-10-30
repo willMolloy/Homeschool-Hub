@@ -1,8 +1,8 @@
 /**
  * S4-09: the weekly briefing's lines, as pure functions of plans the API already made. Per child, in this order:
- * will finish late, plan problems, a heavy week. The check-in nudge is one line for the family (see Briefing.tsx).
+ * will finish late (or no recent progress), plan problems, a heavy week. The check-in nudge is one line for the family (see Briefing.tsx).
  */
-import { EPS, forecastFinish, heavyWeek, HEAVY_WEEK_RATIO, toDayNumber, type ChildPlan, type FamilyCalendar, type LocalDate, type ProgressCheckIn } from "@hh/engine";
+import { EPS, forecastFinish, fromDayNumber, heavyWeek, HEAVY_WEEK_RATIO, toDayNumber, weekStartOfDayNumber, type ChildPlan, type FamilyCalendar, type LocalDate, type ProgressCheckIn } from "@hh/engine";
 import { shortDate } from "../schedule/formBits";
 
 export interface BriefingLine {
@@ -30,6 +30,28 @@ export interface BriefingInput {
 const appliedCheckIns = (p: ChildPlan): ProgressCheckIn[] =>
   p.checkInWeeks.map((weekStart) => ({ assignmentId: p.assignmentId, childId: p.childId, weekStart, position: 0, mode: null }));
 
+/** S4b-03: a forecast more than this many weeks late is reported plainly, not as a week count. */
+export const VERY_LATE_WEEKS = 26;
+
+/**
+ * S4b-03: at least 2 applied check-in weeks and no progress from the start of the first to the end of the last (the same
+ * span `forecastFinish` measures, which gives no forecast for it).
+ */
+export function noRecentProgress(p: ChildPlan, calendar: FamilyCalendar): boolean {
+  const weeks = p.checkInWeeks.map((w) => toDayNumber(fromDayNumber(weekStartOfDayNumber(toDayNumber(w), calendar.weekStart)))).sort((a, b) => a - b);
+  if (new Set(weeks).size < 2 || p.remainingUnits <= EPS || p.days.length === 0) return false;
+  const first = weeks[0]!;
+  const last = weeks[weeks.length - 1]! + 6;
+  let before = 0;
+  let atEnd = 0;
+  for (const d of p.days) {
+    const n = toDayNumber(d.date);
+    if (n < first) before = d.position;
+    if (n <= last) atEnd = d.position;
+  }
+  return atEnd - before <= EPS;
+}
+
 export function weeksLate(end: LocalDate, forecast: LocalDate): number {
   return Math.max(1, Math.round((toDayNumber(forecast) - toDayNumber(end)) / 7));
 }
@@ -53,10 +75,15 @@ export function buildBriefing(input: BriefingInput): ChildBriefing[] {
         problems.push({ key: `unplaced-${p.assignmentId}`, text: `${title} has work that doesn't fit before ${shortDate(p.end)}.` });
         continue;
       }
+      if (noRecentProgress(p, calendar)) {
+        late.push({ key: `noprogress-${p.assignmentId}`, text: `No progress on ${title} in the last ${new Set(p.checkInWeeks).size} weeks.` });
+        continue;
+      }
       const forecast = forecastFinish(p, appliedCheckIns(p), calendar);
       if (forecast && forecast > p.end) {
         const n = weeksLate(p.end, forecast);
-        late.push({ key: `late-${p.assignmentId}`, text: `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late at this pace.` });
+        const text = n > VERY_LATE_WEEKS ? `${title} won't finish this school year at this pace.` : `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late at this pace.`;
+        late.push({ key: `late-${p.assignmentId}`, text });
       }
     }
     const heavy: BriefingLine[] = [];

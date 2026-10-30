@@ -2,7 +2,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { ENGINE_VERSION, planAll, type Assignment as EngineAssignment, type ChildPlan, type ProgressCheckIn } from "@hh/engine";
+import { addDays, ENGINE_VERSION, forecastFinish, planAll, type Assignment as EngineAssignment, type ChildPlan, type ProgressCheckIn } from "@hh/engine";
 import { briefingRanges, mergePlans } from "../src/features/plan/Briefing";
 import { buildBriefing, weeksLate } from "../src/features/plan/briefingLines";
 import { EMPTY_WEEK, fakeApi } from "./helpers/fake-api";
@@ -64,6 +64,26 @@ describe("briefing lines (pure)", () => {
     expect(frank!.lines[0]!.text).toMatch(/^Treasure Island will finish about \d+ weeks? late at this pace\.$/);
     expect(buildBriefing(input([onPacePlan()]))).toEqual([]);
     expect(buildBriefing(input([{ ...slowPlan(), checkInWeeks: ["2026-09-14"] }]))).toEqual([]);
+  });
+
+  it("S4b-03: zero progress over two check-in weeks is a no-progress line; one check-in shows nothing", () => {
+    const base = planAll([{ id: "ti", subjectId: "lit", childIds: ["c1"], unitType: "pages", totalUnits: 100, start: "2026-09-07", end: "2026-12-18" }], { calendar: CALENDAR, asOf: TODAY })[0]!;
+    const before = base.days.find((d) => d.date === "2026-09-11")!.position;
+    const flat = planAll([{ id: "ti", subjectId: "lit", childIds: ["c1"], unitType: "pages", totalUnits: 100, start: "2026-09-07", end: "2026-12-18" }], {
+      calendar: CALENDAR, asOf: TODAY,
+      checkIns: ["2026-09-14", "2026-09-21"].map((weekStart) => ({ assignmentId: "ti", childId: "c1", weekStart, position: before, mode: "keepEndDate" as const })),
+    })[0]!;
+    expect(buildBriefing(input([flat]))[0]!.lines.map((l) => l.text)).toEqual(["No progress on Treasure Island in the last 2 weeks."]);
+    expect(buildBriefing(input([{ ...flat, checkInWeeks: ["2026-09-14"] }]))).toEqual([]);
+  });
+
+  it("S4b-03: a forecast over 26 weeks late is plain; 3 weeks late is unchanged", () => {
+    const slow = slowPlan();
+    const forecast = forecastFinish(slow, slow.checkInWeeks.map((weekStart) => ({ assignmentId: "ti", childId: "c1", weekStart, position: 0, mode: null })), CALENDAR)!;
+    const text = (end: string) => buildBriefing(input([{ ...slow, end }]))[0]!.lines[0]!.text;
+    expect(text(addDays(forecast, -21))).toBe("Treasure Island will finish about 3 weeks late at this pace.");
+    expect(text(addDays(forecast, -26 * 7))).toBe("Treasure Island will finish about 26 weeks late at this pace.");
+    expect(text(addDays(forecast, -61 * 7))).toBe("Treasure Island won't finish this school year at this pace.");
   });
 
   it("orders late, plan problems, heavy; leaves out a child with nothing", () => {

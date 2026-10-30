@@ -5,7 +5,8 @@ Tickets: `docs/tickets/sprint-4b-fixes/`. Report: `docs/reviews/sprint-4-verific
 | Ticket | Commit | Notes |
 |--------|--------|-------|
 | S4b-01 The briefing plans from the earliest live start | 0e48d1b | `briefingRanges` and `mergePlans` in `Briefing.tsx`; one request, or two when the shown week lies past the first range |
-| S4b-02 A second weekday change in a week keeps the original days | (this commit) | `weekdaysChange` takes the stored record (`stored`); `recordSubjectWeekdaysChange` does the same in SQL; `AssignmentRow` carries `weekdays_from`/`previous_weekdays` |
+| S4b-02 A second weekday change in a week keeps the original days | 1dc91e1 | `weekdaysChange` takes the stored record (`stored`); `recordSubjectWeekdaysChange` does the same in SQL; `AssignmentRow` carries `weekdays_from`/`previous_weekdays` |
+| S4b-03 The briefing reports no recent progress, and caps very late forecasts | (this commit) | `noRecentProgress` and `VERY_LATE_WEEKS` in `briefingLines.ts` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -14,3 +15,5 @@ Tickets: `docs/tickets/sprint-4b-fixes/`. Report: `docs/reviews/sprint-4-verific
 - **S4b-01 changed test.** The S4-09 test "asks for the span ... held to 400 days" (`briefingRange`, one `{from, to}`) is replaced by tests of `briefingRanges` (an array), because the ticket changes what is requested: the start is kept, not the shown week.
 - **S4b-02 "this week" and the undo.** The stored record counts as this week's when its `weekdays_from` equals the current week's start. Then `previous_weekdays` is kept and only the current days change; if the new days equal it (any order; null = every school day) both columns are cleared. An older record is replaced as before. The same rule runs in SQL for a subject default change, over each uncustomised started assignment on its own record.
 - **S4b-02 changed expectations.** Three S4-01b/S4-03/S4-04 test lines said "a later change overwrites both". They now expect the first change's days to stay (assignment: `null` instead of `[5]`; subject: `[1, 3]` instead of `[5]`), because that is what the ticket changes.
+- **S4b-03 no progress.** Measured as `forecastFinish` measures it: the plan's position from the start of the first applied check-in week to the end of the last, with at least 2 distinct applied weeks and work left. It is done in `briefingLines.ts` (no engine change, version unchanged). So a child who stopped after a first week with progress is still not flagged (the report's smaller note); this is the ticket's wording ("no progress across them"). `{n}` is the number of applied check-in weeks (not necessarily consecutive).
+- **S4b-03 very late.** More than 26 weeks late (27 or more after rounding) gives the plain wording; exactly 26 keeps the count. One line per assignment, in the late slot, before plan problems.
