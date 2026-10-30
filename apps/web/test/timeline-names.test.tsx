@@ -5,6 +5,7 @@ import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import {
   ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, LATER_PIECE_NAME_FACTOR, placeName, placePieceName, placePieceNames,
+  OUTSIDE_LANE_PX, placeOutsideName,
 } from "../src/features/timeline/names";
 import type { BandColumn } from "../src/features/timeline/paths";
 import { Timeline } from "../src/features/timeline/Timeline";
@@ -71,6 +72,19 @@ describe("placing a name inside its bar", () => {
 });
 
 describe("naming each piece of a bar (T-11)", () => {
+  it("writes a thin piece's name in the lane above it, from the piece's start, cut to its width (T-11d)", () => {
+    const thin = [col(10, 40, 4), col(40, 70, 4)];
+    expect(placeOutsideName("Treasure Island", thin, 20, perChar)).toEqual({ text: "Treasure Island", x: 10, y: 20 - OUTSIDE_LANE_PX / 2, width: 15, height: OUTSIDE_LANE_PX, textX: 10, textY: 20 });
+    expect(placeOutsideName("A Child's Garden of Verses", [col(10, 20, 4)], 20, perChar)!.text).toBe(`A Child's${ELLIPSIS}`);
+    expect(placeOutsideName("Heidi", [col(10, 11, 4)], 20, perChar)).toBeNull();
+    // With a lane, the thin piece gets an outside name and the thick one stays inside; without, the thin one has none.
+    const pieces = [[col(0, 40, 4)], [col(50, 100, 20)]];
+    expect(placePieceNames("Heidi", pieces, 50, false, perChar, 20).map((n) => [n.piece, n.outside])).toEqual([[0, true], [1, false]]);
+    expect(placePieceNames("Heidi", pieces, 50, false, perChar).map((n) => n.piece)).toEqual([1]);
+    // Zoomed out, the 2× rule still applies to later pieces.
+    expect(placePieceNames("Heidi", [[col(0, 40, 4)], [col(50, 58, 4)]], 50, true, perChar, 20).map((n) => n.piece)).toEqual([0]);
+  });
+
   it(`leaves a piece thinner than ${NAME_PATCH_PX} px unnamed: with no patch, the text would spill onto the page (T-11c)`, () => {
     expect(placePieceName("The Hobbit", [col(0, 30, 6), col(30, 60, 6)], 50, perChar)).toBeNull();
     expect(placePieceName("The Hobbit", [col(0, 200, NAME_PATCH_PX - 1)], 50, perChar)).toBeNull();
@@ -110,17 +124,33 @@ describe("names in the layout", () => {
         const piece = band.runs[n.piece]!;
         expect(n.x).toBeGreaterThanOrEqual(piece.x0 - 0.01);
         expect(n.x + n.width).toBeLessThanOrEqual(piece.x1 + 0.01);
-        expect(n.y).toBeGreaterThanOrEqual(row.y - 0.01);
-        expect(n.y + n.height).toBeLessThanOrEqual(row.y + row.height + 0.01);
-        expect(n.height).toBeGreaterThanOrEqual(NAME_PATCH_PX - 0.01);
-        expect(n.y + n.height / 2).toBeCloseTo(band.cy, 5);
+        if (n.outside) {
+          // T-11d: in the row's label lane, left-aligned with the piece's start.
+          expect(row.labelLane).toBe(OUTSIDE_LANE_PX);
+          expect(n.x).toBeCloseTo(piece.x0, 5);
+          expect(n.y).toBeCloseTo(row.y - OUTSIDE_LANE_PX, 5);
+          expect(n.height).toBe(OUTSIDE_LANE_PX);
+        } else {
+          expect(n.y).toBeGreaterThanOrEqual(row.y - 0.01);
+          expect(n.y + n.height).toBeLessThanOrEqual(row.y + row.height + 0.01);
+          expect(n.height).toBeGreaterThanOrEqual(NAME_PATCH_PX - 0.01);
+          expect(n.y + n.height / 2).toBeCloseTo(band.cy, 5);
+        }
         expect(n.text === band.title || (n.text.endsWith(ELLIPSIS) && band.title.startsWith(n.text.slice(0, -1)))).toBe(true);
         expect([n.paletteSlot, n.step]).toEqual([band.paletteSlot, band.step]);
-        for (const m of l.names.filter((m) => m.rowKey === n.rowKey && m !== n)) expect(m.x >= n.x + n.width || m.x + m.width <= n.x).toBe(true);
+        for (const m of l.names.filter((m) => m.rowKey === n.rowKey && m.outside === n.outside && m !== n)) expect(m.x >= n.x + n.width || m.x + m.width <= n.x).toBe(true);
       }
       if (width === 1280) expect(l.names.length).toBeGreaterThan(5);
+      // T-11d: only rows holding an outside name get a label lane.
+      for (const r of l.rows) expect(r.labelLane).toBe(l.names.some((n) => n.rowKey === r.key && n.outside) ? OUTSIDE_LANE_PX : 0);
     });
   }
+
+  it("gives some thin pieces an outside name, and leaves most rows compact (T-11d)", () => {
+    const l = layoutTimeline(sample, { zoom: "year", width: 1280 });
+    expect(l.names.some((n) => n.outside)).toBe(true);
+    expect(l.rows.filter((r) => r.labelLane === 0).length).toBeGreaterThan(0);
+  });
 
   it("with daily detail, the piece right after a break gets its own name", () => {
     const l = layoutTimeline(sample, { zoom: "month", width: 1280, month: "2026-12" });
@@ -147,12 +177,34 @@ describe("drawing names", () => {
     const drawn = [...group.querySelectorAll("[data-name-for]")];
     expect(drawn).toHaveLength(layout.names.length);
     expect(container.querySelectorAll("rect.tl-name-patch, .tl-names rect")).toHaveLength(0);
-    for (const g of drawn) {
+    for (const [i, g] of drawn.entries()) {
       expect(g.children).toHaveLength(1);
+      if (layout.names[i]!.outside) {
+        // T-11d: page text (its colour comes from .tl-outside-name), not the swatch's label colour.
+        const text = g.querySelector("text.tl-outside-name") as SVGTextElement;
+        expect(text.style.fill).toBe("");
+        continue;
+      }
       const text = g.querySelector("text.tl-name") as SVGTextElement;
       expect(text.style.fill).toMatch(/^var\(--tl-subject-\d+(-light|-dark)?-label\)$/);
     }
     expect(container.querySelector("svg")!.querySelectorAll("*").length).toBeLessThan(300);
+  });
+});
+
+describe("names while another bar is selected (T-11d)", () => {
+  it("outside names dim with their bar; inside names stay at full strength over the dimmed bar", () => {
+    const layout = layoutTimeline(sample, { zoom: "year", width: 1280 });
+    const outside = layout.names.find((n) => n.outside)!;
+    const other = layout.names.find((n) => n.assignmentId !== outside.assignmentId)!.assignmentId;
+    const { container } = render(<Timeline layout={layout} label="Year timeline" selectedId={other} />);
+    for (const g of container.querySelectorAll(".tl-names [data-name-for]")) {
+      const isOutside = !!g.querySelector("text.tl-outside-name");
+      const mine = g.getAttribute("data-name-for") === other;
+      expect(g.classList.contains("tl-dim")).toBe(isOutside && !mine);
+      if (mine) expect(g.classList.contains("tl-selected")).toBe(true);
+    }
+    expect(container.querySelector(`[data-name-for="${outside.assignmentId}"] text.tl-outside-name`)!.parentElement).toHaveClass("tl-dim");
   });
 });
 

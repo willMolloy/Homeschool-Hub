@@ -107,21 +107,41 @@ export function placePieceName(title: string, piece: readonly BandColumn[], cy: 
   return placeName(title, piece, cy, measure);
 }
 
+/** T-11d: the label lane added above a row that holds a name too thin to sit inside its bar. */
+export const OUTSIDE_LANE_PX = 14;
+
+/**
+ * T-11d: a name for a piece too thin to hold it, written in the lane above the row: left-aligned with the piece's
+ * start and cut with "…" to the piece's width, so it never runs over the next piece. `textY` is the lane's middle.
+ */
+export function placeOutsideName(title: string, piece: readonly BandColumn[], textY: number, measure: MeasureText = estimateTextWidth): NamePlacement | null {
+  const x = piece[0]!.x0;
+  const text = fitName(title, piece[piece.length - 1]!.x1 - x, measure);
+  if (!text) return null;
+  const width = measure(text);
+  return { text, x, y: textY - OUTSIDE_LANE_PX / 2, width, height: OUTSIDE_LANE_PX, textX: x, textY };
+}
+
+export type PieceName = NamePlacement & { piece: number; outside: boolean };
+
 /**
  * T-11: names for every piece of one bar. With daily detail every piece is named, so the piece after a break is
  * not mistaken for another assignment; zoomed out (`sparse`), the first named piece plus any later piece at least
  * LATER_PIECE_NAME_FACTOR times its name's width. Returns the piece index with each placement.
+ * T-11d: with `laneY` (the middle of the row's label lane), a piece too thin for an inside name gets one there.
  */
 export function placePieceNames(
   title: string, pieces: readonly (readonly BandColumn[])[], cy: number, sparse: boolean, measure: MeasureText = estimateTextWidth,
-): (NamePlacement & { piece: number })[] {
-  const out: (NamePlacement & { piece: number })[] = [];
+  laneY?: number,
+): PieceName[] {
+  const out: PieceName[] = [];
   pieces.forEach((piece, i) => {
-    const name = placePieceName(title, piece, cy, measure);
+    const inside = placePieceName(title, piece, cy, measure);
+    const name = inside ?? (laneY === undefined ? null : placeOutsideName(title, piece, laneY, measure));
     if (!name) return;
     const width = piece[piece.length - 1]!.x1 - piece[0]!.x0;
     if (sparse && out.length > 0 && width < LATER_PIECE_NAME_FACTOR * name.width) return;
-    out.push({ ...name, piece: i });
+    out.push({ ...name, piece: i, outside: !inside });
   });
   return out;
 }

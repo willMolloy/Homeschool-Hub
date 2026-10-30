@@ -14,7 +14,7 @@
 import { weekdayOf } from "@hh/engine";
 import { PX_PER_THICKNESS } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
-import { estimateTextWidth, placePieceNames, type MeasureText } from "./names";
+import { estimateTextWidth, OUTSIDE_LANE_PX, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows } from "./rows";
@@ -83,6 +83,8 @@ export interface LaneRow {
   height: number;
   /** The fixed centerline. */
   cy: number;
+  /** T-11d: the label lane just above `y` (OUTSIDE_LANE_PX when a name sits outside a bar in this row, else 0). */
+  labelLane: number;
 }
 
 /** The short label line above a child's rows. */
@@ -129,6 +131,8 @@ export interface BarName {
   textY: number;
   /** T-11: which piece of the bar (split by breaks) it names, from 0. */
   piece: number;
+  /** T-11d: written in the label lane above the row, in page text, because the piece is too thin to hold it. */
+  outside: boolean;
 }
 
 export interface BreakRect {
@@ -375,11 +379,17 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
       packed.forEach((members, r) => {
         if (r > 0) y += LANE_GAP_PX;
         const height = rowHeight(members, pxPerPoint);
+        // T-11d: a row with a name too thin to sit inside its bar gets a label lane above it; others stay compact.
+        const piecesAt = (a: TimelineAssignment, at: number) => piecesOf(insetEnds(columnsFor(seriesFor(a), at, pxPerPoint, height)));
+        const needsLane = members.some((a) => placePieceNames(a.title, piecesAt(a, 0), 0, detail === "smooth", measure, 0).some((n) => n.outside));
+        const laneY = y + OUTSIDE_LANE_PX / 2;
+        if (needsLane) y += OUTSIDE_LANE_PX;
         const cy = y + height / 2;
         const key = `${child.key}#${r}`;
         rows.push({
           key, laneKey: child.key, row: r, subjectId: subject.subjectId, subjectName: subject.name, childId: child.childId,
           childName: child.childName, paletteSlot: subject.paletteSlot, step: child.step, y, height, cy,
+          labelLane: needsLane ? OUTSIDE_LANE_PX : 0,
         });
         for (const a of members) {
           // T-11: the outer ends pulled in, so neighbouring assignments never touch.
@@ -390,7 +400,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
             paletteSlot: subject.paletteSlot, step: child.step, d: pathFor(columns), runs: runsOf(columns), cy,
             connectors: connectorsOf(pieces),
           });
-          for (const name of placePieceNames(a.title, pieces, cy, detail === "smooth", measure)) {
+          for (const name of placePieceNames(a.title, pieces, cy, detail === "smooth", measure, needsLane ? laneY : undefined)) {
             names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...name });
           }
         }

@@ -111,11 +111,17 @@ describe("rows, centerlines and spacing", () => {
   });
 
   // T-05c: event strips only show with daily detail, so the lanes start lower there; below lanesTop nothing moves.
-  it.each(WIDTHS)("centerlines don't move between zooms or detail at %i px (relative to the lanes' top)", (width) => {
-    const rel = (o: ReturnType<typeof layoutTimeline>) => o.rows.map((r) => r.cy - o.lanesTop);
+  it.each(WIDTHS)("centerlines don't move between zooms or detail at %i px (relative to the lanes' top, less label lanes)", (width) => {
+    // T-11d: only a row's label lane (for a name outside a thin bar) moves the rows below it.
+    const rel = (o: ReturnType<typeof layoutTimeline>) => {
+      let lanes = 0;
+      return o.rows.map((r) => r.cy - o.lanesTop - (lanes += r.labelLane));
+    };
     const base = rel(layoutTimeline(sample, { zoom: "year", width }));
     for (const zoom of ZOOMS) for (const detail of ["daily", "weekly", "smooth"] as const) {
-      expect(rel(layoutTimeline(sample, { zoom, width, detail }))).toEqual(base);
+      const got = rel(layoutTimeline(sample, { zoom, width, detail }));
+      expect(got).toHaveLength(base.length);
+      got.forEach((v, i) => expect(v).toBeCloseTo(base[i]!, 6));
     }
   });
 
@@ -130,7 +136,7 @@ describe("rows, centerlines and spacing", () => {
     const out = layoutTimeline(withBreak, { zoom: "year", width: 1280 });
     const rows = rowsOf(out, "math:frank");
     expect(out.breaks).toHaveLength(1);
-    expect(out.breaks[0]!.y).toBe(rows[0]!.y);
+    expect(out.breaks[0]!.y).toBe(rows[0]!.y - rows[0]!.labelLane);
     expect(out.breaks[0]!.y + out.breaks[0]!.height).toBe(rows.at(-1)!.y + rows.at(-1)!.height);
   });
 });
@@ -150,7 +156,7 @@ describe("horizontal room", () => {
       const first = rowsOf(l, label.laneKey)[0]!;
       expect(label.x).toBe(SIDE_PAD_PX);
       expect(label.height).toBe(LABEL_ROW_PX);
-      expect(label.y + label.height).toBe(first.y);
+      expect(label.y + label.height).toBe(first.y - first.labelLane);
     }
   });
 
