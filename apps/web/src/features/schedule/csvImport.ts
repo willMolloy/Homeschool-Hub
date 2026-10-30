@@ -101,6 +101,13 @@ const unitOf = (raw: string): UnitType | null => {
   return UNIT_TYPES.find((u) => u === t || u.slice(0, -1) === t) ?? null;
 };
 
+/** Active rows by normalized name; a name two active rows share maps to null. */
+function activeByName<T extends { name: string; archived: boolean }>(list: readonly T[]): Map<string, T | null> {
+  const out = new Map<string, T | null>();
+  for (const x of list) if (!x.archived) out.set(norm(x.name), out.has(norm(x.name)) ? null : x);
+  return out;
+}
+
 export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly Subject[]; children: readonly Child[] }): CsvResult {
   const all = records(text.replace(/^\uFEFF/, ""));
   const header = all[0];
@@ -119,10 +126,9 @@ export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly 
   const data = all.slice(1).filter((r) => r.cells.some((c) => c.trim() !== ""));
   if (data.length > MAX_IMPORT_ROWS) return { rows: [], errors: [{ line: 0, message: `Import at most ${MAX_IMPORT_ROWS} assignments at a time.` }] };
 
-  const subjects = new Map<string, Subject>();
-  for (const s of lookups.subjects) if (!s.archived && !subjects.has(norm(s.name))) subjects.set(norm(s.name), s);
-  const children = new Map<string, Child>();
-  for (const c of lookups.children) if (!c.archived && !children.has(norm(c.name))) children.set(norm(c.name), c);
+  // S3b-03: a name shared by two active rows is `null`, so a row that uses it is reported instead of guessing.
+  const subjects = activeByName(lookups.subjects);
+  const children = activeByName(lookups.children);
 
   const rows: AssignmentInput[] = [];
   const errors: CsvError[] = [];
@@ -133,6 +139,7 @@ export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly 
     const subjectName = cell("subject").trim();
     const subject = subjectName ? subjects.get(norm(subjectName)) : undefined;
     if (!subjectName) bad.push("subject is required.");
+    else if (subject === null) bad.push(`two subjects are named ${subjectName}. Rename one under Subjects first.`);
     else if (!subject) bad.push(`no subject named ${subjectName}.`);
 
     const title = cell("title").trim();
@@ -144,7 +151,10 @@ export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly 
     if (names.length === 0) bad.push("children is required (names separated by ;).");
     for (const n of names) {
       const child = children.get(norm(n));
-      if (!child) bad.push(`no child named ${n}.`);
+      if (child === null) {
+        const message = `two children are named ${n}. Rename one under Kids first.`;
+        if (!bad.includes(message)) bad.push(message);
+      } else if (!child) bad.push(`no child named ${n}.`);
       else if (!childIds.includes(child.id)) childIds.push(child.id);
     }
 

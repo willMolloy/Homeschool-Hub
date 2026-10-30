@@ -80,6 +80,28 @@ describe("parseAssignmentsCsv", () => {
     expect(errorText(r.errors[0]!)).toBe(`Line 4: ${message}`);
   });
 
+  it("a name shared by two active children or subjects is an error on each line that uses it (S3b-03)", () => {
+    const twin = { ...FRANK, id: "twin-1", name: "sam " };
+    const sam = { ...FRANK, id: "twin-2", name: "Sam" };
+    const archivedFrank = { ...FRANK, id: "old-frank", archived: true };
+    const subjectTwin = { ...MATH, id: "math-2", name: "MATH" };
+    const l = makeLookups([FRANK, MAGGIE, sam, twin, archivedFrank], [MATH, READING, subjectTwin, { ...LATIN, name: "Reading", id: "old-reading" }]);
+    const r = parseAssignmentsCsv(`${HEADER}\nReading,A,Sam,lessons,20,2026-11-02,2026-11-26\nReading,B,"Frank;sam ",lessons,20,2026-11-02,2026-11-26\nMath,C,Frank,lessons,20,2026-11-02,2026-11-26\nReading,D,Frank,lessons,20,2026-11-02,2026-11-26`, l);
+    expect(r.rows).toEqual([]);
+    expect(r.errors.map(errorText)).toEqual([
+      "Line 2: two children are named Sam. Rename one under Kids first.",
+      "Line 3: two children are named sam. Rename one under Kids first.",
+      "Line 4: two subjects are named Math. Rename one under Subjects first.",
+    ]);
+  });
+
+  it("an archived duplicate name does not count (S3b-03)", () => {
+    const l = makeLookups([FRANK, { ...FRANK, id: "old-frank", archived: true }], [MATH, { ...MATH, id: "old-math", archived: true }]);
+    const r = parseAssignmentsCsv(`${HEADER}\nMath,A,Frank,lessons,20,2026-11-02,2026-11-26`, l);
+    expect(r.errors).toEqual([]);
+    expect(r.rows[0]).toMatchObject({ subjectId: MATH.id, childIds: [FRANK.id] });
+  });
+
   it("lists every error in a row and in later rows, and imports nothing", () => {
     const r = parse(`${HEADER}\nNope,Saxon,Nobody,lessons,20,2026-11-02,2026-11-26\nMath,Fine,Frank,lessons,20,2026-11-02,2026-11-26\nMath,Bad,Frank,lessons,0,2026-11-02,2026-11-26`);
     expect(r.rows).toEqual([]);
