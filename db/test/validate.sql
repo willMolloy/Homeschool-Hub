@@ -63,6 +63,12 @@ SELECT pg_temp.expect_error($$UPDATE assignment SET weekdays = '{1,NULL}' WHERE 
 SELECT pg_temp.expect_error($$UPDATE subject SET default_weekdays = '{-1}' WHERE id = '50000000-0000-0000-0000-000000000001'$$, '23514', 'subject default_weekdays reject -1');
 SELECT pg_temp.expect_error($$UPDATE subject SET default_weekdays = '{3,3}' WHERE id = '50000000-0000-0000-0000-000000000001'$$, '23514', 'subject default_weekdays reject duplicates');
 
+-- S4-01b: weekdays_from / previous_weekdays
+UPDATE assignment SET weekdays_from = '2026-10-26', previous_weekdays = '{1,2,3}' WHERE id = 'a0000000-0000-0000-0000-000000000001';
+DO $$ BEGIN RAISE NOTICE 'ok   weekdays_from with previous_weekdays accepted (011)'; END $$;
+SELECT pg_temp.expect_error($$UPDATE assignment SET previous_weekdays = '{9}' WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, '23514', 'previous_weekdays reject 9');
+SELECT pg_temp.expect_error($$UPDATE assignment SET weekdays_from = NULL WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, '23514', 'previous_weekdays need weekdays_from');
+
 -- 1. checkoff: one per (assignment, date, child)
 INSERT INTO log_entry (id, family_id, assignment_id, log_date, kind) VALUES
   ('10000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', '2026-10-20', 'checkoff');

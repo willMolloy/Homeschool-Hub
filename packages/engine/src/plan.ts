@@ -4,7 +4,7 @@ import { EngineInputError, fromDayNumber, isValidLocalDate, toDayNumber, weekday
 import { EPS, MAX_PUSH_DAYS, placeSegment, prepareOverrides, type Placement } from "./placement";
 import { pastMissedDays } from "./missed";
 import { replanFrom } from "./reanchor";
-import { weekdaysOf } from "./weekdays";
+import { validWeekdays, weekdaysOf } from "./weekdays";
 import { weightPerUnitOf } from "./weights";
 import { ENGINE_VERSION } from "./version";
 import type { Assignment, ChildPlan, DayKind, DayLoad, PlanContext, PlanWarning, SubjectWeight } from "./types";
@@ -49,7 +49,6 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
 
   const { weekdays, source: weekdaysSource } = weekdaysOf(a, ctx);
   const onWeekdays = weekdays ? new Set<number>(weekdays) : null;
-
   const S = toDayNumber(a.start);
   const E = toDayNumber(a.end);
   const total = a.totalUnits;
@@ -61,9 +60,19 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   const cap = missed ? buildCapacityModel(ctx.calendar, ctx.events, missed.rest) : fullCap;
   const zeroed = new Set<number>();
 
+  // S4-01b: from `weekdaysFrom` on, the weekdays above apply; before it, `previousWeekdays` (null = every school day).
+  // Until the change is applied (below) the plan is built as if it had never happened. A change that doesn't
+  // lie after the start, or that changes nothing, is ignored.
+  const from = typeof a.weekdaysFrom === "string" && isValidLocalDate(a.weekdaysFrom) ? toDayNumber(a.weekdaysFrom) : null;
+  const previous = validWeekdays(a.previousWeekdays);
+  const changesDays = from !== null && from > S && (previous?.join() ?? "") !== (weekdays?.join() ?? "");
+  const beforeChange = changesDays && previous ? new Set<number>(previous) : changesDays ? null : onWeekdays;
+  let switchedAt = Infinity; // first day the current weekdays apply
+
   const capOf = new Map<number, number>();
   const c = (d: number): number => {
-    if (zeroed.has(d) || (onWeekdays && !onWeekdays.has(weekdayOfDayNumber(d)))) return 0;
+    const mask = d >= switchedAt ? onWeekdays : beforeChange;
+    if (zeroed.has(d) || (mask && !mask.has(weekdayOfDayNumber(d)))) return 0;
     let v = capOf.get(d);
     if (v === undefined) {
       v = cap.capacity(d, childId, a.subjectId);
@@ -82,19 +91,24 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   } else {
     const overrides = prepareOverrides(a, childId, ctx.overrides, ctx.calendar, warn);
     p = placeSegment({ from: S, end: E, pushLimit: E + MAX_PUSH_DAYS, remaining: total, overrides, first: true }, c, warn);
-    // A missed day that has work: keep the plan before it, put 0 on it, replan the rest (S4-00). Check-ins are
-    // authoritative (S2b-38), so days up to the last check-in's week are handled first and the check-ins then
+    // Re-anchoring events: a missed day that has work (keep the plan before it, put 0 on it, replan the rest, S4-00)
+    // and a change of weekdays (keep the plan before it, replan the rest on the new days, S4-01b). Check-ins are
+    // authoritative (S2b-38), so events up to the last check-in's week are handled first and the check-ins then
     // re-anchor over them; later ones are handled on top of the check-ins.
-    const lastCheckIn = lastCheckInWeekEnd(a, childId, ctx.checkIns, ctx.calendar);
-    const missMissedDay = (d: number): void => {
-      const worked = (p.planned.get(d) ?? 0) > EPS;
-      zeroed.add(d);
-      if (worked) replanFrom(p, d, d + 1, total, overrides, c, E + MAX_PUSH_DAYS, warn);
+    interface Anchor { cut: number; from: number; apply: () => void; onlyIfWorked: boolean }
+    const anchors: Anchor[] = [];
+    if (changesDays) anchors.push({ cut: from!, from: from!, apply: () => { switchedAt = from!; }, onlyIfWorked: false });
+    for (const d of missed?.days ?? []) anchors.push({ cut: d, from: d + 1, apply: () => { zeroed.add(d); }, onlyIfWorked: true });
+    anchors.sort((x, y) => x.cut - y.cut); // stable: a weekday change goes before a missed day on the same date
+    const reanchor = (x: Anchor): void => {
+      const worked = (p.planned.get(x.cut) ?? 0) > EPS;
+      x.apply();
+      if (worked || !x.onlyIfWorked) replanFrom(p, x.cut, x.from, total, overrides, c, E + MAX_PUSH_DAYS, warn);
     };
-    const missedDays = missed?.days ?? [];
-    for (const d of missedDays) if (d <= lastCheckIn) missMissedDay(d);
+    const lastCheckIn = lastCheckInWeekEnd(a, childId, ctx.checkIns, ctx.calendar);
+    for (const x of anchors) if (x.cut <= lastCheckIn) reanchor(x);
     const ci = applyCheckIns(p, { a, childId, calendar: ctx.calendar, checkIns: ctx.checkIns, S, E, overrides, c, warn });
-    for (const d of missedDays) if (d > lastCheckIn) missMissedDay(d);
+    for (const x of anchors) if (x.cut > lastCheckIn) reanchor(x);
     ({ done, finishedEarly, checkInWeeks } = ci);
   }
   const remaining = Math.max(0, total - done);

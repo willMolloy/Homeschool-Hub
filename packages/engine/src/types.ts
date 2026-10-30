@@ -31,6 +31,12 @@ export interface Assignment {
   weightPerUnit?: number | null;
   /** The days this assignment is worked on. null/missing = no own choice: the subject's default, then every school day (S4-01). */
   weekdays?: Weekday[] | null;
+  /**
+   * S4-01b: the weekdays changed from this day on (a week's first day). Days before it use `previousWeekdays`
+   * (null = every school day); the plan before it is kept and only what is left is replanned. Ignored unless it is after `start`.
+   */
+  weekdaysFrom?: LocalDate | null;
+  previousWeekdays?: Weekday[] | null;
 }
 
 /**
