@@ -102,3 +102,17 @@ export async function updateAssignment(tx: Tx, familyId: string, id: string, p: 
   await tx.query(`UPDATE assignment SET ${set} WHERE id = $1 AND family_id = $2`, [id, familyId, ...params]);
   if (p.childIds) await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: p.childIds });
 }
+
+/**
+ * S4-01b: a subject's default weekdays changed. Each of its active assignments that follows the default (no weekdays of
+ * its own) and started before `weekdaysFrom` keeps its plan up to then: it records the date and the days before.
+ * Overwrites any earlier record (one level of history).
+ */
+export async function recordSubjectWeekdaysChange(
+  tx: Tx, familyId: string, subjectId: string, change: { weekdaysFrom: string; previousWeekdays: number[] | null },
+): Promise<void> {
+  await tx.query(
+    `UPDATE assignment SET weekdays_from = $3, previous_weekdays = $4, updated_at = now()
+      WHERE family_id = $1 AND subject_id = $2 AND weekdays IS NULL AND archived_at IS NULL AND start_date < $3`,
+    [familyId, subjectId, change.weekdaysFrom, change.previousWeekdays]);
+}

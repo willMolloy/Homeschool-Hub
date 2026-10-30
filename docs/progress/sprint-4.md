@@ -7,7 +7,8 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 | S4-00 A missed past day carries its work forward | d5bf88f | Migration 009 (`missed` kind); engine 0.7.0: `reanchor.ts` (`replanFrom`), `missed.ts` (`pastMissedDays`) |
 | S4-01 Plan an assignment only on its weekdays in the engine | 33f1809 | Engine 0.8.0: `weekdays.ts` (`weekdaysOf`, `validWeekdays`); `ChildPlan.weekdays` and `weekdaysSource` |
 | S4-02 Write migration 009: assignment and subject weekdays | 281b972 | Migration **010** (`010_weekdays.sql`, the ticket's "009" was taken by S4-00); `valid_weekdays()` CHECK function |
-| S4-01b Changing days mid-assignment keeps progress to date | (this commit) | Migration **011** (`weekdays_from`, `previous_weekdays`); engine 0.9.0; API history rule in `services/weekdaysChange.ts` (wired in S4-03/S4-04) |
+| S4-01b Changing days mid-assignment keeps progress to date | 416a55d | Migration **011** (`weekdays_from`, `previous_weekdays`); engine 0.9.0; API history rule in `services/weekdaysChange.ts` (wired in S4-03/S4-04) |
+| S4-03 Accept and return weekdays on the subject endpoints | (this commit) | `defaultWeekdays` on POST/PATCH/GET; a change records `weekdays_from`/`previous_weekdays` (S4-01b) |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -32,3 +33,6 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 - **S4-01b engine, how it anchors.** The plan is built as if the change never happened (previous days for every day), then re-anchored at `weekdaysFrom` with the same `replanFrom` S4-00 uses: days before are kept exactly, the units left are replanned from `weekdaysFrom` on the current days with keepEndDate to the plan's end. A change is ignored unless `weekdaysFrom` is a real date after the assignment's start and the previous days differ from the current ones. Check-ins follow S4-00's rule: a check-in in or after the change week wins; one for an earlier week is applied first and the change is replanned on top of it. A weekday change and a missed day can both apply, in date order (the weekday change first on the same date).
 - **S4-01b "started" test.** An assignment counts as started when its start is before the first day of the family's current week (the ticket's wording); the engine itself only needs `weekdaysFrom` after the start.
 - **S4-01b web test.** `engine-version.test.tsx` now expects 0.9.0.
+- **S4-03 validation.** Reuses the existing `Weekdays` zod type (1-7 distinct integers 0-6, sorted); `null` clears. The subject JSON returns the array sorted, or null.
+- **S4-03 history (S4-01b).** A PATCH that changes `defaultWeekdays` runs in one transaction with the subject row locked: for each active, uncustomised (`weekdays IS NULL`) assignment of that subject that started before the family's current week, it sets `weekdays_from` to that week's start and `previous_weekdays` to the old default (null = every school day). "Today" and the week start come from the family's time zone and `week_start`, through the app clock. Archived assignments are left alone. Setting the same days (any order) changes nothing.
+- **S4-03 changed test.** `subjects-list.test.ts` compares whole subject JSON objects; both now include `defaultWeekdays: null` (the new field).

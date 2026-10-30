@@ -14,15 +14,18 @@ export interface WeekdaysChange {
 /** An assignment's effective days: its own, else its subject's default, else null (every school day). */
 export const effectiveWeekdays = (own: number[] | null, subjectDefault: number[] | null): number[] | null => own ?? subjectDefault ?? null;
 
-const same = (a: number[] | null, b: number[] | null) => (a ? [...a].sort().join() : "") === (b ? [...b].sort().join() : "");
+export const sameWeekdays = (a: number[] | null, b: number[] | null) => (a ? [...a].sort().join() : "") === (b ? [...b].sort().join() : "");
+
+/** The first day of the week `today` falls in (the date a weekday change applies from). */
+export const currentWeekStart = (today: string, weekStart: WeekStart): string => fromDayNumber(weekStartOfDayNumber(toDayNumber(today), weekStart));
 
 /**
  * What to store when an assignment's effective days go from `before` to `after`, or null to leave the history alone:
  * nothing changed, or the assignment hasn't started before the current week (so the new days simply apply, as in S4-01).
  */
 export function weekdaysChange(i: { startDate: string; today: string; weekStart: WeekStart; before: number[] | null; after: number[] | null }): WeekdaysChange | null {
-  if (same(i.before, i.after)) return null;
-  const thisWeek = weekStartOfDayNumber(toDayNumber(i.today), i.weekStart);
-  if (toDayNumber(i.startDate) >= thisWeek) return null;
-  return { weekdaysFrom: fromDayNumber(thisWeek), previousWeekdays: i.before };
+  if (sameWeekdays(i.before, i.after)) return null;
+  const weekdaysFrom = currentWeekStart(i.today, i.weekStart);
+  if (i.startDate >= weekdaysFrom) return null;
+  return { weekdaysFrom, previousWeekdays: i.before };
 }
