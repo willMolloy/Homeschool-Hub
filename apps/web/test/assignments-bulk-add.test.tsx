@@ -90,6 +90,16 @@ describe("Add several assignments (S3a-04)", () => {
     expect(writes()).toEqual([]);
   });
 
+  it("a 400 with a field name shows the row without it (S3b-01)", async () => {
+    const { user, form } = await setup();
+    fakeApi.on("POST /api/assignments/bulk", 400, { error: "invalid_reference", message: "Assignment 1: subjectId: every id must be one of your active subjects." });
+    await fillShared(user, form);
+    await fillRow(user, form, 1, "One", "4");
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    expect(await within(form).findByText("Row 1: every id must be one of your active subjects.")).toBeInTheDocument();
+    expect(within(form).queryByText(/subjectId/)).toBeNull();
+  });
+
   it("a 400 keeps the rows, shows the message and names the row on screen", async () => {
     const { user, form } = await setup();
     fakeApi.on("POST /api/assignments/bulk", 400, { error: "invalid_range", message: "Assignment 2: The end date must be on or after the start date." });

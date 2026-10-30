@@ -8,7 +8,7 @@ import { apiPost } from "../../api/client";
 import type { Assignment, UnitType } from "../../api/types";
 import { unitTitle } from "../../components/unitLabels";
 import { LIMITS } from "./assignmentLimits";
-import { ChildPicker, dateRangeError, parsePositive, saveError } from "./formBits";
+import { bulkSaveError, ChildPicker, dateRangeError, parsePositive } from "./formBits";
 import type { Lookups } from "./lookups";
 
 const START_ROWS = 3;
@@ -79,7 +79,7 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
     } catch (err) {
       // The server counts only the rows sent; name them by the row numbers on screen.
       const shown = rows.flatMap((r, i) => (isEmpty(r) ? [] : [i + 1]));
-      setFormError(saveError(err).replace(/^Assignment (\d+): /, (m, n: string) => (shown[Number(n) - 1] ? `Row ${shown[Number(n) - 1]}: ` : m)));
+      setFormError(bulkSaveError(err, (n) => (shown[n - 1] ? `Row ${shown[n - 1]}` : undefined)));
     } finally {
       setSaving(false);
     }

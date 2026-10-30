@@ -6,7 +6,7 @@ import { useId, useMemo, useState, type ChangeEvent, type FormEvent } from "reac
 import { apiPost } from "../../api/client";
 import type { Assignment } from "../../api/types";
 import { assignmentsCsvTemplate, errorText, parseAssignmentsCsv } from "./csvImport";
-import { dateRange, saveError } from "./formBits";
+import { bulkSaveError, dateRange } from "./formBits";
 import type { Lookups } from "./lookups";
 
 interface Props {
@@ -52,7 +52,7 @@ export function ImportAssignmentsForm({ l, onSaved, onCancel }: Props) {
       onSaved(await apiPost<Assignment[]>("/api/assignments/bulk", { assignments: result.rows }));
     } catch (err) {
       // The server names an item by its position; say its title instead.
-      setFormError(saveError(err).replace(/^Assignment (\d+): /, (m, n: string) => (result.rows[Number(n) - 1] ? `${result.rows[Number(n) - 1]!.title}: ` : m)));
+      setFormError(bulkSaveError(err, (n) => result.rows[n - 1]?.title));
     } finally {
       setSaving(false);
     }

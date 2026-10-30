@@ -73,12 +73,13 @@ describe("Import assignments from a CSV (S3a-06)", () => {
     expect(writes()).toEqual([]);
   });
 
-  it("a server 400 keeps the preview and shows the message with the title", async () => {
+  it("a server 400 names the row by its title, without the field name (S3b-01)", async () => {
     const { user, form } = await setup();
     fakeApi.on("POST /api/assignments/bulk", 400, { error: "invalid_reference", message: "Assignment 2: childIds: every id must be one of your active children." });
     paste(form, VALID);
     await user.click(await within(form).findByRole("button", { name: "Import" }));
-    expect(await within(form).findByText("Charlotte's Web, part 1: childIds: every id must be one of your active children.")).toBeInTheDocument();
+    expect(await within(form).findByText("Charlotte's Web, part 1: every id must be one of your active children.")).toBeInTheDocument();
+    expect(within(form).queryByText(/childIds/)).toBeNull();
     expect(within(form).getByText("2 assignments")).toBeInTheDocument();
     expect(within(form).getByRole("button", { name: "Import" })).toBeEnabled();
   });

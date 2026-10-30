@@ -30,6 +30,17 @@ export function saveError(err: unknown): string {
   return "Couldn't save. Please try again.";
 }
 
+/**
+ * S3b-01: `saveError` for POST /api/assignments/bulk. "Assignment N: field: message" becomes "<label(N)>: message";
+ * `label` gets the 1-based position the server counted and returns the name to show, or undefined to leave the prefix.
+ */
+export function bulkSaveError(err: unknown, label: (n: number) => string | undefined): string {
+  return saveError(err).replace(/^Assignment (\d+): (?:[a-zA-Z.]+: )?/, (m, n: string) => {
+    const name = label(Number(n));
+    return name ? `${name}: ` : m;
+  });
+}
+
 interface WeekdayPickerProps {
   legend: string;
   value: number[];
