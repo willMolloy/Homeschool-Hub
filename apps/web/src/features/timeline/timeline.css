@@ -32,8 +32,6 @@
 .tl-axis-label { font-size: 11px; fill: var(--tl-muted-foreground); }
 .tl-lane-label { font-size: 12px; fill: var(--tl-foreground); }
 .tl-band { fill-opacity: var(--tl-bar-opacity); }
-/* T-06: names on a solid patch of their own swatch (AA on every swatch; translucent alone misses it). */
-.tl-name-patch { fill-opacity: 1; }
 .tl-name { font-size: 11px; font-weight: 500; }
 /* T-11: one assignment split by a break stays joined by a faint line in its colour (never between assignments). */
 .tl-connector { stroke-width: 2; stroke-opacity: 0.35; stroke-linecap: round; }

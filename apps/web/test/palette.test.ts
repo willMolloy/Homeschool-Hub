@@ -7,7 +7,7 @@ import { converter, displayable } from "culori";
 import { describe, expect, it } from "vitest";
 import {
   AA_TEXT, BAR_OPACITY, CHROME, CVD_MIN_DISTANCE_AT_BAR_OPACITY, composite, CHROME_TEXT_PAIRS, CVD_MIN_DISTANCE, DEFAULT_PALETTE, LABEL_INK, LABEL_PAPER, PALETTE_NAMES, REFERENCE_PALETTES,
-  STEP_NAMES, SUBJECT_COUNT, THEME_NAMES, VISION, VIVID, baseColors, contrast, minPairwiseDistance, pastel, renderThemeCss,
+  SAFE_AA_NUDGE, STEP_NAMES, SUBJECT_COUNT, THEME_NAMES, VISION, VIVID, baseColors, safeDesignBase, contrast, minPairwiseDistance, pastel, renderThemeCss,
   renderTokensCss, swatches, vividChroma, vividHues,
 } from "../scripts/palette";
 
@@ -26,7 +26,7 @@ describe("safe palette (the default)", () => {
 
   it("starts from Okabe–Ito's seven colours, then adds three", () => {
     const ref = REFERENCE_PALETTES["Okabe–Ito"]!.slice(0, 7);
-    const ours = baseColors("safe", "light").slice(0, 7);
+    const ours = safeDesignBase().slice(0, 7);
     // Lightness may be nudged by at most 0.01 (to keep child steps readable); hue is unchanged.
     ours.forEach((c, i) => {
       const r = converter("oklch")(ref[i]!)!;
@@ -58,13 +58,26 @@ describe("safe palette (the default)", () => {
     }
   });
 
-  it("child steps sit 0.07 lighter and darker, same hue", () => {
+  it("child steps sit 0.07 lighter and darker, same hue, apart from the T-11c AA nudges", () => {
     for (const t of THEME_NAMES) {
-      const base = baseColors("safe", t);
+      const base = safeDesignBase();
       for (const s of swatches("safe", t)) {
         const b = base[s.subject - 1]!;
+        const nudge = SAFE_AA_NUDGE[t][`${s.subject}/${s.step}`] ?? 0;
         expect(s.color.h).toBeCloseTo(b.h ?? 0, 1);
-        expect(s.color.l).toBeCloseTo(b.l + (s.step === "light" ? 0.07 : s.step === "dark" ? -0.07 : 0), 3);
+        expect(s.color.l).toBeCloseTo(b.l + (s.step === "light" ? 0.07 : s.step === "dark" ? -0.07 : 0) + nudge, 3);
+      }
+    }
+  });
+
+  it("T-11c nudges stay small, and every child's steps stay in order at least 0.042 apart", () => {
+    for (const t of THEME_NAMES) {
+      for (const n of Object.values(SAFE_AA_NUDGE[t])) expect(Math.abs(n)).toBeLessThanOrEqual(0.05);
+      const all = swatches("safe", t);
+      for (let i = 1; i <= SUBJECT_COUNT; i++) {
+        const l = (step: string) => all.find((s) => s.subject === i && s.step === step)!.color.l;
+        expect(l("light") - l("base")).toBeGreaterThanOrEqual(0.042 - 1e-4);
+        expect(l("base") - l("dark")).toBeGreaterThanOrEqual(0.042 - 1e-4);
       }
     }
   });
@@ -232,9 +245,22 @@ describe("bar opacity (T-03: one token, a bit more transparent)", () => {
     }
   });
 
-  it("names go on a solid (opacity 1) backing of their own swatch, where every label meets AA", () => {
-    // On the translucent bar alone a few safe swatches reach under 4.5:1 with either label colour (see docs/progress/timeline.md),
-    // so T-06 draws in-bar names on an opaque patch of the same swatch.
+  it("every label meets AA on its bar as drawn, over the page and over cards, in every palette and theme (T-11c: no patch)", () => {
+    const checked: string[] = [];
+    const failures: string[] = [];
+    for (const [p, t] of COMBOS) {
+      for (const bg of backgrounds(t)) {
+        for (const s of swatches(p, t)) {
+          checked.push(`${p}/${t}/${s.subject}/${s.step}`);
+          if (contrast(s.label, composite(s.color, bg, BAR_OPACITY)) < AA_TEXT) failures.push(`${p}/${t}/${s.subject}/${s.step}`);
+        }
+      }
+    }
+    expect(checked).toHaveLength(240);
+    expect(failures).toEqual([]);
+  });
+
+  it("selected bars draw at opacity 1, where every label meets AA too", () => {
     for (const [p, t] of COMBOS) for (const s of swatches(p, t)) expect(contrast(s.label, s.color)).toBeGreaterThanOrEqual(AA_TEXT);
   });
 });

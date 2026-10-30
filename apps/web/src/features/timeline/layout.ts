@@ -113,7 +113,7 @@ export interface LaneBand {
   connectors: { x0: number; x1: number }[];
 }
 
-/** T-06: a name drawn inside its bar, on a solid patch of the bar's swatch. */
+/** T-06: a name drawn inside its bar (T-11c: straight on the bar, no patch). */
 export interface BarName {
   rowKey: string;
   assignmentId: string;
@@ -390,7 +390,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
             paletteSlot: subject.paletteSlot, step: child.step, d: pathFor(columns), runs: runsOf(columns), cy,
             connectors: connectorsOf(pieces),
           });
-          for (const name of placePieceNames(a.title, pieces, cy, y, height, detail === "smooth", measure)) {
+          for (const name of placePieceNames(a.title, pieces, cy, detail === "smooth", measure)) {
             names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...name });
           }
         }

@@ -1,21 +1,21 @@
 /**
  * T-06: names inside the bars. Pure fit-and-truncate rules, used by layout.ts.
  *
- * A name sits on a solid (opacity 1) patch of its bar's own swatch, inside the bar, pinned to the bar's left
- * edge: the first stretch of the bar thick enough for the patch. It is the full title when it fits, otherwise
+ * A name sits straight on its bar (T-11c: no patch; every label meets AA on the bar as drawn), pinned to the
+ * bar's left edge: the first stretch of the bar thick enough to hold the text. It is the full title when it fits, otherwise
  * the longest prefix plus "…" that fits, and only when at least MIN_NAME_CHARS characters survive.
  * T-11: every piece of a bar (split by a break) can carry its own name, always inside the piece (placePieceNames).
- * The T-10 labels past a bar's end are gone. A piece too narrow for one character and "…", or in a row thinner
- * than NAME_PATCH_PX, has no name (the title is still in the lane list and, when selected, in the edit bar).
+ * The T-10 labels past a bar's end are gone. A piece too narrow for one character and "…", or nowhere at least
+ * NAME_PATCH_PX thick, has no name (the title is still in the lane list and, when selected, in the edit bar).
  */
 import type { BandColumn } from "./paths";
 
 export const NAME_FONT_PX = 11;
-/** The bar must be at least this thick under a name. The solid patch fills the bar's full thickness there, so it reads as part of the bar, not a badge. */
+/** The bar must be at least this thick under a name, so the 11 px text never leaves the bar (T-11c: the bar is its only backing). */
 export const NAME_PATCH_PX = 13;
-/** Space between the patch edge and the text. */
+/** Space between the name's box edge and the text. */
 export const NAME_PAD_PX = 4;
-/** Space between the bar's left edge and the patch. */
+/** Space between the bar's left edge and the name's box. */
 export const NAME_INSET_PX = 2;
 /** T-11 (DeeDee: "show what we can and append '…' as needed"): one character and the ellipsis is enough. */
 export const MIN_NAME_CHARS = 1;
@@ -28,7 +28,7 @@ export type MeasureText = (text: string) => number;
 
 /**
  * Fallback measure for when no canvas is available (tests, very old browsers). It deliberately over-estimates
- * (0.6 em a character), so a name may be dropped or cut early but never overflows its patch.
+ * (0.6 em a character), so a name may be dropped or cut early but never overflows its box.
  */
 export const estimateTextWidth: MeasureText = (text) => text.length * NAME_FONT_PX * 0.6;
 
@@ -48,7 +48,7 @@ export function fitName(title: string, room: number, measure: MeasureText = esti
 
 export interface NamePlacement {
   text: string;
-  /** The patch. */
+  /** The name's box: always inside the bar (nothing is drawn for it since T-11c). */
   x: number;
   y: number;
   width: number;
@@ -89,7 +89,7 @@ export function placeName(title: string, columns: readonly (BandColumn | null)[]
     const { s, text } = best;
     const width = measure(text) + 2 * NAME_PAD_PX;
     const x = s.x0 + NAME_INSET_PX;
-    // The bar's thinnest point under the patch, so the patch never pokes out of the bar.
+    // The bar's thinnest point under the name, so the box never pokes out of the bar.
     const under = s.cols.filter((c) => c.x1 > x && c.x0 < x + width);
     const top = Math.max(...under.map((c) => c.top));
     const bottom = Math.min(...under.map((c) => c.bottom));
@@ -99,24 +99,12 @@ export function placeName(title: string, columns: readonly (BandColumn | null)[]
 }
 
 /**
- * T-11: a name for one piece (a run of touching columns). Prefers placeName (a stretch thick enough for the
- * patch). Otherwise the name is pinned to the piece's left edge on a patch NAME_PATCH_PX tall, centred on the
- * bar, as long as the row (rowTop..rowTop + rowHeight) can hold it; the patch never leaves the piece's x span.
+ * T-11: a name for one piece (a run of touching columns), wherever the piece is thick enough to hold the text.
+ * T-11c: the thin-piece fallback (a patch taller than the piece) is gone with the patch: there, text would
+ * spill onto the page, where its label colour can't meet AA.
  */
-export function placePieceName(
-  title: string, piece: readonly BandColumn[], cy: number, rowTop: number, rowHeight: number, measure: MeasureText = estimateTextWidth,
-): NamePlacement | null {
-  const inside = placeName(title, piece, cy, measure);
-  if (inside?.text === title.trim() || piece.length === 0 || rowHeight < NAME_PATCH_PX) return inside;
-  const x0 = piece[0]!.x0;
-  const x1 = piece[piece.length - 1]!.x1;
-  const room = x1 - x0 - 2 * NAME_INSET_PX - 2 * NAME_PAD_PX;
-  if (room <= 0) return inside;
-  const text = fitName(title, room, measure);
-  if (!text || (inside && inside.text.length >= text.length)) return inside;
-  const x = x0 + NAME_INSET_PX;
-  const top = Math.min(Math.max(cy - NAME_PATCH_PX / 2, rowTop), rowTop + rowHeight - NAME_PATCH_PX);
-  return { text, x, y: top, width: measure(text) + 2 * NAME_PAD_PX, height: NAME_PATCH_PX, textX: x + NAME_PAD_PX, textY: cy };
+export function placePieceName(title: string, piece: readonly BandColumn[], cy: number, measure: MeasureText = estimateTextWidth): NamePlacement | null {
+  return placeName(title, piece, cy, measure);
 }
 
 /**
@@ -125,12 +113,11 @@ export function placePieceName(
  * LATER_PIECE_NAME_FACTOR times its name's width. Returns the piece index with each placement.
  */
 export function placePieceNames(
-  title: string, pieces: readonly (readonly BandColumn[])[], cy: number, rowTop: number, rowHeight: number, sparse: boolean,
-  measure: MeasureText = estimateTextWidth,
+  title: string, pieces: readonly (readonly BandColumn[])[], cy: number, sparse: boolean, measure: MeasureText = estimateTextWidth,
 ): (NamePlacement & { piece: number })[] {
   const out: (NamePlacement & { piece: number })[] = [];
   pieces.forEach((piece, i) => {
-    const name = placePieceName(title, piece, cy, rowTop, rowHeight, measure);
+    const name = placePieceName(title, piece, cy, measure);
     if (!name) return;
     const width = piece[piece.length - 1]!.x1 - piece[0]!.x0;
     if (sparse && out.length > 0 && width < LATER_PIECE_NAME_FACTOR * name.width) return;

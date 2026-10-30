@@ -38,29 +38,29 @@ describe("fitting a name", () => {
     expect(fitName("   ", 100, perChar)).toBeNull();
   });
 
-  it("the fallback measure over-estimates, so a name never overflows its patch", () => {
+  it("the fallback measure over-estimates, so a name never overflows its box", () => {
     expect(estimateTextWidth("Math 5")).toBeGreaterThan(6 * 11 * 0.55);
   });
 });
 
 describe("placing a name inside its bar", () => {
-  it("pins it to the bar's left edge, on a patch inside the bar", () => {
+  it("pins it to the bar's left edge, its box inside the bar", () => {
     const p = placeName("Math 5", [col(0, 20, 20), col(20, 40, 20)], 50, perChar)!;
     expect(p.text).toBe("Math 5");
     expect(p.x).toBe(NAME_INSET_PX);
     expect(p.textX).toBe(NAME_INSET_PX + NAME_PAD_PX);
     expect(p.width).toBe(6 + 2 * NAME_PAD_PX);
-    // The patch fills the bar's thickness under it (so it reads as part of the bar, not a badge).
+    // The box spans the bar's thickness under it.
     expect([p.y, p.y + p.height]).toEqual([40, 60]);
     expect(p.textY).toBe(50);
   });
 
-  it("never pokes out where the bar thins under the patch", () => {
+  it("never pokes out where the bar thins under the name", () => {
     const p = placeName("Math 5", [col(0, 5, 30), col(5, 40, 16)], 50, perChar)!;
     expect([p.y, p.height]).toEqual([42, 16]);
   });
 
-  it(`skips bars thinner than the ${NAME_PATCH_PX} px patch, and stretches too short for a name`, () => {
+  it(`skips bars thinner than ${NAME_PATCH_PX} px, and stretches too short for a name`, () => {
     expect(placeName("Math 5", [col(0, 200, NAME_PATCH_PX - 1)], 50, perChar)).toBeNull();
     // Too short at the start, a thin gap, then a long thick stretch: the name goes in the first stretch that holds it.
     const p = placeName("History", [col(0, 8, 20), col(8, 16, 4), col(16, 60, 20)], 50, perChar)!;
@@ -71,30 +71,26 @@ describe("placing a name inside its bar", () => {
 });
 
 describe("naming each piece of a bar (T-11)", () => {
-  it("pins a name on a thin piece to its left edge on a full-height patch, inside the piece and the row", () => {
-    const p = placePieceName("The Hobbit", [col(0, 30, 6), col(30, 60, 6)], 50, 40, 20, perChar)!;
-    expect(p.text).toBe(`The Hobbit`);
-    expect([p.x, p.height, p.y, p.textY]).toEqual([NAME_INSET_PX, NAME_PATCH_PX, 50 - NAME_PATCH_PX / 2, 50]);
-    expect(p.x + p.width).toBeLessThanOrEqual(60);
+  it(`leaves a piece thinner than ${NAME_PATCH_PX} px unnamed: with no patch, the text would spill onto the page (T-11c)`, () => {
+    expect(placePieceName("The Hobbit", [col(0, 30, 6), col(30, 60, 6)], 50, perChar)).toBeNull();
+    expect(placePieceName("The Hobbit", [col(0, 200, NAME_PATCH_PX - 1)], 50, perChar)).toBeNull();
+    const p = placePieceName("The Hobbit", [col(0, 60, NAME_PATCH_PX)], 50, perChar)!;
+    expect([p.x, p.y, p.height, p.textY]).toEqual([NAME_INSET_PX, 50 - NAME_PATCH_PX / 2, NAME_PATCH_PX, 50]);
   });
 
   it("cuts the name to fit the piece, and gives up below one character and the ellipsis", () => {
     const room = (n: number) => n + 2 * NAME_INSET_PX + 2 * NAME_PAD_PX;
-    expect(placePieceName("Treasure Island", [col(0, room(5), 20)], 50, 40, 20, perChar)!.text).toBe(`Trea${ELLIPSIS}`);
-    expect(placePieceName("Treasure Island", [col(0, room(2), 20)], 50, 40, 20, perChar)!.text).toBe(`T${ELLIPSIS}`);
-    expect(placePieceName("Treasure Island", [col(0, room(1), 20)], 50, 40, 20, perChar)).toBeNull();
-  });
-
-  it(`skips rows thinner than the ${NAME_PATCH_PX} px patch`, () => {
-    expect(placePieceName("The Hobbit", [col(0, 200, 6)], 50, 45, NAME_PATCH_PX - 1, perChar)).toBeNull();
+    expect(placePieceName("Treasure Island", [col(0, room(5), 20)], 50, perChar)!.text).toBe(`Trea${ELLIPSIS}`);
+    expect(placePieceName("Treasure Island", [col(0, room(2), 20)], 50, perChar)!.text).toBe(`T${ELLIPSIS}`);
+    expect(placePieceName("Treasure Island", [col(0, room(1), 20)], 50, perChar)).toBeNull();
   });
 
   it("names every piece with daily detail; zoomed out, later pieces only when at least 2× their name (T-11b)", () => {
     expect(LATER_PIECE_NAME_FACTOR).toBe(2);
     const pieces = [[col(0, 40, 20)], [col(60, 80, 20)], [col(100, 130, 20)], [col(150, 250, 20)]];
-    expect(placePieceNames("Math", pieces, 50, 40, 20, false, perChar).map((n) => n.piece)).toEqual([0, 1, 2, 3]);
+    expect(placePieceNames("Math", pieces, 50, false, perChar).map((n) => n.piece)).toEqual([0, 1, 2, 3]);
     // "Math" is 4 + 2 × pad = 12 px wide: piece 1 (20 px) is under 2×; piece 2 (30 px) is over 2× (under the old 3×).
-    expect(placePieceNames("Math", pieces, 50, 40, 20, true, perChar).map((n) => n.piece)).toEqual([0, 2, 3]);
+    expect(placePieceNames("Math", pieces, 50, true, perChar).map((n) => n.piece)).toEqual([0, 2, 3]);
   });
 });
 
@@ -143,18 +139,18 @@ describe("names in the layout", () => {
 });
 
 describe("drawing names", () => {
-  it("draws each name on a solid patch of its swatch in that swatch's AA label colour, hidden from screen readers", () => {
+  it("draws each name straight on its bar, with no patch, in its swatch's AA label colour, hidden from screen readers (T-11c)", () => {
     const layout = layoutTimeline(sample, { zoom: "year", width: 1280 });
     const { container } = render(<Timeline layout={layout} label="Year timeline" />);
     const group = container.querySelector("g.tl-names")!;
     expect(group).toHaveAttribute("aria-hidden", "true");
     const drawn = [...group.querySelectorAll("[data-name-for]")];
     expect(drawn).toHaveLength(layout.names.length);
+    expect(container.querySelectorAll("rect.tl-name-patch, .tl-names rect")).toHaveLength(0);
     for (const g of drawn) {
-      const patch = g.querySelector("rect.tl-name-patch") as SVGRectElement;
+      expect(g.children).toHaveLength(1);
       const text = g.querySelector("text.tl-name") as SVGTextElement;
-      expect(patch.style.fill).toMatch(/^var\(--tl-subject-\d+(-light|-dark)?\)$/);
-      expect(text.style.fill).toBe(patch.style.fill.replace(")", "-label)"));
+      expect(text.style.fill).toMatch(/^var\(--tl-subject-\d+(-light|-dark)?-label\)$/);
     }
     expect(container.querySelector("svg")!.querySelectorAll("*").length).toBeLessThan(300);
   });

@@ -28,6 +28,7 @@ From the Timeline Tools Page (stack, colour and typography choices for the year 
 | T-10b | [A label past a bar stops at the next bar](T-10b-outside-label-overlap.md) | T-10 | S |
 | T-11 | [Gaps between bars, connectors across breaks, a label in every piece](T-11-gaps-connectors-piece-labels.md) | T-10b | M |
 | T-11b | [Name a later piece at 2× its name](T-11b-later-piece-label-2x.md) | T-11 | XS |
+| T-11c | [Names straight on the bar](T-11c-names-on-the-bar.md) | T-11b | S |
 | T-07b | Manual zoom: pinch, ctrl+wheel and pan; the presets just jump *(written when started)* | T-05c, T-07 | M |
 
 The order is the Tools Page's build order. The parent pilot gate was dropped by DeeDee (they will test the timeline themselves), so these no longer wait for pilot results. Each ticket doc is written when its work starts, in the same format. The tester's verification pass is run separately and is not in this list.

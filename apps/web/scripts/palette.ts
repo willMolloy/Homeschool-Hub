@@ -106,16 +106,36 @@ export function vividChroma(theme: ThemeName): number {
   return Math.min(spec.maxChroma, ...vividHues().map((h) => maxChromaInGamut(spec.steps.base, h)));
 }
 
-/** The base colour of every subject, 1–10, for a palette and theme. */
-export function baseColors(palette: PaletteName, theme: ThemeName): Oklch[] {
-  if (palette === "safe") return safeBase(); // the same colours on light and dark: separation doesn't depend on the background
-  const c = vividChroma(theme);
-  return vividHues().map((h) => oklch(VIVID[theme].steps.base, c, h));
+/**
+ * T-11c: lightness nudges for the safe swatches whose label fell below AA on the bar as drawn
+ * (BAR_OPACITY over the page or a card). Each is the smallest move, in 0.001 steps, that brings the
+ * swatch's own label to 4.5:1 drawn and solid. On light the failing swatches carry paper labels, so
+ * they deepen; on dark they carry ink labels (the background pulls the drawn bar darker), so they
+ * lighten: deepening those far enough for paper would have taken 0.043–0.067 and pushed subject 3's
+ * base onto its dark step. The one exception is subject 6's base on dark: lightening it brought it
+ * within 0.125 of orange (subject 1), under the Okabe–Ito-minus-0.01 floor, so it deepens to a paper
+ * label instead and its dark step deepens with it to stay 0.042 below (the smallest gap elsewhere).
+ * Hue never moves; chroma drops only where sRGB requires it.
+ */
+export const SAFE_AA_NUDGE: Record<ThemeName, Readonly<Record<string, number>>> = {
+  light: { "3/dark": -0.037, "5/base": -0.017, "6/dark": -0.019, "10/dark": -0.008 },
+  dark: { "3/base": 0.006, "5/light": 0.026, "6/base": -0.049, "6/dark": -0.021, "7/dark": 0.027, "10/base": 0.028 },
+};
+
+/** A safe swatch: the subject's design colour at the child step's lightness, plus any T-11c nudge. */
+function safeSwatchColor(base: Oklch, subject: number, step: StepName, theme: ThemeName): Oklch {
+  const l = base.l + (step === "light" ? SAFE_STEP : step === "dark" ? -SAFE_STEP : 0) + (SAFE_AA_NUDGE[theme][`${subject}/${step}`] ?? 0);
+  return roundOklch(clampChroma(oklch(round(l, 4), base.c, base.h ?? 0), "oklch") as Oklch);
 }
 
-function stepLightness(palette: PaletteName, theme: ThemeName, base: Oklch, step: StepName): number {
-  if (palette === "vivid") return VIVID[theme].steps[step];
-  return base.l + (step === "light" ? SAFE_STEP : step === "dark" ? -SAFE_STEP : 0);
+/** The safe palette's design colours, before any T-11c nudge: the same on light and dark. */
+export const safeDesignBase = (): Oklch[] => safeBase();
+
+/** The base colour of every subject, 1–10, for a palette and theme, as drawn (safe: including T-11c nudges). */
+export function baseColors(palette: PaletteName, theme: ThemeName): Oklch[] {
+  if (palette === "safe") return safeBase().map((b, i) => safeSwatchColor(b, i + 1, "base", theme));
+  const c = vividChroma(theme);
+  return vividHues().map((h) => oklch(VIVID[theme].steps.base, c, h));
 }
 
 /** Pastel tints (T-01b, for the This Week screens): the subject's hue, very light (or very deep in dark). */
@@ -217,9 +237,13 @@ export interface Swatch {
  * to stay in sRGB (hue and lightness never move).
  */
 export function swatches(palette: PaletteName, theme: ThemeName): Swatch[] {
-  return baseColors(palette, theme).flatMap((base, i) =>
+  const bases = palette === "safe" ? safeBase() : baseColors(palette, theme);
+  return bases.flatMap((base, i) =>
     STEP_NAMES.map((step) => {
-      const color = roundOklch(clampChroma(oklch(stepLightness(palette, theme, base, step), base.c, base.h ?? 0), "oklch") as Oklch);
+      const color =
+        palette === "safe"
+          ? safeSwatchColor(base, i + 1, step, theme)
+          : roundOklch(clampChroma(oklch(VIVID[theme].steps[step], base.c, base.h ?? 0), "oklch") as Oklch);
       return { subject: i + 1, step, color, label: labelFor(color) };
     }),
   );
