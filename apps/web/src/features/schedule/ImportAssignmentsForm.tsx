@@ -5,7 +5,7 @@
 import { useId, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { apiPost } from "../../api/client";
 import type { Assignment } from "../../api/types";
-import { assignmentsCsvTemplate, errorText, parseAssignmentsCsv } from "./csvImport";
+import { assignmentsCsvTemplate, errorText, MAX_IMPORT_BYTES, MAX_IMPORT_ROWS, parseAssignmentsCsv } from "./csvImport";
 import { bulkSaveError, dateRange } from "./formBits";
 import type { Lookups } from "./lookups";
 
@@ -36,6 +36,12 @@ export function ImportAssignmentsForm({ l, onSaved, onCancel }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     setFormError(null);
+    // S3b-05: don't read a huge file; clear the box so an earlier preview can't be imported by mistake.
+    if (file.size > MAX_IMPORT_BYTES) {
+      setText("");
+      setFormError(`This file is too large. Import at most ${MAX_IMPORT_ROWS} assignments at a time.`);
+      return;
+    }
     try {
       setText(await readText(file));
     } catch {

@@ -8,6 +8,9 @@ import type { Child, Subject } from "../../api/types";
 import { LIMITS, YEARS } from "./assignmentLimits";
 
 export const MAX_IMPORT_ROWS = 50;
+/** S3b-05: a chosen file bigger than this is turned away unread (50 rows are a few KB). */
+export const MAX_IMPORT_BYTES = 1024 * 1024;
+const tooManyRows = { line: 0, message: `Import at most ${MAX_IMPORT_ROWS} assignments at a time.` };
 export const CSV_COLUMNS = ["subject", "title", "children", "unit", "total", "start", "end"] as const;
 type Column = (typeof CSV_COLUMNS)[number];
 
@@ -39,8 +42,9 @@ interface Rec { line: number; cells: string[] }
 /**
  * RFC 4180-style records: quoted fields, "" for a quote, commas and line breaks inside quotes, LF/CRLF/CR.
  * `unclosed` is the line where a quote was opened and never closed (S3b-04), or null.
+ * S3b-05: it stops once it has the header and one more than MAX_IMPORT_ROWS non-blank rows (`truncated`), so a huge file is cheap.
  */
-function records(text: string): { recs: Rec[]; unclosed: number | null } {
+function records(text: string): { recs: Rec[]; unclosed: number | null; truncated: boolean } {
   const out: Rec[] = [];
   let cells: string[] = [];
   let cell = "";
@@ -49,8 +53,15 @@ function records(text: string): { recs: Rec[]; unclosed: number | null } {
   let startLine = 1;
   let openedAt = 0;
   const endCell = () => { cells.push(cell); cell = ""; };
-  const endRecord = () => { endCell(); out.push({ line: startLine, cells }); cells = []; startLine = line; };
-  for (let i = 0; i < text.length; i++) {
+  let filled = 0;
+  const endRecord = () => {
+    endCell();
+    if (cells.some((c) => c.trim() !== "")) filled++;
+    out.push({ line: startLine, cells });
+    cells = [];
+    startLine = line;
+  };
+  for (let i = 0; i < text.length && filled <= MAX_IMPORT_ROWS + 1; i++) {
     const ch = text[i]!;
     if (quoted) {
       if (ch === '"') {
@@ -67,8 +78,9 @@ function records(text: string): { recs: Rec[]; unclosed: number | null } {
       endRecord();
     } else cell += ch;
   }
-  if (cell !== "" || cells.length > 0) endRecord();
-  return { recs: out, unclosed: quoted ? openedAt : null };
+  const truncated = filled > MAX_IMPORT_ROWS + 1;
+  if (!truncated && (cell !== "" || cells.length > 0)) endRecord();
+  return { recs: out, unclosed: quoted ? openedAt : null, truncated };
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -113,7 +125,7 @@ function activeByName<T extends { name: string; archived: boolean }>(list: reado
 }
 
 export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly Subject[]; children: readonly Child[] }): CsvResult {
-  const { recs: all, unclosed } = records(text.replace(/^\uFEFF/, ""));
+  const { recs: all, unclosed, truncated } = records(text.replace(/^\uFEFF/, ""));
   const header = all[0];
   if (!header) return { rows: [], errors: [{ line: 1, message: `add a header row: ${CSV_COLUMNS.join(", ")}.` }] };
   // S3b-04: say how to fix a file in the wrong shape, rather than listing every column as missing.
@@ -134,7 +146,7 @@ export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly 
 
   const data = all.slice(1).filter((r) => r.cells.some((c) => c.trim() !== ""));
   if (data.length === 0) return { rows: [], errors: [{ line: 0, message: "No assignments found under the header." }] };
-  if (data.length > MAX_IMPORT_ROWS) return { rows: [], errors: [{ line: 0, message: `Import at most ${MAX_IMPORT_ROWS} assignments at a time.` }] };
+  if (truncated || data.length > MAX_IMPORT_ROWS) return { rows: [], errors: [tooManyRows] };
 
   // S3b-03: a name shared by two active rows is `null`, so a row that uses it is reported instead of guessing.
   const subjects = activeByName(lookups.subjects);

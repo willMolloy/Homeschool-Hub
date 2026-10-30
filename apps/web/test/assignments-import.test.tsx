@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Assignment } from "../src/api/types";
 import { fakeApi } from "./helpers/fake-api";
 import { FRANK, MAGGIE, MATH, READING, rowId, withRoster, writes } from "./helpers/schedule-fixtures";
@@ -58,6 +58,17 @@ describe("Import assignments from a CSV (S3a-06)", () => {
     await user.upload(within(form).getByLabelText("CSV file"), new File([VALID], "term.csv", { type: "text/csv" }));
     expect(await within(form).findByText("2 assignments")).toBeInTheDocument();
     expect(within(form).getByLabelText("Or paste it here")).toHaveValue(VALID);
+  });
+
+  it("a file over 1 MB is turned away without being read (S3b-05)", async () => {
+    const { user, form } = await setup();
+    const read = vi.spyOn(FileReader.prototype, "readAsText");
+    await user.upload(within(form).getByLabelText("CSV file"), new File(["x".repeat(1024 * 1024 + 1)], "big.csv", { type: "text/csv" }));
+    expect(await within(form).findByText("This file is too large. Import at most 50 assignments at a time.")).toBeInTheDocument();
+    expect(read).not.toHaveBeenCalled();
+    expect(within(form).getByLabelText("Or paste it here")).toHaveValue("");
+    expect(within(form).getByRole("button", { name: "Import" })).toBeDisabled();
+    read.mockRestore();
   });
 
   it("an unknown child lists the error and disables Import", async () => {

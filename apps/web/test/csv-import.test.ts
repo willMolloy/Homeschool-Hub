@@ -140,6 +140,16 @@ describe("parseAssignmentsCsv", () => {
     expect(r.errors.map(errorText)).toEqual(["Line 2: no subject named Nope.", "Line 2: no child named Nobody.", "Line 4: total must be more than 0 and at most 100,000."]);
   });
 
+  it("10,000 rows give the row-cap error without reading them all (S3b-05)", () => {
+    const row = (i: number) => `Math,Book ${i},Frank,lessons,20,2026-11-02,2026-11-26`;
+    const many = Array.from({ length: 10_000 }, (_, i) => row(i)).join("\n");
+    const capped = { rows: [], errors: [{ line: 0, message: "Import at most 50 assignments at a time." }] };
+    expect(parse(`${HEADER}\n${many}`)).toEqual(capped);
+    // Proof it stopped at row 51: an open quote far past it is never reached.
+    const fifty1 = Array.from({ length: 51 }, (_, i) => row(i)).join("\n");
+    expect(parse(`${HEADER}\n${fifty1}\nMath,"never closed`)).toEqual(capped);
+  });
+
   it("50 rows are fine, 51 are one whole-file error", () => {
     const row = (i: number) => `Math,Book ${i},Frank,lessons,20,2026-11-02,2026-11-26`;
     const fifty = Array.from({ length: 50 }, (_, i) => row(i)).join("\n");
