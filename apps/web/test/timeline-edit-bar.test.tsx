@@ -205,6 +205,23 @@ describe("Copy in the edit bar (S3a-02)", () => {
     expect(bar()).toBeNull();
   });
 
+  it("an archived subject or child is left out of the prefill (S3b-02)", async () => {
+    stub();
+    // Every subject and the first child are archived, so whatever bar is tapped has an archived subject.
+    fakeApi.on("GET /api/subjects", 200, SAMPLE_SUBJECTS.map((s) => ({ ...s, archived: true })));
+    fakeApi.on("GET /api/children", 200, SAMPLE_CHILDREN.map((c, i) => ({ ...c, archived: i === 0 })));
+    const svg = await open();
+    const a = SAMPLE_ASSIGNMENTS.find((x) => x.id === tapBand(svg))!;
+    await userEvent.click(within(await sheet()).getByRole("button", { name: "Copy" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add assignment" });
+    expect(within(dialog).getByLabelText("Subject")).toHaveValue("");
+    // The archived first child is not ticked (nor listed); any other child on the original stays ticked.
+    expect(within(dialog).queryByRole("checkbox", { name: SAMPLE_CHILDREN[0]!.name })).toBeNull();
+    for (const child of SAMPLE_CHILDREN.slice(1)) {
+      if (a.childIds.includes(child.id)) expect(within(dialog).getByRole("checkbox", { name: child.name })).toBeChecked();
+    }
+  });
+
   it("Cancel closes the sheet and leaves the original selected and unchanged", async () => {
     stub();
     const svg = await open();

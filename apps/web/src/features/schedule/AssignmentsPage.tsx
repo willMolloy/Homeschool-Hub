@@ -38,7 +38,7 @@ export function AssignmentsPage() {
           labelOf={(a) => a.title}
           sort={byStart}
           confirmText="It drops out of the plan. Logged work stays, and you can unarchive it later."
-          copyOf={copyOfAssignment}
+          copyOf={(a) => copyOfAssignment(a, l)}
           renderCard={(a) => <AssignmentCard a={a} l={l} />}
           renderForm={(p) => <AssignmentForm {...p} l={l} />}
           renderBulkForm={(p) => <BulkAssignmentsForm {...p} l={l} />}

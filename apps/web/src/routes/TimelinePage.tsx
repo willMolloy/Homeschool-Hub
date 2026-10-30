@@ -114,7 +114,7 @@ export function TimelinePage() {
   const copySelected = () => {
     const a = assignments.find((x) => x.id === selectedId);
     if (!a) return;
-    setCopying(copyOfAssignment(a));
+    setCopying(copyOfAssignment(a, lookups));
     setAdding(true);
   };
   const added = (created: Assignment) => {

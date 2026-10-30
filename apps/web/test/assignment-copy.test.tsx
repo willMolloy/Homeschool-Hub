@@ -3,8 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { Assignment } from "../src/api/types";
 import { copyOfAssignment } from "../src/features/schedule/copyAssignment";
+import { makeLookups } from "../src/features/schedule/lookups";
 import { fakeApi } from "./helpers/fake-api";
-import { FRANK, MAGGIE, MATH, READING, patchMerging, rowId, withRoster, writes } from "./helpers/schedule-fixtures";
+import { FRANK, LATIN, MAGGIE, MATH, OLD_KID, READING, patchMerging, rowId, withRoster, writes } from "./helpers/schedule-fixtures";
 import { renderAt } from "./render";
 
 const SAXON: Assignment = {
@@ -102,9 +103,45 @@ describe("Copy an assignment (S3a-01)", () => {
     expect(title.endsWith(" (copy)")).toBe(true);
   });
 
+  it("an archived subject is left unselected, and Add works once one is chosen (S3b-02)", async () => {
+    const user = await setup([{ ...SAXON, subjectId: LATIN.id, title: "Latin 1" }]);
+    await user.click(within(await openEdit(user, "Latin 1")).getByRole("button", { name: "Copy" }));
+    const form = screen.getByRole("form", { name: "Add assignment" });
+    expect(within(form).getByLabelText("Subject")).toHaveValue("");
+    expect(within(form).queryByRole("option", { name: /archived/ })).toBeNull();
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    expect(await within(form).findByText("Pick a subject.")).toBeInTheDocument();
+    expect(writes()).toEqual([]);
+    await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0]!.body).toMatchObject({ subjectId: READING.id, title: "Latin 1 (copy)", childIds: [FRANK.id, MAGGIE.id] });
+  });
+
+  it("an archived child is dropped and the active child kept (S3b-02)", async () => {
+    const user = await setup([{ ...SAXON, title: "Mixed", childIds: [OLD_KID.id, MAGGIE.id] }]);
+    await user.click(within(await openEdit(user, "Mixed")).getByRole("button", { name: "Copy" }));
+    const form = screen.getByRole("form", { name: "Add assignment" });
+    expect(within(form).getByRole("checkbox", { name: "Maggie" })).toBeChecked();
+    expect(within(form).queryByRole("checkbox", { name: /Old Kid/ })).toBeNull();
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0]!.body).toMatchObject({ childIds: [MAGGIE.id] });
+  });
+
+  it("only archived children leaves none ticked and Add says to pick one (S3b-02)", async () => {
+    const user = await setup([{ ...SAXON, title: "Old only", childIds: [OLD_KID.id] }]);
+    await user.click(within(await openEdit(user, "Old only")).getByRole("button", { name: "Copy" }));
+    const form = screen.getByRole("form", { name: "Add assignment" });
+    expect(within(form).queryByRole("checkbox", { name: /Old Kid/ })).toBeNull();
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    expect(await within(form).findByText("Pick at least one child.")).toBeInTheDocument();
+    expect(writes()).toEqual([]);
+  });
+
   it("copyOfAssignment is pure", () => {
     const a = { ...NOVEL, childIds: [MAGGIE.id] };
-    const copy = copyOfAssignment(a);
+    const copy = copyOfAssignment(a, makeLookups([FRANK, MAGGIE], [MATH, READING]));
     copy.childIds.push("z");
     expect(a.childIds).toEqual([MAGGIE.id]);
     expect(copy).not.toHaveProperty("id");
