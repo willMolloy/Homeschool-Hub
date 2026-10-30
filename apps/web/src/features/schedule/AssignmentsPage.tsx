@@ -1,6 +1,7 @@
 /**
  * /schedule/assignments (S2a-14): list, add, edit, archive. T-10: the same form opens from the timeline, with the
  * essentials first (subject, title, children, dates, unit and total) and the weight behind "More".
+ * S3a-04: "Add several" enters a subject's books in one form. S3a-06: "Import CSV" does it from a file.
  */
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, UNIT_TYPES, weightPerUnitOf } from "@hh/engine";
@@ -8,14 +9,17 @@ import { apiPatch, apiPost } from "../../api/client";
 import type { Assignment, UnitType } from "../../api/types";
 import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet } from "./formBits";
 import { WithLookups, type Lookups } from "./lookups";
+import { LIMITS } from "./assignmentLimits";
+import { ImportAssignmentsForm } from "./ImportAssignmentsForm";
+import { BulkAssignmentsForm } from "./BulkAssignmentsForm";
+import { copyOfAssignment } from "./copyAssignment";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
 import { UNIT_LABELS, unitTitle } from "../../components/unitLabels";
 import { useWeightSuggestion } from "./useWeightSuggestion";
 import { WeightHint } from "./WeightHint";
 import { formatWeight, weightCardText, weightHint } from "./weightText";
 
-/** Mirrors apps/api/src/http/scheduleLimits.ts; weight bounds come from the engine (D2). */
-export const LIMITS = { title: 120, totalUnits: 100_000, weightPerUnit: MAX_WEIGHT_PER_UNIT, days: 1096 } as const;
+export { LIMITS };
 
 const units = (n: number, t: UnitType) => `${n.toLocaleString("en-US")} ${n === 1 ? UNIT_LABELS[t].one : UNIT_LABELS[t].many}`;
 
@@ -34,8 +38,11 @@ export function AssignmentsPage() {
           labelOf={(a) => a.title}
           sort={byStart}
           confirmText="It drops out of the plan. Logged work stays, and you can unarchive it later."
+          copyOf={(a) => copyOfAssignment(a, l)}
           renderCard={(a) => <AssignmentCard a={a} l={l} />}
           renderForm={(p) => <AssignmentForm {...p} l={l} />}
+          renderBulkForm={(p) => <BulkAssignmentsForm {...p} l={l} />}
+          renderImportForm={(p) => <ImportAssignmentsForm {...p} l={l} />}
         />
       )}
     </WithLookups>
@@ -57,20 +64,22 @@ function AssignmentCard({ a, l }: { a: Assignment; l: Lookups }) {
 
 type Errors = Partial<Record<"subject" | "title" | "totalUnits" | "weight" | "dates" | "children", string>>;
 
-export function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlotProps<Assignment> & { l: Lookups }) {
-  const activeSubjects = l.subjects.filter((s) => !s.archived || s.id === item?.subjectId);
-  const [subjectId, setSubjectId] = useState(item?.subjectId ?? (activeSubjects.length === 1 ? activeSubjects[0]!.id : ""));
-  const [title, setTitle] = useState(item?.title ?? "");
-  const [unitType, setUnitType] = useState<UnitType>(item?.unitType ?? "lessons");
-  const [totalUnits, setTotalUnits] = useState(item ? String(item.totalUnits) : "");
-  const [weight, setWeight] = useState(item?.weightPerUnit != null ? String(item.weightPerUnit) : "");
-  // S2b-11: adding (or changing the unit) shows the suggestion until the parent types; editing shows what's stored.
-  const [suggesting, setSuggesting] = useState(!item);
+export function AssignmentForm({ item, initial, onSaved, onCancel, extra, externalError, l }: FormSlotProps<Assignment> & { l: Lookups }) {
+  // S3a-01: a copy opens the Add form (item null) prefilled from `initial`.
+  const start = item ?? initial ?? null;
+  const activeSubjects = l.subjects.filter((s) => !s.archived || s.id === start?.subjectId);
+  const [subjectId, setSubjectId] = useState(start?.subjectId ?? (activeSubjects.length === 1 ? activeSubjects[0]!.id : ""));
+  const [title, setTitle] = useState(start?.title ?? "");
+  const [unitType, setUnitType] = useState<UnitType>(start?.unitType ?? "lessons");
+  const [totalUnits, setTotalUnits] = useState(start ? String(start.totalUnits) : "");
+  const [weight, setWeight] = useState(start?.weightPerUnit != null ? String(start.weightPerUnit) : "");
+  // S2b-11: adding (or changing the unit) shows the suggestion until the parent types; editing or copying shows what's stored.
+  const [suggesting, setSuggesting] = useState(!start);
   const [typed, setTyped] = useState(false);
-  const [startDate, setStartDate] = useState(item?.startDate ?? "");
-  const [endDate, setEndDate] = useState(item?.endDate ?? "");
+  const [startDate, setStartDate] = useState(start?.startDate ?? "");
+  const [endDate, setEndDate] = useState(start?.endDate ?? "");
   const activeChildren = l.children.filter((c) => !c.archived);
-  const [childIds, setChildIds] = useState<string[]>(item?.childIds ?? (activeChildren.length === 1 ? [activeChildren[0]!.id] : []));
+  const [childIds, setChildIds] = useState<string[]>(start?.childIds ?? (activeChildren.length === 1 ? [activeChildren[0]!.id] : []));
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

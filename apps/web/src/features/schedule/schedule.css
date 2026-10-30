@@ -142,6 +142,9 @@
 /* Lists of cards */
 .schedule-actions {
   margin: 0 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .schedule-list {
   list-style: none;
@@ -239,3 +242,12 @@
 .form-more { margin: 0 0 14px; }
 .form-more > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--muted); font-size: 0.95rem; }
 .form-more[open] > summary { margin-bottom: 6px; }
+/* S3a-04: a row's Remove sits under its fields, not stretched across a column. */
+.schedule-form [role="group"] > .btn { justify-self: start; margin-bottom: 14px; }
+/* S3a-06: the CSV preview or its errors, a plain list. */
+.import-list { margin: 0 0 14px; padding-left: 20px; overflow-wrap: anywhere; }
+.schedule-form textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #b7c0cc; border-radius: 8px; font: inherit; }
+.schedule-form a[download] { display: inline-flex; align-items: center; min-height: 44px; }
+/* S3b-07: the CSV file picker is a 44 px target, like the other controls (the native one is 24 px). */
+.schedule-form input[type="file"] { width: 100%; max-width: 100%; box-sizing: border-box; min-height: 44px; font: inherit; }
+.schedule-form input[type="file"]::file-selector-button { min-height: 44px; margin-right: 12px; padding: 0 16px; border: 1px solid #b7c0cc; border-radius: 8px; background: #fff; font: inherit; cursor: pointer; }

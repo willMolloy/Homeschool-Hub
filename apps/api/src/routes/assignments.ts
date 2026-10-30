@@ -1,7 +1,7 @@
-/** /api/assignments (S2a-04..06). */
+/** /api/assignments (S2a-04..06); POST /api/assignments/bulk (S3a-03). */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { withTransaction } from "../db";
+import { withTransaction, type Tx } from "../db";
 import { checkUnitChange } from "../http/assignmentWeight";
 import { checkDatesKeepLatestCheckIn } from "../http/checkInDates";
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, Title, TotalUnits, UnitTypeField, WeightPerUnit } from "../http/scheduleLimits";
@@ -26,6 +26,12 @@ const CreateBody = z.strictObject({
   childIds: Children,
 });
 
+/** S3a-03: the most assignments one bulk request may create. */
+const MAX_BULK = 50;
+const BulkBody = z.strictObject({
+  assignments: z.array(z.unknown(), "Must be a list.").min(1, "Send at least one assignment.").max(MAX_BULK, `Send at most ${MAX_BULK} assignments.`),
+});
+
 const PatchBody = z
   .strictObject({
     subjectId: Id.optional(),
@@ -41,6 +47,29 @@ const PatchBody = z
   })
   .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.");
 
+type CreateInput = z.infer<typeof CreateBody>;
+
+/** Checks references, inserts one assignment and records its weight choice. The caller owns the transaction. */
+async function createOne(c: Tx, familyId: string, b: CreateInput) {
+  await checkRefs(c, familyId, { subjectIds: [b.subjectId], childIds: b.childIds });
+  const id = await createAssignment(c, familyId, { ...b, weightPerUnit: b.weightPerUnit ?? null });
+  // Taking the default isn't a choice (S2b-07, D5).
+  if (b.weightPerUnit != null) {
+    await recordWeightChoices(c, { familyId, assignmentId: id, childIds: b.childIds, unitType: b.unitType, weight: b.weightPerUnit });
+  }
+  return (await getAssignment(c, familyId, id))!;
+}
+
+/** Re-throws a 400 with "Assignment N: " in front (N is 1-based) so the parent can find the bad item. */
+async function atPosition<T>(n: number, fn: () => T | Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof HttpError) throw new HttpError(err.statusCode, err.code, `Assignment ${n}: ${err.message}`);
+    throw err;
+  }
+}
+
 const notFound = () => new HttpError(404, "not_found", "No such assignment.");
 
 export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
@@ -52,16 +81,27 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   app.post("/api/assignments", async (req, reply) => {
     const b = parseBody(CreateBody, req.body);
     checkDateOrder(b.startDate, b.endDate, MAX_ASSIGNMENT_DAYS);
-    const row = await withTransaction(app.db, async (c) => {
-      await checkRefs(c, req.familyId, { subjectIds: [b.subjectId], childIds: b.childIds });
-      const id = await createAssignment(c, req.familyId, { ...b, weightPerUnit: b.weightPerUnit ?? null });
-      // Taking the default isn't a choice (S2b-07, D5).
-      if (b.weightPerUnit != null) {
-        await recordWeightChoices(c, { familyId: req.familyId, assignmentId: id, childIds: b.childIds, unitType: b.unitType, weight: b.weightPerUnit });
-      }
-      return (await getAssignment(c, req.familyId, id))!;
-    });
+    const row = await withTransaction(app.db, (c) => createOne(c, req.familyId, b));
     return reply.code(201).send(toAssignmentJson(row));
+  });
+
+  app.post("/api/assignments/bulk", async (req, reply) => {
+    const { assignments } = parseBody(BulkBody, req.body);
+    // Every item is validated before anything is written.
+    const items: CreateInput[] = [];
+    for (const [i, raw] of assignments.entries()) {
+      items.push(await atPosition(i + 1, () => {
+        const b = parseBody(CreateBody, raw);
+        checkDateOrder(b.startDate, b.endDate, MAX_ASSIGNMENT_DAYS);
+        return b;
+      }));
+    }
+    const rows = await withTransaction(app.db, async (c) => {
+      const created = [];
+      for (const [i, b] of items.entries()) created.push(await atPosition(i + 1, () => createOne(c, req.familyId, b)));
+      return created;
+    });
+    return reply.code(201).send(rows.map(toAssignmentJson));
   });
 
   app.patch<{ Params: { id: string } }>("/api/assignments/:id", async (req) => {

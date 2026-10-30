@@ -1,6 +1,6 @@
 # Timeline View: Tools and Design Direction
 
-> Copied from the shared Page https://cursor.com/canvas/store-05807489-4c87-496a-9870-4cee453dadd4/3f0a3869-f09a-4df5-b7ff-317a49259f2c on 2026-10-30; the repo copy is the working reference until go-live, when docs/spec/ will be removed.
+> **Point-in-time research**, copied from a shared Page on 2026-10-30. The repo copy is now the source of truth (`README.md`); it is not updated as the plan changes. Current plan: [../ROADMAP.md](../ROADMAP.md).
 
 _What to use to build and style the year timeline, why, and what to build first. It costs $0 in licenses, works with the current React 18 + Vite app, and is plain enough to vibe-code._
 

@@ -6,11 +6,14 @@
  * T-08: bars can be dragged (body moves, edges change the start or end), previewing live and saving on release.
  * T-07c: with two or more children, a chip row (All, then each child) narrows it to one child, kept in `?child=`.
  * T-10: "+ Add assignment" in the header opens the assignment form; the new bar appears at once, briefly highlighted.
+ * S3a-02: the edit bar's Copy opens that form prefilled from the selected assignment.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Assignment } from "../api/types";
 import { AddAssignmentButton, AddAssignmentSheet } from "../features/timeline/AddAssignment";
+import { copyOfAssignment } from "../features/schedule/copyAssignment";
 import { makeLookups } from "../features/schedule/lookups";
+import type { Draft } from "../features/schedule/ScheduleList";
 import { afterAdd } from "../features/timeline/afterAdd";
 import { EditBar } from "../features/timeline/EditBar";
 import { useAssignmentEdit } from "../features/timeline/useAssignmentEdit";
@@ -96,6 +99,7 @@ export function TimelinePage() {
   const closeEdit = useCallback(() => setSelectedId(null), []);
   // T-10: adding an assignment. The new bar flashes once it is drawn, with the filter and month moved to show it.
   const [adding, setAdding] = useState(false);
+  const [copying, setCopying] = useState<Draft<Assignment> | null>(null);
   const lookups = useMemo(() => makeLookups(children, subjects), [children, subjects]);
   const [flashId, setFlashId] = useState<string | null>(null);
   useEffect(() => {
@@ -103,8 +107,18 @@ export function TimelinePage() {
     const t = setTimeout(() => setFlashId(null), FLASH_MS);
     return () => clearTimeout(t);
   }, [flashId]);
-  const added = (created: Assignment) => {
+  const closeAdd = () => {
     setAdding(false);
+    setCopying(null);
+  };
+  const copySelected = () => {
+    const a = assignments.find((x) => x.id === selectedId);
+    if (!a) return;
+    setCopying(copyOfAssignment(a, lookups));
+    setAdding(true);
+  };
+  const added = (created: Assignment) => {
+    closeAdd();
     addAssignment(created);
     const next = afterAdd(created, { childId, zoom: shownZoom, month, months });
     if (next.showAllChildren) setChild(null);
@@ -119,7 +133,7 @@ export function TimelinePage() {
     <>
       <header className="timeline-page-header">
         <h1>Timeline</h1>
-        {!failed && !loading && model && <AddAssignmentButton onClick={() => setAdding(true)} />}
+        {!failed && !loading && model && <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />}
         {ready && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} />}
       </header>
       {ready && <ChildFilter childList={childList} value={childId} onChange={setChild} />}
@@ -151,13 +165,13 @@ export function TimelinePage() {
               <>
                 <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />
                 <EditBar ref={keep.ref} selection={selection} original={edit.originals[selection.assignmentId] ?? null}
-                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onClose={closeEdit} />
+                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onClose={closeEdit} />
               </>
             )}
           </>
         )}
       </div>
-      <AddAssignmentSheet open={adding} lookups={lookups} onSaved={added} onClose={() => setAdding(false)} />
+      <AddAssignmentSheet open={adding} lookups={lookups} initial={copying} onSaved={added} onClose={closeAdd} />
     </>
   );
 }

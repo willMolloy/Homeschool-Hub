@@ -11,7 +11,7 @@ import {
 } from "./helpers/timeline-fixtures";
 import { renderAt } from "./render";
 
-const EDIT = ["Move back a week", "Move forward a week", "End a week earlier", "End a week later", "Reset", "Close"];
+const EDIT = ["Move back a week", "Move forward a week", "End a week earlier", "End a week later", "Reset", "Copy", "Close"];
 
 function stub(assignments: Assignment[] = SAMPLE_ASSIGNMENTS) {
   fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: DEMO_ME.today, from: "x", to: "y", plans: samplePlans() });
@@ -180,5 +180,69 @@ describe("the edit bar", () => {
     pick.focus();
     await userEvent.keyboard("{Enter}");
     expect(within(await sheet()).getByText(a.title)).toBeInTheDocument();
+  });
+});
+
+describe("Copy in the edit bar (S3a-02)", () => {
+  it("opens the Add sheet prefilled; saving sends one POST, closes and clears the selection", async () => {
+    stub();
+    fakeApi.on("POST /api/assignments", (body) => [201, { ...(body as object), id: "copy1", archived: false }]);
+    const svg = await open();
+    const id = tapBand(svg);
+    const a = SAMPLE_ASSIGNMENTS.find((x) => x.id === id)!;
+    await userEvent.click(within(await sheet()).getByRole("button", { name: "Copy" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add assignment" });
+    expect(within(dialog).getByLabelText("Title")).toHaveValue(`${a.title} (copy)`);
+    expect(within(dialog).getByLabelText("Start")).toHaveValue(a.startDate);
+    expect(within(dialog).getByLabelText("End")).toHaveValue(a.endDate);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const posts = fakeApi.calls.filter((c) => c.method === "POST");
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.body).toMatchObject({ subjectId: a.subjectId, title: `${a.title} (copy)`, childIds: a.childIds, startDate: a.startDate, endDate: a.endDate });
+    expect(patches()).toHaveLength(0);
+    // Like "+ Add assignment": the old selection clears (the new bar is flashed once the plan has it; see timeline-add.test.tsx).
+    expect(bar()).toBeNull();
+  });
+
+  it("an archived subject or child is left out of the prefill (S3b-02)", async () => {
+    stub();
+    // Every subject and the first child are archived, so whatever bar is tapped has an archived subject.
+    fakeApi.on("GET /api/subjects", 200, SAMPLE_SUBJECTS.map((s) => ({ ...s, archived: true })));
+    fakeApi.on("GET /api/children", 200, SAMPLE_CHILDREN.map((c, i) => ({ ...c, archived: i === 0 })));
+    const svg = await open();
+    const a = SAMPLE_ASSIGNMENTS.find((x) => x.id === tapBand(svg))!;
+    await userEvent.click(within(await sheet()).getByRole("button", { name: "Copy" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add assignment" });
+    expect(within(dialog).getByLabelText("Subject")).toHaveValue("");
+    // The archived first child is not ticked (nor listed); any other child on the original stays ticked.
+    expect(within(dialog).queryByRole("checkbox", { name: SAMPLE_CHILDREN[0]!.name })).toBeNull();
+    for (const child of SAMPLE_CHILDREN.slice(1)) {
+      if (a.childIds.includes(child.id)) expect(within(dialog).getByRole("checkbox", { name: child.name })).toBeChecked();
+    }
+  });
+
+  it("Cancel closes the sheet and leaves the original selected and unchanged", async () => {
+    stub();
+    const svg = await open();
+    const id = tapBand(svg);
+    const a = SAMPLE_ASSIGNMENTS.find((x) => x.id === id)!;
+    await userEvent.click(within(await sheet()).getByRole("button", { name: "Copy" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add assignment" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(within(await sheet()).getByText(a.title)).toBeInTheDocument();
+    expect(fakeApi.calls.filter((c) => c.method !== "GET")).toEqual([]);
+  });
+
+  it("the header's + Add assignment after a cancelled copy opens an empty form", async () => {
+    stub();
+    const svg = await open();
+    tapBand(svg);
+    await userEvent.click(within(await sheet()).getByRole("button", { name: "Copy" }));
+    await userEvent.click(within(await screen.findByRole("dialog", { name: "Add assignment" })).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await userEvent.click(screen.getByRole("button", { name: "+ Add assignment" }));
+    expect(within(await screen.findByRole("dialog", { name: "Add assignment" })).getByLabelText("Title")).toHaveValue("");
   });
 });

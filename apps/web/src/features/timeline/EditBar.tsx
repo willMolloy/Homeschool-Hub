@@ -13,12 +13,14 @@ export interface EditBarProps {
   busy: boolean;
   error: string | null;
   onSave: (dates: DateSpan) => void;
+  /** S3a-02: opens the Add assignment sheet prefilled from this assignment. */
+  onCopy: () => void;
   onClose: () => void;
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, original, busy, error, onSave, onClose }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, original, busy, error, onSave, onCopy, onClose }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -69,6 +71,7 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
         <div className="tl-edit-ends">
           {canEndEarlier(s.startDate, s.endDate) && step("End a week earlier", { startDate: s.startDate, endDate: shiftEnd(s.endDate, -1) })}
           {step("End a week later", { startDate: s.startDate, endDate: shiftEnd(s.endDate, 1) })}
+          <button type="button" className="btn btn-secondary" disabled={busy} onClick={onCopy}>Copy</button>
         </div>
       </div>
       {message && <p className="tl-edit-error" role="alert">{message}</p>}

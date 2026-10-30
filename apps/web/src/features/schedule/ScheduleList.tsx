@@ -17,9 +17,14 @@ export interface ListItem {
   archived?: boolean;
 }
 
+/** What a new row can be prefilled from: an item without its identity (S3a-01). */
+export type Draft<T> = Omit<T, "id" | "archived">;
+
 export interface FormSlotProps<T> {
   /** null = adding. */
   item: T | null;
+  /** Adding only: prefill the form from this (a copy, S3a-01). */
+  initial?: Draft<T> | null;
   onSaved: (saved: T) => void;
   onCancel: () => void;
   /** Archive/Unarchive/Delete button for the form's button row (edit only). */
@@ -42,6 +47,12 @@ interface Props<T extends ListItem> {
   renderForm: (p: FormSlotProps<T>) => ReactNode;
   /** Under the archive/delete confirm title. */
   confirmText: string;
+  /** Gives the edit form a Copy button: closes it and opens the Add form prefilled with this (S3a-01). */
+  copyOf?: (item: T) => Draft<T>;
+  /** S3a-04: gives the screen an "Add several" button that opens this form beside the single Add form. */
+  renderBulkForm?: (p: { onSaved: (created: T[]) => void; onCancel: () => void }) => ReactNode;
+  /** S3a-06: the same for an "Import CSV" button. */
+  renderImportForm?: (p: { onSaved: (created: T[]) => void; onCancel: () => void }) => ReactNode;
   /** Extra content above the list (e.g. a hint). */
   intro?: ReactNode;
   /** false hides "Add {noun}" entirely (the demo family can't add events). Default true. */
@@ -49,13 +60,16 @@ interface Props<T extends ListItem> {
 }
 
 export function ScheduleList<T extends ListItem>(props: Props<T>) {
-  const { title, noun, endpoint, emptyText, removal, labelOf, sort, renderCard, renderForm, confirmText, intro, canAdd = true } = props;
+  const { title, noun, endpoint, emptyText, removal, labelOf, sort, renderCard, renderForm, confirmText, intro, canAdd = true, copyOf, renderBulkForm, renderImportForm } = props;
   const archivable = removal === "archive";
   const [showArchived, setShowArchived] = useState(false);
   const path = archivable && showArchived ? `${endpoint}?includeArchived=true` : endpoint;
   const { data, error, loading, reload, setData } = useApi<T[]>(path);
   const toggleId = useId();
   const [adding, setAdding] = useState(false);
+  /** Which multi-row form is open: "Add several" (S3a-04) or "Import CSV" (S3a-06). */
+  const [panel, setPanel] = useState<"several" | "import" | null>(null);
+  const [initial, setInitial] = useState<Draft<T> | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<T | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,6 +83,11 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
 
   function closeAdd() {
     setAdding(false);
+    setInitial(null);
+    focusLater(() => addBtn.current);
+  }
+  function closePanel() {
+    setPanel(null);
     focusLater(() => addBtn.current);
   }
   function closeEdit(id: string | null) {
@@ -117,25 +136,49 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
     }
   }
 
+  function copyButton(item: T): ReactNode {
+    if (!copyOf) return null;
+    return (
+      <button
+        className="btn btn-secondary"
+        type="button"
+        onClick={() => {
+          setInitial(copyOf(item));
+          setEditingId(null);
+          setActionError(null);
+          setAdding(true);
+        }}
+      >
+        Copy
+      </button>
+    );
+  }
+
   function extraFor(item: T): ReactNode {
     if (archivable && item.archived) {
       return (
-        <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => unarchive(item)}>
-          Unarchive
-        </button>
+        <>
+          {copyButton(item)}
+          <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => unarchive(item)}>
+            Unarchive
+          </button>
+        </>
       );
     }
     return (
-      <button
-        className="btn btn-secondary btn-danger"
-        type="button"
-        onClick={() => {
-          setActionError(null);
-          setConfirming(item);
-        }}
-      >
-        {archivable ? "Archive" : "Delete"}
-      </button>
+      <>
+        {copyButton(item)}
+        <button
+          className="btn btn-secondary btn-danger"
+          type="button"
+          onClick={() => {
+            setActionError(null);
+            setConfirming(item);
+          }}
+        >
+          {archivable ? "Archive" : "Delete"}
+        </button>
+      </>
     );
   }
 
@@ -165,14 +208,25 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
           {adding && canAdd ? (
             renderForm({
               item: null,
+              initial,
               onSaved: (created) => {
                 setData((prev) => [...(prev ?? []), created]);
                 setAdding(false);
+                setInitial(null);
                 focusRow(created.id);
               },
               onCancel: closeAdd,
               extra: null,
               externalError: null,
+            })
+          ) : panel && canAdd && (panel === "several" ? renderBulkForm : renderImportForm) ? (
+            (panel === "several" ? renderBulkForm : renderImportForm)!({
+              onSaved: (created) => {
+                setData((prev) => [...(prev ?? []), ...created]);
+                setPanel(null);
+                if (created[0]) focusRow(created[0].id);
+              },
+              onCancel: closePanel,
             })
           ) : canAdd ? (
             <div className="schedule-actions">
@@ -182,11 +236,22 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
                 type="button"
                 onClick={() => {
                   setEditingId(null);
+                  setInitial(null);
                   setAdding(true);
                 }}
               >
                 Add {noun}
               </button>
+              {renderBulkForm ? (
+                <button className="btn btn-secondary" type="button" onClick={() => { setEditingId(null); setPanel("several"); }}>
+                  Add several
+                </button>
+              ) : null}
+              {renderImportForm ? (
+                <button className="btn btn-secondary" type="button" onClick={() => { setEditingId(null); setPanel("import"); }}>
+                  Import CSV
+                </button>
+              ) : null}
             </div>
           ) : null}
           {items.length > 0 ? (
@@ -211,6 +276,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
                       data-row-id={item.id}
                       onClick={() => {
                         setAdding(false);
+                        setPanel(null);
                         setActionError(null);
                         setEditingId(item.id);
                       }}
@@ -222,7 +288,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
                 </li>
               ))}
             </ul>
-          ) : !adding ? (
+          ) : !adding && !panel ? (
             <p className="schedule-empty">{emptyText}</p>
           ) : null}
         </>
