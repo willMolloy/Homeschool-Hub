@@ -60,6 +60,14 @@ describe("Import assignments from a CSV (S3a-06)", () => {
     expect(within(form).getByLabelText("Or paste it here")).toHaveValue(VALID);
   });
 
+  it("the file picker is reachable by its label and fills the preview (S3b-07)", async () => {
+    const { user, form } = await setup();
+    const picker = within(form).getByLabelText("CSV file");
+    expect(picker).toHaveAttribute("type", "file");
+    await user.upload(picker, new File([VALID], "term.csv", { type: "text/csv" }));
+    expect(await within(form).findByText("2 assignments")).toBeInTheDocument();
+  });
+
   it("a file over 1 MB is turned away without being read (S3b-05)", async () => {
     const { user, form } = await setup();
     const read = vi.spyOn(FileReader.prototype, "readAsText");

@@ -9,7 +9,8 @@ Tickets: `docs/tickets/sprint-3b-fixes/`.
 | S3b-03 Report a CSV child name that matches two children | c5345ea | `activeByName` in `csvImport.ts` marks a shared name; the row reports it |
 | S3b-04 Clearer CSV errors for the wrong separator, an open quote or no rows | e77a8ff | `parseAssignmentsCsv` checks separator, open quote, no rows and extra columns; `records` also returns where a quote was left open |
 | S3b-05 Stop reading a CSV that is too large | 74132c7 | `MAX_IMPORT_BYTES` check in `ImportAssignmentsForm`; `records` stops after the 51st data row |
-| S3b-06 A CSV total must be a plain number | (this commit) | `totalProblem` checks `^\d+(\.\d+)?$` before `Number()` |
+| S3b-06 A CSV total must be a plain number | ec61f1b | `totalProblem` checks `^\d+(\.\d+)?$` before `Number()` |
+| S3b-07 Make the CSV file picker a 44 px target | (this commit) | `schedule.css`: the file input and its native button are 44 px tall |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -25,3 +26,4 @@ Tickets: `docs/tickets/sprint-3b-fixes/`.
 - **S3b-05 the size limit.** "1 MB" is 1,048,576 bytes (`MAX_IMPORT_BYTES`); a file of exactly that size is still read. The message is the ticket's, shown as the form error, and the paste box is cleared so a preview from an earlier file or paste can't be imported by mistake. Pasted text has no size check (the parser stops early on it instead).
 - **S3b-05 early stop.** The parser stops reading at the 51st non-blank data row. The header checks (separator, missing columns) still come first, so a wrong header on a huge file reports the header; a row-cap error otherwise beats errors in later rows, as before.
 - **S3b-06 what passes.** Digits with an optional `.` and digits, after trimming, so `.5`, `5.`, `-3` and `+3` are errors with the same "total must be a number, like 300." (this replaces the old "(got …)" wording for non-numbers). The range and 2-decimal checks are unchanged and still run on a plain number. `"1,000"` in quotes gets this error too.
+- **S3b-07 styling the native input.** The input stays a real `<input type="file">` with its "CSV file" label (no hidden input behind a styled label), so keyboard and screen-reader behavior are unchanged. It gets `min-height: 44px` and its native button (`::file-selector-button`) is also 44 px, with the same border and radius as the other fields. The pixel height can't be checked in jsdom; the tester checks it in a browser at 360 px.

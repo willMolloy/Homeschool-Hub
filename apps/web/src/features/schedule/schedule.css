@@ -248,3 +248,6 @@
 .import-list { margin: 0 0 14px; padding-left: 20px; overflow-wrap: anywhere; }
 .schedule-form textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #b7c0cc; border-radius: 8px; font: inherit; }
 .schedule-form a[download] { display: inline-flex; align-items: center; min-height: 44px; }
+/* S3b-07: the CSV file picker is a 44 px target, like the other controls (the native one is 24 px). */
+.schedule-form input[type="file"] { width: 100%; max-width: 100%; box-sizing: border-box; min-height: 44px; font: inherit; }
+.schedule-form input[type="file"]::file-selector-button { min-height: 44px; margin-right: 12px; padding: 0 16px; border: 1px solid #b7c0cc; border-radius: 8px; background: #fff; font: inherit; cursor: pointer; }
