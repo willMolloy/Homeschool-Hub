@@ -17,13 +17,17 @@ DeeDee and Will co-own the product. DeeDee approves what gets built. This plan w
 
 ## The plan, in order
 
-| # | Phase | When | Done when |
+**Blocking the core now:** decisions C1 (which week edit wins), C2 (how far undo goes) and C3 (the effort proposal). See "Open decisions for DeeDee".
+
+| # | Phase | Target | Done when |
 |---|---|---|---|
-| 1 | **Build the core** (checklist below) | Now to mid-December 2026 | Every core box is checked, locally |
+| 1 | **Build the core** (checklist below), plus the code-only hosting fixes | Mid-December 2026 | Every core box is checked, locally, and the hardening fixes are in |
 | 2 | **Private hosting** for DeeDee only (section below) | December 2026 | DeeDee can use it on her phone; one backup restore tested |
 | 3 | **DeeDee's real spring term** | From January 2027 | DeeDee runs real weeks from it; Will and DeeDee hold a 15-minute review each week and fix what blocks her |
-| 4 | **Friends beta** | From about March 2027 | 3–6 invited families, ideally the Charlotte Mason friends; the go-public signals are measured at week 6 |
+| 4 | **Friends beta** | From about March 2027 | The tester has verified the timeline sprint first; then 3–6 invited families, ideally the Charlotte Mason friends; the go-public signals are measured at week 6 |
 | 5 | **Decide on going public** | After the friends beta | The go-public signals below are met, or we decide what to change |
+
+**The dates are targets, not promises.** At 6–8 hours a week the core is doable by mid-December, but it holds the effort rework, undo, week adjust, the event preview, bulk-add, copy and CSV import. If it slips, phase 3 moves with it; the core isn't cut to hit January.
 
 **Beta demos before January.** From the end of November, show finished core pieces to DeeDee and, if she chooses, a friend or two. These are short guided demos on the demo family, not real use, run locally or over screen share until phase 2. They catch confusion early without asking anyone to rely on the app.
 
@@ -72,12 +76,19 @@ Why not correct effort from the check-in: the check-in records how far a child g
 ### Accounts
 - [ ] **Invite-only accounts.** An invite link creates a family account. Password resets are done by hand with the existing `set-family-login` CLI. Self-serve signup and emailed resets wait until going public, so no email provider is needed yet.
 
+### Hosting fixes in code
+Done during the core work, since none needs a host. Details are in "Private hosting".
+- [ ] Health check split into liveness and readiness.
+- [ ] Graceful shutdown.
+- [ ] A lock on migrations.
+- [ ] Login throttle that trusts the proxy.
+
 ### End to end
 - [ ] **The whole loop works on a real family's term:** set up a term, see it on the timeline, adjust a week, check in, undo a mistake. Run on a realistic Charlotte Mason-style term, not only the demo family, before phase 2.
 
 ## 2. Private hosting
 
-For DeeDee only; nobody else gets the link until phase 4. No public tunnels or hosting without DeeDee's approval (HOW_WE_WORK.md, "Rules"). The deployment gaps from the 2026-10-30 review belong here:
+For DeeDee only; nobody else gets the link until phase 4. No public tunnels or hosting without DeeDee's approval (HOW_WE_WORK.md, "Rules"). The deployment gaps from the 2026-10-30 review are listed here. The first four are code-only and are built in phase 1 (core checklist, "Hosting fixes in code"); the production start and backups need the host and are done in phase 2.
 
 - **Health check.** `/api/health` always returns 200, even when the database is down. Split it into liveness (the process is up) and readiness (the database answers), so a load balancer stops sending traffic to a broken instance.
 - **Login throttle behind a proxy.** The throttle (10 tries a minute) is per IP and the proxy isn't trusted (`reviews/developer-review.md` L12). Behind a load balancer every user shares one IP, so one person's failed logins would block everyone.
@@ -110,6 +121,7 @@ Each follows the module rules above. In order:
 - An even drag preview.
 - T-07b manual zoom: pinch, ctrl+wheel and pan (`tickets/timeline/README.md`).
 - More label and layout polish.
+- (Moved, not dropped: the tester verification of the timeline sprint, like `reviews/sprint-2b-verification.md`, is now required before the friends beta, phase 4.)
 - Native app and full offline mode. v1 is web and PWA only.
 
 ## Done

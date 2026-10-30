@@ -1,6 +1,6 @@
 # Spec and research
 
-> **The repo is the source of truth.** Since 2026-10-30 these files are the canonical spec and research. The shared Pages they were copied from are historical; don't update them, and don't treat them as newer. When the product changes, update the file here and add a line to its changelog.
+> **The repo is the source of truth.** Since 2026-10-30 these files are the canonical spec and research. The shared Pages they were copied from are historical; don't update them, and don't treat them as newer. When the product changes, update the file here and add a line to its changelog. This replaces the earlier plan to remove `docs/spec/` at go-live: the files stay.
 
 | File | What it is | Copied from (historical) |
 |---|---|---|
