@@ -1,6 +1,50 @@
 # Roadmap
 
-DeeDee approves what gets built. Nothing under "Next" is approved yet, so ask before starting any of it.
+DeeDee approves what gets built. The MVP plan below was agreed on 2026-10-30. It replaces the old "Next (optional)" list. The same day, DeeDee moved the MVP work ahead of hosting. Anything outside this plan still needs approval before it starts.
+
+## The plan, in order
+
+1. **Finish the MVP** (checklist below), developed and tested locally.
+2. **Private hosting**, once DeeDee is ready to use the app on her phone during real school weeks. It is for DeeDee only, and nobody else gets the link. It must be done before step 3.
+3. **Share with a few families**, only after every MVP box is checked and the private hosting has run for real weeks. These can be friends from co-op, invited by DeeDee when she's ready. Agents contact no one (HOW_WE_WORK.md, "Rules").
+4. **Polish and post-MVP work**, guided by what those families struggle with.
+
+## 1. MVP checklist
+
+**The test:** a co-op friend can set up their whole year and use it for a week without DeeDee sitting next to them.
+
+- [ ] **Self-serve signup and password reset.** Today families are created with a CLI (`set-family-login`), so nobody else can start alone.
+- [ ] **Undo or reset a bad change.** A parent can undo a change to a bar and reset an assignment to how it was. A messed-up plan in week one breaks trust as badly as lost data.
+- [ ] **Fast setup.** The minimum is bulk-add and copy-assignment, with CSV import close behind. Curriculum templates come later if they slip.
+- [ ] **The core loop works end to end:** plan the year, see it on the timeline, adjust the week, check in.
+- [ ] **Phone usability:** a compact edit bar and 44 px tap targets.
+- [ ] **Data safety:** automated backups, and one restore tested from start to finish. This is built with the hosting step, and must be checked before step 3.
+
+## 2. Private hosting
+
+The deployment gaps from the 2026-10-30 review belong to this ticket set, not separate work:
+
+- **Health check.** `/api/health` always returns 200, even when the database is down. Split it into liveness (the process is up) and readiness (the database answers), so a load balancer stops sending traffic to a broken instance.
+- **Login throttle behind a proxy.** The throttle is per IP and the proxy isn't trusted (`reviews/developer-review.md` L12). Behind a load balancer every user shares one IP, so one person's failed logins would block everyone.
+- **Migration race.** The runner has no lock (L16). Two instances starting together can both run migrations. Take a Postgres advisory lock, or run migrations as a separate one-off step.
+- **Graceful shutdown.** There is none (L19). On SIGTERM, stop taking requests, finish the ones in flight, then close the pool.
+- **A production start.** The API runs through `tsx` and the repo has no container or deploy config. Add a production build and start, secrets from the host (never committed), HTTPS, and the `secure` cookie flag on.
+- **Backups**, with one restore actually tested (see the MVP checklist).
+
+## Not in the MVP
+
+- AA contrast for inside names on dimmed bars (45 of 240 safe-palette combinations fail, T-11d).
+- An even drag preview.
+- T-07b manual zoom: pinch, ctrl+wheel and pan (`tickets/timeline/README.md`).
+- More label and layout polish.
+- A tester verification of the timeline sprint, like `reviews/sprint-2b-verification.md`. Worth doing before step 3; DeeDee decides.
+- Later phases from the spec (`spec/SPEC.md`). v1 is web and PWA only ("v1 engineering decisions", item 7), and the whole hub list is backlog:
+  - **Logging and export:** one-tap check-off, quick add, logging once for several kids, progress filling the bars, hour and attendance totals, and export. CSV export is free and PDF records are on the Family plan. Every total and export carries the neutral records note, and nothing claims to meet a state's requirements ("Low-friction logging").
+  - **Paywall:** Free is the full timeline for one child, including logging, attendance and CSV export. Family ($5.99/mo or $49/yr) adds unlimited children, shared assignments, the family load view, PDF records and a portfolio. There is an optional founding offer at $39/yr for life for the first 500 ("Free vs premium").
+  - **First in line after v1** (the "MVP" rows): attendance, auto-shift after missed days, a Today view per child, lesson-level plans, printed daily or weekly plans, a reading log and the privacy baseline (CSV import moved into the MVP's fast setup) ("Hub features").
+  - **Family plan features (v1.x premium):** grades and transcripts, kid logins, co-teacher access, portfolio, state record-keeping helpers, curriculum templates beyond the MVP's fast setup (including Ambleside, Memoria Press and an Orthodox overlay), calendar sync, email digests, school-year rollover, and "smooth this month".
+  - **Later:** native app with full offline mode, curriculum budget and ESA report, library due dates, co-op groups, importers, household items and sharing templates.
+  - **Payments and billing**, only after live testing.
 
 ## Done
 
@@ -32,23 +76,16 @@ The timeline tickets, in `progress/timeline.md`:
 | T-11d names above thin bars (+ fix) | d19dd73, e03fd0c |
 | T-11e outside names closer to their bars (+ fix) | 3faeab8, c601581 |
 
-## Next (optional, not yet approved)
-
-- **AA contrast for inside names on dimmed bars.** When a bar is selected, the other bars dim to 0.65. Inside names on those dimmed bars fail AA in 45 of 240 safe-palette combinations (T-11d).
-- **Mobile polish:** a compact edit bar and 44 px tap targets.
-- **An even drag preview.**
-- **T-07b: manual zoom.** Pinch, ctrl+wheel and pan, with the presets just jumping (`tickets/timeline/README.md`).
-- **Free hosting for a shareable link.**
-- **A tester verification of the timeline sprint**, like `reviews/sprint-2b-verification.md`. Its findings become fix tickets.
-- **Later phases from the spec** (`spec/SPEC.md`). v1 is web and PWA only ("v1 engineering decisions", item 7), and the whole hub list is backlog after v1:
-  - **Logging and export:** one-tap check-off, quick add, logging once for several kids, progress filling the bars, hour and attendance totals, and export. CSV export is free and PDF records are on the Family plan. Every total and export carries the neutral records note, and nothing claims to meet a state's requirements ("Low-friction logging").
-  - **Paywall:** Free is the full timeline for one child, including logging, attendance and CSV export. Family ($5.99/mo or $49/yr) adds unlimited children, shared assignments, the family load view, PDF records and a portfolio. There is an optional founding offer at $39/yr for life for the first 500 ("Free vs premium").
-  - **First in line after v1** (the "MVP" rows): attendance, auto-shift after missed days, a Today view per child, lesson-level plans, printed daily or weekly plans, a reading log, CSV import and the privacy baseline ("Hub features").
-  - **Family plan features (v1.x premium):** grades and transcripts, kid logins, co-teacher access, portfolio, state record-keeping helpers, curriculum templates (including Ambleside, Memoria Press and an Orthodox overlay), calendar sync, email digests, school-year rollover, and "smooth this month".
-  - **Later:** native app with full offline mode, curriculum budget and ESA report, library due dates, co-op groups, importers, household items and sharing templates.
-  - **Payments and billing**, only after live testing.
-
 ## Open decisions waiting on DeeDee
+
+### New, for the MVP and hosting
+
+- **How far undo goes:** the last change only, or a short history per assignment. This is needed for the MVP.
+- **How password-reset emails are sent.** Reset needs an email provider.
+- **Where to host and the monthly budget.** Nothing is chosen yet; this is needed before step 2.
+- Items 4 (time-zone fallback) and 8 (sessions) below become more pressing once the app is hosted.
+
+### From earlier
 
 Items 1 to 10 are recorded in `progress/overnight.md` ("Decisions for DeeDee"). They were re-checked on 2026-10-30 against `spec/SPEC.md` and the progress docs. An item is marked settled only when one of those settles it, with a citation.
 
