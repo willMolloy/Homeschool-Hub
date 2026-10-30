@@ -244,3 +244,7 @@
 .form-more[open] > summary { margin-bottom: 6px; }
 /* S3a-04: a row's Remove sits under its fields, not stretched across a column. */
 .schedule-form [role="group"] > .btn { justify-self: start; margin-bottom: 14px; }
+/* S3a-06: the CSV preview or its errors, a plain list. */
+.import-list { margin: 0 0 14px; padding-left: 20px; overflow-wrap: anywhere; }
+.schedule-form textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #b7c0cc; border-radius: 8px; font: inherit; }
+.schedule-form a[download] { display: inline-flex; align-items: center; min-height: 44px; }

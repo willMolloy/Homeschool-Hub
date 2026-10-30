@@ -8,7 +8,8 @@ Tickets: `docs/tickets/sprint-3a-setup/`.
 | S3a-02 Copy an assignment from the timeline edit bar | 153f663 | `onCopy` on `EditBar`; `initial` on `AddAssignmentSheet`; same `copyOfAssignment` prefill |
 | S3a-03 Add the bulk-create assignments endpoint | 1ddad60 | `POST /api/assignments/bulk`; `createOne` shared with the single create |
 | S3a-04 Add several assignments at once | a67fe2c | `BulkAssignmentsForm`; `renderBulkForm` on `ScheduleList` adds the "Add several" button |
-| S3a-05 Parse an assignments CSV | (this commit) | `csvImport.ts`: `parseAssignmentsCsv`, `errorText`, `assignmentsCsvTemplate`; limits moved to `assignmentLimits.ts` |
+| S3a-05 Parse an assignments CSV | 6844467 | `csvImport.ts`: `parseAssignmentsCsv`, `errorText`, `assignmentsCsvTemplate`; limits moved to `assignmentLimits.ts` |
+| S3a-06 Import assignments from a CSV | (this commit) | `ImportAssignmentsForm`; "Import CSV" button via `renderImportForm` on `ScheduleList` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -31,3 +32,7 @@ Tickets: `docs/tickets/sprint-3a-setup/`.
 - **S3a-05 header.** Extra columns are ignored; a repeated column uses its first copy; a missing column is one error on line 1. Only commas separate fields (children use `;`).
 - **S3a-05 matching.** Subject and child names match active rows only, case-insensitively and trimmed (the first of two same-named rows wins); the same child named twice is used once. Unit accepts singular or plural. Dates also need a real calendar date in 2000–2100, as the API does. Quoted fields may hold line breaks; line numbers are the physical line a record starts on.
 - **S3a-05 template.** `assignmentsCsvTemplate` is the header plus one example row built from the family's first active subject and child (Math / Ada when there are none), so it imports as is.
+- **S3a-06 one open panel.** `ScheduleList` now tracks which multi-row form is open (`panel`: "Add several" or "Import CSV"), so the two never show together and the single Add form and each panel exclude each other.
+- **S3a-06 the template link.** A `data:` URL with `download="assignments-template.csv"` (no server round trip), built from `assignmentsCsvTemplate` with the family's own names.
+- **S3a-06 preview.** Valid: "N assignments" and a list (title, then subject · children · dates). Any error: only the error list ("Line N: …"), no count. The file's text is also put in the paste box, so the parent can fix and re-check it in place. Import stays disabled with no text.
+- **S3a-06 server errors.** "Assignment N: …" from the API is rewritten to the Nth parsed row's title; the rest of the message is shown as `saveError` leaves it. The preview and Import stay available to retry.
