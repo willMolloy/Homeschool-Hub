@@ -50,7 +50,7 @@ Status as of 2026-10-30. "Built" means a sprint delivered it; the end-to-end pas
 **Build order for what's left:** assignment weekdays first (it changes what the bars mean, so it comes ahead of the effort rework), then the weekly briefing with finish-date forecasts, then "Missed a day?", then the C1–C3 items (week adjust, undo, effort) as DeeDee decides them. Fast setup, accounts and the hosting fixes fit around these.
 
 ### Assignment weekdays
-- [ ] **Which weekdays an assignment runs on.** Today the engine spreads every assignment over all school days, so a once-a-week subject (picture study, composer, nature study) shows as a fifth of a lesson every day, and math can't be Monday to Thursday only. An assignment gets optional weekdays (default: every school day); the plan places its work only on those days, and the bars, This Week and check-ins follow. Events already have weekdays; assignments don't.
+- [ ] **Which weekdays an assignment runs on** (Sprint 4: tappable day chips, a subject default that assignments follow until customised). Today the engine spreads every assignment over all school days, so a once-a-week subject (picture study, composer, nature study) shows as a fifth of a lesson every day, and math can't be Monday to Thursday only. An assignment gets optional weekdays (default: every school day); the plan places its work only on those days, and the bars, This Week and check-ins follow. Events already have weekdays; assignments don't.
 
 ### The map
 - [x] Year timeline: lanes per subject and child, thickness, All subjects bar, zoom presets, child filter (timeline T-01 to T-11e).
@@ -63,7 +63,7 @@ Status as of 2026-10-30. "Built" means a sprint delivered it; the end-to-end pas
 - [ ] **Adjust the current or a coming week:** change this week's amount, then keep the end date or push it back. The `week_override` table exists; the API and UI wait for decision C1.
 - [ ] **Undo, and reset an assignment to how it was.** How far undo goes is decision C2.
 - [ ] **Weekly briefing on This Week, with finish-date forecasts.** A short status line per child above the week's work: "On track", or "Latin will finish 2 weeks late at this pace. Keep the end date or push it back?", or "This is your heaviest week." It appears only when there's something to act on. It is part of This Week, not a new screen. The engine already produces the warnings (work past the end date, no capacity, unplaced work); forecasts move once check-ins show a slower or faster pace. Its keep-or-push buttons use week adjust (C1).
-- [ ] **"Missed a day?" on This Week.** One tap marks a day missed for a child or the whole family (a day off underneath) and the plan reflows at once. Undoing a mis-tap is part of undo (C2).
+- [ ] **"Missed a day?" on This Week.** Pick any day of the shown week up to today, for one child or everyone (a day off underneath), and the plan reflows at once (Sprint 4, S4-10). Next, once C1 is decided, it asks how to make the work up: make it up this week, spread it evenly before the end date, or push the end date back. Missing one assignment rather than a whole day waits until after the core; the parent makes it up that week or reports it in the check-in. Undoing a mis-tap is part of undo (C2).
 - [ ] **Preview before saving an event:** for example "Treasure Island goes from 5 to 6 pages a day". Events already have skip, lighter and normal rules per subject (S2a); the preview is missing.
 
 ### Effort (proposed, decision C3)

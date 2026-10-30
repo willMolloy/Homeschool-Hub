@@ -159,3 +159,15 @@ See [sprint-2c-fixes/README.md](sprint-2c-fixes/README.md) (S2c-01 to S2c-06) an
 ## Timeline
 
 See [timeline/README.md](timeline/README.md) (T-01 to T-11e) and `progress/timeline.md`. Built after the pilot gate was dropped on 2026-10-28.
+
+## Sprint 3a: fast setup
+
+See [sprint-3a-setup/README.md](sprint-3a-setup/README.md) (S3a-01 to S3a-07), `progress/sprint-3a.md` and `reviews/sprint-3a-verification.md`.
+
+## Sprint 3b: fixes from the Sprint 3a verification
+
+See [sprint-3b-fixes/README.md](sprint-3b-fixes/README.md) (S3b-01 to S3b-07).
+
+## Sprint 4: assignment weekdays, the weekly briefing and "Missed a day?" (proposed)
+
+See [sprint-4-weekdays-briefing/README.md](sprint-4-weekdays-briefing/README.md) (S4-01 to S4-11).
