@@ -11,6 +11,10 @@ export interface Lookups {
   subjectName: (id: string) => string;
   /** The subject's default weight (S2b-31), or null when it has none or is unknown. */
   subjectDefault: (id: string) => SubjectDefaultWeight | null;
+  /** S4-07: the subject's default weekdays (S4-03), or null when it has none or is unknown. */
+  subjectWeekdays: (id: string) => number[] | null;
+  /** S4-07: swap in a subject that was just saved (its default days changed from an assignment form). */
+  subjectSaved?: (saved: Subject) => void;
 }
 
 const bySort = <T extends { sortOrder: number }>(a: T, b: T) => a.sortOrder - b.sortOrder;
@@ -41,11 +45,12 @@ export function WithLookups({ title, children }: { title: string; children: (l: 
       </section>
     );
   }
-  return <>{children(makeLookups(kids.data, subs.data))}</>;
+  const saved = (s: Subject) => subs.setData((list) => list?.map((x) => (x.id === s.id ? s : x)));
+  return <>{children(makeLookups(kids.data, subs.data, saved))}</>;
 }
 
 /** T-10: the lookups from lists already loaded elsewhere (the timeline has them), sorted the same way. */
-export function makeLookups(kids: readonly Child[], subs: readonly Subject[]): Lookups {
+export function makeLookups(kids: readonly Child[], subs: readonly Subject[], subjectSaved?: (saved: Subject) => void): Lookups {
   const childList = [...kids].sort(bySort);
   const subjectList = [...subs].sort(bySort);
   const cMap = new Map(childList.map((c) => [c.id, c]));
@@ -56,5 +61,7 @@ export function makeLookups(kids: readonly Child[], subs: readonly Subject[]): L
     childName: (id) => cMap.get(id)?.name ?? "Unknown child",
     subjectName: (id) => sMap.get(id)?.name ?? "Unknown subject",
     subjectDefault: (id) => sMap.get(id)?.defaultWeight ?? null,
+    subjectWeekdays: (id) => sMap.get(id)?.defaultWeekdays ?? null,
+    subjectSaved,
   };
 }

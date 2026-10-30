@@ -12,7 +12,8 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 | S4-04 Accept and return weekdays on the assignment endpoints | c9473fe | `weekdays` on create, bulk and PATCH, and in the JSON; a change records `weekdays_from`/`previous_weekdays` (S4-01b) |
 | S4-05 Load weekdays into the plan | 3e67394 | `loadPlanInputs` maps `weekdays`, `weekdays_from`, `previous_weekdays` and `ctx.subjectWeekdays`; `/api/plan` already passes `weekdays` and `weekdaysSource` through |
 | S4-08 Add finish-forecast and heavy-week helpers to the engine | 48a53e2 | `briefing.ts`: `forecastFinish`, `heavyWeek`, `HEAVY_WEEK_RATIO`; engine version unchanged (0.9.0) |
-| S4-06 Set default weekdays on the subject form | (this commit) | "Usual days" chips on `SubjectForm`; `defaultWeekdays`/`weekdays` added to the web types |
+| S4-06 Set default weekdays on the subject form | 2011bd4 | "Usual days" chips on `SubjectForm`; `defaultWeekdays`/`weekdays` added to the web types |
+| S4-07 Pick weekdays on the assignment form | (this commit) | "Days" chips on `AssignmentForm` and Add several (`useWeekdayChoice.ts`); "Set as default for {subject}"; copies carry `weekdays` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -56,3 +57,9 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 - **S4-06 list line.** A second small tag (same style as the bar-width tag) shows `weekdayRanges`: a run of three or more days is "Mon–Thu", otherwise a comma list ("Mon, Wed, Fri"); nothing when no default is set.
 - **S4-06 web types.** `Subject.defaultWeekdays` and `Assignment.weekdays` are required in the web types (the API always returns them); test fixtures got `defaultWeekdays: null` / `weekdays: null`, and the fake API's allowed body keys include them. `copyOfAssignment` carries `weekdays` (needed to typecheck; S4-07 tests it).
 - **S4-06 changed test.** `subjects-add.test.tsx` ("picking a swatch sends that color") compares the whole POST body; it now includes `defaultWeekdays: null`.
+- **S4-07 shared logic.** `useWeekdayChoice` (used by the single and the Add several forms) holds the chips: the start is the assignment's own days, else the subject's default (`Lookups.subjectWeekdays`), else every school day. Until a chip is tapped the chips follow the subject, so changing the subject re-prefills; after a tap they stay. The chips offered are the school days plus any day already chosen/inherited outside them.
+- **S4-07 what is saved.** The chips equal to what would be inherited send `weekdays: null`, otherwise the sorted list. On edit the PATCH carries `weekdays` only when it differs from the stored value (null equals null). An assignment whose own list equals the subject's default therefore saves null when edited, and so follows the subject from then on.
+- **S4-07 Set as default.** It acts at once (a PATCH to the subject), not at Save; the chips then follow the subject (the form's Save/Add sends null). If the form is cancelled afterwards the subject keeps the new default. Every school day selected stores null on the subject (same rule as S4-06). The button shows only when a subject is chosen and the chips differ from what it gives. After the PATCH the page's subject list is updated (`Lookups.subjectSaved`; on the timeline `applySubject`) so later forms prefill from the new default.
+- **S4-07 Add several.** Shared Days chips only (no Set as default there), prefilled from the subject; the chosen days (null or list) are sent on every row.
+- **S4-07 CSV import.** Unchanged: rows send no `weekdays`, which the API stores as null (no CSV column, out of scope). The test checks the rows carry no days.
+- **S4-07 changed tests.** Whole-body expectations now include `weekdays: null` in `assignments-screen`, `assignment-copy` and `assignments-bulk-add`; `timeline-add.test.tsx` expects the new "Days" label (and its chips) between End and Unit.

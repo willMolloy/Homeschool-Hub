@@ -1,5 +1,5 @@
 /** T-04: everything the timeline needs from the API, turned into a TimelineModel for the family's school year. */
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { Assignment, BlockedRange, Child, PlanResponse, ScheduleEvent, Subject } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useMe } from "../../auth/AuthProvider";
@@ -19,6 +19,8 @@ export interface TimelineData {
   children: Child[];
   /** T-10: the family's subjects (the add form's choices). */
   subjects: Subject[];
+  /** S4-07: swap in a subject whose default days were just saved from the add form. */
+  applySubject: (saved: Subject) => void;
   /** T-10: after a successful POST, add the new assignment and refetch the plan so its bar appears. */
   addAssignment: (created: Assignment) => void;
 }
@@ -32,6 +34,8 @@ export function useTimelineData(): TimelineData {
   const assignments = useApi<Assignment[]>("/api/assignments");
   const blocked = useApi<BlockedRange[]>("/api/blocked-ranges");
   const events = useApi<ScheduleEvent[]>("/api/events");
+  const setSubjects = subjects.setData;
+  const applySubject = useCallback((saved: Subject) => setSubjects((list) => list?.map((s) => (s.id === saved.id ? saved : s))), [setSubjects]);
   const all = [plan, children, subjects, assignments, blocked, events];
 
   const model = useMemo(() => {
@@ -54,6 +58,7 @@ export function useTimelineData(): TimelineData {
     assignments: assignments.data ?? [],
     children: children.data ?? [],
     subjects: subjects.data ?? [],
+    applySubject,
     addAssignment: (created) => {
       assignments.setData((list) => [...(list ?? []).filter((a) => a.id !== created.id), created]);
       plan.reload();

@@ -6,8 +6,9 @@
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, UNIT_TYPES, weightPerUnitOf } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
-import type { Assignment, UnitType } from "../../api/types";
-import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet } from "./formBits";
+import type { Assignment, Subject, UnitType } from "../../api/types";
+import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet, WeekdayPicker } from "./formBits";
+import { useWeekdayChoice } from "./useWeekdayChoice";
 import { WithLookups, type Lookups } from "./lookups";
 import { LIMITS } from "./assignmentLimits";
 import { ImportAssignmentsForm } from "./ImportAssignmentsForm";
@@ -80,6 +81,8 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   const [endDate, setEndDate] = useState(start?.endDate ?? "");
   const activeChildren = l.children.filter((c) => !c.archived);
   const [childIds, setChildIds] = useState<string[]>(start?.childIds ?? (activeChildren.length === 1 ? [activeChildren[0]!.id] : []));
+  // S4-07: the chips start from the assignment's own days, else the subject's default, else every school day.
+  const dayChoice = useWeekdayChoice(l, subjectId, start?.weekdays ?? null);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -114,6 +117,21 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   const suggestedValue = (): number | null =>
     suggestion && (suggestion.source === "child" || suggestion.source === "children") ? suggestion.weightPerUnit : null;
 
+  /** S4-07: the chosen days become the subject's default; this assignment then inherits them (it saves null). */
+  async function makeDefault() {
+    setFormError(null);
+    setSaving(true);
+    try {
+      const saved = await apiPatch<Subject>(`/api/subjects/${subjectId}`, { defaultWeekdays: dayChoice.defaultValue });
+      l.subjectSaved?.(saved);
+      dayChoice.follow();
+    } catch (err) {
+      setFormError(saveError(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (saving || awaitingSuggestion) return;
@@ -139,7 +157,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     if (errs.weight) setMore(true);
     if (Object.keys(errs).length > 0 || typeof total === "string") return;
 
-    const full = { subjectId, title: t, unitType, totalUnits: total, weightPerUnit: wpu, startDate, endDate, childIds };
+    const full = { subjectId, title: t, unitType, totalUnits: total, weightPerUnit: wpu, startDate, endDate, childIds, weekdays: dayChoice.value };
     setSaving(true);
     try {
       if (!item) {
@@ -156,6 +174,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       if (full.startDate !== item.startDate) patch.startDate = full.startDate;
       if (full.endDate !== item.endDate) patch.endDate = full.endDate;
       if (!sameSet(full.childIds, item.childIds)) patch.childIds = full.childIds;
+      if (JSON.stringify(full.weekdays) !== JSON.stringify(item.weekdays ?? null)) patch.weekdays = full.weekdays;
       if (Object.keys(patch).length === 0) return onCancel();
       onSaved(await apiPatch<Assignment>(`/api/assignments/${item.id}`, patch));
     } catch (err) {
@@ -204,6 +223,14 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
         {field(ids.end, "End", errors.dates,
           <input id={ids.end} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} {...inv(errors.dates, ids.end)} />)}
       </div>
+      <WeekdayPicker legend="Days" offer={dayChoice.offer} value={dayChoice.shown} onChange={dayChoice.change} />
+      {dayChoice.differs && subjectId ? (
+        <div className="field">
+          <button className="btn btn-secondary" type="button" disabled={saving} onClick={makeDefault}>
+            Set as default for {l.subjectName(subjectId)}
+          </button>
+        </div>
+      ) : null}
       <div className="field-row">
         {field(ids.unit, "Unit", undefined,
           <select id={ids.unit} value={unitType} onChange={(e) => changeUnit(e.target.value as UnitType)}>

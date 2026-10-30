@@ -53,6 +53,17 @@ describe("Import assignments from a CSV (S3a-06)", () => {
     expect(screen.queryByRole("form")).toBeNull();
   });
 
+  it("imported rows carry no days of their own, so they follow the subject (S4-07)", async () => {
+    const { user, form } = await setup();
+    fakeApi.on("POST /api/assignments/bulk", (body) => [201, (body as { assignments: object[] }).assignments.map((a, i) => ({ ...a, id: rowId(10 + i), archived: false }))]);
+    paste(form, VALID);
+    await within(form).findByText("2 assignments");
+    await user.click(within(form).getByRole("button", { name: "Import" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    const rows = (writes()[0]!.body as { assignments: { weekdays?: number[] | null }[] }).assignments;
+    expect(rows.map((r) => r.weekdays ?? null)).toEqual([null, null]);
+  });
+
   it("a chosen file is read like pasted text", async () => {
     const { user, form } = await setup();
     await user.upload(within(form).getByLabelText("CSV file"), new File([VALID], "term.csv", { type: "text/csv" }));

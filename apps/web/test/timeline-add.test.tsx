@@ -102,8 +102,9 @@ describe("adding an assignment from the timeline", () => {
     const { sheet } = await openForm();
     expect(sheet).toHaveAttribute("data-sheet", "side");
     // Essentials first, in order; the weight waits behind "More".
-    const labels = [...sheet.querySelectorAll("label, legend, summary")].map((e) => e.textContent!.trim()).filter((t) => !["Frank", "Margaret"].includes(t));
-    expect(labels.slice(0, 7)).toEqual(["Subject", "Title", "Children", "Start", "End", "Unit", "Total"]);
+    const labels = [...sheet.querySelectorAll("label, legend, summary")].map((e) => e.textContent!.trim()).filter((t) => !["Frank", "Margaret", "Mon", "Tue", "Wed", "Thu", "Fri"].includes(t));
+    // S4-07: the Days chips sit right under the dates.
+    expect(labels.slice(0, 8)).toEqual(["Subject", "Title", "Children", "Start", "End", "Days", "Unit", "Total"]);
     const more = within(sheet).getByText("More").closest("details")!;
     expect(more.open).toBe(false);
     expect(within(more).getByLabelText(/^Weight per/)).toBeInTheDocument();

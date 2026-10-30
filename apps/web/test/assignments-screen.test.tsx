@@ -86,7 +86,7 @@ describe("Assignments screen", () => {
     await user.click(within(form).getByRole("button", { name: "Add" }));
     expect(writes()).toEqual([{
       method: "POST", path: "/api/assignments",
-      body: { subjectId: MATH.id, title: "Fractions", unitType: "pages", totalUnits: 45.5, weightPerUnit: 1.4, startDate: "2026-11-02", endDate: "2026-12-04", childIds: [FRANK.id] },
+      body: { subjectId: MATH.id, title: "Fractions", unitType: "pages", totalUnits: 45.5, weightPerUnit: 1.4, startDate: "2026-11-02", endDate: "2026-12-04", childIds: [FRANK.id], weekdays: null },
     }]);
     expect(await screen.findByText("Fractions")).toBeInTheDocument();
     expect(screen.queryByRole("form")).toBeNull();

@@ -8,8 +8,9 @@ import { apiPost } from "../../api/client";
 import type { Assignment, UnitType } from "../../api/types";
 import { unitTitle } from "../../components/unitLabels";
 import { LIMITS } from "./assignmentLimits";
-import { bulkSaveError, ChildPicker, dateRangeError, parsePositive } from "./formBits";
+import { bulkSaveError, ChildPicker, dateRangeError, parsePositive, WeekdayPicker } from "./formBits";
 import type { Lookups } from "./lookups";
+import { useWeekdayChoice } from "./useWeekdayChoice";
 
 const START_ROWS = 3;
 
@@ -34,6 +35,8 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [unitType, setUnitType] = useState<UnitType>("lessons");
+  // S4-07: shared by every row; prefilled from the subject's default.
+  const dayChoice = useWeekdayChoice(l, subjectId, null);
   const nextKey = useRef(START_ROWS);
   const [rows, setRows] = useState<Row[]>(() => Array.from({ length: START_ROWS }, (_, i) => blank(i)));
   const [errors, setErrors] = useState<Errors>({});
@@ -74,7 +77,7 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
 
     setSaving(true);
     try {
-      const body = { assignments: items.map((i) => ({ subjectId, ...i, unitType, weightPerUnit: null, startDate, endDate, childIds })) };
+      const body = { assignments: items.map((i) => ({ subjectId, ...i, unitType, weightPerUnit: null, startDate, endDate, childIds, weekdays: dayChoice.value })) };
       onSaved(await apiPost<Assignment[]>("/api/assignments/bulk", body));
     } catch (err) {
       // The server counts only the rows sent; name them by the row numbers on screen.
@@ -110,6 +113,7 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
           {errors.dates ? <p className="field-error" role="alert">{errors.dates}</p> : null}
         </div>
       </div>
+      <WeekdayPicker legend="Days" offer={dayChoice.offer} value={dayChoice.shown} onChange={dayChoice.change} />
       <div className="field">
         <label htmlFor={ids.unit}>Unit</label>
         <select id={ids.unit} value={unitType} onChange={(e) => setUnitType(e.target.value as UnitType)}>

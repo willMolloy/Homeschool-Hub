@@ -49,7 +49,7 @@ const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: Layou
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
 export function TimelinePage() {
-  const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, children, subjects } = useTimelineData();
+  const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects } = useTimelineData();
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
   const [childParam, setChild] = useChildParam();
   const childId = shownChild(childParam, childList);
@@ -100,7 +100,7 @@ export function TimelinePage() {
   // T-10: adding an assignment. The new bar flashes once it is drawn, with the filter and month moved to show it.
   const [adding, setAdding] = useState(false);
   const [copying, setCopying] = useState<Draft<Assignment> | null>(null);
-  const lookups = useMemo(() => makeLookups(children, subjects), [children, subjects]);
+  const lookups = useMemo(() => makeLookups(children, subjects, applySubject), [children, subjects, applySubject]);
   const [flashId, setFlashId] = useState<string | null>(null);
   useEffect(() => {
     if (!flashId) return;
