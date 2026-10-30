@@ -64,7 +64,10 @@ describe("parseAssignmentsCsv", () => {
     ["a bad unit", "Math,Saxon,Frank,verses,20,2026-11-02,2026-11-26", 'unit must be one of pages, chapters, lessons, minutes (got "verses").'],
     ["total 0", "Math,Saxon,Frank,lessons,0,2026-11-02,2026-11-26", "total must be more than 0 and at most 100,000."],
     ["total too big", "Math,Saxon,Frank,lessons,100001,2026-11-02,2026-11-26", "total must be more than 0 and at most 100,000."],
-    ["total not a number", "Math,Saxon,Frank,lessons,lots,2026-11-02,2026-11-26", 'total must be a number (got "lots").'],
+    ["total not a number", "Math,Saxon,Frank,lessons,lots,2026-11-02,2026-11-26", "total must be a number, like 300."],
+    ["total in hex (S3b-06)", "Math,Saxon,Frank,lessons,0x10,2026-11-02,2026-11-26", "total must be a number, like 300."],
+    ["total with an exponent (S3b-06)", "Math,Saxon,Frank,lessons,1e2,2026-11-02,2026-11-26", "total must be a number, like 300."],
+    ["total with a thousands comma (S3b-06)", 'Math,Saxon,Frank,lessons,"1,000",2026-11-02,2026-11-26', "total must be a number, like 300."],
     ["total with 3 decimals", "Math,Saxon,Frank,lessons,1.234,2026-11-02,2026-11-26", "total can have at most 2 decimal places."],
     ["a missing total", "Math,Saxon,Frank,lessons,,2026-11-02,2026-11-26", "total is required."],
     ["end before start", "Math,Saxon,Frank,lessons,20,2026-11-26,2026-11-02", "end must be on or after start."],
@@ -132,6 +135,12 @@ describe("parseAssignmentsCsv", () => {
       expect(parse(`${HEADER},\n${row},\n`).errors).toEqual([]);
       expect(parse(`${HEADER}\n${row},\n`).errors).toEqual([]);
     });
+  });
+
+  it("a total of plain digits passes, with spaces around it (S3b-06)", () => {
+    const r = parse(`${HEADER}\nMath,A,Frank,lessons,300,2026-11-02,2026-11-26\nMath,B,Frank,lessons," 12.5 ",2026-11-02,2026-11-26`);
+    expect(r.errors).toEqual([]);
+    expect(r.rows.map((x) => x.totalUnits)).toEqual([300, 12.5]);
   });
 
   it("lists every error in a row and in later rows, and imports nothing", () => {

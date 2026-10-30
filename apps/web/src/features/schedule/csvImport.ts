@@ -105,8 +105,9 @@ function dateProblem(label: string, raw: string): { date: LocalDate } | { error:
 function totalProblem(raw: string): { total: number } | { error: string } {
   const t = raw.trim();
   if (!t) return { error: "total is required." };
+  // S3b-06: plain decimals only; Number() would also take 0x10 and 1e2.
+  if (!/^\d+(\.\d+)?$/.test(t)) return { error: "total must be a number, like 300." };
   const v = Number(t);
-  if (!Number.isFinite(v)) return { error: `total must be a number (got "${t}").` };
   if (v <= 0 || v > LIMITS.totalUnits) return { error: `total must be more than 0 and at most ${LIMITS.totalUnits.toLocaleString("en-US")}.` };
   if (Math.abs(v * 100 - Math.round(v * 100)) > 1e-6) return { error: "total can have at most 2 decimal places." };
   return { total: v };
