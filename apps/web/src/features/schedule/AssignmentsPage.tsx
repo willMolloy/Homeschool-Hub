@@ -8,6 +8,7 @@ import { apiPatch, apiPost } from "../../api/client";
 import type { Assignment, UnitType } from "../../api/types";
 import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet } from "./formBits";
 import { WithLookups, type Lookups } from "./lookups";
+import { copyOfAssignment } from "./copyAssignment";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
 import { UNIT_LABELS, unitTitle } from "../../components/unitLabels";
 import { useWeightSuggestion } from "./useWeightSuggestion";
@@ -34,6 +35,7 @@ export function AssignmentsPage() {
           labelOf={(a) => a.title}
           sort={byStart}
           confirmText="It drops out of the plan. Logged work stays, and you can unarchive it later."
+          copyOf={copyOfAssignment}
           renderCard={(a) => <AssignmentCard a={a} l={l} />}
           renderForm={(p) => <AssignmentForm {...p} l={l} />}
         />
@@ -57,20 +59,22 @@ function AssignmentCard({ a, l }: { a: Assignment; l: Lookups }) {
 
 type Errors = Partial<Record<"subject" | "title" | "totalUnits" | "weight" | "dates" | "children", string>>;
 
-export function AssignmentForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlotProps<Assignment> & { l: Lookups }) {
-  const activeSubjects = l.subjects.filter((s) => !s.archived || s.id === item?.subjectId);
-  const [subjectId, setSubjectId] = useState(item?.subjectId ?? (activeSubjects.length === 1 ? activeSubjects[0]!.id : ""));
-  const [title, setTitle] = useState(item?.title ?? "");
-  const [unitType, setUnitType] = useState<UnitType>(item?.unitType ?? "lessons");
-  const [totalUnits, setTotalUnits] = useState(item ? String(item.totalUnits) : "");
-  const [weight, setWeight] = useState(item?.weightPerUnit != null ? String(item.weightPerUnit) : "");
-  // S2b-11: adding (or changing the unit) shows the suggestion until the parent types; editing shows what's stored.
-  const [suggesting, setSuggesting] = useState(!item);
+export function AssignmentForm({ item, initial, onSaved, onCancel, extra, externalError, l }: FormSlotProps<Assignment> & { l: Lookups }) {
+  // S3a-01: a copy opens the Add form (item null) prefilled from `initial`.
+  const start = item ?? initial ?? null;
+  const activeSubjects = l.subjects.filter((s) => !s.archived || s.id === start?.subjectId);
+  const [subjectId, setSubjectId] = useState(start?.subjectId ?? (activeSubjects.length === 1 ? activeSubjects[0]!.id : ""));
+  const [title, setTitle] = useState(start?.title ?? "");
+  const [unitType, setUnitType] = useState<UnitType>(start?.unitType ?? "lessons");
+  const [totalUnits, setTotalUnits] = useState(start ? String(start.totalUnits) : "");
+  const [weight, setWeight] = useState(start?.weightPerUnit != null ? String(start.weightPerUnit) : "");
+  // S2b-11: adding (or changing the unit) shows the suggestion until the parent types; editing or copying shows what's stored.
+  const [suggesting, setSuggesting] = useState(!start);
   const [typed, setTyped] = useState(false);
-  const [startDate, setStartDate] = useState(item?.startDate ?? "");
-  const [endDate, setEndDate] = useState(item?.endDate ?? "");
+  const [startDate, setStartDate] = useState(start?.startDate ?? "");
+  const [endDate, setEndDate] = useState(start?.endDate ?? "");
   const activeChildren = l.children.filter((c) => !c.archived);
-  const [childIds, setChildIds] = useState<string[]>(item?.childIds ?? (activeChildren.length === 1 ? [activeChildren[0]!.id] : []));
+  const [childIds, setChildIds] = useState<string[]>(start?.childIds ?? (activeChildren.length === 1 ? [activeChildren[0]!.id] : []));
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
