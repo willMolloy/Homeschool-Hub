@@ -4,7 +4,7 @@ Start here, then read [ROADMAP.md](ROADMAP.md) and [HOW_WE_WORK.md](HOW_WE_WORK.
 
 ## The product
 
-Homeschool Hub is a freemium homeschool planner. The paywall comes at the 2nd child; it is not built yet (see the product rules below).
+Homeschool Hub is a freemium homeschool planner. Free covers one child; the Family plan ($5.99/mo or $49/yr) adds unlimited children, so the paywall comes at the 2nd child (`spec/SPEC.md`, "Free vs premium"). It is not built yet.
 
 **The core is the year timeline** (`/timeline`):
 - One lane per subject, with sub-lanes per child and sub-rows so bars never overlap.
@@ -18,7 +18,7 @@ Homeschool Hub is a freemium homeschool planner. The paywall comes at the 2nd ch
 **Supporting features:**
 - **This Week**, with the optional "How did last week go?" check-in. The plan assumes scheduled work was done unless the parent says otherwise.
 - **Recurring events and days off** (built in Sprint 2a).
-- **Optional hour logging with CSV/PDF export.** This is in the product spec but not in the code yet. There is no export code in the repo.
+- **Hour logging and export.** The spec has one-tap check-off, quick add, hour and attendance totals, CSV export (free) and PDF records (Family plan) (`spec/SPEC.md`, "Low-friction logging" and "Free vs premium"). None of it is in the code yet, and the repo has no export code.
 
 ## Design principles
 
@@ -60,7 +60,10 @@ Tests use Vitest. The engine is also tested under 7 time zones (`npm run test:tz
 
 ## Links
 
-- Spec: the Homeschool Hub spec Page (Cursor canvas `bb34c3a6-0776-400f-8153-0208d3dd507f`). Ask DeeDee for access. The timeline tickets cite it as "the Timeline Tools Page".
+- Spec: [docs/spec/SPEC.md](spec/SPEC.md), copied from the [Product Spec Page](https://cursor.com/canvas/store-05807489-4c87-496a-9870-4cee453dadd4/bb34c3a6-0776-400f-8153-0208d3dd507f).
+- Timeline Tools Page (the timeline tickets cite it): [docs/spec/timeline-tools-research.md](spec/timeline-tools-research.md), copied from [the Page](https://cursor.com/canvas/store-05807489-4c87-496a-9870-4cee453dadd4/3f0a3869-f09a-4df5-b7ff-317a49259f2c).
+- Competitor and pricing research: [docs/spec/competitor-and-pricing-research.md](spec/competitor-and-pricing-research.md), copied from [the Page](https://cursor.com/canvas/store-05807489-4c87-496a-9870-4cee453dadd4/93025aad-a8f8-42ef-aab9-71942b9f2a14).
+- The repo copies are the working reference until go-live, when `docs/spec/` will be removed (`docs/spec/README.md`).
 - [ROADMAP.md](ROADMAP.md): what's done, what's next, and the open decisions.
 - [HOW_WE_WORK.md](HOW_WE_WORK.md): roles, ticket format, local dev, rules.
 - [REVIEW-GUIDE.md](REVIEW-GUIDE.md): run it and review it in about 5 minutes.

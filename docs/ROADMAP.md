@@ -40,22 +40,37 @@ The timeline tickets, in `progress/timeline.md`:
 - **T-07b: manual zoom.** Pinch, ctrl+wheel and pan, with the presets just jumping (`tickets/timeline/README.md`).
 - **Free hosting for a shareable link.**
 - **A tester verification of the timeline sprint**, like `reviews/sprint-2b-verification.md`. Its findings become fix tickets.
-- **Later phases from the spec:**
-  - optional hour logging with CSV/PDF export;
-  - the paywall at the 2nd child;
-  - payments and billing, only after live testing.
+- **Later phases from the spec** (`spec/SPEC.md`). v1 is web and PWA only ("v1 engineering decisions", item 7), and the whole hub list is backlog after v1:
+  - **Logging and export:** one-tap check-off, quick add, logging once for several kids, progress filling the bars, hour and attendance totals, and export. CSV export is free and PDF records are on the Family plan. Every total and export carries the neutral records note, and nothing claims to meet a state's requirements ("Low-friction logging").
+  - **Paywall:** Free is the full timeline for one child, including logging, attendance and CSV export. Family ($5.99/mo or $49/yr) adds unlimited children, shared assignments, the family load view, PDF records and a portfolio. There is an optional founding offer at $39/yr for life for the first 500 ("Free vs premium").
+  - **First in line after v1** (the "MVP" rows): attendance, auto-shift after missed days, a Today view per child, lesson-level plans, printed daily or weekly plans, a reading log, CSV import and the privacy baseline ("Hub features").
+  - **Family plan features (v1.x premium):** grades and transcripts, kid logins, co-teacher access, portfolio, state record-keeping helpers, curriculum templates (including Ambleside, Memoria Press and an Orthodox overlay), calendar sync, email digests, school-year rollover, and "smooth this month".
+  - **Later:** native app with full offline mode, curriculum budget and ESA report, library due dates, co-op groups, importers, household items and sharing templates.
+  - **Payments and billing**, only after live testing.
 
 ## Open decisions waiting on DeeDee
 
-These are recorded in `progress/overnight.md` ("Decisions for DeeDee"). The repo has no later answer to them.
+Items 1 to 10 are recorded in `progress/overnight.md` ("Decisions for DeeDee"). They were re-checked on 2026-10-30 against `spec/SPEC.md` and the progress docs. An item is marked settled only when one of those settles it, with a citation.
 
-1. **Week-override mode rule** (last edit or latest week). This blocks the week-overrides API (`tickets/sprint-2a/README.md`).
+1. **Week-override mode rule** (last edit or latest week). This blocks the week-overrides API (`tickets/sprint-2a/README.md`). The engine currently uses the last edit (`packages/engine/src/placement.ts`), but DeeDee hasn't confirmed it and the spec doesn't say, so it stays open.
 2. **Removal:** days off are hard-deleted; assignments and events are archive-only. Is that OK?
 3. **Rules for archived subjects and children** in events.
 4. **Time-zone fallback** (America/Chicago) and the accepted formats.
-5. **Strictness:** `PATCH /api/family` rejects unknown keys, and the roster routes ignore them. (RF-09 later made every route reject unknown body fields.)
+5. ~~**Strictness**~~ **Settled:** every route rejects unknown body fields (RF-09, `tickets/review-fixes/RF-09-reject-unknown-body-fields-everywhere.md`).
 6. **Field and range limits** (titles, totals, days).
 7. **Which events and days off reach the plan**, and how warnings name things.
 8. **Sessions:** sign the cookie or drop `SESSION_SECRET`. Should we add expired-session cleanup and a login throttle? (`reviews/developer-review.md` L14)
 9. **Name policy:** UTF-16 length, and which control characters are allowed.
 10. **Sign-off on the earlier stack deviations** listed there.
+
+### Open questions from the spec
+
+These are from `spec/SPEC.md`, "Open questions for DeeDee".
+
+- ~~Default minutes per unit for chapters~~ **Superseded:** thickness now comes from effort weights (S2b-01, S2b-02, `progress/sprint-2b.md`).
+- Which states get record-keeping helpers first.
+- Orthodox overlay: New Calendar, Old Calendar or both, and whether fasts affect anything.
+- Whether the founding offer is worth it, and whether transcripts belong in Family or are a separate upsell.
+- Kid logins under 13 (COPPA): parent-managed profiles only at first?
+- School year: fixed Aug–Jun, year-round, or terms the family defines.
+- Working name for the app.
