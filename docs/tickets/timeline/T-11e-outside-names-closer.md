@@ -21,3 +21,7 @@ A thin bar's outside name sits just above that bar: its lowest letters end about
 ## Tests
 
 - `apps/web/test/timeline-names.test.tsx`: an outside name ends `OUTSIDE_GAP_PX` above its piece. In every view, outside names sit above their bar and below the row above. Rows get only the space they need, and none without an outside name.
+
+## Follow-up fix
+
+Measured in the browser, 3faeab8 left 5 px between the bottom of "Heidi" and its bar, since the font box reserves room for descenders that most names lack. The name's baseline now sits `OUTSIDE_GAP_PX` (2) above the bar, raised by `DESCENDER_PX` (3) only when the text has descenders (g, j, p, q, y, commas). Either way the lowest letters end about 2 px above the bar. The name's box is `OUTSIDE_NAME_PX` (12) tall above that point, and the lane still grows only by what the box needs.

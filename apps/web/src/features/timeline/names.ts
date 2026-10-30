@@ -107,25 +107,25 @@ export function placePieceName(title: string, piece: readonly BandColumn[], cy: 
   return placeName(title, piece, cy, measure);
 }
 
-/**
- * T-11e: the outside name's font box (drawn with `text-after-edge`) ends this far above its bar. Letters stop a little
- * above the box's bottom, so the lowest ink (descenders) ends about 2 px above the bar and the baseline about 5 px.
- */
-export const OUTSIDE_GAP_PX = 1;
-/** T-11e: the height an outside name needs: 11 px text from its descent up to its tallest letters. */
-export const OUTSIDE_NAME_PX = 13;
+/** T-11e: the lowest ink of an outside name (its baseline, or its descenders) ends this far above its bar. */
+export const OUTSIDE_GAP_PX = 2;
+/** T-11e: the room an outside name needs, from its lowest ink up past its tallest letters (11 px text). */
+export const OUTSIDE_NAME_PX = 12;
+/** T-11e: how far descenders (g, j, p, q, y, commas) reach below the baseline at 11 px (measured about 2.5 px). */
+export const DESCENDER_PX = 3;
 
 /**
  * T-11d: a name for a piece too thin to hold it, written just above the piece: left-aligned with its start and cut
- * with "…" to its width, so it never runs over the next piece. T-11e: its bottom edge (`textY`, drawn with
- * `text-after-edge`) is OUTSIDE_GAP_PX above the piece's top.
+ * with "…" to its width, so it never runs over the next piece. T-11e: its lowest ink ends OUTSIDE_GAP_PX above the
+ * piece's top. `textY` is the alphabetic baseline, raised by DESCENDER_PX when the text has descenders.
  */
 export function placeOutsideName(title: string, piece: readonly BandColumn[], measure: MeasureText = estimateTextWidth): NamePlacement | null {
   const x = piece[0]!.x0;
   const text = fitName(title, piece[piece.length - 1]!.x1 - x, measure);
   if (!text) return null;
-  const textY = Math.min(...piece.map((c) => c.top)) - OUTSIDE_GAP_PX;
-  return { text, x, y: textY - OUTSIDE_NAME_PX, width: measure(text), height: OUTSIDE_NAME_PX, textX: x, textY };
+  const bottom = Math.min(...piece.map((c) => c.top)) - OUTSIDE_GAP_PX;
+  const textY = bottom - (/[gjpqy,;]/.test(text) ? DESCENDER_PX : 0);
+  return { text, x, y: bottom - OUTSIDE_NAME_PX, width: measure(text), height: OUTSIDE_NAME_PX, textX: x, textY };
 }
 
 export type PieceName = NamePlacement & { piece: number; outside: boolean };

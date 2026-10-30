@@ -5,7 +5,7 @@ import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import {
   ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, LATER_PIECE_NAME_FACTOR, placeName, placePieceName, placePieceNames,
-  OUTSIDE_GAP_PX, OUTSIDE_NAME_PX, placeOutsideName,
+  DESCENDER_PX, OUTSIDE_GAP_PX, OUTSIDE_NAME_PX, placeOutsideName,
 } from "../src/features/timeline/names";
 import type { BandColumn } from "../src/features/timeline/paths";
 import { Timeline } from "../src/features/timeline/Timeline";
@@ -73,10 +73,11 @@ describe("placing a name inside its bar", () => {
 
 describe("naming each piece of a bar (T-11)", () => {
   it("writes a thin piece's name just above it, from the piece's start, cut to its width (T-11d, T-11e)", () => {
-    // Bar top at 48 (4 px thick about 50); the name's font box ends OUTSIDE_GAP_PX above it (its ink about 2 px).
+    // Bar top at 48 (4 px thick about 50): the baseline sits 2 px above it, raised past descenders when there are any.
     const thin = [col(10, 40, 4), col(40, 70, 4)];
-    expect(OUTSIDE_GAP_PX).toBe(1);
-    expect(placeOutsideName("Treasure Island", thin, perChar)).toEqual({ text: "Treasure Island", x: 10, y: 47 - OUTSIDE_NAME_PX, width: 15, height: OUTSIDE_NAME_PX, textX: 10, textY: 47 });
+    expect(OUTSIDE_GAP_PX).toBe(2);
+    expect(placeOutsideName("Treasure Island", thin, perChar)).toEqual({ text: "Treasure Island", x: 10, y: 46 - OUTSIDE_NAME_PX, width: 15, height: OUTSIDE_NAME_PX, textX: 10, textY: 46 });
+    expect(placeOutsideName("Piano practice", thin, perChar)).toMatchObject({ y: 46 - OUTSIDE_NAME_PX, textY: 46 - DESCENDER_PX });
     expect(placeOutsideName("A Child's Garden of Verses", [col(10, 20, 4)], perChar)!.text).toBe(`A Child's${ELLIPSIS}`);
     expect(placeOutsideName("Heidi", [col(10, 11, 4)], perChar)).toBeNull();
     // With outside names on, the thin piece gets an outside name and the thick one stays inside; without, the thin one has none.
@@ -132,7 +133,7 @@ describe("names in the layout", () => {
           // T-11d/T-11e: left-aligned with the piece, bottom edge just above the bar, never into the row above.
           expect(n.x).toBeCloseTo(piece.x0, 5);
           expect(n.height).toBe(OUTSIDE_NAME_PX);
-          expect(n.textY).toBeCloseTo(n.y + n.height, 5);
+          expect(n.textY).toBeLessThanOrEqual(n.y + n.height + 1e-9);
           expect(n.textY + OUTSIDE_GAP_PX).toBeLessThanOrEqual(band.cy);
           expect(n.y).toBeGreaterThanOrEqual(row.y - row.labelLane - 0.01);
         } else {

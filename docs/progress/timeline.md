@@ -31,7 +31,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-11c Names straight on the bar | 328cd1d | DeeDee's choice (option 1): ten safe swatches move in lightness only (light theme deepens 3-dark, 5, 6-dark, 10-dark; dark theme lightens 3, 5-light, 7-dark, 10 and deepens 6 and 6-dark), so every label meets AA on its bar at 0.91 over the page and cards; the name patch is gone, and so is the thin-piece fallback that relied on it; vivid unchanged |
 | T-11d Names above thin bars | d19dd73 | DeeDee's idea: a piece too thin for an inside name is named in a 14 px lane above its row, left-aligned and cut to the piece's width, in page text; only those rows grow; outside names dim with their bar (still AA), inside names stay full strength on dimmed bars; all 30 names T-11c dropped in the demo views are back |
 | T-11d (fix) Outside names only for thin pieces | e03fd0c | The preview showed thick but short pieces (Black Beauty's first piece, The Hobbit's in This month) named above their row too; only pieces under 13 px thick go outside now, as the ticket says; still all 30 names back |
-| T-11e Outside names closer to their bars | (this commit) | DeeDee's hand test: outside names now end just above their thin bar (lowest letters about 2 px above it) instead of centred in a 14 px lane; a row gets only the extra space its names need |
+| T-11e Outside names closer to their bars | 3faeab8 | DeeDee's hand test: outside names now end just above their thin bar (lowest letters about 2 px above it) instead of centred in a 14 px lane; a row gets only the extra space its names need |
+| T-11e (fix) Measure the 2 px from the letters | (this commit) | In the browser 3faeab8 left names without descenders (e.g. Heidi) 5 px above the bar. The baseline now sits 2 px above the bar, raised 3 px only for names with descenders so those letters still end about 2 px above it |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -374,3 +375,7 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 
 - **"About 2 px" means the lowest ink.** In Chrome, with the page font at 11 px, `text-after-edge` text leaves descenders (g, y) about 1.25 px above `textY` and the baseline about 3.75 px above it. With `textY` 1 px above the bar, descenders end about 2.25 px above the bar and the baseline about 4.75 px. Putting the baseline itself 2 px above the bar would push descenders into the bar.
 - **Extra space only as needed.** It is the name's 13 px box plus the 1 px gap, minus the room already above the thin bar inside its row. Rows with no outside name stay at 0, as before. The 4 px gap to the row above is unchanged.
+
+### T-11e (fix)
+
+- **Measured from the letters, not the font box.** The screenshot showed 5 px from the bottom of "Heidi" to its bar, so the 2 px is now measured to the lowest ink: the baseline for names without descenders, the descenders (about 2.5 px at 11 px) for names with g, j, p, q, y or commas. Detecting descenders by letter is conservative and needs no font metrics.
