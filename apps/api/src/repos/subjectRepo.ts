@@ -55,3 +55,9 @@ export async function lockSubjectWeekdays(tx: Tx, familyId: string, id: string):
     "SELECT default_weekdays FROM subject WHERE id = $1 AND family_id = $2 FOR UPDATE", [id, familyId]);
   return rows[0] ? rows[0].default_weekdays : undefined;
 }
+
+/** A subject's default weekdays (null = none, or no such subject). */
+export async function subjectDefaultWeekdays(db: Queryable, familyId: string, id: string): Promise<number[] | null> {
+  const { rows } = await db.query<{ default_weekdays: number[] | null }>("SELECT default_weekdays FROM subject WHERE id = $1 AND family_id = $2", [id, familyId]);
+  return rows[0]?.default_weekdays ?? null;
+}

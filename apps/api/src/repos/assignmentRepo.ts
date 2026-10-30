@@ -13,6 +13,8 @@ export interface AssignmentRow {
   unit_type: UnitType;
   total_units: number;
   weight_per_unit: number | null;
+  /** S4-02: the days it is worked on; null = follow the subject's default, then every school day. */
+  weekdays: number[] | null;
   start_date: string;
   end_date: string;
   archived_at: Date | null;
@@ -27,6 +29,8 @@ export interface AssignmentJson {
   totalUnits: number;
   /** Relative weight per unit (bar thickness = units × weight); null = the subject default, then the built-in. */
   weightPerUnit: number | null;
+  /** S4-04: its own days (sorted, 0 = Sunday); null = follows the subject's default, then every school day. */
+  weekdays: number[] | null;
   startDate: string;
   endDate: string;
   childIds: string[];
@@ -36,14 +40,14 @@ export interface AssignmentJson {
 export function toAssignmentJson(r: AssignmentRow): AssignmentJson {
   return {
     id: r.id, subjectId: r.subject_id, title: r.title, unitType: r.unit_type, totalUnits: r.total_units,
-    weightPerUnit: r.weight_per_unit, startDate: r.start_date, endDate: r.end_date, childIds: r.child_ids,
+    weightPerUnit: r.weight_per_unit, weekdays: r.weekdays ? [...r.weekdays].sort((x, y) => x - y) : null, startDate: r.start_date, endDate: r.end_date, childIds: r.child_ids,
     archived: r.archived_at !== null,
   };
 }
 
 // Children in roster order, so the UI lists them the same way everywhere.
 const SELECT = `
-  SELECT a.id, a.subject_id, a.title, a.unit_type, a.total_units, a.weight_per_unit, a.start_date, a.end_date, a.archived_at,
+  SELECT a.id, a.subject_id, a.title, a.unit_type, a.total_units, a.weight_per_unit, a.weekdays, a.start_date, a.end_date, a.archived_at,
          COALESCE((SELECT array_agg(ac.child_id ORDER BY c.sort_order, c.id)
                      FROM assignment_child ac JOIN child c ON c.id = ac.child_id
                     WHERE ac.assignment_id = a.id), '{}') AS child_ids
@@ -69,6 +73,7 @@ export interface AssignmentInput {
   unitType: UnitType;
   totalUnits: number;
   weightPerUnit: number | null;
+  weekdays?: number[] | null;
   startDate: string;
   endDate: string;
   childIds: string[];
@@ -77,15 +82,16 @@ export interface AssignmentInput {
 /** Insert an assignment and its children. References must already be checked. */
 export async function createAssignment(tx: Tx, familyId: string, a: AssignmentInput): Promise<string> {
   const { rows } = await tx.query<{ id: string }>(
-    `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, weight_per_unit, start_date, end_date)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-    [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.weightPerUnit, a.startDate, a.endDate]);
+    `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, weight_per_unit, start_date, end_date, weekdays)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+    [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.weightPerUnit, a.startDate, a.endDate, a.weekdays ?? null]);
   const id = rows[0]!.id;
   await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: a.childIds });
   return id;
 }
 
-export type AssignmentPatch = Partial<AssignmentInput> & { archived?: boolean };
+/** `history` (S4-01b) is written with a weekday change: the date the new days apply from and the days before. */
+export type AssignmentPatch = Partial<AssignmentInput> & { archived?: boolean; history?: { weekdaysFrom: string; previousWeekdays: number[] | null } };
 
 /** Lock one of the family's assignments for update and return it, or null. */
 export async function lockAssignment(tx: Tx, familyId: string, id: string): Promise<AssignmentRow | null> {
@@ -98,6 +104,7 @@ export async function updateAssignment(tx: Tx, familyId: string, id: string, p: 
   const { set, params } = buildUpdateSet({
     subject_id: p.subjectId, title: p.title, unit_type: p.unitType, total_units: p.totalUnits,
     weight_per_unit: p.weightPerUnit, start_date: p.startDate, end_date: p.endDate,
+    weekdays: p.weekdays, weekdays_from: p.history?.weekdaysFrom, previous_weekdays: p.history?.previousWeekdays,
   }, { firstParam: 3, archived: p.archived });
   await tx.query(`UPDATE assignment SET ${set} WHERE id = $1 AND family_id = $2`, [id, familyId, ...params]);
   if (p.childIds) await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: p.childIds });

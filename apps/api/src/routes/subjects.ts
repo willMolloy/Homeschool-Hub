@@ -5,10 +5,10 @@ import { HttpError } from "../http/errors";
 import { isUniqueViolation } from "../http/pgErrors";
 import { DefaultWeight, Weekdays } from "../http/scheduleLimits";
 import { Color, Name, SortOrder, UUID_RE, parseBody, parseListQuery } from "../http/validate";
-import { familyToday } from "../http/today";
+import { familyWeekStart } from "../http/familyWeek";
 import { recordSubjectWeekdaysChange } from "../repos/assignmentRepo";
 import { SUBJECT_NAME_INDEX, createSubject, listSubjects, lockSubjectWeekdays, toSubjectJson, updateSubject } from "../repos/subjectRepo";
-import { currentWeekStart, sameWeekdays } from "../services/weekdaysChange";
+import { sameWeekdays } from "../services/weekdaysChange";
 
 // Unknown keys (e.g. family_id) are dropped: ownership always comes from the session.
 const CreateBody = z.strictObject({ name: Name, color: Color.optional(), defaultWeight: DefaultWeight.nullable().optional(), defaultWeekdays: Weekdays.nullable().optional() });
@@ -36,9 +36,7 @@ function duplicateNameOr(err: unknown): never {
 /** S4-01b: after a default-weekdays change, started assignments that follow the default keep their plan up to this week. */
 async function recordWeekdaysHistory(tx: Tx, req: FastifyRequest, subjectId: string, before: number[] | null, after: number[] | null): Promise<void> {
   if (sameWeekdays(before, after)) return;
-  const { rows } = await tx.query<{ week_start: "mon" | "sun"; time_zone: string }>("SELECT week_start, time_zone FROM family WHERE id = $1", [req.familyId]);
-  const f = rows[0]!;
-  const weekdaysFrom = currentWeekStart(familyToday(req, f.time_zone), f.week_start);
+  const { weekdaysFrom } = await familyWeekStart(tx, req);
   await recordSubjectWeekdaysChange(tx, req.familyId, subjectId, { weekdaysFrom, previousWeekdays: before });
 }
 

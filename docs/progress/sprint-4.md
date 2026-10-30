@@ -8,7 +8,8 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 | S4-01 Plan an assignment only on its weekdays in the engine | 33f1809 | Engine 0.8.0: `weekdays.ts` (`weekdaysOf`, `validWeekdays`); `ChildPlan.weekdays` and `weekdaysSource` |
 | S4-02 Write migration 009: assignment and subject weekdays | 281b972 | Migration **010** (`010_weekdays.sql`, the ticket's "009" was taken by S4-00); `valid_weekdays()` CHECK function |
 | S4-01b Changing days mid-assignment keeps progress to date | 416a55d | Migration **011** (`weekdays_from`, `previous_weekdays`); engine 0.9.0; API history rule in `services/weekdaysChange.ts` (wired in S4-03/S4-04) |
-| S4-03 Accept and return weekdays on the subject endpoints | (this commit) | `defaultWeekdays` on POST/PATCH/GET; a change records `weekdays_from`/`previous_weekdays` (S4-01b) |
+| S4-03 Accept and return weekdays on the subject endpoints | efa6d6f | `defaultWeekdays` on POST/PATCH/GET; a change records `weekdays_from`/`previous_weekdays` (S4-01b) |
+| S4-04 Accept and return weekdays on the assignment endpoints | (this commit) | `weekdays` on create, bulk and PATCH, and in the JSON; a change records `weekdays_from`/`previous_weekdays` (S4-01b) |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -36,3 +37,6 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 - **S4-03 validation.** Reuses the existing `Weekdays` zod type (1-7 distinct integers 0-6, sorted); `null` clears. The subject JSON returns the array sorted, or null.
 - **S4-03 history (S4-01b).** A PATCH that changes `defaultWeekdays` runs in one transaction with the subject row locked: for each active, uncustomised (`weekdays IS NULL`) assignment of that subject that started before the family's current week, it sets `weekdays_from` to that week's start and `previous_weekdays` to the old default (null = every school day). "Today" and the week start come from the family's time zone and `week_start`, through the app clock. Archived assignments are left alone. Setting the same days (any order) changes nothing.
 - **S4-03 changed test.** `subjects-list.test.ts` compares whole subject JSON objects; both now include `defaultWeekdays: null` (the new field).
+- **S4-04 shape.** `weekdays` uses the same `Weekdays` validation as subjects; create/bulk store null when it is left out or null. Bulk errors already carry "Assignment N: ", so they name the item. The new `http/familyWeek.ts` gives the family's today and current week start (also used by S4-03).
+- **S4-04 history (S4-01b).** A PATCH that touches `weekdays` or `subjectId` compares the effective days before (own, else the current subject's default) with after (new own, else the new subject's default). If they differ and the assignment's start (after the patch) is before the family's current week, it writes `weekdays_from` and `previous_weekdays` in the same update. Moving an uncustomised assignment to a subject with a different default counts as a change. The columns are not part of the API JSON (the ticket lists only `weekdays`).
+- **S4-04 changed tests.** `assignments-create`, `assignments-bulk` and `assignments-list` compare whole assignment JSON or its key list; they now include `weekdays` (null).
