@@ -36,14 +36,18 @@ export const errorText = (e: CsvError) => (e.line > 0 ? `Line ${e.line}: ${e.mes
 
 interface Rec { line: number; cells: string[] }
 
-/** RFC 4180-style records: quoted fields, "" for a quote, commas and line breaks inside quotes, LF/CRLF/CR. */
-function records(text: string): Rec[] {
+/**
+ * RFC 4180-style records: quoted fields, "" for a quote, commas and line breaks inside quotes, LF/CRLF/CR.
+ * `unclosed` is the line where a quote was opened and never closed (S3b-04), or null.
+ */
+function records(text: string): { recs: Rec[]; unclosed: number | null } {
   const out: Rec[] = [];
   let cells: string[] = [];
   let cell = "";
   let quoted = false;
   let line = 1;
   let startLine = 1;
+  let openedAt = 0;
   const endCell = () => { cells.push(cell); cell = ""; };
   const endRecord = () => { endCell(); out.push({ line: startLine, cells }); cells = []; startLine = line; };
   for (let i = 0; i < text.length; i++) {
@@ -55,7 +59,7 @@ function records(text: string): Rec[] {
         if (ch === "\n") line++;
         cell += ch;
       }
-    } else if (ch === '"' && cell === "") quoted = true;
+    } else if (ch === '"' && cell === "") { quoted = true; openedAt = line; }
     else if (ch === ",") endCell();
     else if (ch === "\n" || ch === "\r") {
       if (ch === "\r" && text[i + 1] === "\n") i++;
@@ -64,7 +68,7 @@ function records(text: string): Rec[] {
     } else cell += ch;
   }
   if (cell !== "" || cells.length > 0) endRecord();
-  return out;
+  return { recs: out, unclosed: quoted ? openedAt : null };
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -109,9 +113,14 @@ function activeByName<T extends { name: string; archived: boolean }>(list: reado
 }
 
 export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly Subject[]; children: readonly Child[] }): CsvResult {
-  const all = records(text.replace(/^\uFEFF/, ""));
+  const { recs: all, unclosed } = records(text.replace(/^\uFEFF/, ""));
   const header = all[0];
   if (!header) return { rows: [], errors: [{ line: 1, message: `add a header row: ${CSV_COLUMNS.join(", ")}.` }] };
+  // S3b-04: say how to fix a file in the wrong shape, rather than listing every column as missing.
+  if (header.cells.length === 1 && /[;\t]/.test(header.cells[0]!)) {
+    return { rows: [], errors: [{ line: 0, message: "This file uses semicolons (or tabs) between columns. Save it as CSV with commas." }] };
+  }
+  if (unclosed !== null) return { rows: [], errors: [{ line: unclosed, message: "a quote is never closed." }] };
 
   const at = new Map<Column, number>();
   header.cells.forEach((h, i) => {
@@ -124,6 +133,7 @@ export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly 
   }
 
   const data = all.slice(1).filter((r) => r.cells.some((c) => c.trim() !== ""));
+  if (data.length === 0) return { rows: [], errors: [{ line: 0, message: "No assignments found under the header." }] };
   if (data.length > MAX_IMPORT_ROWS) return { rows: [], errors: [{ line: 0, message: `Import at most ${MAX_IMPORT_ROWS} assignments at a time.` }] };
 
   // S3b-03: a name shared by two active rows is `null`, so a row that uses it is reported instead of guessing.
@@ -135,6 +145,12 @@ export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly 
   for (const r of data) {
     const cell = (c: Column) => r.cells[at.get(c)!] ?? "";
     const bad: string[] = [];
+
+    // Unquoted commas in a title push text past the last column; every other check on the row would be noise.
+    if (r.cells.slice(header.cells.length).some((c) => c.trim() !== "")) {
+      errors.push({ line: r.line, message: "too many columns. Put quotes around text that contains commas." });
+      continue;
+    }
 
     const subjectName = cell("subject").trim();
     const subject = subjectName ? subjects.get(norm(subjectName)) : undefined;

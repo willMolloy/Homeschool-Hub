@@ -73,6 +73,21 @@ describe("Import assignments from a CSV (S3a-06)", () => {
     expect(writes()).toEqual([]);
   });
 
+  it("a header with no rows says so and keeps Import disabled (S3b-04)", async () => {
+    const { form } = await setup();
+    paste(form, `${HEADER}\n`);
+    expect(await within(form).findByText("No assignments found under the header.")).toBeInTheDocument();
+    expect(within(form).queryByText(/^0 assignments/)).toBeNull();
+    expect(within(form).getByRole("button", { name: "Import" })).toBeDisabled();
+  });
+
+  it("a semicolon file says to save it with commas (S3b-04)", async () => {
+    const { form } = await setup();
+    paste(form, VALID.replace(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/g, ";"));
+    expect(await within(form).findByText("This file uses semicolons (or tabs) between columns. Save it as CSV with commas.")).toBeInTheDocument();
+    expect(within(form).getByRole("button", { name: "Import" })).toBeDisabled();
+  });
+
   it("a server 400 names the row by its title, without the field name (S3b-01)", async () => {
     const { user, form } = await setup();
     fakeApi.on("POST /api/assignments/bulk", 400, { error: "invalid_reference", message: "Assignment 2: childIds: every id must be one of your active children." });

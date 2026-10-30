@@ -6,7 +6,8 @@ Tickets: `docs/tickets/sprint-3b-fixes/`.
 |--------|--------|-------|
 | S3b-01 Show clean messages for bulk and import save errors | 555eec3 | `bulkSaveError` in `formBits.tsx`, used by Add several and Import |
 | S3b-02 A copy leaves out archived subjects and children | 42dc749 | `copyOfAssignment(a, lookups)` clears an inactive subject and drops inactive children |
-| S3b-03 Report a CSV child name that matches two children | (this commit) | `activeByName` in `csvImport.ts` marks a shared name; the row reports it |
+| S3b-03 Report a CSV child name that matches two children | c5345ea | `activeByName` in `csvImport.ts` marks a shared name; the row reports it |
+| S3b-04 Clearer CSV errors for the wrong separator, an open quote or no rows | (this commit) | `parseAssignmentsCsv` checks separator, open quote, no rows and extra columns; `records` also returns where a quote was left open |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -15,3 +16,7 @@ Tickets: `docs/tickets/sprint-3b-fixes/`.
 - **S3b-02 Add form unchanged.** The form's existing allowance for listing the original's archived subject on an edit form stays; a copy never has one selected, so it does not show.
 - **S3b-03 what is ambiguous.** Two active rows whose names match after trimming and ignoring case. Archived rows never count. Subjects get the same check as children (the ticket's goal names both), with "Rename one under Subjects first."
 - **S3b-03 error wording.** The name is shown as typed in the file. A name repeated in one row (for example "Sam;sam") gives the error once for that row. The ambiguous name gives only this error, not also "no child named".
+- **S3b-04 whole-file messages.** The separator and no-rows messages have `line: 0` (no "Line N:" prefix), like the 50-row cap. The unclosed quote is reported on the line where the quote opened. Each of these stops the parse, so no other errors are listed with it.
+- **S3b-04 check order.** Separator first, then an unclosed quote, then the missing-columns header check, then no rows. A header counts as semicolon/tab-separated when it is a single cell containing `;` or a tab (so a header with commas is never called that).
+- **S3b-04 extra columns.** A row is "too many columns" only when a non-blank cell sits past the header's last column, so a trailing comma on a row is still fine. That row reports only this error (its other cells have shifted, so further messages would mislead); other rows are still checked.
+- **S3b-04 empty file.** Unchanged: an empty or blank paste shows nothing and keeps Import disabled (the form only parses non-blank text).

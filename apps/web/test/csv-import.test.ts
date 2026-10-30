@@ -102,6 +102,38 @@ describe("parseAssignmentsCsv", () => {
     expect(r.rows[0]).toMatchObject({ subjectId: MATH.id, childIds: [FRANK.id] });
   });
 
+  describe("a file in the wrong shape (S3b-04)", () => {
+    const row = "Math,Saxon,Frank,lessons,20,2026-11-02,2026-11-26";
+    it("a semicolon file gets one message about separators", () => {
+      const r = parse(`${HEADER.replace(/,/g, ";")}\n${row.replace(/,/g, ";")}`);
+      expect(r).toEqual({ rows: [], errors: [{ line: 0, message: "This file uses semicolons (or tabs) between columns. Save it as CSV with commas." }] });
+      expect(errorText(r.errors[0]!)).toBe("This file uses semicolons (or tabs) between columns. Save it as CSV with commas.");
+    });
+    it("a tab file (a paste from Sheets) gets the same message", () => {
+      const r = parse(`${HEADER.replace(/,/g, "\t")}\n${row.replace(/,/g, "\t")}`);
+      expect(r.errors).toEqual([{ line: 0, message: "This file uses semicolons (or tabs) between columns. Save it as CSV with commas." }]);
+    });
+    it("an unterminated quote names the line it opened on and stops", () => {
+      const r = parse(`${HEADER}\n${row}\nMath,"Never closed,Frank,lessons,20,2026-11-02,2026-11-26\n${row}`);
+      expect(r).toEqual({ rows: [], errors: [{ line: 3, message: "a quote is never closed." }] });
+      expect(errorText(r.errors[0]!)).toBe("Line 3: a quote is never closed.");
+    });
+    it("a header with no rows under it says so", () => {
+      for (const text of [HEADER, `${HEADER}\n`, `${HEADER}\n\n,,,,,,\n`]) {
+        expect(parse(text)).toEqual({ rows: [], errors: [{ line: 0, message: "No assignments found under the header." }] });
+      }
+    });
+    it("an unquoted comma in a title reports too many columns for that row only", () => {
+      const r = parse(`${HEADER}\n${row}\nMath,Saxon, 5/4,Frank,lessons,20,2026-11-02,2026-11-26\n${row}`);
+      expect(r.rows).toEqual([]);
+      expect(r.errors.map(errorText)).toEqual(["Line 3: too many columns. Put quotes around text that contains commas."]);
+    });
+    it("a trailing comma on every line is still fine", () => {
+      expect(parse(`${HEADER},\n${row},\n`).errors).toEqual([]);
+      expect(parse(`${HEADER}\n${row},\n`).errors).toEqual([]);
+    });
+  });
+
   it("lists every error in a row and in later rows, and imports nothing", () => {
     const r = parse(`${HEADER}\nNope,Saxon,Nobody,lessons,20,2026-11-02,2026-11-26\nMath,Fine,Frank,lessons,20,2026-11-02,2026-11-26\nMath,Bad,Frank,lessons,0,2026-11-02,2026-11-26`);
     expect(r.rows).toEqual([]);
