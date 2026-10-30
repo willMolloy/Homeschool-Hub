@@ -1,6 +1,6 @@
 # Sprint 4 progress — assignment weekdays, the weekly briefing and "Missed a day?"
 
-Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S4-00, S4-01, S4-02, S4-01b, S4-03, S4-04, S4-05, S4-08.
+Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S4-00, S4-01, S4-02, S4-01b, S4-03, S4-04, S4-05, S4-08. Pass 2 (screens): S4-06, S4-07, S4-09, S4-10.
 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
@@ -11,7 +11,8 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 | S4-03 Accept and return weekdays on the subject endpoints | efa6d6f | `defaultWeekdays` on POST/PATCH/GET; a change records `weekdays_from`/`previous_weekdays` (S4-01b) |
 | S4-04 Accept and return weekdays on the assignment endpoints | c9473fe | `weekdays` on create, bulk and PATCH, and in the JSON; a change records `weekdays_from`/`previous_weekdays` (S4-01b) |
 | S4-05 Load weekdays into the plan | 3e67394 | `loadPlanInputs` maps `weekdays`, `weekdays_from`, `previous_weekdays` and `ctx.subjectWeekdays`; `/api/plan` already passes `weekdays` and `weekdaysSource` through |
-| S4-08 Add finish-forecast and heavy-week helpers to the engine | (this commit) | `briefing.ts`: `forecastFinish`, `heavyWeek`, `HEAVY_WEEK_RATIO`; engine version unchanged (0.9.0) |
+| S4-08 Add finish-forecast and heavy-week helpers to the engine | 48a53e2 | `briefing.ts`: `forecastFinish`, `heavyWeek`, `HEAVY_WEEK_RATIO`; engine version unchanged (0.9.0) |
+| S4-06 Set default weekdays on the subject form | (this commit) | "Usual days" chips on `SubjectForm`; `defaultWeekdays`/`weekdays` added to the web types |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -49,3 +50,9 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 - **S4-08 projection.** The remaining units are placed at the observed pace after the last check-in week, using the plan's capacity per day while the plan has days, then every school day that is also one of the assignment's own days at full capacity (the helper can't see later days off). It gives up (null) after 730 days, so it never loops or returns an invalid date.
 - **S4-08 no progress.** Zero (or negative) observed progress gives null; the caller reports "no recent progress", as the ticket says.
 - **S4-08 heavy week.** `load` is the thickness summed over every plan passed in for the week containing `weekStart`; `average` is the mean weekly load over the child's weeks with any planned work, the asked week included when it has work. `ratio` is 0 when the average is 0. `HEAVY_WEEK_RATIO` is 1.5 and the helper doesn't decide heaviness itself (the caller compares `ratio >= HEAVY_WEEK_RATIO`).
+- **S4-06 which chips.** `WeekdayPicker` got an optional `offer` list (default all seven, so events and settings are unchanged). The subject form offers the family's school days, plus any day an existing default holds outside them (so nothing is hidden); the chips grid uses `--day-count` columns.
+- **S4-06 saving.** Selecting exactly the family's school days stores null; any other selection stores the sorted list. The form always sends `defaultWeekdays` (null on an untouched add); the roster page's PATCH diff still sends it only when changed.
+- **S4-06 last chip.** Tapping the only selected chip does nothing (no message), so at least one day always stays.
+- **S4-06 list line.** A second small tag (same style as the bar-width tag) shows `weekdayRanges`: a run of three or more days is "Mon–Thu", otherwise a comma list ("Mon, Wed, Fri"); nothing when no default is set.
+- **S4-06 web types.** `Subject.defaultWeekdays` and `Assignment.weekdays` are required in the web types (the API always returns them); test fixtures got `defaultWeekdays: null` / `weekdays: null`, and the fake API's allowed body keys include them. `copyOfAssignment` carries `weekdays` (needed to typecheck; S4-07 tests it).
+- **S4-06 changed test.** `subjects-add.test.tsx` ("picking a swatch sends that color") compares the whole POST body; it now includes `defaultWeekdays: null`.

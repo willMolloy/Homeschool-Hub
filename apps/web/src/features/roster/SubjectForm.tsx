@@ -3,16 +3,21 @@
  * Kept separate from RosterForm so the kids form never sees subject-only fields.
  */
 import { useState } from "react";
+import { useMe } from "../../auth/AuthProvider";
 import { ApiError } from "../../api/client";
 import { useApi } from "../../api/useApi";
 import type { Assignment, Subject, SubjectDefaultWeight } from "../../api/types";
 import { DefaultWeightSection, draftFrom, draftValue, type DefaultWeightDraft } from "./DefaultWeightSection";
+import { offeredDays, sameSet, WeekdayPicker } from "../schedule/formBits";
+import "../schedule/schedule.css";
 import { RosterForm } from "./RosterForm";
 import type { RosterFormSlotProps } from "./RosterPage";
 import type { RosterValues } from "./RosterForm";
 
 export interface SubjectValues extends RosterValues {
   defaultWeight: SubjectDefaultWeight | null;
+  /** S4-06: null = every school day. */
+  defaultWeekdays: number[] | null;
 }
 
 /** Live assignments in this subject and unit with no weight of their own, i.e. the ones whose bars follow the default. */
@@ -35,6 +40,9 @@ function AffectedNote({ subjectId, unitType }: { subjectId: string; unitType: st
 }
 
 export function SubjectForm({ initial, onSave, item, ...rest }: RosterFormSlotProps<Subject, SubjectValues>) {
+  const { schoolDays } = useMe();
+  const [days, setDays] = useState<number[]>(() => initial.defaultWeekdays ?? schoolDays);
+  const [offer] = useState(() => offeredDays(schoolDays, initial.defaultWeekdays ?? []));
   const [draft, setDraft] = useState<DefaultWeightDraft>(() => draftFrom(initial.defaultWeight));
   const [weightError, setWeightError] = useState<string | null>(null);
   const [weightValid, setWeightValid] = useState(true);
@@ -42,7 +50,9 @@ export function SubjectForm({ initial, onSave, item, ...rest }: RosterFormSlotPr
   async function save(values: RosterValues) {
     setWeightError(null);
     try {
-      await onSave({ ...values, defaultWeight: draftValue(draft) });
+      // Every school day selected is no default (S4-06); a list is stored sorted.
+      const defaultWeekdays = sameSet(days, schoolDays) ? null : [...days].sort((a, b) => a - b);
+      await onSave({ ...values, defaultWeight: draftValue(draft), defaultWeekdays });
     } catch (err) {
       // Shown next to the default rather than under Name; the form stays open.
       if (isDefaultWeightError(err)) return setWeightError(err.message.replace(/^[a-zA-Z.]+: /, ""));
@@ -52,6 +62,8 @@ export function SubjectForm({ initial, onSave, item, ...rest }: RosterFormSlotPr
 
   return (
     <RosterForm {...rest} initial={{ name: initial.name, color: initial.color }} onSave={save} blocked={!weightValid}>
+      {/* The last chip can't be switched off: a subject needs at least one day. */}
+      <WeekdayPicker legend="Usual days" offer={offer} value={days} onChange={(d) => (d.length > 0 ? setDays(d) : undefined)} />
       <DefaultWeightSection
         value={draft}
         onChange={(d) => {

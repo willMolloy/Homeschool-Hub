@@ -11,7 +11,7 @@ const TITLES: Record<string, string> = {
 };
 
 export const SAMPLE_SUBJECTS: Subject[] = ["lit", "math", "hist", "sci", "music"].map((id, i) => ({
-  id, name: { lit: "Literature", math: "Math", hist: "History", sci: "Science", music: "Music" }[id]!, color: null, sortOrder: i, archived: false, defaultWeight: null,
+  id, name: { lit: "Literature", math: "Math", hist: "History", sci: "Science", music: "Music" }[id]!, color: null, sortOrder: i, archived: false, defaultWeight: null, defaultWeekdays: null,
 }));
 export const SAMPLE_CHILDREN: Child[] = [
   { id: "frank", name: "Frank", color: null, sortOrder: 0, archived: false },
@@ -19,7 +19,7 @@ export const SAMPLE_CHILDREN: Child[] = [
 ];
 export const SAMPLE_ASSIGNMENTS: Assignment[] = S.assignments.map((a) => ({
   id: a.id, subjectId: a.subjectId, title: TITLES[a.id] ?? a.id, unitType: a.unitType, totalUnits: a.totalUnits,
-  weightPerUnit: a.weightPerUnit ?? null, startDate: a.start, endDate: a.end, childIds: [...a.childIds], archived: false,
+  weightPerUnit: a.weightPerUnit ?? null, startDate: a.start, endDate: a.end, childIds: [...a.childIds], archived: false, weekdays: null,
 }));
 export const SAMPLE_BLOCKED: BlockedRange[] = S.blocked.map((b) => ({
   id: b.id, label: "Christmas", kind: (b.kind ?? "vacation") as BlockedKind, startDate: b.start, endDate: b.end, childIds: [...(b.childIds ?? [])],

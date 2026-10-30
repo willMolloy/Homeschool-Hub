@@ -8,7 +8,7 @@ import { renderAt } from "./render";
 
 const SAXON: Assignment = {
   id: rowId(1), subjectId: MATH.id, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: null,
-  startDate: "2026-11-02", endDate: "2026-11-26", childIds: [FRANK.id], archived: false,
+  startDate: "2026-11-02", endDate: "2026-11-26", childIds: [FRANK.id], archived: false, weekdays: null,
 };
 
 async function setup() {

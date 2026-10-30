@@ -24,7 +24,7 @@ function stubSample() {
 
 const NEW: Assignment = {
   id: "new1", subjectId: "hist", title: "Ancient Egypt", unitType: "lessons", totalUnits: 10, weightPerUnit: null,
-  startDate: "2026-11-02", endDate: "2026-12-18", childIds: ["margaret"], archived: false,
+  startDate: "2026-11-02", endDate: "2026-12-18", childIds: ["margaret"], archived: false, weekdays: null,
 };
 
 /** The API answers the POST with NEW, and the next plan fetch includes it. */

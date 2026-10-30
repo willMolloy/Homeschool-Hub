@@ -24,5 +24,6 @@ export function copyOfAssignment(a: Assignment, lookups: { subjects: readonly Su
     startDate: a.startDate,
     endDate: a.endDate,
     childIds: a.childIds.filter(activeChild),
+    weekdays: a.weekdays,
   };
 }

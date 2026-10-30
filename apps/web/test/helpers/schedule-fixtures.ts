@@ -8,9 +8,9 @@ export const FRANK: Child = { id: id(101), name: "Frank", color: "#2f6fb0", sort
 export const MAGGIE: Child = { id: id(102), name: "Maggie", color: "#b0482f", sortOrder: 1, archived: false };
 export const OLD_KID: Child = { id: id(103), name: "Old Kid", color: null, sortOrder: 2, archived: true };
 
-export const MATH: Subject = { id: id(201), name: "Math", color: "#2f6fb0", sortOrder: 0, archived: false, defaultWeight: null };
-export const READING: Subject = { id: id(202), name: "Reading", color: "#1f6f43", sortOrder: 1, archived: false, defaultWeight: null };
-export const LATIN: Subject = { id: id(203), name: "Latin", color: null, sortOrder: 2, archived: true, defaultWeight: null };
+export const MATH: Subject = { id: id(201), name: "Math", color: "#2f6fb0", sortOrder: 0, archived: false, defaultWeight: null, defaultWeekdays: null };
+export const READING: Subject = { id: id(202), name: "Reading", color: "#1f6f43", sortOrder: 1, archived: false, defaultWeight: null, defaultWeekdays: null };
+export const LATIN: Subject = { id: id(203), name: "Latin", color: null, sortOrder: 2, archived: true, defaultWeight: null, defaultWeekdays: null };
 
 export const rowId = (n: number) => id(300 + n);
 

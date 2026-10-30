@@ -1,5 +1,5 @@
 /** Small pieces shared by the schedule forms (S2a-13..16). */
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 import type { Child } from "../../api/types";
 import { ApiError } from "../../api/client";
 
@@ -19,6 +19,23 @@ export function weekdaySummary(days: number[]): string {
   if (days.length === 7) return "Every day";
   return WEEKDAYS.filter((d) => days.includes(d.value)).map((d) => d.short).join(", ");
 }
+
+/** S4-06: like `weekdaySummary` but a run of three or more days in a row is a range: "Mon–Thu", "Mon, Wed, Fri". */
+export function weekdayRanges(days: number[]): string {
+  if (days.length === 7) return "Every day";
+  const runs: string[][] = [];
+  let prev = -2;
+  WEEKDAYS.forEach((d, i) => {
+    if (!days.includes(d.value)) return;
+    if (i === prev + 1) runs[runs.length - 1]!.push(d.short);
+    else runs.push([d.short]);
+    prev = i;
+  });
+  return runs.map((r) => (r.length >= 3 ? `${r[0]}–${r[r.length - 1]}` : r.join(", "))).join(", ");
+}
+
+/** S4-06: the days to offer as chips: the family's school days plus any already chosen outside them (so nothing is hidden). */
+export const offeredDays = (schoolDays: readonly number[], chosen: readonly number[]): number[] => [...new Set([...schoolDays, ...chosen])];
 
 /** A user-facing message for a failed save. Server 400 messages lose their "field: " prefix. */
 export function saveError(err: unknown): string {
@@ -46,16 +63,19 @@ interface WeekdayPickerProps {
   value: number[];
   onChange: (days: number[]) => void;
   error?: string | null;
+  /** S4-06: the weekdays to offer (default all seven), e.g. the family's school days. */
+  offer?: readonly number[];
 }
 
-/** Seven checkboxes in a fieldset; the error (if any) is announced and linked. */
-export function WeekdayPicker({ legend, value, onChange, error }: WeekdayPickerProps) {
+/** Checkboxes in a fieldset (seven, or just `offer`); the error (if any) is announced and linked. */
+export function WeekdayPicker({ legend, value, onChange, error, offer }: WeekdayPickerProps) {
   const errId = useId();
+  const shown = offer ? WEEKDAYS.filter((d) => offer.includes(d.value)) : WEEKDAYS;
   return (
     <fieldset className="day-picker" aria-describedby={error ? errId : undefined} aria-invalid={error ? true : undefined}>
       <legend>{legend}</legend>
-      <div className="day-picker-days">
-        {WEEKDAYS.map((d) => (
+      <div className="day-picker-days" style={offer ? ({ "--day-count": shown.length } as CSSProperties) : undefined}>
+        {shown.map((d) => (
           <label key={d.value} className="day-chip">
             <input
               type="checkbox"
