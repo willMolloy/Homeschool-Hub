@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import { buildApp } from "../src/app";
 import type { PlanResponse } from "../src/routes/plan";
@@ -53,6 +53,66 @@ describe.skipIf(!hasDb)("GET /api/plan (integration)", () => {
     for (const p of body.plans) for (const d of p.days) {
       expect(d.date >= "2026-10-26" && d.date <= "2026-10-30").toBe(true);
     }
+  });
+
+  describe("weekdays (S4-05)", () => {
+    const tiFor = async () => (await get("?from=2026-10-19&to=2026-11-06&asOf=2026-10-19")).json<PlanResponse>()
+      .plans.filter((p) => [fam.ids.assignment.ti, fam.ids.assignment.poems].includes(p.assignmentId));
+    const worked = (p: { days: { date: string; units: number }[] }) => p.days.filter((d) => d.units > 1e-9).map((d) => d.date);
+    const lit = () => fam.ids.subject.lit!;
+    const reset = async () => {
+      await pool.query("UPDATE assignment SET weekdays = NULL, weekdays_from = NULL, previous_weekdays = NULL WHERE id = $1", [fam.ids.assignment.ti]);
+      await pool.query("UPDATE subject SET default_weekdays = NULL WHERE id = $1", [lit()]);
+    };
+    beforeEach(reset);
+    afterAll(reset);
+
+    it("a Friday-only assignment shows its units on Fridays only, and says where the days came from", async () => {
+      await pool.query("UPDATE assignment SET weekdays = '{5}' WHERE id = $1", [fam.ids.assignment.ti]);
+      const ti = (await tiFor()).find((p) => p.assignmentId === fam.ids.assignment.ti)!;
+      expect(worked(ti)).toEqual(["2026-10-23", "2026-10-30", "2026-11-06"]);
+      for (const d of ti.days.filter((x) => x.units > 0)) expect(d.units).toBeCloseTo(90, 6);
+      expect([ti.weekdays, ti.weekdaysSource]).toEqual([[5], "assignment"]);
+    });
+
+    it("with none set the plan is unchanged and reports every school day", async () => {
+      await pool.query("UPDATE assignment SET weekdays = NULL WHERE id = $1", [fam.ids.assignment.ti]);
+      const ti = (await tiFor()).find((p) => p.assignmentId === fam.ids.assignment.ti)!;
+      expect([ti.weekdays, ti.weekdaysSource]).toEqual([null, "default"]);
+      expect(ti.baseRate).toBeCloseTo(22.5);
+    });
+
+    it("a subject default is followed by uncustomised assignments; a customised one keeps its own days", async () => {
+      await pool.query("UPDATE subject SET default_weekdays = '{3,4}' WHERE id = $1", [lit()]);
+      await pool.query("UPDATE assignment SET weekdays = '{5}' WHERE id = $1", [fam.ids.assignment.ti]);
+      let [ti, poems] = [(await tiFor()).find((p) => p.assignmentId === fam.ids.assignment.ti)!, (await tiFor()).find((p) => p.assignmentId === fam.ids.assignment.poems)!];
+      expect([ti.weekdays, ti.weekdaysSource]).toEqual([[5], "assignment"]);
+      expect([poems.weekdays, poems.weekdaysSource]).toEqual([[3, 4], "subject"]);
+      expect(worked(poems).every((d) => [3, 4].includes(new Date(`${d}T00:00:00Z`).getUTCDay()))).toBe(true);
+      // The default changes: the uncustomised assignment follows, the customised one doesn't.
+      await pool.query("UPDATE subject SET default_weekdays = '{1}' WHERE id = $1", [lit()]);
+      [ti, poems] = [(await tiFor()).find((p) => p.assignmentId === fam.ids.assignment.ti)!, (await tiFor()).find((p) => p.assignmentId === fam.ids.assignment.poems)!];
+      expect(ti.weekdays).toEqual([5]);
+      expect([poems.weekdays, poems.weekdaysSource]).toEqual([[1], "subject"]);
+      expect(worked(poems).every((d) => new Date(`${d}T00:00:00Z`).getUTCDay() === 1)).toBe(true);
+    });
+
+    it("a weekday change on a started assignment keeps the days before it (S4-01b)", async () => {
+      await pool.query("UPDATE assignment SET weekdays = '{5}', weekdays_from = '2026-10-26', previous_weekdays = NULL WHERE id = $1", [fam.ids.assignment.ti]);
+      try {
+        const ti = (await tiFor()).find((p) => p.assignmentId === fam.ids.assignment.ti)!;
+        await pool.query("UPDATE assignment SET weekdays = NULL, weekdays_from = NULL, previous_weekdays = NULL WHERE id = $1", [fam.ids.assignment.ti]);
+        const before = (await tiFor()).find((p) => p.assignmentId === fam.ids.assignment.ti)!;
+        // Before the change week every day is as it was (Tuesday is the co-op day, which skips literature).
+        expect(ti.days.filter((d) => d.date < "2026-10-26").map((d) => d.units)).toEqual(before.days.filter((d) => d.date < "2026-10-26").map((d) => d.units));
+        expect(worked(ti).filter((d) => d >= "2026-10-26")).toEqual(["2026-10-30", "2026-11-06"]);
+        const left = 270 - ti.days.filter((d) => d.date < "2026-10-26").reduce((x, d) => x + d.units, 0);
+        expect(ti.days.find((d) => d.date === "2026-10-30")!.units).toBeCloseTo(left / 2, 6);
+        expect(ti.days.at(-1)!.position).toBeCloseTo(270, 6);
+      } finally {
+        await pool.query("UPDATE assignment SET weekdays = NULL, weekdays_from = NULL, previous_weekdays = NULL WHERE id = $1", [fam.ids.assignment.ti]);
+      }
+    });
   });
 
   it("asOf=2026-10-26 with nothing logged: the week of Oct 19 is assumed done, so Oct 26 is still 90 pages (S2b-18)", async () => {

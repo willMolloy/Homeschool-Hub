@@ -98,6 +98,32 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
     }
   });
 
+  it("maps weekdays: an assignment's own days, its change history, and subject default weekdays (S4-05)", async () => {
+    const ti = fam.ids.assignment.ti!;
+    const poems = fam.ids.assignment.poems!;
+    const lit = fam.ids.subject.lit!;
+    const hist = fam.ids.subject.hist!;
+    const plain = await loadPlanInputs(pool, fam.familyId);
+    for (const a of plain.assignments) expect([a.weekdays, a.weekdaysFrom, a.previousWeekdays]).toEqual([null, null, null]);
+    expect(plain.ctx.subjectWeekdays).toEqual([]);
+    await pool.query("UPDATE assignment SET weekdays = '{5,1}', weekdays_from = '2026-10-26', previous_weekdays = '{3}' WHERE id = $1", [ti]);
+    await pool.query("UPDATE subject SET default_weekdays = '{4,2}' WHERE id = $1", [lit]);
+    await pool.query("UPDATE subject SET default_weekdays = '{1}', archived_at = now() WHERE id = $1", [hist]);
+    try {
+      const loaded = await loadPlanInputs(pool, fam.familyId);
+      const a = (id: string) => loaded.assignments.find((x) => x.id === id)!;
+      expect([a(ti).weekdays, a(ti).weekdaysFrom, a(ti).previousWeekdays]).toEqual([[1, 5], "2026-10-26", [3]]);
+      expect(a(poems).weekdays).toBeNull();
+      // Archived subjects are included, like their weights; the list is sorted; subjects without a default are left out.
+      expect(loaded.ctx.subjectWeekdays).toEqual(expect.arrayContaining([{ subjectId: lit, weekdays: [2, 4] }, { subjectId: hist, weekdays: [1] }]));
+      expect(loaded.ctx.subjectWeekdays).toHaveLength(2);
+      expect(loaded.assignments.some((x) => x.subjectId === hist)).toBe(false);
+    } finally {
+      await pool.query("UPDATE assignment SET weekdays = NULL, weekdays_from = NULL, previous_weekdays = NULL WHERE id = $1", [ti]);
+      await pool.query("UPDATE subject SET default_weekdays = NULL, archived_at = NULL WHERE id = ANY($1)", [[lit, hist]]);
+    }
+  });
+
   it("an event with no event_child rows has childIds: [] (whole family)", async () => {
     const { rows } = await pool.query<{ id: string }>(
       `INSERT INTO event (family_id, name, weekdays, capacity_fraction, default_rule)
