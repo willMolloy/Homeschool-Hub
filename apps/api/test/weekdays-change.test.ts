@@ -22,6 +22,13 @@ describe("weekdaysChange", () => {
     expect(weekdaysChange({ ...base, before: [4, 2], after: [2, 4] })).toBeNull();
     expect(weekdaysChange({ ...base, before: null, after: null })).toBeNull();
   });
+  it("S4b-02: a record from this week keeps its days before; going back clears; an older record is replaced", () => {
+    const stored = { weekdaysFrom: "2026-10-26", previousWeekdays: [1, 2, 3] };
+    expect(weekdaysChange({ ...base, before: [5], after: [2, 4], stored })).toEqual({ weekdaysFrom: "2026-10-26", previousWeekdays: [1, 2, 3] });
+    expect(weekdaysChange({ ...base, before: [5], after: [3, 1, 2], stored })).toEqual({ weekdaysFrom: null, previousWeekdays: null });
+    expect(weekdaysChange({ ...base, before: [5], after: null, stored: { weekdaysFrom: "2026-10-26", previousWeekdays: null } })).toEqual({ weekdaysFrom: null, previousWeekdays: null });
+    expect(weekdaysChange({ ...base, before: [5], after: [2], stored: { ...stored, weekdaysFrom: "2026-10-19" } })).toEqual({ weekdaysFrom: "2026-10-26", previousWeekdays: [5] });
+  });
   it("effective days: own, else subject, else null", () => {
     expect(effectiveWeekdays([5], [2])).toEqual([5]);
     expect(effectiveWeekdays(null, [2])).toEqual([2]);

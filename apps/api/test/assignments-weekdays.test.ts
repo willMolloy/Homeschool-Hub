@@ -92,13 +92,47 @@ describe.skipIf(!hasDb)("assignment weekdays (integration)", () => {
       expect(await history(started)).toEqual({ f: "2026-10-26", p: null });
       expect(await history(thisWeek)).toEqual(none);
       expect(await history(later)).toEqual(none);
-      // A later change overwrites both: the days before are now [5].
+      // S4b-02: a second change in the same week keeps the days before the first ([5] is not "before").
       await req("PATCH", `/api/assignments/${started}`, { weekdays: [1, 2] });
-      expect(await history(started)).toEqual({ f: "2026-10-26", p: [5] });
+      expect(await history(started)).toEqual({ f: "2026-10-26", p: null });
       // The same days again, or a patch without them, leaves the record alone.
       await req("PATCH", `/api/assignments/${started}`, { weekdays: [2, 1] });
       await req("PATCH", `/api/assignments/${started}`, { title: "Started again" });
-      expect(await history(started)).toEqual({ f: "2026-10-26", p: [5] });
+      expect(await history(started)).toEqual({ f: "2026-10-26", p: null });
+    });
+
+    it("S4b-02: a second change in a week keeps the original days; going back clears; a later week starts over", async () => {
+      const mk = async (title: string, weekdays: number[] | null) =>
+        (await req("POST", "/api/assignments", valid({ title, startDate: "2026-10-05", endDate: "2026-12-18", weekdays }))).json().id as string;
+      // Mon-Fri -> Fri -> Tue/Thu keeps Mon-Fri.
+      const a1 = await mk("Twice", [1, 2, 3, 4, 5]);
+      await req("PATCH", `/api/assignments/${a1}`, { weekdays: [5] });
+      await req("PATCH", `/api/assignments/${a1}`, { weekdays: [2, 4] });
+      expect(await history(a1)).toEqual({ f: "2026-10-26", p: [1, 2, 3, 4, 5] });
+      // ... and back to Mon-Fri clears the history.
+      await req("PATCH", `/api/assignments/${a1}`, { weekdays: [5, 4, 3, 2, 1] });
+      expect(await history(a1)).toEqual(none);
+      // Following the subject (null = every school day) is the same: null -> Fri -> null clears.
+      const a2 = await mk("Undo", null);
+      await req("PATCH", `/api/assignments/${a2}`, { weekdays: [5] });
+      expect(await history(a2)).toEqual({ f: "2026-10-26", p: null });
+      await req("PATCH", `/api/assignments/${a2}`, { weekdays: null });
+      expect(await history(a2)).toEqual(none);
+      // A record from an earlier week is replaced as before: the days before are the days now.
+      const a3 = await mk("Later week", [1, 3]);
+      await pool.query("UPDATE assignment SET weekdays_from = '2026-10-19', previous_weekdays = '{5}' WHERE id = $1", [a3]);
+      await req("PATCH", `/api/assignments/${a3}`, { weekdays: [2] });
+      expect(await history(a3)).toEqual({ f: "2026-10-26", p: [1, 3] });
+    });
+
+    it("S4b-02: a subject default change after an assignment change in the same week keeps the original days", async () => {
+      const subject = (await req("POST", "/api/subjects", { name: "Twice subject" })).json().id as string;
+      const id = (await req("POST", "/api/assignments", valid({ title: "Follows", subjectId: subject, startDate: "2026-10-05", endDate: "2026-12-18" }))).json().id as string;
+      await req("PATCH", `/api/subjects/${subject}`, { defaultWeekdays: [5] });
+      await req("PATCH", `/api/subjects/${subject}`, { defaultWeekdays: [2, 4] });
+      expect(await history(id)).toEqual({ f: "2026-10-26", p: null });
+      await req("PATCH", `/api/subjects/${subject}`, { defaultWeekdays: null });
+      expect(await history(id)).toEqual(none);
     });
 
     it("clearing the days goes back to the subject's default, recorded as the days before", async () => {

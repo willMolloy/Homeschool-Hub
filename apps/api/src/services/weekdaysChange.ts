@@ -6,7 +6,8 @@
 import { fromDayNumber, toDayNumber, weekStartOfDayNumber, type WeekStart } from "@hh/engine";
 
 export interface WeekdaysChange {
-  weekdaysFrom: string;
+  /** null (with `previousWeekdays` null) clears the history: the change was undone (S4b-02). */
+  weekdaysFrom: string | null;
   /** null = every school day. */
   previousWeekdays: number[] | null;
 }
@@ -22,10 +23,16 @@ export const currentWeekStart = (today: string, weekStart: WeekStart): string =>
 /**
  * What to store when an assignment's effective days go from `before` to `after`, or null to leave the history alone:
  * nothing changed, or the assignment hasn't started before the current week (so the new days simply apply, as in S4-01).
+ * S4b-02: when `stored` already starts at this week, an earlier change this week keeps its `previousWeekdays` (the days
+ * the past was planned on), and a change back to those days clears the history.
  */
-export function weekdaysChange(i: { startDate: string; today: string; weekStart: WeekStart; before: number[] | null; after: number[] | null }): WeekdaysChange | null {
+export function weekdaysChange(i: { startDate: string; today: string; weekStart: WeekStart; before: number[] | null; after: number[] | null; stored?: { weekdaysFrom: string | null; previousWeekdays: number[] | null } }): WeekdaysChange | null {
   if (sameWeekdays(i.before, i.after)) return null;
   const weekdaysFrom = currentWeekStart(i.today, i.weekStart);
   if (i.startDate >= weekdaysFrom) return null;
+  if (i.stored?.weekdaysFrom === weekdaysFrom) {
+    if (sameWeekdays(i.after, i.stored.previousWeekdays)) return { weekdaysFrom: null, previousWeekdays: null };
+    return { weekdaysFrom, previousWeekdays: i.stored.previousWeekdays };
+  }
   return { weekdaysFrom, previousWeekdays: i.before };
 }

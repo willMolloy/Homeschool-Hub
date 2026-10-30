@@ -15,6 +15,9 @@ export interface AssignmentRow {
   weight_per_unit: number | null;
   /** S4-02: the days it is worked on; null = follow the subject's default, then every school day. */
   weekdays: number[] | null;
+  /** S4-01b: the date the current days apply from, and the days before (null = every school day); both null without a change. */
+  weekdays_from: string | null;
+  previous_weekdays: number[] | null;
   start_date: string;
   end_date: string;
   archived_at: Date | null;
@@ -47,7 +50,7 @@ export function toAssignmentJson(r: AssignmentRow): AssignmentJson {
 
 // Children in roster order, so the UI lists them the same way everywhere.
 const SELECT = `
-  SELECT a.id, a.subject_id, a.title, a.unit_type, a.total_units, a.weight_per_unit, a.weekdays, a.start_date, a.end_date, a.archived_at,
+  SELECT a.id, a.subject_id, a.title, a.unit_type, a.total_units, a.weight_per_unit, a.weekdays, a.weekdays_from, a.previous_weekdays, a.start_date, a.end_date, a.archived_at,
          COALESCE((SELECT array_agg(ac.child_id ORDER BY c.sort_order, c.id)
                      FROM assignment_child ac JOIN child c ON c.id = ac.child_id
                     WHERE ac.assignment_id = a.id), '{}') AS child_ids
@@ -91,7 +94,7 @@ export async function createAssignment(tx: Tx, familyId: string, a: AssignmentIn
 }
 
 /** `history` (S4-01b) is written with a weekday change: the date the new days apply from and the days before. */
-export type AssignmentPatch = Partial<AssignmentInput> & { archived?: boolean; history?: { weekdaysFrom: string; previousWeekdays: number[] | null } };
+export type AssignmentPatch = Partial<AssignmentInput> & { archived?: boolean; history?: { weekdaysFrom: string | null; previousWeekdays: number[] | null } };
 
 /** Lock one of the family's assignments for update and return it, or null. */
 export async function lockAssignment(tx: Tx, familyId: string, id: string): Promise<AssignmentRow | null> {
@@ -111,15 +114,20 @@ export async function updateAssignment(tx: Tx, familyId: string, id: string, p: 
 }
 
 /**
- * S4-01b: a subject's default weekdays changed. Each of its active assignments that follows the default (no weekdays of
- * its own) and started before `weekdaysFrom` keeps its plan up to then: it records the date and the days before.
- * Overwrites any earlier record (one level of history).
+ * S4-01b: a subject's default weekdays changed (to `after`, sorted). Each of its active assignments that follows the default
+ * (no weekdays of its own) and started before `weekdaysFrom` keeps its plan up to then: it records the date and the days before.
+ * S4b-02: one that already has a record from this same week keeps its earlier `previous_weekdays`; if the new days equal
+ * them the record is cleared (the change is undone).
  */
 export async function recordSubjectWeekdaysChange(
-  tx: Tx, familyId: string, subjectId: string, change: { weekdaysFrom: string; previousWeekdays: number[] | null },
+  tx: Tx, familyId: string, subjectId: string, change: { weekdaysFrom: string; previousWeekdays: number[] | null; after: number[] | null },
 ): Promise<void> {
+  const undone = "weekdays_from = $3 AND previous_weekdays IS NOT DISTINCT FROM $5::smallint[]";
   await tx.query(
-    `UPDATE assignment SET weekdays_from = $3, previous_weekdays = $4, updated_at = now()
+    `UPDATE assignment SET
+            weekdays_from = CASE WHEN ${undone} THEN NULL ELSE $3 END,
+            previous_weekdays = CASE WHEN ${undone} THEN NULL WHEN weekdays_from = $3 THEN previous_weekdays ELSE $4::smallint[] END,
+            updated_at = now()
       WHERE family_id = $1 AND subject_id = $2 AND weekdays IS NULL AND archived_at IS NULL AND start_date < $3`,
-    [familyId, subjectId, change.weekdaysFrom, change.previousWeekdays]);
+    [familyId, subjectId, change.weekdaysFrom, change.previousWeekdays, change.after]);
 }

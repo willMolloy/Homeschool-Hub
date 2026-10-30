@@ -37,7 +37,7 @@ function duplicateNameOr(err: unknown): never {
 async function recordWeekdaysHistory(tx: Tx, req: FastifyRequest, subjectId: string, before: number[] | null, after: number[] | null): Promise<void> {
   if (sameWeekdays(before, after)) return;
   const { weekdaysFrom } = await familyWeekStart(tx, req);
-  await recordSubjectWeekdaysChange(tx, req.familyId, subjectId, { weekdaysFrom, previousWeekdays: before });
+  await recordSubjectWeekdaysChange(tx, req.familyId, subjectId, { weekdaysFrom, previousWeekdays: before, after });
 }
 
 export async function subjectsRoutes(app: FastifyInstance): Promise<void> {

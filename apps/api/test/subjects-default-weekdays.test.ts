@@ -112,14 +112,32 @@ describe.skipIf(!hasDb)("subject default weekdays (integration)", () => {
       expect(await history(startedLastWeek)).toEqual({ f: "2026-10-26", p: [1, 3] });
       for (const id of [startsThisWeek, future, customised, elsewhere]) expect(await history(id)).toEqual({ f: null, p: null });
 
-      // A later change overwrites both; clearing the default records "every school day" as before = [5].
+      // S4b-02: a second change in the same week keeps the days before the first ([1, 3]).
       expect((await patch(subject, { defaultWeekdays: null })).statusCode).toBe(200);
-      expect(await history(started)).toEqual({ f: "2026-10-26", p: [5] });
+      expect(await history(started)).toEqual({ f: "2026-10-26", p: [1, 3] });
       // Same value again (any order), or a patch without the field, changes nothing.
       await pool.query("UPDATE assignment SET previous_weekdays = '{2}' WHERE id = $1", [started]);
       expect((await patch(subject, { defaultWeekdays: null })).statusCode).toBe(200);
       expect((await patch(subject, { name: "History 2" })).statusCode).toBe(200);
       expect(await history(started)).toEqual({ f: "2026-10-26", p: [2] });
+    });
+
+    it("S4b-02: a second change in a week keeps the original days; going back clears; a later week starts over", async () => {
+      const { childIds } = await rosterFor(app, a.cookies, ["Hist kid 3"], []);
+      const subject = (await post({ name: "History 4", defaultWeekdays: [1, 2, 3, 4, 5] })).json().id;
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, start_date, end_date)
+         VALUES ($1, $2, 'y', 'pages', 10, '2026-10-05', '2026-12-18') RETURNING id`, [a.familyId, subject]);
+      await pool.query("INSERT INTO assignment_child (assignment_id, child_id, family_id) VALUES ($1, $2, $3)", [rows[0]!.id, childIds[0], a.familyId]);
+      const id = rows[0]!.id;
+      await patch(subject, { defaultWeekdays: [5] });
+      await patch(subject, { defaultWeekdays: [4, 2] });
+      expect(await history(id)).toEqual({ f: "2026-10-26", p: [1, 2, 3, 4, 5] });
+      await patch(subject, { defaultWeekdays: [5, 4, 3, 2, 1] });
+      expect(await history(id)).toEqual({ f: null, p: null });
+      await pool.query("UPDATE assignment SET weekdays_from = '2026-10-19', previous_weekdays = '{5}' WHERE id = $1", [id]);
+      await patch(subject, { defaultWeekdays: [2] });
+      expect(await history(id)).toEqual({ f: "2026-10-26", p: [1, 2, 3, 4, 5] });
     });
 
     it("a first default on a subject records previous = null (every school day)", async () => {
