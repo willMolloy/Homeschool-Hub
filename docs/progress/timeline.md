@@ -32,7 +32,7 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-11d Names above thin bars | d19dd73 | DeeDee's idea: a piece too thin for an inside name is named in a 14 px lane above its row, left-aligned and cut to the piece's width, in page text; only those rows grow; outside names dim with their bar (still AA), inside names stay full strength on dimmed bars; all 30 names T-11c dropped in the demo views are back |
 | T-11d (fix) Outside names only for thin pieces | e03fd0c | The preview showed thick but short pieces (Black Beauty's first piece, The Hobbit's in This month) named above their row too; only pieces under 13 px thick go outside now, as the ticket says; still all 30 names back |
 | T-11e Outside names closer to their bars | 3faeab8 | DeeDee's hand test: outside names now end just above their thin bar (lowest letters about 2 px above it) instead of centred in a 14 px lane; a row gets only the extra space its names need |
-| T-11e (fix) Measure the 2 px from the letters | (this commit) | In the browser 3faeab8 left names without descenders (e.g. Heidi) 5 px above the bar. The baseline now sits 2 px above the bar, raised 3 px only for names with descenders so those letters still end about 2 px above it |
+| T-11e (fix) Measure the 2 px from the letters | c601581 | In the browser 3faeab8 left names without descenders (e.g. Heidi) 5 px above the bar. The baseline now sits 2 px above the bar, raised 3 px only for names with descenders so those letters still end about 2 px above it |
 
 ## Decisions (conservative calls on ambiguous points)
 

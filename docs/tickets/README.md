@@ -1,5 +1,7 @@
 # Tickets
 
+New here? Read [APP_OVERVIEW.md](../APP_OVERVIEW.md), [ROADMAP.md](../ROADMAP.md) and [HOW_WE_WORK.md](../HOW_WE_WORK.md) first.
+
 How to use these: pick the lowest-numbered ticket whose dependencies are all done. Each ticket is one task, sized to fit in one sitting.
 Format: Goal (one sentence) / Context / Steps / Done when / Tests / Out of scope. If a title would need "and", it's split into two tickets.
 

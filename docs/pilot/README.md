@@ -1,3 +1,5 @@
+> **Retired.** The parent pilot gate was dropped on 2026-10-28 (DeeDee tests the app personally). These materials are kept for history only.
+
 # Pilot materials: DRAFTS
 
 **Status: drafts only. Nothing here has been posted, sent, or shared.** DeeDee reviews and edits these, then posts or sends them herself.

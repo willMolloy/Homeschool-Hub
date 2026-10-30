@@ -2,6 +2,12 @@
 
 A year-long timeline planner for homeschool families, with low-friction logging. TypeScript everywhere.
 
+## Start here
+
+- [docs/APP_OVERVIEW.md](docs/APP_OVERVIEW.md): what the app is, its rules, stack and layout.
+- [docs/ROADMAP.md](docs/ROADMAP.md): what's done, what's next, open decisions.
+- [docs/HOW_WE_WORK.md](docs/HOW_WE_WORK.md): roles, tickets, local dev, rules, and a new-session checklist.
+
 ```
 packages/engine   @hh/engine: the pure, versioned scheduling engine (no I/O, no Date objects). ENGINE_VERSION in src/version.ts
 apps/api          @hh/api: Fastify API (auth, roster, schedule data, /api/plan)
@@ -9,7 +15,7 @@ apps/web          @hh/web: Vite + React PWA (Plan debug view, Kids, Subjects, Sc
 db/               SQL migrations, runner, seed, demo script, schema validation (db/README.md)
 docs/tickets/     Sprint 1 and Sprint 2a tickets, order and dependencies
 docs/REVIEW-GUIDE.md  how to run it and what to look at (start here if you're reviewing)
-docs/pilot/       DRAFT pilot recruiting and facilitation materials (not posted)
+docs/pilot/       retired pilot materials (kept for history)
 ```
 
 ## Commands (Node ≥ 20)
