@@ -7,7 +7,8 @@ Tickets: `docs/tickets/sprint-3a-setup/`.
 | S3a-01 Copy an assignment from the Assignments screen | 251fe43 | `copyOf` on `ScheduleList` adds Copy to the edit form; `initial` prop on `AssignmentForm`; `copyOfAssignment` in `copyAssignment.ts` |
 | S3a-02 Copy an assignment from the timeline edit bar | 153f663 | `onCopy` on `EditBar`; `initial` on `AddAssignmentSheet`; same `copyOfAssignment` prefill |
 | S3a-03 Add the bulk-create assignments endpoint | 1ddad60 | `POST /api/assignments/bulk`; `createOne` shared with the single create |
-| S3a-04 Add several assignments at once | (this commit) | `BulkAssignmentsForm`; `renderBulkForm` on `ScheduleList` adds the "Add several" button |
+| S3a-04 Add several assignments at once | a67fe2c | `BulkAssignmentsForm`; `renderBulkForm` on `ScheduleList` adds the "Add several" button |
+| S3a-05 Parse an assignments CSV | (this commit) | `csvImport.ts`: `parseAssignmentsCsv`, `errorText`, `assignmentsCsvTemplate`; limits moved to `assignmentLimits.ts` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -24,3 +25,9 @@ Tickets: `docs/tickets/sprint-3a-setup/`.
 - **S3a-04 server errors name the on-screen row.** The API counts only the rows sent ("Assignment 2: …"); the form rewrites that to "Row N: …" using the row's position on screen, so skipped empty rows don't shift the number. Other server messages show as they are (`saveError`).
 - **S3a-04 rows.** At least one row always stays (Remove is hidden on the last one). Rows are grouped as "Row N" for screen readers; no visible row heading. Subject offers active subjects only, as the single Add form does. After saving, the first new card takes focus.
 - **S3a-04 layout.** `.schedule-actions` is now a wrapping flex row so "Add several" sits beside "Add assignment"; a row's Remove sits under its fields.
+- **S3a-05 limits file.** The module may depend only on engine constants, so `LIMITS` moved unchanged from `AssignmentsPage.tsx` to `assignmentLimits.ts` (re-exported from the page), with the API's 2000–2100 year range added. The parser does its own checks rather than importing `formBits` (which pulls in React).
+- **S3a-05 all or nothing.** Any error returns `rows: []`, so a caller can't import part of a file by mistake. Every error in the file is listed, and one bad row can give several errors (one per broken rule), all with that row's line.
+- **S3a-05 the 50-row cap.** More than 50 non-blank data rows gives the single error "Import at most 50 assignments at a time." with `line: 0` (the whole file); `errorText` shows lines as "Line N: …" and line 0 without a prefix.
+- **S3a-05 header.** Extra columns are ignored; a repeated column uses its first copy; a missing column is one error on line 1. Only commas separate fields (children use `;`).
+- **S3a-05 matching.** Subject and child names match active rows only, case-insensitively and trimmed (the first of two same-named rows wins); the same child named twice is used once. Unit accepts singular or plural. Dates also need a real calendar date in 2000–2100, as the API does. Quoted fields may hold line breaks; line numbers are the physical line a record starts on.
+- **S3a-05 template.** `assignmentsCsvTemplate` is the header plus one example row built from the family's first active subject and child (Math / Ada when there are none), so it imports as is.

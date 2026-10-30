@@ -1,9 +1,9 @@
 /** S3a-01: the prefill for a copied assignment, shared by the Assignments screen and the timeline edit bar (pure). */
 import type { Assignment } from "../../api/types";
+import { LIMITS } from "./assignmentLimits";
 import type { Draft } from "./ScheduleList";
 
-/** Mirrors the title limit in AssignmentsPage (LIMITS.title); kept here so this file has no UI imports. */
-const MAX_TITLE = 120;
+const MAX_TITLE = LIMITS.title;
 const SUFFIX = " (copy)";
 
 /** The original's fields with " (copy)" on the title. `weightPerUnit` is kept as stored (null follows the subject default). */

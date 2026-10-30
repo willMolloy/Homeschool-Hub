@@ -7,7 +7,7 @@ import { UNIT_TYPES } from "@hh/engine";
 import { apiPost } from "../../api/client";
 import type { Assignment, UnitType } from "../../api/types";
 import { unitTitle } from "../../components/unitLabels";
-import { LIMITS } from "./AssignmentsPage";
+import { LIMITS } from "./assignmentLimits";
 import { ChildPicker, dateRangeError, parsePositive, saveError } from "./formBits";
 import type { Lookups } from "./lookups";
 

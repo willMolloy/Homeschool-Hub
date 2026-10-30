@@ -9,6 +9,7 @@ import { apiPatch, apiPost } from "../../api/client";
 import type { Assignment, UnitType } from "../../api/types";
 import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet } from "./formBits";
 import { WithLookups, type Lookups } from "./lookups";
+import { LIMITS } from "./assignmentLimits";
 import { BulkAssignmentsForm } from "./BulkAssignmentsForm";
 import { copyOfAssignment } from "./copyAssignment";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
@@ -17,8 +18,7 @@ import { useWeightSuggestion } from "./useWeightSuggestion";
 import { WeightHint } from "./WeightHint";
 import { formatWeight, weightCardText, weightHint } from "./weightText";
 
-/** Mirrors apps/api/src/http/scheduleLimits.ts; weight bounds come from the engine (D2). */
-export const LIMITS = { title: 120, totalUnits: 100_000, weightPerUnit: MAX_WEIGHT_PER_UNIT, days: 1096 } as const;
+export { LIMITS };
 
 const units = (n: number, t: UnitType) => `${n.toLocaleString("en-US")} ${n === 1 ? UNIT_LABELS[t].one : UNIT_LABELS[t].many}`;
 
