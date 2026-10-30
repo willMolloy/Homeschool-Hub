@@ -114,7 +114,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
           // name dims with its bar (page text at the dim opacity still meets AA).
           <g key={`${n.rowKey}-${n.assignmentId}-${n.piece}`} className={(n.outside ? dim(n.assignmentId) : dim(n.assignmentId).replace(" tl-dim", "")).trim() || undefined} data-name-for={n.assignmentId}>
             {n.outside
-              ? <text className="tl-outside-name" x={n.textX} y={n.textY} dominantBaseline="central">{n.text}</text>
+              ? <text className="tl-outside-name" x={n.textX} y={n.textY} dominantBaseline="text-after-edge">{n.text}</text>
               : <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step) }}>{n.text}</text>}
           </g>
         ))}

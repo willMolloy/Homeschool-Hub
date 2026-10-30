@@ -5,7 +5,7 @@ import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import {
   ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, LATER_PIECE_NAME_FACTOR, placeName, placePieceName, placePieceNames,
-  OUTSIDE_LANE_PX, placeOutsideName,
+  OUTSIDE_GAP_PX, OUTSIDE_NAME_PX, placeOutsideName,
 } from "../src/features/timeline/names";
 import type { BandColumn } from "../src/features/timeline/paths";
 import { Timeline } from "../src/features/timeline/Timeline";
@@ -72,19 +72,21 @@ describe("placing a name inside its bar", () => {
 });
 
 describe("naming each piece of a bar (T-11)", () => {
-  it("writes a thin piece's name in the lane above it, from the piece's start, cut to its width (T-11d)", () => {
+  it("writes a thin piece's name just above it, from the piece's start, cut to its width (T-11d, T-11e)", () => {
+    // Bar top at 48 (4 px thick about 50); the name's font box ends OUTSIDE_GAP_PX above it (its ink about 2 px).
     const thin = [col(10, 40, 4), col(40, 70, 4)];
-    expect(placeOutsideName("Treasure Island", thin, 20, perChar)).toEqual({ text: "Treasure Island", x: 10, y: 20 - OUTSIDE_LANE_PX / 2, width: 15, height: OUTSIDE_LANE_PX, textX: 10, textY: 20 });
-    expect(placeOutsideName("A Child's Garden of Verses", [col(10, 20, 4)], 20, perChar)!.text).toBe(`A Child's${ELLIPSIS}`);
-    expect(placeOutsideName("Heidi", [col(10, 11, 4)], 20, perChar)).toBeNull();
-    // With a lane, the thin piece gets an outside name and the thick one stays inside; without, the thin one has none.
+    expect(OUTSIDE_GAP_PX).toBe(1);
+    expect(placeOutsideName("Treasure Island", thin, perChar)).toEqual({ text: "Treasure Island", x: 10, y: 47 - OUTSIDE_NAME_PX, width: 15, height: OUTSIDE_NAME_PX, textX: 10, textY: 47 });
+    expect(placeOutsideName("A Child's Garden of Verses", [col(10, 20, 4)], perChar)!.text).toBe(`A Child's${ELLIPSIS}`);
+    expect(placeOutsideName("Heidi", [col(10, 11, 4)], perChar)).toBeNull();
+    // With outside names on, the thin piece gets an outside name and the thick one stays inside; without, the thin one has none.
     const pieces = [[col(0, 40, 4)], [col(50, 100, 20)]];
-    expect(placePieceNames("Heidi", pieces, 50, false, perChar, 20).map((n) => [n.piece, n.outside])).toEqual([[0, true], [1, false]]);
+    expect(placePieceNames("Heidi", pieces, 50, false, perChar, true).map((n) => [n.piece, n.outside])).toEqual([[0, true], [1, false]]);
     expect(placePieceNames("Heidi", pieces, 50, false, perChar).map((n) => n.piece)).toEqual([1]);
     // A thick piece too short for its name stays unnamed: only thin pieces go outside.
-    expect(placePieceNames("Heidi", [[col(0, 6, 20)]], 50, false, perChar, 20)).toEqual([]);
+    expect(placePieceNames("Heidi", [[col(0, 6, 20)]], 50, false, perChar, true)).toEqual([]);
     // Zoomed out, the 2× rule still applies to later pieces.
-    expect(placePieceNames("Heidi", [[col(0, 40, 4)], [col(50, 58, 4)]], 50, true, perChar, 20).map((n) => n.piece)).toEqual([0]);
+    expect(placePieceNames("Heidi", [[col(0, 40, 4)], [col(50, 58, 4)]], 50, true, perChar, true).map((n) => n.piece)).toEqual([0]);
   });
 
   it(`leaves a piece thinner than ${NAME_PATCH_PX} px unnamed: with no patch, the text would spill onto the page (T-11c)`, () => {
@@ -127,11 +129,12 @@ describe("names in the layout", () => {
         expect(n.x).toBeGreaterThanOrEqual(piece.x0 - 0.01);
         expect(n.x + n.width).toBeLessThanOrEqual(piece.x1 + 0.01);
         if (n.outside) {
-          // T-11d: only for a thin piece, in the row's label lane, left-aligned with the piece's start.
-          expect(row.labelLane).toBe(OUTSIDE_LANE_PX);
+          // T-11d/T-11e: left-aligned with the piece, bottom edge just above the bar, never into the row above.
           expect(n.x).toBeCloseTo(piece.x0, 5);
-          expect(n.y).toBeCloseTo(row.y - OUTSIDE_LANE_PX, 5);
-          expect(n.height).toBe(OUTSIDE_LANE_PX);
+          expect(n.height).toBe(OUTSIDE_NAME_PX);
+          expect(n.textY).toBeCloseTo(n.y + n.height, 5);
+          expect(n.textY + OUTSIDE_GAP_PX).toBeLessThanOrEqual(band.cy);
+          expect(n.y).toBeGreaterThanOrEqual(row.y - row.labelLane - 0.01);
         } else {
           expect(n.y).toBeGreaterThanOrEqual(row.y - 0.01);
           expect(n.y + n.height).toBeLessThanOrEqual(row.y + row.height + 0.01);
@@ -143,8 +146,13 @@ describe("names in the layout", () => {
         for (const m of l.names.filter((m) => m.rowKey === n.rowKey && m.outside === n.outside && m !== n)) expect(m.x >= n.x + n.width || m.x + m.width <= n.x).toBe(true);
       }
       if (width === 1280) expect(l.names.length).toBeGreaterThan(5);
-      // T-11d: only rows holding an outside name get a label lane.
-      for (const r of l.rows) expect(r.labelLane).toBe(l.names.some((n) => n.rowKey === r.key && n.outside) ? OUTSIDE_LANE_PX : 0);
+      // T-11d: only rows holding an outside name get extra space.
+      // T-11e: and only as much as its highest outside name needs (under 1 px to spare, from rounding up).
+      for (const r of l.rows) {
+        const outside = l.names.filter((n) => n.rowKey === r.key && n.outside);
+        if (outside.length === 0) expect(r.labelLane).toBe(0);
+        else if (r.labelLane > 0) expect(Math.min(...outside.map((n) => n.y)) - (r.y - r.labelLane)).toBeLessThan(1);
+      }
     });
   }
 

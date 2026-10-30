@@ -107,19 +107,25 @@ export function placePieceName(title: string, piece: readonly BandColumn[], cy: 
   return placeName(title, piece, cy, measure);
 }
 
-/** T-11d: the label lane added above a row that holds a name too thin to sit inside its bar. */
-export const OUTSIDE_LANE_PX = 14;
+/**
+ * T-11e: the outside name's font box (drawn with `text-after-edge`) ends this far above its bar. Letters stop a little
+ * above the box's bottom, so the lowest ink (descenders) ends about 2 px above the bar and the baseline about 5 px.
+ */
+export const OUTSIDE_GAP_PX = 1;
+/** T-11e: the height an outside name needs: 11 px text from its descent up to its tallest letters. */
+export const OUTSIDE_NAME_PX = 13;
 
 /**
- * T-11d: a name for a piece too thin to hold it, written in the lane above the row: left-aligned with the piece's
- * start and cut with "…" to the piece's width, so it never runs over the next piece. `textY` is the lane's middle.
+ * T-11d: a name for a piece too thin to hold it, written just above the piece: left-aligned with its start and cut
+ * with "…" to its width, so it never runs over the next piece. T-11e: its bottom edge (`textY`, drawn with
+ * `text-after-edge`) is OUTSIDE_GAP_PX above the piece's top.
  */
-export function placeOutsideName(title: string, piece: readonly BandColumn[], textY: number, measure: MeasureText = estimateTextWidth): NamePlacement | null {
+export function placeOutsideName(title: string, piece: readonly BandColumn[], measure: MeasureText = estimateTextWidth): NamePlacement | null {
   const x = piece[0]!.x0;
   const text = fitName(title, piece[piece.length - 1]!.x1 - x, measure);
   if (!text) return null;
-  const width = measure(text);
-  return { text, x, y: textY - OUTSIDE_LANE_PX / 2, width, height: OUTSIDE_LANE_PX, textX: x, textY };
+  const textY = Math.min(...piece.map((c) => c.top)) - OUTSIDE_GAP_PX;
+  return { text, x, y: textY - OUTSIDE_NAME_PX, width: measure(text), height: OUTSIDE_NAME_PX, textX: x, textY };
 }
 
 export type PieceName = NamePlacement & { piece: number; outside: boolean };
@@ -128,18 +134,18 @@ export type PieceName = NamePlacement & { piece: number; outside: boolean };
  * T-11: names for every piece of one bar. With daily detail every piece is named, so the piece after a break is
  * not mistaken for another assignment; zoomed out (`sparse`), the first named piece plus any later piece at least
  * LATER_PIECE_NAME_FACTOR times its name's width. Returns the piece index with each placement.
- * T-11d: with `laneY` (the middle of the row's label lane), a piece thinner than NAME_PATCH_PX gets its name there.
+ * T-11d: with `outside`, a piece thinner than NAME_PATCH_PX gets its name just above it (T-11e).
  */
 export function placePieceNames(
   title: string, pieces: readonly (readonly BandColumn[])[], cy: number, sparse: boolean, measure: MeasureText = estimateTextWidth,
-  laneY?: number,
+  outside = false,
 ): PieceName[] {
   const out: PieceName[] = [];
   pieces.forEach((piece, i) => {
     const inside = placePieceName(title, piece, cy, measure);
     // Only a thin piece (nowhere NAME_PATCH_PX thick) goes outside; a thick piece too short for its name stays unnamed.
     const thin = piece.every((c) => c.bottom - c.top < NAME_PATCH_PX);
-    const name = inside ?? (laneY === undefined || !thin ? null : placeOutsideName(title, piece, laneY, measure));
+    const name = inside ?? (!outside || !thin ? null : placeOutsideName(title, piece, measure));
     if (!name) return;
     const width = piece[piece.length - 1]!.x1 - piece[0]!.x0;
     if (sparse && out.length > 0 && width < LATER_PIECE_NAME_FACTOR * name.width) return;
