@@ -98,6 +98,10 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
 
       <g className="tl-bands">
         {layout.totals.d ? <path className="tl-totals" d={layout.totals.d} /> : null}
+        {layout.bands.flatMap((b) => b.connectors.map((c, k) => (
+          <line key={`c-${b.rowKey}-${b.assignmentId}-${k}`} className={`tl-connector${dim(b.assignmentId)}`} x1={c.x0} x2={c.x1} y1={b.cy} y2={b.cy}
+            style={{ stroke: bandFill(b.paletteSlot, b.step) }} data-connector-for={b.assignmentId} />
+        )))}
         {layout.bands.map((b) => (b.d ? (
           <path key={`${b.rowKey}-${b.assignmentId}`} className={`tl-band${dim(b.assignmentId)}`} d={b.d} style={{ fill: bandFill(b.paletteSlot, b.step) }}
             data-assignment={b.assignmentId} />
@@ -106,15 +110,9 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
 
       <g className="tl-names" aria-hidden="true">
         {layout.names.map((n) => (
-          <g key={`${n.rowKey}-${n.assignmentId}`} className={dim(n.assignmentId).trim() || undefined} data-name-for={n.assignmentId}>
-            {n.outside ? (
-              <text className="tl-name tl-name-outside" x={n.textX} y={n.textY} dominantBaseline="central">{n.text}</text>
-            ) : (
-              <>
-                <rect className="tl-name-patch" x={n.x} y={n.y} width={n.width} height={n.height} style={{ fill: bandFill(n.paletteSlot, n.step) }} />
-                <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step) }}>{n.text}</text>
-              </>
-            )}
+          <g key={`${n.rowKey}-${n.assignmentId}-${n.piece}`} className={dim(n.assignmentId).trim() || undefined} data-name-for={n.assignmentId}>
+            <rect className="tl-name-patch" x={n.x} y={n.y} width={n.width} height={n.height} style={{ fill: bandFill(n.paletteSlot, n.step) }} />
+            <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step) }}>{n.text}</text>
           </g>
         ))}
       </g>

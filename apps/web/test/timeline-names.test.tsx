@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import {
-  ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, outsideNameLimit, placeName, placeOutsideName,
+  ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, placeName, placePieceName, placePieceNames,
 } from "../src/features/timeline/names";
 import type { BandColumn } from "../src/features/timeline/paths";
 import { Timeline } from "../src/features/timeline/Timeline";
@@ -26,8 +26,11 @@ describe("fitting a name", () => {
   });
 
   it(`shows nothing unless at least ${MIN_NAME_CHARS} characters and the ellipsis fit`, () => {
-    expect(fitName("Robinson Crusoe", MIN_NAME_CHARS + 1, perChar)).toBe(`Robi${ELLIPSIS}`);
-    expect(fitName("Robinson Crusoe", MIN_NAME_CHARS, perChar)).toBeNull();
+    // T-11 (DeeDee): show what we can, down to one character and "…".
+    expect(MIN_NAME_CHARS).toBe(1);
+    expect(fitName("Robinson Crusoe", 5, perChar)).toBe(`Robi${ELLIPSIS}`);
+    expect(fitName("Robinson Crusoe", 2, perChar)).toBe(`R${ELLIPSIS}`);
+    expect(fitName("Robinson Crusoe", 1, perChar)).toBeNull();
     expect(fitName("   ", 100, perChar)).toBeNull();
   });
 
@@ -63,67 +66,70 @@ describe("placing a name inside its bar", () => {
   });
 });
 
-describe("placing a label past a short bar (T-10)", () => {
-  it("starts just past the bar's end and fits the room before the limit", () => {
-    const p = placeOutsideName("The Hobbit", [col(0, 4, 20), col(4, 8, 20)], 40, 20, 50, 100, perChar)!;
-    expect(p.text).toBe("The Hobbit");
-    expect([p.x, p.textX, p.textY]).toEqual([8 + NAME_PAD_PX, 8 + NAME_PAD_PX, 50]);
-    expect(placeOutsideName("The Hobbit", [col(0, 8, 20)], 40, 20, 50, 8 + NAME_PAD_PX + 6 + NAME_PAD_PX, perChar)!.text).toBe(`The H${ELLIPSIS}`);
+describe("naming each piece of a bar (T-11)", () => {
+  it("pins a name on a thin piece to its left edge on a full-height patch, inside the piece and the row", () => {
+    const p = placePieceName("The Hobbit", [col(0, 30, 6), col(30, 60, 6)], 50, 40, 20, perChar)!;
+    expect(p.text).toBe(`The Hobbit`);
+    expect([p.x, p.height, p.y, p.textY]).toEqual([NAME_INSET_PX, NAME_PATCH_PX, 50 - NAME_PATCH_PX / 2, 50]);
+    expect(p.x + p.width).toBeLessThanOrEqual(60);
   });
 
-  it(`skips rows thinner than ${NAME_PATCH_PX} px, bars with nothing drawn, and no room`, () => {
-    expect(placeOutsideName("The Hobbit", [col(0, 8, 10)], 45, NAME_PATCH_PX - 1, 50, 200, perChar)).toBeNull();
-    expect(placeOutsideName("The Hobbit", [null, null], 40, 20, 50, 200, perChar)).toBeNull();
-    expect(placeOutsideName("The Hobbit", [col(0, 8, 20)], 40, 20, 50, 12, perChar)).toBeNull();
-  });
-});
-
-describe("where a label past a bar must stop", () => {
-  it("at the next bar in the row, even when the edges differ only by rounding", () => {
-    // From the demo at 390 px: The Hobbit starts a hair before Treasure Island's computed end.
-    expect(outsideNameLimit([4, 24.105263157894736, 54.26315789473684, 114.57894736842105], 24.105263157894736, 386)).toBe(54.26315789473684);
+  it("cuts the name to fit the piece, and gives up below one character and the ellipsis", () => {
+    const room = (n: number) => n + 2 * NAME_INSET_PX + 2 * NAME_PAD_PX;
+    expect(placePieceName("Treasure Island", [col(0, room(5), 20)], 50, 40, 20, perChar)!.text).toBe(`Trea${ELLIPSIS}`);
+    expect(placePieceName("Treasure Island", [col(0, room(2), 20)], 50, 40, 20, perChar)!.text).toBe(`T${ELLIPSIS}`);
+    expect(placePieceName("Treasure Island", [col(0, room(1), 20)], 50, 40, 20, perChar)).toBeNull();
   });
 
-  it("at the plot's right edge after the last bar", () => {
-    expect(outsideNameLimit([4, 24, 305], 305, 386)).toBe(386);
+  it(`skips rows thinner than the ${NAME_PATCH_PX} px patch`, () => {
+    expect(placePieceName("The Hobbit", [col(0, 200, 6)], 50, 45, NAME_PATCH_PX - 1, perChar)).toBeNull();
+  });
+
+  it("names every piece with daily detail; zoomed out, later pieces only when at least 3× their name", () => {
+    const pieces = [[col(0, 40, 20)], [col(60, 80, 20)], [col(100, 200, 20)]];
+    expect(placePieceNames("Math", pieces, 50, 40, 20, false, perChar).map((n) => n.piece)).toEqual([0, 1, 2]);
+    // "Math" is 4 + 2 × pad wide: piece 1 (20 px) is too short, piece 2 (100 px) is long enough.
+    expect(placePieceNames("Math", pieces, 50, 40, 20, true, perChar).map((n) => n.piece)).toEqual([0, 2]);
   });
 });
 
 describe("names in the layout", () => {
 
-  for (const [zoom, width] of [["year", 1280], ["fall", 1280], ["year", 390], ["year", 360], ["year", 320]] as const) {
-    it(`at ${zoom} / ${width} px every name sits inside its own bar or just past it, one at most per bar`, () => {
-      const l = layoutTimeline(sample, { zoom, width });
+  const views = [["year", 1280], ["fall", 1280], ["spring", 1280], ["month", 1280], ["year", 390], ["month", 390], ["year", 360], ["year", 320]] as const;
+  for (const [zoom, width] of views) {
+    it(`at ${zoom} / ${width} px every name sits inside one piece of its own bar, at most one per piece, never over another`, () => {
+      const l = layoutTimeline(sample, { zoom, width, month: "2026-12" });
       const seen = new Set<string>();
       for (const n of l.names) {
         const band = l.bands.find((b) => b.rowKey === n.rowKey && b.assignmentId === n.assignmentId)!;
-        expect(seen.has(band.assignmentId + band.rowKey)).toBe(false);
-        seen.add(band.assignmentId + band.rowKey);
-        if (n.outside) {
-          // Past the bar's end, before any other bar in its row, inside the plot.
-          const end = Math.max(...band.runs.map((r) => r.x1));
-          expect(n.x).toBeGreaterThanOrEqual(end);
-          for (const o of l.bands.filter((b) => b.rowKey === n.rowKey && b !== band)) {
-            for (const r of o.runs) expect(r.x0 >= n.x + n.width || r.x1 <= n.x).toBe(true);
-          }
-          // Nor over another bar's name.
-          for (const m of l.names.filter((m) => m.rowKey === n.rowKey && m !== n)) {
-            expect(m.x >= n.x + n.width || m.x + m.width <= n.x).toBe(true);
-          }
-          expect(n.x + n.width).toBeLessThanOrEqual(l.plot.x + l.plot.width + 0.01);
-          expect(n.text === band.title || band.title.startsWith(n.text.slice(0, -1))).toBe(true);
-          continue;
-        }
-        expect(band.runs.some((r) => n.x >= r.x0 && n.x + n.width <= r.x1 + 0.01)).toBe(true);
+        const row = l.rows.find((r) => r.key === n.rowKey)!;
+        expect(seen.has(`${band.rowKey}|${band.assignmentId}|${n.piece}`)).toBe(false);
+        seen.add(`${band.rowKey}|${band.assignmentId}|${n.piece}`);
+        // T-11: inside its piece (no labels past the bar), inside its row.
+        const piece = band.runs[n.piece]!;
+        expect(n.x).toBeGreaterThanOrEqual(piece.x0 - 0.01);
+        expect(n.x + n.width).toBeLessThanOrEqual(piece.x1 + 0.01);
+        expect(n.y).toBeGreaterThanOrEqual(row.y - 0.01);
+        expect(n.y + n.height).toBeLessThanOrEqual(row.y + row.height + 0.01);
         expect(n.height).toBeGreaterThanOrEqual(NAME_PATCH_PX - 0.01);
         expect(n.y + n.height / 2).toBeCloseTo(band.cy, 5);
         expect(n.text === band.title || (n.text.endsWith(ELLIPSIS) && band.title.startsWith(n.text.slice(0, -1)))).toBe(true);
         expect([n.paletteSlot, n.step]).toEqual([band.paletteSlot, band.step]);
+        for (const m of l.names.filter((m) => m.rowKey === n.rowKey && m !== n)) expect(m.x >= n.x + n.width || m.x + m.width <= n.x).toBe(true);
       }
       if (width === 1280) expect(l.names.length).toBeGreaterThan(5);
-      if (zoom === "year" && width === 1280) expect(l.names.some((n) => n.outside)).toBe(true);
     });
   }
+
+  it("with daily detail, the piece right after a break gets its own name", () => {
+    const l = layoutTimeline(sample, { zoom: "month", width: 1280, month: "2026-12" });
+    const split = l.bands.filter((b) => b.runs.length > 1 && l.rows.find((r) => r.key === b.rowKey)!.height >= NAME_PATCH_PX);
+    expect(split.length).toBeGreaterThan(0);
+    for (const b of split) {
+      const named = l.names.filter((n) => n.rowKey === b.rowKey && n.assignmentId === b.assignmentId).map((n) => n.piece);
+      expect(named).toContain(1);
+    }
+  });
 
   it("uses the measure it's given (the page passes a cached canvas measure)", () => {
     const wide = layoutTimeline(sample, { zoom: "year", width: 1280, measureText: (t) => t.length * 1000 });
@@ -140,11 +146,6 @@ describe("drawing names", () => {
     const drawn = [...group.querySelectorAll("[data-name-for]")];
     expect(drawn).toHaveLength(layout.names.length);
     for (const g of drawn) {
-      if (g.querySelector("text.tl-name-outside")) {
-        // T-10: a label past the bar is plain text in the page's ink, no patch.
-        expect(g.querySelector("rect")).toBeNull();
-        continue;
-      }
       const patch = g.querySelector("rect.tl-name-patch") as SVGRectElement;
       const text = g.querySelector("text.tl-name") as SVGTextElement;
       expect(patch.style.fill).toMatch(/^var\(--tl-subject-\d+(-light|-dark)?\)$/);

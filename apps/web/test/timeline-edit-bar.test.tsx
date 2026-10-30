@@ -33,7 +33,7 @@ async function open() {
 /** Taps the first band of the picture just inside its outline's first point. */
 function tapBand(svg: Element, nth = 0): string {
   const band = svg.querySelectorAll("path.tl-band")[nth]!;
-  const [x, y] = band.getAttribute("d")!.slice(1).split(/[ ,LCVHZ]+/).filter(Boolean).map(Number);
+  const [x, y] = band.getAttribute("d")!.slice(1).split(/[ ,LCQVHZ]+/).filter(Boolean).map(Number);
   fireEvent.click(svg, { clientX: x! + 1, clientY: y! + 1 });
   return band.getAttribute("data-assignment")!;
 }

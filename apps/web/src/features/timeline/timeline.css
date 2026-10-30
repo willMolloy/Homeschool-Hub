@@ -35,7 +35,8 @@
 /* T-06: names on a solid patch of their own swatch (AA on every swatch; translucent alone misses it). */
 .tl-name-patch { fill-opacity: 1; }
 .tl-name { font-size: 11px; font-weight: 500; }
-.tl-name-outside { fill: var(--tl-foreground); }
+/* T-11: one assignment split by a break stays joined by a faint line in its colour (never between assignments). */
+.tl-connector { stroke-width: 2; stroke-opacity: 0.35; stroke-linecap: round; }
 .tl-totals { fill: var(--tl-total); fill-opacity: var(--tl-bar-opacity); }
 .tl-event { fill: var(--tl-muted-foreground); fill-opacity: 0.6; }
 .tl-today line { stroke: var(--tl-today); stroke-width: 2; }

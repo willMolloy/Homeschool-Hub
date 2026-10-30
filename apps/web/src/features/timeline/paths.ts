@@ -8,8 +8,8 @@ export interface BandColumn {
   bottom: number;
 }
 
-/** Bars get slightly rounded ends (agreed), never more than half their height or width. */
-export const CORNER_RADIUS_PX = 2;
+/** Bars get rounded end caps (T-11, was 2 px), never more than half their height or width. */
+export const CORNER_RADIUS_PX = 4;
 
 const f = (n: number) => (Math.round(n * 10) / 10).toString();
 
@@ -65,7 +65,7 @@ export const SMOOTH_END_MIN_PX = 12;
 /**
  * T-05c: a smooth closed outline for one run of touching columns. Each stretch of equal thickness (a plateau)
  * contributes its centre; monotone cubic curves (no overshoot) join the centres, so a change in thickness eases
- * across the two plateaus either side of it. The run starts and ends square at full thickness.
+ * across the two plateaus either side of it. The run starts and ends at full thickness with rounded caps (T-11).
  */
 export function smoothRunPath(run: readonly BandColumn[]): string {
   if (run.length === 0) return "";
@@ -85,9 +85,19 @@ export function smoothRunPath(run: readonly BandColumn[]): string {
     ...(plateaus.length > 1 ? plateaus.map((p) => ({ x: (p.x0 + p.x1) / 2, top: p.top, bottom: p.bottom })) : []),
     { x: last.x1, top: last.top, bottom: last.bottom },
   ];
+  // T-11: rounded end caps, never more than half the end's thickness or the run's width.
+  const r = Math.max(0, Math.min(CORNER_RADIUS_PX, (first.bottom - first.top) / 2, (last.bottom - last.top) / 2, (last.x1 - first.x0) / 2));
+  pts[0]!.x += r;
+  pts[pts.length - 1]!.x -= r;
   const top = pts.map((p) => [p.x, p.top] as const);
   const bottom = pts.map((p) => [p.x, p.bottom] as const).reverse();
-  return [`M${f(top[0]![0])},${f(top[0]![1])}`, monotoneCurve(top), `V${f(bottom[0]![1])}`, monotoneCurve(bottom), "Z"].join(" ");
+  const x0 = first.x0;
+  const x1 = last.x1;
+  return [
+    `M${f(x0)},${f(first.top + r)}`, `Q${f(x0)},${f(first.top)} ${f(x0 + r)},${f(first.top)}`, monotoneCurve(top),
+    `Q${f(x1)},${f(last.top)} ${f(x1)},${f(last.top + r)}`, `V${f(last.bottom - r)}`, `Q${f(x1)},${f(last.bottom)} ${f(x1 - r)},${f(last.bottom)}`,
+    monotoneCurve(bottom), `Q${f(x0)},${f(first.bottom)} ${f(x0)},${f(first.bottom - r)}`, "Z",
+  ].join(" ");
 }
 
 /** Smooth outlines for every run (the zoomed-out counterpart of bandPath). */

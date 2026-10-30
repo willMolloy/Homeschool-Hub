@@ -95,7 +95,7 @@ const patches = () => fakeApi.calls.filter((c) => c.method === "PATCH");
 /** Just inside the left end (the start handle) of the widest bar, in the picture's coordinates. */
 function leftEnd(svg: Element) {
   const bands = [...svg.querySelectorAll("path.tl-band")].map((band) => {
-    const nums = band.getAttribute("d")!.slice(1).split(/[ ,LCVHZ]+/).filter(Boolean).map(Number);
+    const nums = band.getAttribute("d")!.slice(1).split(/[ ,LCQVHZ]+/).filter(Boolean).map(Number);
     const xs = nums.filter((_, i) => i % 2 === 0);
     return { band, x: nums[0]!, y: nums[1]!, width: Math.max(...xs) - Math.min(...xs) };
   });

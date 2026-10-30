@@ -26,6 +26,7 @@ From the Timeline Tools Page (stack, colour and typography choices for the year 
 | T-09 | ["How did last week go?" redesign](T-09-last-week-redesign.md) | T-03b, T-08c | M |
 | T-10 | [Add assignment from the timeline](T-10-add-assignment.md) | T-08c, T-09 | M |
 | T-10b | [A label past a bar stops at the next bar](T-10b-outside-label-overlap.md) | T-10 | S |
+| T-11 | [Gaps between bars, connectors across breaks, a label in every piece](T-11-gaps-connectors-piece-labels.md) | T-10b | M |
 | T-07b | Manual zoom: pinch, ctrl+wheel and pan; the presets just jump *(written when started)* | T-05c, T-07 | M |
 
 The order is the Tools Page's build order. The parent pilot gate was dropped by DeeDee (they will test the timeline themselves), so these no longer wait for pilot results. Each ticket doc is written when its work starts, in the same format. The tester's verification pass is run separately and is not in this list.

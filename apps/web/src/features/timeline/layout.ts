@@ -14,7 +14,8 @@
 import { weekdayOf } from "@hh/engine";
 import { PX_PER_THICKNESS } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
-import { estimateTextWidth, outsideNameLimit, placeName, placeOutsideName, type MeasureText } from "./names";
+import { estimateTextWidth, placePieceNames, type MeasureText } from "./names";
+import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows } from "./rows";
 import { sumSeries } from "./grid";
@@ -108,6 +109,8 @@ export interface LaneBand {
   runs: { x0: number; x1: number }[];
   /** The row's centerline. */
   cy: number;
+  /** T-11: the spans between this assignment's own pieces (split by a break), drawn as a faint centre line. */
+  connectors: { x0: number; x1: number }[];
 }
 
 /** T-06: a name drawn inside its bar, on a solid patch of the bar's swatch. */
@@ -124,8 +127,8 @@ export interface BarName {
   height: number;
   textX: number;
   textY: number;
-  /** T-10: a plain label past the bar's end (no patch), for a bar too short for a name inside it. */
-  outside?: true;
+  /** T-11: which piece of the bar (split by breaks) it names, from 0. */
+  piece: number;
 }
 
 export interface BreakRect {
@@ -378,22 +381,18 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
           key, laneKey: child.key, row: r, subjectId: subject.subjectId, subjectName: subject.name, childId: child.childId,
           childName: child.childName, paletteSlot: subject.paletteSlot, step: child.step, y, height, cy,
         });
-        const placed = members.map((a) => {
-          const columns = columnsFor(seriesFor(a), cy, pxPerPoint, height);
+        for (const a of members) {
+          // T-11: the outer ends pulled in, so neighbouring assignments never touch.
+          const columns = insetEnds(columnsFor(seriesFor(a), cy, pxPerPoint, height));
+          const pieces = piecesOf(columns);
           bands.push({
             rowKey: key, laneKey: child.key, assignmentId: a.assignmentId, childId: a.childId, title: a.title,
             paletteSlot: subject.paletteSlot, step: child.step, d: pathFor(columns), runs: runsOf(columns), cy,
+            connectors: connectorsOf(pieces),
           });
-          const name = placeName(a.title, columns, cy, measure);
-          if (name) names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...name });
-          return { a, columns, named: name !== null, start: Math.min(...columns.flatMap((c) => (c ? [c.x0] : []))) };
-        });
-        // T-10: bars with no inside name get a label past their end, up to the next bar in the row.
-        for (const p of placed) {
-          if (p.named) continue;
-          const limit = outsideNameLimit(placed.map((o) => o.start), p.start, plotX + plotWidth);
-          const label = placeOutsideName(p.a.title, p.columns, y, height, cy, limit, measure);
-          if (label) names.push({ rowKey: key, assignmentId: p.a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...label, outside: true });
+          for (const name of placePieceNames(a.title, pieces, cy, y, height, detail === "smooth", measure)) {
+            names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...name });
+          }
         }
         y += height;
       });

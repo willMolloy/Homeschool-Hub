@@ -25,7 +25,8 @@ Tickets: `docs/tickets/timeline/`. Source: the Timeline Tools Page. DeeDee dropp
 | T-08c Bar opacity | 31e6a0b | DeeDee's request: unselected bars and All subjects from 0.82 to 0.91 (halfway to solid), bars dimmed by a selection from 0.3 to 0.65, the selected bar stays at 1; colour-blind and contrast checks re-run, no threshold changed |
 | T-09 "How did last week go?" redesign | ea9ed8c | DeeDee's request: the default is that last week went as planned (the week, "Everything went as planned.", Looks right, a quiet Skip); one calm pastel row per planned assignment with a quiet check; tapping a row opens As planned / Less / More and a − / + stepper inline, and a changed row shows "2 of 3 ch." with Undo; a child picker with more than one child; Add progress on something else at the bottom; the per-student sheet uses the same rows and is titled "Last week · Oct 19–25"; same check-in API and engine |
 | T-10 Add assignment from the timeline | ae916f3 | DeeDee's request: "+ Add assignment" in the timeline header opens the existing assignment form (a bottom sheet on phones, a right side panel wider); essentials first and the weight behind More (on the schedule screen too); the new bar appears at once, briefly highlighted, switching the child filter to All if it would hide it; titles required in client, API (400) and DB; bars too short for an inside name get a label past their end; the demo can add assignments, events stay blocked |
-| T-10b A label past a bar stops at the next bar | (this commit) | Found on the T-10 preview at 390 px: a label past a short bar could run over the next bar's name when the two edges differed only by rounding. The limit is now the next start after the bar's own start; no visual change otherwise |
+| T-10b A label past a bar stops at the next bar | cd8f104 | Found on the T-10 preview at 390 px: a label past a short bar could run over the next bar's name when the two edges differed only by rounding. The limit is now the next start after the bar's own start; no visual change otherwise |
+| T-11 Gaps, connectors and a label in every piece | (this commit) | DeeDee's request: a 2.5 px gap between neighbouring assignments at every zoom (ends pulled in, dates unchanged) with rounded caps; a faint line in the subject colour joins the pieces of one assignment across a break; every piece is named inside its own bar, cut with "…" down to one character; labels past the bar end (T-10) are gone |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -324,4 +325,14 @@ DeeDee wants This Week minimal, with pastel colours. Each subject therefore also
 
 - **Compare starts, not end vs start.** Bars in a packed row never overlap, so the next bar is the next start. This avoids an epsilon and any rounding of pixel positions.
 - **When there is no room, no label.** At 390 px Treasure Island ends right where The Hobbit starts, so it gets no label there. Its full title is still in the edit bar and in the screen-reader lane list, as with thin rows in T-10.
+- **No thresholds changed.**
+
+## T-11 — Gaps, connectors and piece label decisions (DeeDee's request)
+
+- **Gap.** 2.5 px, made by pulling each assignment's outer ends in by 1.25 px. Gaps at breaks are untouched. A bar never shrinks below 1 px; a 1 px end column the inset would swallow is dropped. Dates, drag and hit areas use the same drawn runs, so nothing else changes.
+- **Caps.** Radius 4 px, limited to half the end's thickness and half the bar's width, so thin and short bars stay clean.
+- **Connectors.** Built only from one assignment's own pieces within one lane, so they can't join different assignments; drawn under the bars, 2 px wide, 0.35 opacity, in the bar's colour, along the row centre. They dim with the bar when another is selected. Year view only splits at week-plus breaks (T-08b bridges single days off); This month draws one across every break.
+- **Labels inside only.** Each piece's name stays within its own x span and its row. On a piece thinner than the 13 px patch, the patch is centred on the bar and kept inside the row; rows thinner than 13 px get no name (the full title stays in the edit bar and the screen-reader list). Below one character and "…", no name. This replaces the T-10 labels past the bar end, so the T-10b overlap can't happen: pieces of different assignments are separated by the gap and each name stays in its own piece.
+- **Which pieces.** This month (daily detail) names every piece, so the piece after a break has its own name. Zoomed out, the first piece is named and a later piece only if it is at least 3× its name's width.
+- **Option 4 skipped (alternating lightness).** Checked against the palette with ±6% L: 28 of 240 swatch variants would fail AA 4.5 for labels (worst 3.58), and the shift collides with the child lightness steps (±7%). The gap does the separating instead.
 - **No thresholds changed.**
