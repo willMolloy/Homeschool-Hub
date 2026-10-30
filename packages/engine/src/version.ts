@@ -9,4 +9,5 @@
 // 0.4.0: scheduled work assumed done (S2b-18); plans run from the start, asOf only labels days, logs are ignored.
 // 0.5.0: actual-progress check-ins (S2b-20); DayLoad.position, checkInWeeks, finishedEarly.
 // 0.6.0: the latest check-in is authoritative (S2b-38); a later check-in replans from the original end and pace.
-export const ENGINE_VERSION = "0.6.0";
+// 0.7.0: a missed day on or before asOf carries its work forward (S4-00); days before it stay as planned.
+export const ENGINE_VERSION = "0.7.0";

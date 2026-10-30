@@ -10,7 +10,7 @@ import { ScheduleList, type FormSlotProps } from "./ScheduleList";
 /** Mirrors apps/api/src/routes/blockedRanges.ts and scheduleLimits.ts. */
 export const LIMITS = { label: 60, days: 366 } as const;
 
-export const KIND_LABELS: Record<BlockedKind, string> = { vacation: "Vacation", holiday: "Holiday", sick: "Sick day", other: "Other" };
+export const KIND_LABELS: Record<BlockedKind, string> = { vacation: "Vacation", holiday: "Holiday", sick: "Sick day", other: "Other", missed: "Missed day" };
 
 const byStart = (a: BlockedRange, b: BlockedRange) => a.startDate.localeCompare(b.startDate) || a.endDate.localeCompare(b.endDate);
 const titleOf = (r: BlockedRange) => r.label ?? KIND_LABELS[r.kind];
@@ -107,7 +107,8 @@ function DaysOffForm({ item, onSaved, onCancel, extra, externalError, l }: FormS
       <div className="field">
         <label htmlFor={ids.kind}>Kind</label>
         <select id={ids.kind} value={kind} onChange={(e) => setKind(e.target.value as BlockedKind)}>
-          {BLOCKED_KINDS.map((k) => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
+          {/* "Missed day" is made from This Week (S4-10), not here. */}
+          {BLOCKED_KINDS.filter((k) => k !== "missed" || kind === "missed").map((k) => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
         </select>
       </div>
       <div className="field">

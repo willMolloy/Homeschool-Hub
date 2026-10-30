@@ -1,7 +1,9 @@
 import { buildCapacityModel, type CapacityModel } from "./capacity";
-import { applyCheckIns } from "./checkins";
+import { applyCheckIns, lastCheckInWeekEnd } from "./checkins";
 import { EngineInputError, fromDayNumber, isValidLocalDate, toDayNumber } from "./dates";
 import { EPS, MAX_PUSH_DAYS, placeSegment, prepareOverrides, type Placement } from "./placement";
+import { pastMissedDays } from "./missed";
+import { replanFrom } from "./reanchor";
 import { weightPerUnitOf } from "./weights";
 import { ENGINE_VERSION } from "./version";
 import type { Assignment, ChildPlan, DayKind, DayLoad, PlanContext, PlanWarning, SubjectWeight } from "./types";
@@ -40,7 +42,7 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   const warn = (w: PlanWarning): void => {
     if (!warnings.includes(w)) warnings.push(w);
   };
-  const cap = model ?? buildCapacityModel(ctx.calendar, ctx.events, ctx.blocked);
+  const fullCap = model ?? buildCapacityModel(ctx.calendar, ctx.events, ctx.blocked);
   const { weight, source: weightSource } = weightPerUnitOf(a, subjectDefaultFor(a, ctx));
 
   const S = toDayNumber(a.start);
@@ -48,8 +50,15 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   const total = a.totalUnits;
   const asOf = ctx.asOf ? toDayNumber(ctx.asOf) : S;
 
+  // S4-00: a missed day on or before asOf is not a plain day off. The plan is built as if it were not missed,
+  // then re-anchored on it (below); until then the capacity model leaves it out.
+  const missed = pastMissedDays(ctx.blocked, childId, S, asOf);
+  const cap = missed ? buildCapacityModel(ctx.calendar, ctx.events, missed.rest) : fullCap;
+  const zeroed = new Set<number>();
+
   const capOf = new Map<number, number>();
   const c = (d: number): number => {
+    if (zeroed.has(d)) return 0;
     let v = capOf.get(d);
     if (v === undefined) {
       v = cap.capacity(d, childId, a.subjectId);
@@ -68,7 +77,19 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   } else {
     const overrides = prepareOverrides(a, childId, ctx.overrides, ctx.calendar, warn);
     p = placeSegment({ from: S, end: E, pushLimit: E + MAX_PUSH_DAYS, remaining: total, overrides, first: true }, c, warn);
+    // A missed day that has work: keep the plan before it, put 0 on it, replan the rest (S4-00). Check-ins are
+    // authoritative (S2b-38), so days up to the last check-in's week are handled first and the check-ins then
+    // re-anchor over them; later ones are handled on top of the check-ins.
+    const lastCheckIn = lastCheckInWeekEnd(a, childId, ctx.checkIns, ctx.calendar);
+    const missMissedDay = (d: number): void => {
+      const worked = (p.planned.get(d) ?? 0) > EPS;
+      zeroed.add(d);
+      if (worked) replanFrom(p, d, d + 1, total, overrides, c, E + MAX_PUSH_DAYS, warn);
+    };
+    const missedDays = missed?.days ?? [];
+    for (const d of missedDays) if (d <= lastCheckIn) missMissedDay(d);
     const ci = applyCheckIns(p, { a, childId, calendar: ctx.calendar, checkIns: ctx.checkIns, S, E, overrides, c, warn });
+    for (const d of missedDays) if (d > lastCheckIn) missMissedDay(d);
     ({ done, finishedEarly, checkInWeeks } = ci);
   }
   const remaining = Math.max(0, total - done);
@@ -85,7 +106,7 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     days.push({
       date: fromDayNumber(d),
       capacity: c(d),
-      schoolDay: cap.schoolDay(d, childId),
+      schoolDay: fullCap.schoolDay(d, childId),
       units,
       thickness: units * weight,
       kind,

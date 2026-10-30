@@ -57,7 +57,10 @@ export interface BlockedPeriod {
   end: LocalDate;
   /** null/undefined/empty = whole family. */
   childIds?: string[] | null;
-  /** Informational only; the engine treats every kind the same. Stored values are a BlockedKind. */
+  /**
+   * Stored values are a BlockedKind. Every kind is zero capacity, except a `missed` day on or before asOf, which
+   * also keeps the plan before it as it was and carries its work forward (S4-00).
+   */
   kind?: BlockedKind | (string & {});
 }
 

@@ -44,6 +44,10 @@ INSERT INTO blocked_range (id, family_id, label, start_date, end_date) VALUES
   ('b0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', 'Christmas', '2026-12-21', '2027-01-01');
 INSERT INTO week_override (family_id, assignment_id, child_id, week_start, planned_units, mode) VALUES
   ('f0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', NULL, '2026-10-26', 60, 'pushEndDate');
+SELECT pg_temp.expect_error($$INSERT INTO blocked_range (family_id, kind, start_date, end_date) VALUES ('f0000000-0000-0000-0000-000000000001','later','2026-10-28','2026-10-28')$$,
+  '23514', 'blocked_range kind must be a known kind');
+INSERT INTO blocked_range (family_id, kind, start_date, end_date) VALUES ('f0000000-0000-0000-0000-000000000001', 'missed', '2026-10-28', '2026-10-28');
+DO $$ BEGIN RAISE NOTICE 'ok   blocked_range accepts kind missed (009)'; END $$;
 
 -- 1. checkoff: one per (assignment, date, child)
 INSERT INTO log_entry (id, family_id, assignment_id, log_date, kind) VALUES
