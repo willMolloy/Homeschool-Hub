@@ -3,13 +3,15 @@
 Tester verification of tickets S3a-01 to S3a-06 in `docs/tickets/sprint-3a-setup/` at commit 39879d7 (branch `claude/test-coverage-analysis-6dehbu`).
 Date: 2026-10-30. No product code or tests were changed for this review.
 
+> **Independence note** (added by the coordinator after review): this pass was run by a separate tester agent that did not see the developer's work session, but it was set up and briefed by the same coordinating session that wrote the tickets and directed the build. It is not a second set of eyes in the sense of a different person or project. An independent check (DeeDee's hand test or the other project manager's review) is still worth doing before the friends beta.
+
 ## Result: PASS, with low-severity follow-ups
 
-- `bash scripts/check.sh`: **ALL GREEN** (lint, typecheck, build, db:reset, test, test:tz, db:validate). Counts: 796 web, 596 api, 63 db, 313 engine (x 8 time-zone runs).
+- `bash scripts/check.sh`: **ALL GREEN** (lint, typecheck, build, db:reset, test, test:tz, db:validate). Counts: 796 api, 596 web, 63 db, 313 engine (x 8 time-zone runs).
 - No high or medium issues. Eight low findings, all reproduced.
 - Every "Done when" item below was exercised against the real API and a real browser (Chromium, 360 px), not only jsdom.
 - Setup: scratch database `hh_tester_dev` (not `hh_test`; `db:seed` refuses any name not ending `_dev`). It held the seeded demo family plus two families I created, "Tester Fam" and "Other Fam" (for foreign ids and archived rows). The API ran on :3000 and the Vite dev server on :5173. Both servers are stopped and the database is dropped.
-- Screenshots in the scratchpad (`/tmp/claude-0/-home-user-Homeschool-Hub/7a240ed6-3fb3-5430-b251-2b10ddef71fc/scratchpad/`):
+- Screenshots in `docs/progress/screens/sprint-3a/` (copied from the session scratchpad):
   - `s-list.png`: the three buttons wrap onto two rows at 360 px, no horizontal scroll.
   - `s-bulk-empty.png`: the Add several form with its rows.
   - `s-import-errors.png`: the error list with Import greyed out.

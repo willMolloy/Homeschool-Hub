@@ -123,7 +123,7 @@ Each follows the module rules above. In order:
    - CSV export of all of it;
    - a **term and year summary** per child (books read, attendance, estimated hours), as CSV and a printable page that saves as PDF;
    - then a **Charlotte Mason term-exam list**: at the end of a term, each child's books and subjects covered, to draw exam questions from.
-   The first module also adds the on/off switch for modules in settings. Every total and export carries the neutral note: "A record of logged hours to support your own records. Check your state's requirements." Nothing claims to meet a state's requirements (APP_OVERVIEW.md, "Product rules").
+   The first module also adds the on/off switch for modules in settings. **CSV safety:** imported titles can start with `=`, `+`, `-` or `@` (for example `=HYPERLINK(...)`); they are stored as typed, so every CSV export must escape such cells (prefix a `'`) so a spreadsheet never runs them as formulas. Every total and export carries the neutral note: "A record of logged hours to support your own records. Check your state's requirements." Nothing claims to meet a state's requirements (APP_OVERVIEW.md, "Product rules").
 2. **Daily checklist**, for families who want it: a Today list per child with one-tap done. A tick confirms what the plan already assumes. Never required.
 3. **Later, as the hub grows:**
    - **"Smooth this month":** the app suggests moving a bar out of an overloaded week, accepted with one tap. It waits until the briefing shows where overload actually happens.

@@ -1,6 +1,6 @@
 # Sprint 4 — Assignment weekdays, the weekly briefing and "Missed a day?"
 
-> **Status: proposed** (2026-10-30). Written from Will's answers; DeeDee reviews before the developer starts.
+> **Status: proposed, not started** (2026-10-30). Written from Will's answers to design questions. It needs DeeDee's approval, or Will's explicit approval recorded here, before the developer starts. Approval: _none yet_.
 
 **Source:** ROADMAP.md, core checklist ("Assignment weekdays", "Steering"), and Will's product answers of 2026-10-30:
 - **Weekdays:** a subject can have default weekdays. A new assignment starts from the subject's days, or from every school day if the subject has none. The assignment form shows the days as tappable chips; tapping one customises this assignment. "Set as default for this subject" appears when the days differ from the subject's. Assignments that never customised their days follow the subject's default if it changes later (like effort defaults, D20).
@@ -13,7 +13,9 @@ Each ticket uses the usual format. Build them in order, one commit per ticket, e
 
 | Order | Ticket | Depends on | Size |
 |-------|--------|------------|------|
+| 0 | [S4-00 — A missed past day carries its work forward](S4-00-a-missed-past-day-carries-its-work-forward.md) | none | M |
 | 1 | [S4-01 — Plan an assignment only on its weekdays in the engine](S4-01-plan-an-assignment-only-on-its-weekdays.md) | none | M |
+| 1b | [S4-01b — Changing days mid-assignment keeps progress to date](S4-01b-changing-days-mid-assignment-keeps-progress.md) | S4-01, S4-02 | M |
 | 2 | [S4-02 — Write migration 009: assignment and subject weekdays](S4-02-write-migration-009-weekdays.md) | none | S |
 | 3 | [S4-03 — Accept and return weekdays on the subject endpoints](S4-03-weekdays-on-the-subject-endpoints.md) | S4-02 | S |
 | 4 | [S4-04 — Accept and return weekdays on the assignment endpoints](S4-04-weekdays-on-the-assignment-endpoints.md) | S4-02 | S |
@@ -22,8 +24,11 @@ Each ticket uses the usual format. Build them in order, one commit per ticket, e
 | 7 | [S4-07 — Pick weekdays on the assignment form](S4-07-pick-weekdays-on-the-assignment-form.md) | S4-04, S4-06 | M |
 | 8 | [S4-08 — Add finish-forecast and heavy-week helpers to the engine](S4-08-finish-forecast-and-heavy-week-helpers.md) | S4-01 | S |
 | 9 | [S4-09 — Show the weekly briefing on This Week](S4-09-show-the-weekly-briefing-on-this-week.md) | S4-05, S4-08 | M |
-| 10 | [S4-10 — Mark a missed day from This Week](S4-10-mark-a-missed-day-from-this-week.md) | none | S |
-| 11 | [S4-11 — Tester pass: weekdays, briefing and missed days](S4-11-tester-pass.md) | S4-01 to S4-10 | S |
+| 10 | [S4-10 — Mark a missed day from This Week](S4-10-mark-a-missed-day-from-this-week.md) | S4-00 | S |
+| 11 | [S4-11 — Tester pass: weekdays, briefing and missed days](S4-11-tester-pass.md) | S4-00 to S4-10 | S |
+
+## Why S4-00 and S4-01b come first
+The plan assumes every scheduled day before today was done (S2b-18). A day off dated in the past (or a weekday change on a started assignment) is spread over the whole range, including days already counted as done, so the plan claims *more* was done before the missed day instead of carrying the work forward. Reproduced 2026-10-30: 100 pages over Oct 5–Nov 27, asOf Oct 29; marking Oct 28 missed raises the position at the end of Oct 27 from 42.5 to 43.6 pages. This already happens with a past sick day under Days off; "Missed a day?" would make it common.
 
 ## Next, once C1 is decided
 "Missed a day?" will ask how to make the work up: **make it up this week**, **spread it evenly before the end date** (today's behaviour, and what S4-10 does), or **push the end date back**. The first and last are week adjustments underneath, so they wait for the week-adjust API and decision C1 (ROADMAP.md).

@@ -1,5 +1,7 @@
 # Sprint 3b — Fixes from the Sprint 3a verification
 
+**Approval:** fix tickets from a tester report, per HOW_WE_WORK ("Its findings become fix tickets"); started by the coordinator on 2026-10-30 while Will was away, under his instruction to keep the dev and tester working.
+
 These tickets fix the findings in `docs/reviews/sprint-3a-verification.md` (tester, 2026-10-30, at `39879d7`). All findings were Low; L8 (importing the same file twice makes duplicates) matches the single form and API and is not fixed.
 
 Each ticket uses the usual format. Build them in order, one commit per ticket, each with `bash scripts/check.sh` green. Progress goes in `docs/progress/sprint-3b.md`.

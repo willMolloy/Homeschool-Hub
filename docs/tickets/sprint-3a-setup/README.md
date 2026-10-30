@@ -1,6 +1,8 @@
 # Sprint 3a — Fast setup
 
-**Source:** ROADMAP.md, core checklist, "Fast setup" (agreed 2026-10-30). The goal: a parent can enter a whole term without typing one form per book.
+**Source:** ROADMAP.md, core checklist, "Fast setup" (agreed 2026-10-30).
+
+**Approval:** Will approved this batch in the working session on 2026-10-30 ("Proceed with that batch of tickets"), after the tickets were committed as pending approval. DeeDee had not reviewed it before it was built; it was verified in S3a-07 and is on the branch for her review before merging. The goal: a parent can enter a whole term without typing one form per book.
 
 Each ticket uses the usual format: Goal / Context / Steps / Done when / Tests / Out of scope. Build them in the order below, one commit per ticket, each with `bash scripts/check.sh` green. Progress goes in `docs/progress/sprint-3a.md`. The tester verifies the whole sprint at the end (S3a-07).
 

@@ -16,7 +16,7 @@ The assignment form shows the days as chips, prefilled from the subject's defaul
 2. Prefill: the assignment's own days if set; else the subject's default; else every school day. Changing the subject re-prefills while the parent hasn't tapped a chip.
 3. Saving: if the chips equal what the assignment would inherit, send `weekdays: null`; otherwise send the list.
 4. When the chips differ from the subject's default (or the subject has none and not every day is chosen), show a small "Set as default for {subject}" button. It patches the subject's `defaultWeekdays` and then the assignment saves `null` (it now inherits).
-5. Add several (S3a-04) gets the same chips in its shared fields; copies keep the original's own days.
+5. Add several (S3a-04) gets the same chips in its shared fields. Copying (S3a-01, S3a-02) copies the original's own `weekdays` (null stays null, so the copy follows the subject too).
 
 ## Done when
 - A new Picture study assignment for a subject with default Fri starts with only Fri selected and saves `null`.
@@ -24,7 +24,7 @@ The assignment form shows the days as chips, prefilled from the subject's defaul
 - At least one day stays selected; 44 px chips at 360 px; no extra helper text.
 
 ## Tests
-- Web: prefill from the subject; prefill from school days; customise and save a list; matching the default saves null; "Set as default" sends the subject PATCH then the assignment save; changing the subject before tapping re-prefills; Add several sends the shared days on every row.
+- Web: prefill from the subject; prefill from school days; customise and save a list; matching the default saves null; "Set as default" sends the subject PATCH then the assignment save; changing the subject before tapping re-prefills; Add several sends the shared days on every row; a copy of a Mon/Wed assignment posts `weekdays: [1,3]` and a copy of an uncustomised one posts `null` (from the Assignments screen and the timeline); CSV import still posts `null`.
 
 ## Out of scope
 - Weekdays per child on a shared assignment; a CSV column.

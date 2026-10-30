@@ -27,7 +27,7 @@ The engine places an assignment's work only on its weekdays: its own, else its s
 - Results don't depend on the time zone.
 
 ## Tests
-- Engine unit tests: Friday-only (12 lessons over 12 weeks → 1 per Friday); Mon–Thu math; subject default used; assignment overrides subject; empty list ignored; weekdays with no school days → `no-capacity`; a Friday day off with a Friday-only assignment spreads that lesson over the remaining Fridays (keep end date, as days off do today); a check-in on a Tue/Thu assignment replans onto Tue/Thu only.
+- Engine unit tests: Friday-only (12 lessons over 12 weeks → 1 per Friday); Mon–Thu math; subject default used; assignment overrides subject; empty list ignored; weekdays with no school days → `no-capacity`; a Friday day off with a Friday-only assignment spreads that lesson over the remaining Fridays (keep end date, as days off do today); a check-in on a Tue/Thu assignment replans onto Tue/Thu only; a Tue/Thu assignment with a Tuesday event set to skip and one set to lighter; a shared assignment for two children where one child has a day off; a week override on a Fridays-only assignment spreads only over that week's Friday.
 - `npm run test:tz` passes.
 
 ## Out of scope
