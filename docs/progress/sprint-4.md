@@ -5,7 +5,8 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 | Ticket | Commit | Notes |
 |--------|--------|-------|
 | S4-00 A missed past day carries its work forward | d5bf88f | Migration 009 (`missed` kind); engine 0.7.0: `reanchor.ts` (`replanFrom`), `missed.ts` (`pastMissedDays`) |
-| S4-01 Plan an assignment only on its weekdays in the engine | (this commit) | Engine 0.8.0: `weekdays.ts` (`weekdaysOf`, `validWeekdays`); `ChildPlan.weekdays` and `weekdaysSource` |
+| S4-01 Plan an assignment only on its weekdays in the engine | 33f1809 | Engine 0.8.0: `weekdays.ts` (`weekdaysOf`, `validWeekdays`); `ChildPlan.weekdays` and `weekdaysSource` |
+| S4-02 Write migration 009: assignment and subject weekdays | (this commit) | Migration **010** (`010_weekdays.sql`, the ticket's "009" was taken by S4-00); `valid_weekdays()` CHECK function |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -23,3 +24,5 @@ Tickets: `docs/tickets/sprint-4-weekdays-briefing/`. Pass 1 (engine and data): S
 - **S4-01 where the mask sits.** A day outside the weekdays has capacity 0 for that assignment (`DayLoad.capacity` 0), but `DayLoad.schoolDay` still says whether it is a school day for the child, as it is a property of the family, not of the assignment. Because capacity is 0, such days do not count as capacity days in `weeklySummary`.
 - **S4-01 changed test.** `apps/web/test/engine-version.test.tsx` now expects 0.8.0.
 - **S4-01 web fixtures.** `plan-debug.test.tsx` and `this-week.test.tsx` build ChildPlan objects by hand; they gained `weekdays: null, weekdaysSource: "default"` (type only, no expectation changed).
+- **S4-02 migration number.** The ticket says 009 but S4-00 already took 009 (`missed` kind), so this is `db/010_weekdays.sql`. S4-01b takes 011.
+- **S4-02 how the CHECK is written.** One immutable SQL function `valid_weekdays(smallint[])` (NULL passes; 1-7 entries, no NULL element, all within 0-6, no repeats) used by both columns' named CHECKs, so S4-01b can reuse it. Postgres CHECKs cannot hold a subquery, so "no repeats" is the count of distinct days present equalling the length.

@@ -16,6 +16,7 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `007_drop_minutes_per_unit.sql` | S2b-15, contract step: drops `assignment.minutes_per_unit` and 003's `assignment_minutes_unit_no_mpu`. Older migrations still mention the column; they are history and are never edited |
 | `008_progress_checkin.sql` | S2b-21: `progress_checkin` (parent-confirmed position per assignment, child and week; `mode` NULL = on plan; no row = as planned) and `week_review` (`reviewed`/`skipped` per family week) |
 | `009_missed_kind.sql` | S4-00: `blocked_range.kind` also accepts `missed` (a past day the family did not do; its work carries forward) |
+| `010_weekdays.sql` | S4-02: `assignment.weekdays` and `subject.default_weekdays` (`smallint[]`, 0 = Sunday … 6 = Saturday; NULL = no choice; non-empty, distinct, 0–6, checked by `valid_weekdays()`) |
 
 **Expand/contract (004–007).** Sprint 2b moved from minutes per unit to weights without a broken step: 004 *expands* (adds `weight_per_unit` next to the old column and backfills it at ÷ 2), 005 and 006 add the history and subject defaults, the API and web then switch to weights (S2b-06 … S2b-14), and only after nothing reads the old column does 007 *contract* (drop it and its 003 constraint). Every migration in between leaves the app working and the gate green.
 
