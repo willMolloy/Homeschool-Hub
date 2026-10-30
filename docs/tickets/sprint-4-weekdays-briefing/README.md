@@ -1,6 +1,6 @@
 # Sprint 4 — Assignment weekdays, the weekly briefing and "Missed a day?"
 
-> **Status: proposed, not started** (2026-10-30). Written from Will's answers to design questions. It needs DeeDee's approval, or Will's explicit approval recorded here, before the developer starts. Approval: _none yet_.
+> **Status: approved, not started** (2026-10-30). Written from Will's answers to design questions. **Approval:** Will approved Sprint 4, including S4-00 and S4-01b, in the working session on 2026-10-30, to start after Sprint 3b and its tester pass. DeeDee has not reviewed it yet; it stays on the branch for her review before merging.
 
 **Source:** ROADMAP.md, core checklist ("Assignment weekdays", "Steering"), and Will's product answers of 2026-10-30:
 - **Weekdays:** a subject can have default weekdays. A new assignment starts from the subject's days, or from every school day if the subject has none. The assignment form shows the days as tappable chips; tapping one customises this assignment. "Set as default for this subject" appears when the days differ from the subject's. Assignments that never customised their days follow the subject's default if it changes later (like effort defaults, D20).
