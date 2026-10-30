@@ -17,7 +17,7 @@ DeeDee and Will co-own the product. DeeDee approves what gets built. This plan w
 
 ## The plan, in order
 
-**Blocking the core now:** decisions C1 (which week edit wins), C2 (how far undo goes) and C3 (the effort proposal). See "Open decisions for DeeDee".
+**Core decisions C1–C3 were decided on 2026-10-30** (see "Open decisions for DeeDee"), so nothing in the core is blocked on a decision now.
 
 | # | Phase | Target | Done when |
 |---|---|---|---|
@@ -47,7 +47,7 @@ Agreed now, so they don't drift later. We consider going public only if:
 
 Status as of 2026-10-30. "Built" means a sprint delivered it; the end-to-end pass in the last row confirms it.
 
-**Build order for what's left:** assignment weekdays first (it changes what the bars mean, so it comes ahead of the effort rework), then the weekly briefing with finish-date forecasts, then "Missed a day?", then the C1–C3 items (week adjust, undo, effort) as DeeDee decides them. Fast setup, accounts and the hosting fixes fit around these.
+**Build order for what's left:** assignment weekdays first (it changes what the bars mean, so it comes ahead of the effort rework), then the weekly briefing with finish-date forecasts, then "Missed a day?", then the C1–C3 items (week adjust, undo, effort), now decided. Fast setup, accounts and the hosting fixes fit around these.
 
 ### Assignment weekdays
 - [ ] **Which weekdays an assignment runs on** (Sprint 4: tappable day chips, a subject default that assignments follow until customised). Today the engine spreads every assignment over all school days, so a once-a-week subject (picture study, composer, nature study) shows as a fifth of a lesson every day, and math can't be Monday to Thursday only. An assignment gets optional weekdays (default: every school day); the plan places its work only on those days, and the bars, This Week and check-ins follow. Events already have weekdays; assignments don't.
@@ -60,13 +60,13 @@ Status as of 2026-10-30. "Built" means a sprint delivered it; the end-to-end pas
 ### Steering
 - [x] This Week, and the optional "How did last week go?" check-in for finished weeks (S2b, T-03b, T-09).
 - [x] Days off for the whole family or one child (for example a sick day). Bars reflow and keep their end dates (S2a).
-- [ ] **Adjust the current or a coming week:** change this week's amount, then keep the end date or push it back. The `week_override` table exists; the API and UI wait for decision C1.
-- [ ] **Undo, and reset an assignment to how it was.** How far undo goes is decision C2.
+- [ ] **Adjust the current or a coming week:** change this week's amount, then keep the end date or push it back. The `week_override` table exists; C1 is decided (the most recent edit wins).
+- [ ] **Undo, and reset an assignment to how it was.** C2 decided: the last change, plus reset to how it was created.
 - [ ] **Weekly briefing on This Week, with finish-date forecasts.** A short status line per child above the week's work: "On track", or "Latin will finish 2 weeks late at this pace. Keep the end date or push it back?", or "This is your heaviest week." It appears only when there's something to act on. It is part of This Week, not a new screen. The engine already produces the warnings (work past the end date, no capacity, unplaced work); forecasts move once check-ins show a slower or faster pace. Its keep-or-push buttons use week adjust (C1).
-- [ ] **"Missed a day?" on This Week.** Pick any day of the shown week up to today, for one child or everyone (a day off underneath), and the plan reflows at once (Sprint 4, S4-10). Next, once C1 is decided, it asks how to make the work up: make it up this week, spread it evenly before the end date, or push the end date back. Missing one assignment rather than a whole day waits until after the core; the parent makes it up that week or reports it in the check-in. Undoing a mis-tap is part of undo (C2).
+- [ ] **"Missed a day?" on This Week.** Pick any day of the shown week up to today, for one child or everyone (a day off underneath), and the plan reflows at once (Sprint 4, S4-10). Next, with week adjust (C1 is decided), it asks how to make the work up: make it up this week, spread it evenly before the end date, or push the end date back. Missing one assignment rather than a whole day waits until after the core; the parent makes it up that week or reports it in the check-in. Undoing a mis-tap is part of undo (C2).
 - [ ] **Preview before saving an event:** for example "Treasure Island goes from 5 to 6 pages a day". Events already have skip, lighter and normal rules per subject (S2a); the preview is missing.
 
-### Effort (proposed, decision C3)
+### Effort (decision C3: approved)
 Thickness shows effort: how much work a day of this takes. Today the parent picks a weight per unit (Light, Normal, Heavy or Very heavy). Parents can't easily say how heavy one page is, but they can say how long a day takes. The proposal:
 - [ ] **Ask in time, store as effort.** When adding an assignment: "How many pages a day?" and "About how long will that take?" (15, 30, 45 or 60 minutes, or custom). The app stores the effort per unit (minutes per day ÷ units per day ÷ 2, since 1 point = 2 minutes). From then on the bar behaves as now: pull the end date in and it gets thicker.
 - [ ] **"Feels heavier / lighter" on the edit bar.** One tap nudges the effort by about 25% and the bar redraws. This is the main way to correct a bad first guess, and it is steering in itself.
@@ -180,11 +180,13 @@ The timeline tickets, in `progress/timeline.md`:
 
 Triaged on 2026-10-30. The older numbered items are in `progress/overnight.md` ("Decisions for DeeDee"); each is listed below by its number there (O1 to O12).
 
-### Needed for the core (phase 1)
+### Decided for the core (phase 1)
 
-- **C1. Week-adjust mode rule** (overnight O3): when a week is adjusted more than once, does the last edit win or the latest week? This blocks "Adjust the current or a coming week". The engine currently uses the last edit (`packages/engine/src/placement.ts`).
-- **C2. How far undo goes:** the last change only, or a short history per assignment. This also settles **removal** (O4): days off are hard-deleted today, while assignments and events are archive-only.
-- **C3. Effort input:** approve the proposal in "Effort" above (ask in time, store as effort, nudge heavier or lighter, carry corrections forward).
+Decided by Will on 2026-10-30; DeeDee can still revisit them before the work is merged.
+
+- **C1. Week-adjust mode rule** (overnight O3): **decided: the most recent edit wins**, as the engine does today (`packages/engine/src/placement.ts`). Unblocks "Adjust the current or a coming week".
+- **C2. How far undo goes:** **decided: undo the last change, plus reset an assignment to how it was created.** Removal (O4) stays as built: days off are hard-deleted, assignments and events archive-only.
+- **C3. Effort input:** **decided: approved as written** in "Effort" above (ask in time, store as effort, nudge heavier or lighter, carry corrections forward).
 
 ### Needed for hosting (phase 2)
 

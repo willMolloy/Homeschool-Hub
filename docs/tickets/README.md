@@ -171,3 +171,7 @@ See [sprint-3b-fixes/README.md](sprint-3b-fixes/README.md) (S3b-01 to S3b-07).
 ## Sprint 4: assignment weekdays, the weekly briefing and "Missed a day?" (proposed)
 
 See [sprint-4-weekdays-briefing/README.md](sprint-4-weekdays-briefing/README.md) (S4-01 to S4-11).
+
+## Sprint 5: event preview, calendar templates and the phone pass (proposed)
+
+See [sprint-5-preview-templates-phone/README.md](sprint-5-preview-templates-phone/README.md) (S5-01 to S5-10).
