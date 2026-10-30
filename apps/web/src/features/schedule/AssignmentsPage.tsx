@@ -1,6 +1,7 @@
 /**
  * /schedule/assignments (S2a-14): list, add, edit, archive. T-10: the same form opens from the timeline, with the
  * essentials first (subject, title, children, dates, unit and total) and the weight behind "More".
+ * S3a-04: "Add several" enters a subject's books in one form.
  */
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, UNIT_TYPES, weightPerUnitOf } from "@hh/engine";
@@ -8,6 +9,7 @@ import { apiPatch, apiPost } from "../../api/client";
 import type { Assignment, UnitType } from "../../api/types";
 import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet } from "./formBits";
 import { WithLookups, type Lookups } from "./lookups";
+import { BulkAssignmentsForm } from "./BulkAssignmentsForm";
 import { copyOfAssignment } from "./copyAssignment";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
 import { UNIT_LABELS, unitTitle } from "../../components/unitLabels";
@@ -38,6 +40,7 @@ export function AssignmentsPage() {
           copyOf={copyOfAssignment}
           renderCard={(a) => <AssignmentCard a={a} l={l} />}
           renderForm={(p) => <AssignmentForm {...p} l={l} />}
+          renderBulkForm={(p) => <BulkAssignmentsForm {...p} l={l} />}
         />
       )}
     </WithLookups>

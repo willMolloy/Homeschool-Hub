@@ -6,7 +6,8 @@ Tickets: `docs/tickets/sprint-3a-setup/`.
 |--------|--------|-------|
 | S3a-01 Copy an assignment from the Assignments screen | 251fe43 | `copyOf` on `ScheduleList` adds Copy to the edit form; `initial` prop on `AssignmentForm`; `copyOfAssignment` in `copyAssignment.ts` |
 | S3a-02 Copy an assignment from the timeline edit bar | 153f663 | `onCopy` on `EditBar`; `initial` on `AddAssignmentSheet`; same `copyOfAssignment` prefill |
-| S3a-03 Add the bulk-create assignments endpoint | (this commit) | `POST /api/assignments/bulk`; `createOne` shared with the single create |
+| S3a-03 Add the bulk-create assignments endpoint | 1ddad60 | `POST /api/assignments/bulk`; `createOne` shared with the single create |
+| S3a-04 Add several assignments at once | (this commit) | `BulkAssignmentsForm`; `renderBulkForm` on `ScheduleList` adds the "Add several" button |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -19,3 +20,7 @@ Tickets: `docs/tickets/sprint-3a-setup/`.
 - **S3a-03 error positions.** Validation errors (shape, limits, date order) and reference errors both get "Assignment N: " (1-based) in front of the usual message; the error codes (`invalid_request`, `invalid_range`, `invalid_reference`) are the single route's. The body-level errors (not a list, 0 or more than 50 items, unknown top-level key) have no prefix.
 - **S3a-03 references per item.** `checkRefs` runs once per item inside the transaction (two small queries each, at most 50 items) so the messages match the single route's exactly; a failure rolls everything back, including earlier items.
 - **S3a-03 limits.** Each item has the single create's limits; the whole request is capped at 50 items by the schema. The same child or subject in several items is fine.
+- **S3a-04 what counts as an empty row.** A row with no title and no total (after trimming). A row with only one of them is validated, so the missing field shows its error.
+- **S3a-04 server errors name the on-screen row.** The API counts only the rows sent ("Assignment 2: …"); the form rewrites that to "Row N: …" using the row's position on screen, so skipped empty rows don't shift the number. Other server messages show as they are (`saveError`).
+- **S3a-04 rows.** At least one row always stays (Remove is hidden on the last one). Rows are grouped as "Row N" for screen readers; no visible row heading. Subject offers active subjects only, as the single Add form does. After saving, the first new card takes focus.
+- **S3a-04 layout.** `.schedule-actions` is now a wrapping flex row so "Add several" sits beside "Add assignment"; a row's Remove sits under its fields.

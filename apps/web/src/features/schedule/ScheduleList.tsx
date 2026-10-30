@@ -49,6 +49,8 @@ interface Props<T extends ListItem> {
   confirmText: string;
   /** Gives the edit form a Copy button: closes it and opens the Add form prefilled with this (S3a-01). */
   copyOf?: (item: T) => Draft<T>;
+  /** S3a-04: gives the screen an "Add several" button that opens this form beside the single Add form. */
+  renderBulkForm?: (p: { onSaved: (created: T[]) => void; onCancel: () => void }) => ReactNode;
   /** Extra content above the list (e.g. a hint). */
   intro?: ReactNode;
   /** false hides "Add {noun}" entirely (the demo family can't add events). Default true. */
@@ -56,13 +58,14 @@ interface Props<T extends ListItem> {
 }
 
 export function ScheduleList<T extends ListItem>(props: Props<T>) {
-  const { title, noun, endpoint, emptyText, removal, labelOf, sort, renderCard, renderForm, confirmText, intro, canAdd = true, copyOf } = props;
+  const { title, noun, endpoint, emptyText, removal, labelOf, sort, renderCard, renderForm, confirmText, intro, canAdd = true, copyOf, renderBulkForm } = props;
   const archivable = removal === "archive";
   const [showArchived, setShowArchived] = useState(false);
   const path = archivable && showArchived ? `${endpoint}?includeArchived=true` : endpoint;
   const { data, error, loading, reload, setData } = useApi<T[]>(path);
   const toggleId = useId();
   const [adding, setAdding] = useState(false);
+  const [bulking, setBulking] = useState(false);
   const [initial, setInitial] = useState<Draft<T> | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<T | null>(null);
@@ -78,6 +81,10 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
   function closeAdd() {
     setAdding(false);
     setInitial(null);
+    focusLater(() => addBtn.current);
+  }
+  function closeBulk() {
+    setBulking(false);
     focusLater(() => addBtn.current);
   }
   function closeEdit(id: string | null) {
@@ -209,6 +216,15 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
               extra: null,
               externalError: null,
             })
+          ) : bulking && canAdd && renderBulkForm ? (
+            renderBulkForm({
+              onSaved: (created) => {
+                setData((prev) => [...(prev ?? []), ...created]);
+                setBulking(false);
+                if (created[0]) focusRow(created[0].id);
+              },
+              onCancel: closeBulk,
+            })
           ) : canAdd ? (
             <div className="schedule-actions">
               <button
@@ -223,6 +239,11 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
               >
                 Add {noun}
               </button>
+              {renderBulkForm ? (
+                <button className="btn btn-secondary" type="button" onClick={() => { setEditingId(null); setBulking(true); }}>
+                  Add several
+                </button>
+              ) : null}
             </div>
           ) : null}
           {items.length > 0 ? (
@@ -247,6 +268,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
                       data-row-id={item.id}
                       onClick={() => {
                         setAdding(false);
+                        setBulking(false);
                         setActionError(null);
                         setEditingId(item.id);
                       }}
@@ -258,7 +280,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
                 </li>
               ))}
             </ul>
-          ) : !adding ? (
+          ) : !adding && !bulking ? (
             <p className="schedule-empty">{emptyText}</p>
           ) : null}
         </>

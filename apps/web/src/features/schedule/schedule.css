@@ -142,6 +142,9 @@
 /* Lists of cards */
 .schedule-actions {
   margin: 0 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .schedule-list {
   list-style: none;
@@ -239,3 +242,5 @@
 .form-more { margin: 0 0 14px; }
 .form-more > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--muted); font-size: 0.95rem; }
 .form-more[open] > summary { margin-bottom: 6px; }
+/* S3a-04: a row's Remove sits under its fields, not stretched across a column. */
+.schedule-form [role="group"] > .btn { justify-self: start; margin-bottom: 14px; }
