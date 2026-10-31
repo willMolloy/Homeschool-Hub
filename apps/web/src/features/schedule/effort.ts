@@ -52,3 +52,13 @@ export function paceText(perDay: number, unitType: UnitType): string {
   const label = n === 1 ? UNIT_LABELS[unitType].one : UNIT_LABELS[unitType].many;
   return `About ${n.toLocaleString("en-US")} ${label} a day`;
 }
+
+/** S6b-07: a daily pace above this per unit is probably a typo in the total or the dates (pages 60, chapters 5, lessons 5, minutes 240). */
+export const PACE_NOTE_THRESHOLD: Readonly<Record<UnitType, number>> = { pages: 60, chapters: 5, lessons: 5, minutes: 240 };
+
+/** S6b-07: true when `perDay` units of `unitType` a day looks unrealistic (strictly above the threshold). */
+export const paceLooksHigh = (perDay: number, unitType: UnitType) => perDay > PACE_NOTE_THRESHOLD[unitType];
+
+/** S6b-07: "That's about 300 pages a day. Is that right?" */
+export const paceNoteText = (perDay: number, unitType: UnitType) =>
+  `That's ${paceText(perDay, unitType).replace(/^About/, "about")}. Is that right?`;

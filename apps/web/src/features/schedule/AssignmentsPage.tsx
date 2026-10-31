@@ -19,7 +19,7 @@ import { ScheduleList, type FormSlotProps } from "./ScheduleList";
 import { UNIT_LABELS, unitTitle } from "../../components/unitLabels";
 import { useWeightSuggestion } from "./useWeightSuggestion";
 import { EffortField } from "./EffortField";
-import { unitsPerDay } from "./effort";
+import { paceLooksHigh, paceNoteText, unitsPerDay } from "./effort";
 import type { EffortPick } from "./effort";
 import { weightCardText } from "./weightText";
 
@@ -248,6 +248,8 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
           <input id={ids.total} type="number" inputMode="decimal" min="0" step="any" value={totalUnits}
             onChange={(e) => setTotalUnits(e.target.value)} {...inv(errors.totalUnits, ids.total)} />)}
       </div>
+      {/* S6b-07: one quiet line for a pace that looks like a typo; it never blocks Save. */}
+      {pace !== null && paceLooksHigh(pace, unitType) ? <p className="hint pace-note" role="note">{paceNoteText(pace, unitType)}</p> : null}
       <EffortField id={ids.effort} unitType={unitType} pace={pace} pick={pick} onPick={setPick} baseMinutes={baseMinutes}
         suggestion={suggesting ? suggestion : null} subjectName={l.subjectName(subjectId)}
         chosenMinutes={pickedMinutes !== null && Number.isFinite(pickedMinutes) && pickedMinutes > 0 ? pickedMinutes : null} error={errors.effort} />
