@@ -81,6 +81,9 @@ describe.skipIf(!hasDb)("/api/calendar-templates (S5-06, integration)", () => {
     ["no kind", { breaks: [brk({ kind: undefined })] }],
     ["a 61-character label", { breaks: [brk({ label: "x".repeat(61) })] }],
     ["an unknown key on a break", { breaks: [brk({ startDate: "2026-09-01" })] }],
+    ["an unknown holiday (S7b-13)", { breaks: [brk({ holiday: "arbor-day" })] }],
+    ["weekday 7 (S7b-13)", { breaks: [brk({ weekday: 7 })] }],
+    ["weekday as text (S7b-13)", { breaks: [brk({ weekday: "1" })] }],
     ["an unknown key on the body", { familyId: "x" }],
   ];
   it.each(bad)("invalid: %s → 400, nothing stored", async (_label, over) => {
@@ -102,5 +105,14 @@ describe.skipIf(!hasDb)("/api/calendar-templates (S5-06, integration)", () => {
     expect((await out("GET", "/api/calendar-templates")).statusCode).toBe(401);
     expect((await out("POST", "/api/calendar-templates", body())).statusCode).toBe(401);
     expect((await out("DELETE", "/api/calendar-templates/00000000-0000-4000-8000-000000000001")).statusCode).toBe(401);
+  });
+
+  it("S7b-13: a break may carry the weekday it started on and the holiday it is; both round-trip, and older breaks need neither", async () => {
+    const breaks = [brk({ offsetDays: 21, lengthDays: 1, label: "Labor Day", kind: "holiday", weekday: 1, holiday: "labor-day" }), brk({ weekday: 0 }), brk()];
+    const t = (await req("POST", "/api/calendar-templates", { name: "Holidays", breaks })).json();
+    expect(t.breaks).toEqual(breaks);
+    const stored = (await req("GET", "/api/calendar-templates")).json().find((x: { id: string }) => x.id === t.id);
+    expect(stored.breaks).toEqual(breaks);
+    expect(stored.breaks[2]).not.toHaveProperty("holiday");
   });
 });

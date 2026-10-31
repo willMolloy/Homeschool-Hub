@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { BlockedRange, CalendarTemplate } from "../src/api/types";
 import { fakeApi } from "./helpers/fake-api";
 import { MAGGIE, rowId, withRoster, writes } from "./helpers/schedule-fixtures";
-import { shiftedBreaks, templateBreaksFrom } from "../src/features/schedule/templates";
+import { leaveOutExisting, shiftedBreaks, templateBreaksFrom } from "../src/features/schedule/templates";
 import { renderAt } from "./render";
 
 const day = (n: number, label: string | null, kind: BlockedRange["kind"], startDate: string, endDate: string, childIds: string[] = []): BlockedRange =>
@@ -60,10 +60,11 @@ describe("Save as a template (S5-07)", () => {
       body: {
         name: "Our year",
         breaks: [
-          { offsetDays: 21, lengthDays: 1, label: "Labor Day", kind: "holiday" },
-          { offsetDays: 101, lengthDays: 2, label: "Thanksgiving", kind: "holiday" },
-          { offsetDays: 129, lengthDays: 9, label: "Winter break", kind: "vacation" },
-          { offsetDays: 168, lengthDays: 2, label: null, kind: "other" },
+          // S7b-13: each keeps the weekday it started on, and the holiday it is when its dates are exactly a holiday's.
+          { offsetDays: 21, lengthDays: 1, label: "Labor Day", kind: "holiday", weekday: 1, holiday: "labor-day" },
+          { offsetDays: 101, lengthDays: 2, label: "Thanksgiving", kind: "holiday", weekday: 4, holiday: "thanksgiving" },
+          { offsetDays: 129, lengthDays: 9, label: "Winter break", kind: "vacation", weekday: 4, holiday: "winter-break" },
+          { offsetDays: 168, lengthDays: 2, label: null, kind: "other", weekday: 1 },
         ],
       },
     }]);
@@ -195,13 +196,68 @@ describe("Use a saved template (S5-07)", () => {
 });
 
 describe("save then apply (S5-07)", () => {
-  it("2026-27 applied from 2027-08-16 gives the same breaks, each 364 days later", () => {
+  it("2026-27 applied from 2027-08-16 gives the same breaks; holidays land on their real 2027 dates (S7b-13)", () => {
     const { breaks } = templateBreaksFrom(YEAR, "2026-08-17");
     const shifted = shiftedBreaks(breaks, "2027-08-16");
     const family = YEAR.filter((r) => r.childIds.length === 0 && r.startDate >= "2026-08-17" && r.startDate <= "2027-08-17");
     expect(shifted.map((b) => [b.label, b.kind])).toEqual(family.map((r) => [r.label, r.kind]));
     expect(shifted.map((b) => [b.start, b.end])).toEqual([
-      ["2027-09-06", "2027-09-06"], ["2027-11-25", "2027-11-26"], ["2027-12-23", "2027-12-31"], ["2028-01-31", "2028-02-01"],
+      // S7b-13: winter break is Dec 24 to Jan 1 again (shifted by days it was Dec 23-31); the others as before.
+      ["2027-09-06", "2027-09-06"], ["2027-11-25", "2027-11-26"], ["2027-12-24", "2028-01-01"], ["2028-01-31", "2028-02-01"],
     ]);
+  });
+});
+
+describe("saved templates keep holidays on their real dates (S7b-13)", () => {
+  const brk = (over: object) => ({ offsetDays: 0, lengthDays: 1, label: null, kind: "vacation" as const, ...over });
+
+  it("the review's case: reused from a first day 14 days earlier, Labor Day is Sep 6, Thanksgiving Nov 25-26, the winter break Dec 24 - Jan 1", () => {
+    // A year that starts Mon Aug 31 2026 with the real holidays, applied to a year that starts Mon Aug 16 2027.
+    const year = [
+      day(1, "Labor Day", "holiday", "2026-09-07", "2026-09-07"),
+      day(2, "Thanksgiving break", "holiday", "2026-11-26", "2026-11-27"),
+      day(3, "Christmas break", "vacation", "2026-12-24", "2027-01-01"),
+      day(4, "Fall break", "vacation", "2026-10-12", "2026-10-16"), // a family's own week, Mon-Fri
+    ];
+    const { breaks } = templateBreaksFrom(year, "2026-08-31");
+    expect(breaks.map((b) => b.holiday)).toEqual(["labor-day", undefined, "thanksgiving", "winter-break"]);
+    const shifted = shiftedBreaks(breaks, "2027-08-16");
+    expect(shifted.map((b) => [b.label, b.start, b.end])).toEqual([
+      ["Labor Day", "2027-09-06", "2027-09-06"],
+      ["Fall break", "2027-09-27", "2027-10-01"], // 42 days after the first day, a Monday to a Friday
+      ["Thanksgiving break", "2027-11-25", "2027-11-26"],
+      ["Christmas break", "2027-12-24", "2028-01-01"], // the label is the family's own; the dates are the holiday's
+    ]);
+  });
+
+  it("a break that started on the week start stays Monday to Friday whatever the new first day is; others just shift", () => {
+    const week = brk({ offsetDays: 14, lengthDays: 5, label: "Fall break", weekday: 1 }); // Mon Sep 14 2026 to Fri Sep 18, from Mon Aug 31
+    const mid = brk({ offsetDays: 15, lengthDays: 2, label: "Midweek", weekday: 3 });      // started on a Wednesday: not aligned
+    const old = brk({ offsetDays: 14, lengthDays: 5, label: "Old template" });             // saved before S7b-13: no weekday
+    // A new year starting on a Wednesday: 14 days on is a Wednesday, but the break goes to the nearest Monday.
+    const [a, b, c] = shiftedBreaks([week, mid, old], "2027-08-18").sort((x, y) => (x.label! < y.label! ? -1 : 1));
+    expect([a!.label, a!.start, a!.end]).toEqual(["Fall break", "2027-08-30", "2027-09-03"]);
+    expect([b!.label, b!.start, b!.end]).toEqual(["Midweek", "2027-09-02", "2027-09-03"]);
+    expect([c!.label, c!.start, c!.end]).toEqual(["Old template", "2027-09-01", "2027-09-05"]);
+    // Sunday-start family: a break that started on a Sunday is the one that is aligned.
+    const sun = shiftedBreaks([brk({ offsetDays: 14, lengthDays: 5, weekday: 0 }), brk({ offsetDays: 14, lengthDays: 5, weekday: 1, label: "m" })], "2027-08-18", "sun");
+    expect(sun.find((x) => x.label === null)!.start).toBe("2027-08-29");
+    expect(sun.find((x) => x.label === "m")!.start).toBe("2027-09-01");
+  });
+
+  it("a holiday that isn't in the saved year's dates exactly is kept as a plain break; one in a new year picks the nearest to where it was", () => {
+    const own = [day(1, "Labor weekend", "vacation", "2026-09-05", "2026-09-07")]; // not exactly Labor Day
+    expect(templateBreaksFrom(own, "2026-08-31").breaks[0]).not.toHaveProperty("holiday");
+    const [h] = shiftedBreaks([brk({ offsetDays: 7, label: "Labor Day", kind: "holiday", holiday: "labor-day", weekday: 1 })], "2026-08-31");
+    expect(h!.start).toBe("2026-09-07"); // not Sep 6 2027, which is also within a year of the first day's margin
+    const [mlk] = shiftedBreaks([brk({ offsetDays: 140, holiday: "mlk-day", label: null })], "2026-08-31");
+    expect([mlk!.label, mlk!.start]).toEqual(["Martin Luther King Jr. Day", "2027-01-18"]);
+  });
+
+  it("applying never adds a Labor Day that is already a day off on its real date", () => {
+    const [labor] = shiftedBreaks([brk({ offsetDays: 21, label: "Labor Day", kind: "holiday", holiday: "labor-day", weekday: 1 })], "2027-08-16");
+    expect(labor!.start).toBe("2027-09-06");
+    const existing = [day(9, "Labor Day", "holiday", "2027-09-06", "2027-09-06")];
+    expect(leaveOutExisting([labor!], existing)).toEqual({ add: [], skipped: 1 });
   });
 });

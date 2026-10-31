@@ -1,5 +1,5 @@
 /** Saved calendar templates (S5-06). Every query is scoped by family_id. Delete really deletes. */
-import type { BlockedKind } from "@hh/engine";
+import type { BlockedKind, HolidayKey } from "@hh/engine";
 import type { Queryable } from "../db";
 
 /** One break, counted in days from the year's first day. */
@@ -8,6 +8,9 @@ export interface TemplateBreak {
   lengthDays: number;
   label: string | null;
   kind: BlockedKind;
+  /** S7b-13: the weekday the break started on (0 = Sunday), and the holiday it is when it is exactly one. Older templates have neither. */
+  weekday?: number;
+  holiday?: HolidayKey;
 }
 
 export interface CalendarTemplateJson {

@@ -1,6 +1,6 @@
 /** /api/calendar-templates (S5-06): a family's saved calendar templates, for "Save this year as a template" (S5-07). */
 import type { FastifyInstance } from "fastify";
-import { BLOCKED_KINDS, humanList } from "@hh/engine";
+import { BLOCKED_KINDS, HOLIDAY_KEYS, humanList } from "@hh/engine";
 import { z } from "zod";
 import { HttpError } from "../http/errors";
 import { parseBody, UUID_RE } from "../http/validate";
@@ -26,6 +26,9 @@ const Break = z.strictObject({
   lengthDays: whole("lengthDays", 1, MAX_TEMPLATE_LENGTH),
   label: Label,
   kind: z.enum(BLOCKED_KINDS, `kind must be ${humanList(BLOCKED_KINDS)}.`),
+  // S7b-13: the weekday the break started on, and the US holiday it is exactly (so a new year recomputes its dates).
+  weekday: whole("weekday", 0, 6).optional(),
+  holiday: z.enum(HOLIDAY_KEYS, `holiday must be ${humanList(HOLIDAY_KEYS)}.`).optional(),
 });
 const CreateBody = z.strictObject({
   name: Name,

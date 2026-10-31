@@ -62,7 +62,7 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
 
   const { add, skipped } = useMemo((): { add: PlannedBreak[]; skipped: number } => {
     if (datesError || weeksError) return { add: [], skipped: 0 };
-    if (chosen) return leaveOutExisting(shiftedBreaks(chosen.breaks, start), existing);
+    if (chosen) return leaveOutExisting(shiftedBreaks(chosen.breaks, start, weekStart), existing);
     const pattern = custom ? { weeksOn: on!, weeksOff: off! } : builtIn?.pattern ?? null;
     return leaveOutExisting(plannedBreaks(start, end, pattern, holidays, weekStart), existing);
   }, [datesError, weeksError, chosen, custom, on, off, builtIn, start, end, holidays, weekStart, existing]);

@@ -1,5 +1,5 @@
 /** Response shapes of the API. Kept in sync with apps/api by hand (Sprint 1). */
-import type { BlockedKind, ChildPlan, OverrideMode, SubjectDefaultWeight, SubjectRule, SuggestionSource, UnitType, WeekReviewStatus, WeekStart } from "@hh/engine";
+import type { BlockedKind, ChildPlan, HolidayKey, OverrideMode, SubjectDefaultWeight, SubjectRule, SuggestionSource, UnitType, WeekReviewStatus, WeekStart } from "@hh/engine";
 
 export type { BlockedKind, OverrideMode, SubjectDefaultWeight, SuggestionSource, UnitType, WeekReviewStatus, WeekStart };
 
@@ -137,6 +137,10 @@ export interface TemplateBreak {
   lengthDays: number;
   label: string | null;
   kind: BlockedKind;
+  /** S7b-13: the weekday the break started on (0 = Sunday); templates saved before it have none. */
+  weekday?: number;
+  /** S7b-13: set when the break is exactly a US holiday's dates, so it follows that holiday in a new year. */
+  holiday?: HolidayKey;
 }
 export interface CalendarTemplate {
   id: string;
