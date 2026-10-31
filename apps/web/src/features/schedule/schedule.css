@@ -264,3 +264,15 @@
 .template-preview .hint { margin: 4px 0 0; }
 /* S5-07: delete sits under the new year's date, not stretched. */
 .template-delete { margin: 0 0 14px; }
+
+/* S6-09: "About how long will that take?": a quiet row of 44 px options (like the day chips), then a minutes field for Custom. */
+.effort { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+.effort legend { padding: 0; font-weight: 600; margin-bottom: 4px; }
+.effort-pace { margin: 0 0 6px; color: var(--muted); }
+.effort-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 4px; }
+.effort-chip { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; border: 1px solid #b7c0cc; border-radius: 8px; background: #fff; cursor: pointer; }
+.effort-chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.effort-chip:has(input:checked) { background: var(--brand); border-color: var(--brand); color: #fff; }
+.effort-chip:has(input:focus-visible) { outline: 3px solid var(--brand); outline-offset: 2px; }
+.effort-custom { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: var(--muted); }
+.effort-custom input { width: 7rem; min-height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid #b7c0cc; border-radius: 8px; }

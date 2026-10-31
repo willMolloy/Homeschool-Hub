@@ -55,7 +55,8 @@ describe("Copy an assignment (S3a-01)", () => {
     expect(within(form).getByLabelText("End")).toHaveValue("2026-12-18");
     expect(within(form).getByLabelText("Unit")).toHaveValue("pages");
     expect(within(form).getByLabelText("Total")).toHaveValue(184);
-    expect(within(form).getByLabelText("Weight per page")).toHaveValue(1.4);
+    // S6-09: weight 1.4 over 47 school days (3.9 pages a day) is about 11 minutes a day, closest to "15 minutes".
+    expect(within(within(form).getByRole("group", { name: "About how long will that take?" })).getByRole("radio", { name: "15 minutes" })).toBeChecked();
     // Change what differs: the child.
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
     await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
