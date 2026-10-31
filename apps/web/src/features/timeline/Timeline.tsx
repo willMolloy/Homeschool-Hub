@@ -37,9 +37,11 @@ export interface TimelineProps {
   onPick?: (x: number, y: number) => void;
   /** T-10: a just-added assignment, briefly highlighted. */
   flashId?: string | null;
+  /** S7-20: draw the selected bar's end grips (only meaningful while bars can be dragged). */
+  grips?: boolean;
 }
 
-export function Timeline({ layout, label, selectedId = null, onPick, flashId = null }: TimelineProps) {
+export function Timeline({ layout, label, selectedId = null, onPick, flashId = null, grips = true }: TimelineProps) {
   const hatchId = `tl-hatch-${useId().replace(/:/g, "")}`;
   /** T-05c: zoomed out, breaks are a very faint plain tint instead of a hatch. */
   const quiet = layout.detail === "smooth";
@@ -47,7 +49,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
   const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
   const dim = (id: string) => (selectedId === null ? "" : id === selectedId ? " tl-selected" : " tl-dim") + (id === flashId ? " tl-flash" : "");
   // T-08b: one pair of grips per lane the selected assignment is drawn in, at its outer ends.
-  const handles = selectedId === null ? [] : layout.bands.filter((b, i, all) => b.assignmentId === selectedId && b.d
+  const handles = selectedId === null || !grips ? [] : layout.bands.filter((b, i, all) => b.assignmentId === selectedId && b.d
     && all.findIndex((o) => o.assignmentId === selectedId && o.laneKey === b.laneKey && o.d) === i).flatMap((b) => {
     const extent = bandExtent(layout, b);
     const row = layout.rows.find((r) => r.key === b.rowKey);

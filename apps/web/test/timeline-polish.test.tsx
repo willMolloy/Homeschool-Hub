@@ -1,7 +1,7 @@
 /** T-08b: clean bars zoomed out, a solid selected bar with grips, the cursors, and live date fields while dragging. */
 import { readFileSync } from "node:fs";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import type { Assignment } from "../src/api/types";
 import { grabSelected, HANDLE_HALF_PX, handleReach } from "../src/features/timeline/drag";
@@ -13,6 +13,9 @@ import {
   SAMPLE_ASSIGNMENTS, SAMPLE_BLOCKED, SAMPLE_CHILDREN, SAMPLE_EVENTS, SAMPLE_SUBJECTS, sampleInput, samplePlans,
 } from "./helpers/timeline-fixtures";
 import { renderAt } from "./render";
+
+// S7-20: bar dragging is switched off in the app; these tests drive it, so they turn the switch on.
+vi.mock("../src/features/timeline/drag", async (importOriginal) => ({ ...(await importOriginal<typeof import("../src/features/timeline/drag")>()), BAR_DRAG_ENABLED: true }));
 
 const model = buildTimelineModel(sampleInput({ today: DEMO_ME.today }));
 const cols = Array.from({ length: 60 }, (_, i) => i);

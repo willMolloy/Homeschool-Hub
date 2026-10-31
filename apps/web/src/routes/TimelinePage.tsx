@@ -4,6 +4,7 @@
  * full width (full-bleed on phones). Changing zoom crossfades the old picture out over the new one, names included
  * (T-06: names sit inside the bars wherever they fit). T-07/T-07e: tapping a bar selects it and shows the edit bar at the bottom.
  * T-08: bars can be dragged (body moves, edges change the start or end), previewing live and saving on release.
+ * S7-20: dragging is switched off (`BAR_DRAG_ENABLED` in drag.ts); the code stays.
  * T-07c: with two or more children, a chip row (All, then each child) narrows it to one child, kept in `?child=`.
  * T-10: "+ Add assignment" in the header opens the assignment form; the new bar appears at once, briefly highlighted.
  * S3a-02: the edit bar's Copy opens that form prefilled from the selected assignment.
@@ -26,7 +27,7 @@ import { EditBar } from "../features/timeline/EditBar";
 import { nudgedWeight, type Nudge } from "../features/timeline/nudge";
 import { useAssignmentEdit } from "../features/timeline/useAssignmentEdit";
 import { useKeepAbove } from "../features/timeline/useKeepAbove";
-import { grabSelected, previewModel } from "../features/timeline/drag";
+import { BAR_DRAG_ENABLED, grabSelected, previewModel } from "../features/timeline/drag";
 import { useBarDrag, type DragPreview } from "../features/timeline/useBarDrag";
 import { hitTest } from "../features/timeline/hit";
 import { selectionFor } from "../features/timeline/select";
@@ -188,14 +189,14 @@ export function TimelinePage() {
           </>
         ) : (
           <>
-            <div ref={stage} className="tl-stage" data-drag-ready={selection ? "" : undefined} {...drag}>
+            <div ref={stage} className="tl-stage" data-drag-ready={BAR_DRAG_ENABLED && selection ? "" : undefined} {...(BAR_DRAG_ENABLED ? drag : {})}>
               <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
                 <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`}
-                  selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} />
+                  selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} grips={BAR_DRAG_ENABLED} />
               </div>
               {leavingLayout && (
                 <div className="tl-leaving" aria-hidden="true" onAnimationEnd={settle}>
-                  <Timeline layout={leavingLayout} label="" selectedId={selection ? selectedId : null} />
+                  <Timeline layout={leavingLayout} label="" selectedId={selection ? selectedId : null} grips={BAR_DRAG_ENABLED} />
                 </div>
               )}
             </div>

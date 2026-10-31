@@ -12,6 +12,14 @@ import type { Zoom } from "./zoom";
 
 export type DragKind = "move" | "start" | "end";
 
+/**
+ * S7-20: the one switch for dragging bars. Off, the timeline attaches no drag handlers, shows no grips or move/resize
+ * cursor and leaves touch scrolling alone; dates change through the edit bar's Start and End. Tapping a bar still
+ * selects it. The code (`useBarDrag`, this file) stays so dragging can return after demos: set this to true.
+ * Tests that drive a drag through the page turn it on by mocking this export.
+ */
+export const BAR_DRAG_ENABLED = false;
+
 /** Half a 44 px handle: an edge zone reaches this far either side of the bar's end. */
 export const HANDLE_HALF_PX = 22;
 /** A pointer must travel this far before a press becomes a drag (smaller is a tap). */
