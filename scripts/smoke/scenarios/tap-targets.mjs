@@ -1,9 +1,12 @@
 // S5-09: every visible button, link, input, select, textarea and summary on the core screens must be at least 44 x 44 px at
-// 360 px wide. Read-only: nothing is saved. Prints one line per undersized control and "none" per screen when all pass.
+// 360 px wide (S7-12: or TAP_WIDTH, e.g. 320). Read-only: nothing is saved. Prints one line per undersized control and "none" per screen when all pass.
 // Sign-in is the demo login unless TAP_EMAIL / TAP_PASSWORD are set; the demo family cannot add events, so use a non-demo
 // family to also measure the event form and its "What changes" list.
 // Inline text links inside a sentence are exempt; a checkbox or radio inside a label is measured as its label.
 const MIN = 44;
+// S7-12: the viewport width, 360 unless TAP_WIDTH says otherwise (a whole number of pixels from 280 to 1600).
+const WIDTH = Number(process.env.TAP_WIDTH ?? 360);
+if (!Number.isInteger(WIDTH) || WIDTH < 280 || WIDTH > 1600) throw new Error(`TAP_WIDTH must be a whole number from 280 to 1600, got "${process.env.TAP_WIDTH}"`);
 const SCREENS = [
   ["This Week", "/"], ["Timeline (bar selected)", "/timeline"], ["Kids", "/kids"], ["Subjects", "/subjects"],
   ["Schedule", "/schedule"], ["Assignments", "/schedule/assignments"], ["Days off", "/schedule/days-off"],
@@ -35,7 +38,8 @@ function undersized(min) {
 }
 
 export default async function ({ page, login, log, BASE }) {
-  await page.setViewport({ width: 360, height: 740 });
+  await page.setViewport({ width: WIDTH, height: 740 });
+  log(`Viewport width: ${WIDTH} px`);
   await page.goto(`${BASE}/login`, { waitUntil: "networkidle0" });
   await login(process.env.TAP_EMAIL, process.env.TAP_PASSWORD);
   await page.waitForSelector("table, h1");
