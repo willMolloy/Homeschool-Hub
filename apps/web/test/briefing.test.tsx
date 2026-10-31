@@ -250,7 +250,7 @@ describe("Weekly briefing on This Week (S4-09)", () => {
   it("a clean plan shows no briefing at all", async () => {
     stub([onPacePlan()]);
     renderAt("/");
-    await screen.findAllByRole("table");
+    await screen.findAllByRole("button", { name: /^Make an adjustment for/ });
     await briefingFetched();
     expect(region()).toBeNull();
   });
@@ -259,7 +259,7 @@ describe("Weekly briefing on This Week (S4-09)", () => {
     stub([slowPlan()]);
     fakeApi.on("GET /api/assignments", 500, { error: "boom" });
     renderAt("/");
-    await screen.findAllByRole("table");
+    await screen.findAllByRole("button", { name: /^Make an adjustment for/ });
     expect(region()).toBeNull();
   });
 

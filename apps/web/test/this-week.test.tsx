@@ -86,7 +86,7 @@ describe("This Week header", () => {
   it("has the title and one week switcher; no Prev/Next bar, past-week list, or debug extras", async () => {
     stub();
     renderAt("/");
-    await screen.findByRole("table", { name: "Frank" });
+    await screen.findByRole("button", { name: "Make an adjustment for Frank" });
     expect(screen.getByRole("heading", { level: 1, name: "Plan" })).toBeInTheDocument();
     const switcher = screen.getByRole("group", { name: "Week" });
     expect(within(switcher).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["Previous week", "Next week"]);
@@ -100,7 +100,7 @@ describe("This Week header", () => {
     stub();
     fakeApi.on("GET /api/check-ins", 200, OCT19);
     renderAt("/");
-    await screen.findByRole("table", { name: "Frank" });
+    await screen.findByRole("button", { name: "Make an adjustment for Frank" });
     expect(screen.queryByRole("button", { name: /Missed a day/ })).toBeNull();
     expect(screen.queryByText(/Missed a day/)).toBeNull();
     // The weekly check-in is still there for it.
@@ -122,10 +122,10 @@ describe("Make an adjustment", () => {
     expect(await screen.findByRole("button", { name: "Make an adjustment for Frank" })).toHaveTextContent("Make an adjustment");
     expect(screen.getByRole("button", { name: "Make an adjustment for Margaret" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Old Kid/ })).toBeNull();
-    // Beside the student's name, above their table (which keeps its caption as its name).
+    // Beside the student's name (S6b-01: no table below it any more).
     const frank = screen.getByRole("button", { name: "Make an adjustment for Frank" });
     expect(frank.closest(".plan-child-head")).toHaveTextContent(/^Frank/);
-    expect(screen.getByRole("table", { name: "Frank" })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(fakeApi.calls.some((c) => c.path.startsWith("/api/check-ins?weekStart="))).toBe(false);
   });

@@ -102,18 +102,21 @@ describe("Plan debug view", () => {
     expect(screen.getByText(/Effort \(units × weight\) per day/)).toBeInTheDocument();
   });
 
-  it("T-03b: parents see only the tables — no debug heading, Plan as of, markers, legend, warning codes or engine footer", async () => {
+  it("S6b-01 (was T-03b): parents see no table and none of the debug extras — no heading, Plan as of, markers, legend or engine footer; the warnings list stays without codes", async () => {
     setup();
     renderAt("/?week=2026-10-28&asOf=2026-10-19");
-    const frank = await screen.findByRole("table", { name: "Frank" });
+    await screen.findByRole("button", { name: "Make an adjustment for Frank" });
+    expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByRole("heading", { name: "Debug view (temporary)" })).toBeNull();
     expect(screen.queryByText(/Effort \(units × weight\) per day/)).toBeNull();
     expect(screen.queryByLabelText(/Plan as of/)).toBeNull();
-    expect(within(frank).queryAllByLabelText("built-in weight")).toHaveLength(0);
+    expect(screen.queryAllByLabelText("built-in weight")).toHaveLength(0);
     expect(screen.queryByRole("list", { name: "Markers" })).toBeNull();
     expect(screen.queryByText(/Engine/)).toBeNull();
     expect(screen.getByRole("list", { name: "Warnings for Margaret" })).toHaveTextContent("Math: the end date has passed with work left");
     expect(screen.queryByText("past-end")).toBeNull();
+    // The child's name is visible to assistive tech now that no table caption carries it.
+    expect(screen.getByText("Frank")).not.toHaveAttribute("aria-hidden");
     // asOf is a debug tool: ignored for parents.
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01");
     expect(screen.queryByText(/Prev week|Review a past week/)).toBeNull();
@@ -155,7 +158,7 @@ describe("Plan debug view", () => {
   it("no defaults in the week → no legend", async () => {
     setup();
     fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: PLANS.filter((p) => p.weightSource === "assignment") });
-    renderAt("/?week=2026-10-28");
+    renderAt("/?week=2026-10-28&debug=1");
     await screen.findByRole("table", { name: "Frank" });
     expect(screen.queryByRole("list", { name: "Markers" })).not.toBeInTheDocument();
   });
@@ -178,7 +181,7 @@ describe("Plan debug view", () => {
       setup();
       fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-11-04" });
       renderAt("/");
-      await screen.findByRole("table", { name: "Frank" });
+      await screen.findByRole("button", { name: "Make an adjustment for Frank" });
       expect(within(screen.getByRole("group", { name: "Week" })).getByText("This week")).toBeInTheDocument();
       expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
       expect(fakeApi.calls.some((c) => c.path.includes("2026-12-14"))).toBe(false);
@@ -190,7 +193,7 @@ describe("Plan debug view", () => {
       setup();
       fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-11-02" });
       renderAt("/");
-      await screen.findByRole("table", { name: "Frank" });
+      await screen.findByRole("button", { name: "Make an adjustment for Frank" });
       expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
     });
   });
@@ -199,7 +202,7 @@ describe("Plan debug view", () => {
     setup();
     renderAt("/?week=2026-10-28");
     const user = userEvent.setup();
-    await screen.findByRole("table", { name: "Frank" });
+    await screen.findByRole("button", { name: "Make an adjustment for Frank" });
     const switcher = screen.getByRole("group", { name: "Week" });
     expect(switcher).toHaveTextContent("This week");
     await user.click(within(switcher).getByRole("button", { name: "Next week" }));
@@ -221,7 +224,7 @@ describe("Plan debug view", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load the plan.");
     fakeApi.on("GET /api/plan", 200, RESPONSE);
     await userEvent.setup().click(screen.getByRole("button", { name: "Retry" }));
-    expect(await screen.findByRole("table", { name: "Frank" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Make an adjustment for Frank" })).toBeInTheDocument();
   });
 
   it("no plans → 'Nothing planned this week.'", async () => {
