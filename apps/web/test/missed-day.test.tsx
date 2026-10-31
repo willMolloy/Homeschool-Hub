@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import type { BlockedRange } from "../src/api/types";
 import { offeredMissedDays } from "../src/features/plan/MissedDay";
-import { fakeApi } from "./helpers/fake-api";
+import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
 // The fake family's today is Wed 2026-10-28; the shown week is Oct 26 - Nov 1; school days Mon-Fri.
@@ -62,7 +62,31 @@ describe("Missed a day? (S4-10)", () => {
     expect(offeredDays(sheet)).toEqual(["Monday 26", "Tuesday 27", "Wednesday 28"]);
     expect(within(sheet).getByRole("radio", { name: "Everyone" })).toBeChecked();
     expect(within(sheet).getAllByRole("radio", { name: /^(Everyone|Frank|Margaret)$/ })).toHaveLength(3); // archived child not offered
-    expect(within(sheet).getByRole("button", { name: "Save" })).toBeDisabled();
+  });
+
+  it("preselects today, so open then Save is enough (S4b-07)", async () => {
+    stub();
+    const { user, sheet } = await openSheet();
+    expect(within(sheet).getByRole("radio", { name: "Wednesday 28" })).toBeChecked();
+    expect(within(sheet).getByRole("button", { name: "Save" })).toBeEnabled();
+    await user.click(within(sheet).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(fakeApi.calls.some((c) => c.method === "POST")).toBe(true));
+    expect(fakeApi.calls.find((c) => c.method === "POST")!.body).toEqual({ label: "Missed day", kind: "missed", startDate: "2026-10-28", endDate: "2026-10-28", childIds: [] });
+  });
+
+  it("on a weekend the latest offered day (Friday) is preselected (S4b-07)", async () => {
+    stub();
+    fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-10-31" }); // a Saturday
+    const { sheet } = await openSheet();
+    expect(offeredDays(sheet)).toHaveLength(5);
+    expect(within(sheet).getByRole("radio", { name: "Friday 30" })).toBeChecked();
+    expect(within(sheet).getByRole("button", { name: "Save" })).toBeEnabled();
+  });
+
+  it("when today is already off, the latest offered day is preselected (S4b-07)", async () => {
+    stub({ ranges: [range("2026-10-28", [])] });
+    const { sheet } = await openSheet();
+    expect(within(sheet).getByRole("radio", { name: "Tuesday 27" })).toBeChecked();
   });
 
   it("an earlier week offers all its school days", async () => {
@@ -116,7 +140,9 @@ describe("Missed a day? (S4-10)", () => {
     const { user, sheet } = await openSheet();
     await user.click(within(sheet).getByRole("radio", { name: "Tuesday 27" }));
     await user.click(within(sheet).getByRole("radio", { name: "Frank" }));
-    expect(within(sheet).getByRole("button", { name: "Save" })).toBeDisabled();
+    // Tuesday is off for Frank, so the preselected latest day (Wednesday) takes over (S4b-07).
+    expect(within(sheet).getByRole("radio", { name: "Wednesday 28" })).toBeChecked();
+    expect(within(sheet).getByRole("button", { name: "Save" })).toBeEnabled();
   });
 
   it("a single-child family isn't asked who, and saves for everyone", async () => {

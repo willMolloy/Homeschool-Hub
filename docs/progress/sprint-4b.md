@@ -9,7 +9,8 @@ Tickets: `docs/tickets/sprint-4b-fixes/`. Report: `docs/reviews/sprint-4-verific
 | S4b-03 The briefing reports no recent progress, and caps very late forecasts | 24ae007 | `noRecentProgress` and `VERY_LATE_WEEKS` in `briefingLines.ts` |
 | S4b-04 Editing other fields never changes an assignment's days | e357d81 | `useWeekdayChoice` reports `touched`; the edit sends `weekdays` only after a chip tap |
 | S4b-05 "Set as default" applies when the form is saved | e678a74 | The button marks the choice in `AssignmentForm`; Save patches the subject, then saves with `weekdays: null` |
-| S4b-06 Day chips stay 44 px wide for 6- and 7-day weeks | (this commit) | `.day-picker-days` is an auto-fit grid of `minmax(44px, 1fr)`; `.day-chip` has `min-width: 44px` |
+| S4b-06 Day chips stay 44 px wide for 6- and 7-day weeks | 91892b7 | `.day-picker-days` is an auto-fit grid of `minmax(44px, 1fr)`; `.day-chip` has `min-width: 44px` |
+| S4b-07 "Missed a day?" preselects today | (this commit) | `MissedDay.tsx`: the chosen day defaults to the latest offered day |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -26,3 +27,5 @@ Tickets: `docs/tickets/sprint-4b-fixes/`. Report: `docs/reviews/sprint-4-verific
 - **S4b-05 changed tests.** "Set as default patches the subject, then the assignment saves null" and "choosing every school day ... offers to clear it" in `assignment-weekdays.test.tsx` expected the PATCH on the button; they now expect it on Save (and no request before).
 - **S4b-06 how.** One CSS rule for every use of `.day-chip`: the picker grid is `repeat(auto-fit, minmax(44px, 1fr))`, so it wraps to a second line when 44 px chips don't fit, and the missed-day sheet (already a wrapping flex row) gets the same `min-width`. The `--day-count` variable is gone. The Events day picker uses the same component, so it is fixed too.
 - **S4b-06 not checked.** jsdom has no layout, so the widths were not measured in a browser; the tester pass should measure 5, 6 and 7 days at 360 px.
+- **S4b-07 which day.** Offered days are never after today, so "today if offered, else the latest offered day" is the last offered day. It applies until a day is tapped, and again when a tapped day stops being offered (a change of who), so Save stays enabled whenever any day is offered. Who stays Everyone; a week with no offered days still says "No days to mark." with Save disabled.
+- **S4b-07 changed tests.** The S4-10 test that expected Save disabled on opening now expects today selected; "drops a chosen day that stops being offered" now expects the fallback day (Wednesday) selected instead of Save disabled.

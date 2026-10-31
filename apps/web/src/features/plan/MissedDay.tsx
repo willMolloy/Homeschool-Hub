@@ -1,6 +1,6 @@
 /**
  * S4-10: "Missed a day?" on This Week. A small sheet to pick a school day of the shown week (up to today) and who
- * missed it (Everyone, or one child), then a day off of kind "missed" is saved and the plan reloads. The engine
+ * missed it (Everyone, or one child), (today is preselected, S4b-07), then a day off of kind "missed" is saved and the plan reloads. The engine
  * carries that day's work forward (S4-00).
  */
 import { useState } from "react";
@@ -69,7 +69,8 @@ function MissedDayForm({ weekStart, onDone }: { weekStart: LocalDate; onDone: ()
   const offered = offeredMissedDays({
     weekStart, today: me.today, schoolDays: me.schoolDays, ranges: ranges.data, childIds: active.map((c) => c.id), who,
   });
-  const chosen = day !== null && offered.includes(day) ? day : null;
+  // S4b-07: until a day is tapped, today (the latest offered day: none is after today); a day that stops being offered falls back to it.
+  const chosen = day !== null && offered.includes(day) ? day : offered.at(-1) ?? null;
 
   async function save() {
     if (chosen === null || saving) return;
