@@ -1,13 +1,14 @@
 # Sprint 6 progress — steering: adjust a week, undo and reset, effort in time
 
-Tickets: `docs/tickets/sprint-6-steering/`. Pass 1 covers S6-01 to S6-04.
+Tickets: `docs/tickets/sprint-6-steering/`. Pass 1 covers S6-01 to S6-04; pass 2 covers S6-05 to S6-10.
 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
 | S6-01 Load week adjustments newest edit last | efdc463 | `loadPlanInputs` orders `week_override` by `updated_at, id` |
 | S6-02 Add the week adjustment endpoints | 2090014 | `routes/weekOverrides.ts`: `PUT` / `GET ?weekStart=` / `DELETE /:id` on `/api/week-overrides` |
 | S6-03 Adjust this or a coming week on This Week | c829656 | `features/plan/WeekAdjustment.tsx` and `weekAdjust.ts` (pure); `ChildAdjustment` takes `ahead`; `PlanPage` picks it for the current or a coming week |
-| S6-04 Remove "Missed a day?" from This Week | (this commit) | Deleted `features/plan/MissedDay.tsx`, `test/missed-day.test.tsx` and the `.missed-*` styles; API, engine and `KIND_LABELS` untouched |
+| S6-04 Remove "Missed a day?" from This Week | d1ae686 | Deleted `features/plan/MissedDay.tsx`, `test/missed-day.test.tsx` and the `.missed-*` styles; API, engine and `KIND_LABELS` untouched |
+| S6-05 Store an assignment's original and the last change | (this commit) | Migration `013_undo`: `assignment.original` (jsonb, filled for existing rows) and `undo_entry` (PK `family_id`). `createAssignment` stores `original` for single and bulk create; the seed fills it too |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -26,3 +27,7 @@ Tickets: `docs/tickets/sprint-6-steering/`. Pass 1 covers S6-01 to S6-04.
 - **S6-03 not checked.** The 360 px layout and 44 px targets come from CSS (44 px buttons, rows wrap) but jsdom has no layout, so they were not measured.
 - **S6-04 removed tests.** `test/missed-day.test.tsx` (the S4-10 and S4b-07 sheet tests: offered days, today preselected, save for one child or everyone, errors, Cancel) is deleted with the feature it tested; nothing else covered them. Two tests were added: This Week has no "Missed a day?" control while the check-in card is still there, and an existing `missed` day off is still listed as "Missed day" under Days off and can't be picked as a kind on a new one.
 - **S6-04 left alone.** The `missed` blocked kind (API, engine `pastMissedDays`, `KIND_LABELS`) and the Days off form's rule that an existing missed day keeps its kind when edited. Only the comment there changed, since the button it named is gone.
+- **S6-05 migration number.** `013_undo.sql`. `db/test/validate.sql`, `db/README.md` and a migration test (`db/test/undo-migration.test.ts`) are in step.
+- **S6-05 `original` stays nullable.** The ticket says NULL; every existing row is filled by the migration and every API create stores it, but a row inserted by hand (a test or script) has none. Reset (S6-07) answers 409 for such a row. The column only has a "must be an object" CHECK.
+- **S6-05 what `original` holds.** `title, subjectId, unitType, totalUnits, weightPerUnit, weekdays, startDate, endDate, childIds`, as sent on create (`weekdays` null = follow the subject). For existing rows it is their values at migration time, since the true creation values are gone.
+- **S6-05 `undo_entry`.** `label` (1 to 300 characters) and `inverse` (a JSON object the API reads in S6-06), `created_at`; deleted with the family.

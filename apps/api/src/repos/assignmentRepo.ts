@@ -82,12 +82,30 @@ export interface AssignmentInput {
   childIds: string[];
 }
 
-/** Insert an assignment and its children. References must already be checked. */
+/** S6-05: an assignment's values as created, kept in `assignment.original` for reset (S6-07). */
+export interface AssignmentOriginal {
+  title: string;
+  subjectId: string;
+  unitType: UnitType;
+  totalUnits: number;
+  weightPerUnit: number | null;
+  weekdays: number[] | null;
+  startDate: string;
+  endDate: string;
+  childIds: string[];
+}
+
+const originalOf = (a: AssignmentInput): AssignmentOriginal => ({
+  title: a.title, subjectId: a.subjectId, unitType: a.unitType, totalUnits: a.totalUnits, weightPerUnit: a.weightPerUnit,
+  weekdays: a.weekdays ?? null, startDate: a.startDate, endDate: a.endDate, childIds: a.childIds,
+});
+
+/** Insert an assignment and its children, and keep its created values as `original` (S6-05). References must already be checked. */
 export async function createAssignment(tx: Tx, familyId: string, a: AssignmentInput): Promise<string> {
   const { rows } = await tx.query<{ id: string }>(
-    `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, weight_per_unit, start_date, end_date, weekdays)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-    [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.weightPerUnit, a.startDate, a.endDate, a.weekdays ?? null]);
+    `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, weight_per_unit, start_date, end_date, weekdays, original)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb) RETURNING id`,
+    [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.weightPerUnit, a.startDate, a.endDate, a.weekdays ?? null, JSON.stringify(originalOf(a))]);
   const id = rows[0]!.id;
   await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: a.childIds });
   return id;

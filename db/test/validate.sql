@@ -289,4 +289,22 @@ DO $$ BEGIN
   RAISE NOTICE 'ok   calendar templates are deleted with their family';
 END $$;
 
+-- S6-05: undo (013_undo)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c2', 'Undo family');
+INSERT INTO undo_entry (family_id, label, inverse) VALUES ('f0000000-0000-0000-0000-0000000000c2', 'Moved Book', '{"steps": []}');
+DO $$ BEGIN RAISE NOTICE 'ok   undo_entry accepts a label and an inverse (013)'; END $$;
+SELECT pg_temp.expect_error($$INSERT INTO undo_entry (family_id, label, inverse) VALUES ('f0000000-0000-0000-0000-0000000000c2', 'Again', '{}')$$,
+  '23505', 'a family has at most one undo entry');
+SELECT pg_temp.expect_error($$UPDATE undo_entry SET label = '' WHERE family_id = 'f0000000-0000-0000-0000-0000000000c2'$$,
+  '23514', 'an undo entry needs a label');
+SELECT pg_temp.expect_error($$UPDATE undo_entry SET inverse = '[]' WHERE family_id = 'f0000000-0000-0000-0000-0000000000c2'$$,
+  '23514', 'an undo entry''s inverse must be an object');
+SELECT pg_temp.expect_error($$UPDATE assignment SET original = '[1]' WHERE id = 'a0000000-0000-0000-0000-0000000000e1'$$,
+  '23514', 'an assignment''s original must be an object');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c2';
+DO $$ BEGIN
+  IF (SELECT count(*) FROM undo_entry) <> 0 THEN RAISE EXCEPTION 'FAIL the undo entry should go with its family'; END IF;
+  RAISE NOTICE 'ok   an undo entry is deleted with its family';
+END $$;
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

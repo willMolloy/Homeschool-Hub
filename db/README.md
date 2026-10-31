@@ -19,6 +19,7 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `010_weekdays.sql` | S4-02: `assignment.weekdays` and `subject.default_weekdays` (`smallint[]`, 0 = Sunday … 6 = Saturday; NULL = no choice; non-empty, distinct, 0–6, checked by `valid_weekdays()`) |
 | `011_weekdays_from.sql` | S4-01b: `assignment.weekdays_from` (date the changed days apply from) and `previous_weekdays` (the days before; NULL = every school day), set only when a started assignment's days change |
 | `012_calendar_template.sql` | S5-06: `calendar_template` (a family's named template: `breaks` is a JSON list of 1-100 `{ offsetDays, lengthDays, label, kind }`, offsets from the year's first day) |
+| `013_undo.sql` | S6-05: `assignment.original` (JSON of the values as created, filled for existing rows; reset, S6-07) and `undo_entry` (one row per family: `label` and the JSON `inverse` of the last change, S6-06) |
 
 **Expand/contract (004–007).** Sprint 2b moved from minutes per unit to weights without a broken step: 004 *expands* (adds `weight_per_unit` next to the old column and backfills it at ÷ 2), 005 and 006 add the history and subject defaults, the API and web then switch to weights (S2b-06 … S2b-14), and only after nothing reads the old column does 007 *contract* (drop it and its 003 constraint). Every migration in between leaves the app working and the gate green.
 
@@ -40,6 +41,7 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `progress_checkin` | 008: "at the end of this week we were really at N" per (assignment, child, week). Only changed positions are stored; the plan re-anchors on them (S2b-20) |
 | `week_review` | 008: the family reviewed or skipped a week's check-in card, so it doesn't ask again |
 | `calendar_template` | 012: a saved calendar template, `breaks` as JSON (S5-06) |
+| `undo_entry` | 013: a family's one undoable last change (S6-05); `assignment.original` holds the created values |
 | `log_child_progress` | Units per child for a log entry. Partial unique index: one `checkoff` per (assignment, date, child). Like `log_entry`, it feeds hours and exports only; plan progress comes from `progress_checkin` |
 
 Design notes
