@@ -266,4 +266,27 @@ SELECT pg_temp.expect_error($$INSERT INTO week_review (family_id, week_start, st
 SELECT pg_temp.expect_error($$INSERT INTO week_review (family_id, week_start, status) VALUES ('f0000000-0000-0000-0000-0000000000e0', '2026-09-14', 'maybe')$$,
   '23514', 'a week review status outside reviewed/skipped is rejected');
 
+-- S5-06: calendar templates (012_calendar_template)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c1', 'Template family');
+INSERT INTO calendar_template (family_id, name, breaks) VALUES
+  ('f0000000-0000-0000-0000-0000000000c1', 'Our year', '[{"offsetDays": 21, "lengthDays": 7, "label": "Break", "kind": "vacation"}]');
+DO $$ BEGIN RAISE NOTICE 'ok   calendar_template accepts a named list of breaks (012)'; END $$;
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) VALUES ('f0000000-0000-0000-0000-0000000000c1', '', '[1]')$$,
+  '23514', 'a calendar template needs a name');
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) VALUES ('f0000000-0000-0000-0000-0000000000c1', repeat('x', 61), '[1]')$$,
+  '23514', 'a calendar template name is at most 60 characters');
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) VALUES ('f0000000-0000-0000-0000-0000000000c1', 'Empty', '[]')$$,
+  '23514', 'a calendar template needs at least one break');
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) VALUES ('f0000000-0000-0000-0000-0000000000c1', 'Object', '{"a": 1}')$$,
+  '23514', 'a calendar template''s breaks must be a list');
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) SELECT 'f0000000-0000-0000-0000-0000000000c1', 'Many', jsonb_agg(i) FROM generate_series(1, 101) i$$,
+  '23514', 'a calendar template has at most 100 breaks');
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) VALUES ('f0000000-0000-0000-0000-0000000000ff', 'Nobody', '[1]')$$,
+  '23503', 'a calendar template needs a real family');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c1';
+DO $$ BEGIN
+  IF (SELECT count(*) FROM calendar_template) <> 0 THEN RAISE EXCEPTION 'FAIL calendar templates should go with their family'; END IF;
+  RAISE NOTICE 'ok   calendar templates are deleted with their family';
+END $$;
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

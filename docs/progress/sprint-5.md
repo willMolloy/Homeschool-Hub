@@ -8,7 +8,8 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 | S5-02 Show the plan change before saving an event | d7855ed | `EventPreview.tsx` (`useEventPreview`, `EventPreviewList`); the form's checks are one `check()` shared by the preview and Save |
 | S5-03 Add year-shape helpers | 3a57d34 | `yearShape.ts`: `usHolidays`, `onOffBreaks`, `CALENDAR_SHAPES`; exported from `@hh/engine` |
 | S5-04 Add the bulk-create days off endpoint | 04e0152 | `POST /api/blocked-ranges/bulk` in `blockedRanges.ts`; `createOne` and `atPosition` shared with the single create |
-| S5-05 Apply a calendar template from Days off | (this commit) | `TemplatePanel.tsx` and `templates.ts`; `ScheduleList` gets a `panels` prop; engine gains `HOLIDAY_LABELS` |
+| S5-05 Apply a calendar template from Days off | 5bbab6f | `TemplatePanel.tsx` and `templates.ts`; `ScheduleList` gets a `panels` prop; engine gains `HOLIDAY_LABELS` |
+| S5-06 Store saved calendar templates | (this commit) | `db/012_calendar_template.sql`; `routes/calendarTemplates.ts` and `repos/calendarTemplateRepo.ts` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -34,3 +35,7 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 - **S5-05 what is sent.** One `POST /api/blocked-ranges/bulk`: label ("Break" for pattern breaks, the holiday's name otherwise), kind `vacation` for pattern breaks and `holiday` for holidays, `childIds: []`. On success the new rows join the list and the panel closes; on an error the message shows and the panel stays open.
 - **S5-05 engine change.** `HOLIDAY_LABELS` (and its use inside `usHolidays`) is a small addition to the S5-03 helpers; the labels are unchanged and the S5-03 tests still pass as written. Still no `ENGINE_VERSION` bump.
 - **S5-05 not checked.** 360 px layout: the panel reuses the form's `field-row` (two date fields side by side, as the other forms do), the holiday checkboxes and plain lists, all with 44 px targets; jsdom has no layout, so it was not measured.
+- **S5-06 migration number.** `012_calendar_template.sql` (the next free number after 011).
+- **S5-06 what the database checks.** A name of 1 to 60 characters, `breaks` a JSON array of 1 to 100 entries, a real family (ON DELETE CASCADE). The fields inside each break are checked by the API only (a CHECK over JSON elements would need a function for little gain, as the table is only written by the API). `db/test/validate.sql` and `db/test/calendar-template-migration.test.ts` cover these.
+- **S5-06 breaks.** Each break is a strict `{ offsetDays 0-400, lengthDays 1-60, label, kind }`, whole numbers; `kind` is any day-off kind (`BLOCKED_KINDS`, as the ticket says, so a saved `missed` day round-trips). `label` is trimmed, up to 60, and a blank one is stored as null (a day off may have no label, so "Save this year" can keep it).
+- **S5-06 API.** GET returns `{ id, name, breaks }` oldest first; POST validates strictly (unknown keys 400) and returns 201 with the saved template; DELETE is 204, or 404 for a malformed id, a missing one or another family's. Names need not be unique. Like days off, templates are not blocked for the demo family.
