@@ -3,7 +3,7 @@
  * essentials first (subject, title, children, dates, unit and total). S6-09: then "About how long will that take?",
  * asked in minutes a day and saved as a weight per unit; the parent never types a weight.
  * S6b-08: the subject dropdown also offers common subjects and "New subject…" (SubjectSelect).
- * S3a-04: "Add several" enters a subject's books in one form. S3a-06: "Import CSV" does it from a file.
+ * S7-01: "Copy to a new year" (CopyPanels). S3a-04: "Add several" enters a subject's books in one form. S3a-06: "Import CSV" does it from a file.
  */
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { UNIT_TYPES, minutesPerDayFromWeight, weightFromMinutesPerDay, weightPerUnitOf } from "@hh/engine";
@@ -16,6 +16,7 @@ import { LIMITS } from "./assignmentLimits";
 import { ImportAssignmentsForm } from "./ImportAssignmentsForm";
 import { BulkAssignmentsForm } from "./BulkAssignmentsForm";
 import { copyOfAssignment } from "./copyAssignment";
+import { CopyToNewYearPanel } from "./CopyPanels";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
 import { UNIT_LABELS, unitTitle } from "../../components/unitLabels";
 import { useWeightSuggestion } from "./useWeightSuggestion";
@@ -53,6 +54,9 @@ export function AssignmentsPage() {
           renderForm={(p) => <AssignmentForm {...p} l={l} />}
           renderBulkForm={(p) => <BulkAssignmentsForm {...p} l={l} />}
           renderImportForm={(p) => <ImportAssignmentsForm {...p} l={l} />}
+          panels={[
+            { id: "copy-year", label: "Copy to a new year", render: (p) => <CopyToNewYearPanel {...p} l={l} /> },
+          ]}
         />
       )}
     </WithLookups>

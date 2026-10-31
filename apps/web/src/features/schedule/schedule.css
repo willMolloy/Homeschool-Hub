@@ -287,3 +287,8 @@
 .subject-new .btn {
   align-self: flex-start;
 }
+
+/* S7-01: the rows of a copy panel; the checkbox sits beside a title and its new dates */
+.choice-list .copy-choice {
+  align-items: flex-start;
+}
