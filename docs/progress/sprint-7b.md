@@ -8,7 +8,8 @@ Tickets: `docs/tickets/sprint-7b-fixes/`. S7b-08 (tester pass) is the tester's.
 | S7b-02 "Update time estimate" replaces Heavier and Lighter | 624889b | `timeline/UpdateEstimate.tsx` (sheet), `EditBar` More item, `TimelinePage`; `nudge.ts` and `setWeight` removed; API undo label |
 | S7b-03 Say "ahead" plainly in the check-in | 2bed7bd | `compactText` in `checkin/amount.ts` |
 | S7b-04 The finish forecast ignores deliberate changes | a988a7c | `observedPace` and `noRecentProgress` in `engine/briefing.ts`; `ChildPlan.adjustedWeeks`, `weekdaysFrom`, `previousWeekdays`; ENGINE_VERSION 0.10.0 |
-| S7b-05 A late line offers one next step | (this commit) | `Briefing.tsx` (`LateButtons`), `briefingLines.ts` (`LateAction`); API label for an end-only move |
+| S7b-05 A late line offers one next step | 8339bf2 | `Briefing.tsx` (`LateButtons`), `briefingLines.ts` (`LateAction`); API label for an end-only move |
+| S7b-06 Add several: optional dates per row | (this commit) | `BulkAssignmentsForm.tsx` (row "Dates" toggle); CSV template `csvImport.ts` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -31,3 +32,6 @@ Tickets: `docs/tickets/sprint-7b-fixes/`. S7b-08 (tester pass) is the tester's.
 - **S7b-05 "won't finish this school year".** The app stores no school-year dates, so "the last school day" has nothing to refer to. A line that comes from a forecast more than 26 weeks late gets the same Move button to the forecast date. A pace so slow the forecast has no date (beyond the 730-day limit) gets only Keep: there is no honest date to move to. Say if Will wants a school-year end added later.
 - **S7b-05 Keep.** "Keep {current end}" stores the forecast the line was made from (its date, or "beyond") in `localStorage` (`hh.briefing.kept`, keyed by assignment and child; reads and writes are wrapped, so blocked storage means Keep lasts until reload). The line stays hidden while the forecast equals the stored one and returns when it changes.
 - **S7b-05 not changed.** No existing test changed; new tests in `briefing.test.tsx` and `undo.test.ts`.
+- **S7b-06 the row toggle.** Each row has a quiet "Dates" button (accessible name "Dates for row N", `aria-expanded`) that reveals Start and End for that row. They show the shared dates until the parent changes one (so changing the shared dates later still moves a row that has not been touched); closing the toggle drops the row's own dates and it follows the shared ones again. Rows send their own `startDate` and `endDate` in the one bulk POST (the endpoint already took them per item).
+- **S7b-06 validation.** A row with its own dates is checked like the shared pair (real dates, start not after end, at most the day limit) and an error shows under that row only. The shared dates are required only while some filled row still follows them: with every row dated, the shared fields may stay empty.
+- **S7b-06 CSV.** Confirmed: the importer already read per-row `start` and `end` (S3a-05). The downloadable template now has two example rows, the second book starting the day after the first ends, and a test checks they import as is. Changed expectations: the template tests expected one row ("1 assignment"); they now expect two.

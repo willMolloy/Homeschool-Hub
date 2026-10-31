@@ -1,6 +1,8 @@
 /**
  * S3a-04: "Add several" on the Assignments screen. One subject, children, dates and unit for the term, then a row
  * per book (title and total). Empty rows are ignored; Save sends one POST /api/assignments/bulk, weight left to the default.
+ * S7b-06: a row's small "Dates" toggle reveals its own Start and End (prefilled from the shared dates until changed), so books
+ * read one after another go in one batch; rows left alone use the shared dates.
  */
 import { useId, useRef, useState, type FormEvent } from "react";
 import { UNIT_TYPES } from "@hh/engine";
@@ -15,11 +17,12 @@ import { useWeekdayChoice } from "./useWeekdayChoice";
 
 const START_ROWS = 3;
 
-interface Row { key: number; title: string; total: string }
-type RowErrors = { title?: string; total?: string };
+/** `open`: the row has its own dates; `start`/`end` undefined = still following the shared ones. */
+interface Row { key: number; title: string; total: string; open: boolean; start?: string; end?: string }
+type RowErrors = { title?: string; total?: string; dates?: string };
 type Errors = Partial<Record<"subject" | "children" | "dates" | "rows", string>>;
 
-const blank = (key: number): Row => ({ key, title: "", total: "" });
+const blank = (key: number): Row => ({ key, title: "", total: "", open: false });
 const isEmpty = (r: Row) => !r.title.trim() && !r.total.trim();
 
 interface Props {
@@ -61,13 +64,14 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
     const errs: Errors = {};
     if (!sid) errs.subject = "Pick a subject.";
     if (childIds.length === 0) errs.children = "Pick at least one child.";
-    const d = dateRangeError(startDate, endDate, LIMITS.days);
+    const filled = rows.filter((r) => !isEmpty(r));
+    // The shared dates matter only to rows that follow them.
+    const d = filled.length > 0 && filled.every((r) => r.open) ? null : dateRangeError(startDate, endDate, LIMITS.days);
     if (d) errs.dates = d;
 
-    const filled = rows.filter((r) => !isEmpty(r));
     if (filled.length === 0) errs.rows = "Add at least one title and total.";
     const perRow: Record<number, RowErrors> = {};
-    const items: { title: string; totalUnits: number }[] = [];
+    const items: { title: string; totalUnits: number; startDate: string; endDate: string }[] = [];
     for (const r of filled) {
       const re: RowErrors = {};
       const t = r.title.trim();
@@ -75,8 +79,13 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
       else if (t.length > LIMITS.title) re.title = `Title must be ${LIMITS.title} characters or fewer.`;
       const total = parsePositive(r.total, "Total", LIMITS.totalUnits);
       if (typeof total === "string") re.total = total;
-      else items.push({ title: t, totalUnits: total });
-      if (re.title || re.total) perRow[r.key] = re;
+      const own = r.open ? { startDate: r.start ?? startDate, endDate: r.end ?? endDate } : { startDate, endDate };
+      if (r.open) {
+        const rd = dateRangeError(own.startDate, own.endDate, LIMITS.days);
+        if (rd) re.dates = rd;
+      }
+      if (typeof total !== "string") items.push({ title: t, totalUnits: total, ...own });
+      if (re.title || re.total || re.dates) perRow[r.key] = re;
     }
     setErrors(errs);
     setRowErrors(perRow);
@@ -84,7 +93,7 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
 
     setSaving(true);
     try {
-      const body = { assignments: items.map((i) => ({ subjectId: sid, ...i, unitType, weightPerUnit: null, startDate, endDate, childIds, weekdays: dayChoice.value })) };
+      const body = { assignments: items.map((i) => ({ subjectId: sid, ...i, unitType, weightPerUnit: null, childIds, weekdays: dayChoice.value })) };
       onSaved(await apiPost<Assignment[]>("/api/assignments/bulk", body));
     } catch (err) {
       // The server counts only the rows sent; name them by the row numbers on screen.
@@ -125,7 +134,7 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
         </select>
       </div>
       {rows.map((r, i) => (
-        <BulkRow key={r.key} n={i + 1} row={r} errors={rowErrors[r.key]} canRemove={rows.length > 1}
+        <BulkRow key={r.key} n={i + 1} row={r} shared={{ start: startDate, end: endDate }} errors={rowErrors[r.key]} canRemove={rows.length > 1}
           onChange={(patch) => setRow(r.key, patch)} onRemove={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} />
       ))}
       {errors.rows ? <p className="field-error" role="alert">{errors.rows}</p> : null}
@@ -143,16 +152,19 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
 interface RowProps {
   n: number;
   row: Row;
+  /** The shared dates, shown in a row's own fields until it changes them. */
+  shared: { start: string; end: string };
   errors: RowErrors | undefined;
   canRemove: boolean;
   onChange: (patch: Partial<Row>) => void;
   onRemove: () => void;
 }
 
-function BulkRow({ n, row, errors, canRemove, onChange, onRemove }: RowProps) {
+function BulkRow({ n, row, shared, errors, canRemove, onChange, onRemove }: RowProps) {
   const id = useId();
   return (
-    <div className="field-row" role="group" aria-label={`Row ${n}`}>
+    <div className="bulk-row" role="group" aria-label={`Row ${n}`}>
+    <div className="field-row">
       <div className="field">
         <label htmlFor={`${id}-title`}>Title</label>
         <input id={`${id}-title`} type="text" value={row.title} autoComplete="off" onChange={(e) => onChange({ title: e.target.value })}
@@ -165,7 +177,23 @@ function BulkRow({ n, row, errors, canRemove, onChange, onRemove }: RowProps) {
           aria-invalid={errors?.total ? true : undefined} aria-describedby={errors?.total ? `${id}-total-err` : undefined} />
         {errors?.total ? <p id={`${id}-total-err`} className="field-error" role="alert">{errors.total}</p> : null}
       </div>
+      <button className="btn btn-secondary" type="button" aria-expanded={row.open} aria-label={`Dates for row ${n}`}
+        onClick={() => onChange(row.open ? { open: false, start: undefined, end: undefined } : { open: true })}>Dates</button>
       {canRemove ? <button className="btn btn-secondary" type="button" aria-label={`Remove row ${n}`} onClick={onRemove}>Remove</button> : null}
+    </div>
+    {row.open ? (
+      <div className="field-row">
+        <div className="field">
+          <label htmlFor={`${id}-start`}>Start</label>
+          <input id={`${id}-start`} type="date" value={row.start ?? shared.start} onChange={(e) => onChange({ start: e.target.value })} aria-invalid={errors?.dates ? true : undefined} />
+        </div>
+        <div className="field">
+          <label htmlFor={`${id}-end`}>End</label>
+          <input id={`${id}-end`} type="date" value={row.end ?? shared.end} onChange={(e) => onChange({ end: e.target.value })} aria-invalid={errors?.dates ? true : undefined} />
+          {errors?.dates ? <p className="field-error" role="alert">{errors.dates}</p> : null}
+        </div>
+      </div>
+    ) : null}
     </div>
   );
 }
