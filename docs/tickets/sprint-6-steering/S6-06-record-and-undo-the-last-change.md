@@ -8,10 +8,10 @@
 After a plan change, the API can undo that one change.
 
 ## Context
-- Changes that move the plan and should be undoable: an assignment edit (including a drag, a weight nudge or an archive), a day off created or deleted (including a missed day with its adjustments, S6-04), a week adjustment set or removed, and a reset (S6-07).
+- Changes that move the plan and should be undoable: an assignment edit (including a drag, a weight nudge or an archive), a day off created or deleted, a week adjustment set or removed, and a reset (S6-07).
 
 ## Steps
-1. Each of those writes records, in the same transaction, an undo entry with a short label ("Moved Treasure Island", "Marked Tuesday missed") and the inverse operation (the previous field values, or the rows to restore or delete).
+1. Each of those writes records, in the same transaction, an undo entry with a short label ("Moved Treasure Island", "Added a day off") and the inverse operation (the previous field values, or the rows to restore or delete).
 2. `GET /api/undo` returns `{ label, createdAt }` or null. `POST /api/undo` applies the inverse in one transaction and deletes the entry (undo is one step; there is no redo). If the inverse no longer applies (the assignment was since deleted), return 409 and drop the entry.
 3. Other writes (kids, subjects, settings, events) don't touch the undo entry.
 

@@ -9,7 +9,7 @@ The tester verifies Sprint 6 against each "Done when" and the edge cases below, 
 
 ## Steps
 1. Gate with labelled counts; screenshots in `docs/progress/screens/sprint-6/`.
-2. Edge cases: two adjustments in one week (the newer wins); an adjustment then a check-in for the same week; a missed day with each make-up option on a Friday-only assignment; undo after each change type, and after an unrelated change; reset on an assignment with check-ins and with an archived original subject; effort presets on minute-based and chapter-based assignments; Heavier at the weight limit; units conserved in every plan; `test:tz`.
+2. Edge cases: two adjustments in one week (the newer wins); an adjustment then a check-in for the same week; This Week has no "Missed a day?" control and existing missed days still shape the plan; undo after each change type, and after an unrelated change; reset on an assignment with check-ins and with an archived original subject; effort presets on minute-based and chapter-based assignments; Heavier at the weight limit; units conserved in every plan; `test:tz`.
 3. Findings with severity and steps to reproduce.
 
 ## Done when
