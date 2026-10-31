@@ -2,12 +2,12 @@
  * S7-01: "Copy to a new year" and S7-02: "Copy to another child", panels in the Assignments screen's panels slot. They copy the
  * plan only (titles, units, totals, effort, days, shifted dates) and share the chosen-rows list and the chunked save (copyPlan.ts).
  * S7b-11: the year copy lists only what starts inside "this year" and leaves out what is already copied ("N already copied");
- * both copies are one undo entry.
+ * both copies are one undo entry. S7b-12: copy to another child leaves out what that child already has.
  */
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { diffDays, isValidLocalDate } from "@hh/engine";
 import type { Assignment } from "../../api/types";
-import { alreadyCopied, chunkFailureText, copyCandidates, saveInChunks, shiftedCopy, yearName, type CopyBody } from "./copyPlan";
+import { alreadyCopied, childAlreadyHas, chunkFailureText, copyCandidates, saveInChunks, shiftedCopy, yearName, type CopyBody } from "./copyPlan";
 import { dateRange } from "./formBits";
 import type { Lookups } from "./lookups";
 
@@ -181,7 +181,10 @@ export function CopyToChildPanel(p: CopyPanelProps) {
   // The first ticked assignment keeps its place only when no new start is given; the others keep their offset from it.
   const first = picked.length ? picked.reduce((m, a) => (a.startDate < m ? a.startDate : m), picked[0]!.startDate) : null;
   const shift = first && isValidLocalDate(newStart) ? diffDays(first, newStart) : 0;
-  const rows: Row[] = listed.map((a) => ({ a, copy: shiftedCopy(a, shift, l, targetId ? [targetId] : [sourceId]) }));
+  const everything: Row[] = listed.map((a) => ({ a, copy: shiftedCopy(a, shift, l, targetId ? [targetId] : [sourceId]) }));
+  // S7b-12: what the target child already has (on it, or an identical copy) is left out.
+  const had = targetId ? everything.filter((r) => childAlreadyHas(r.a, r.copy, targetId, existing)) : [];
+  const rows = everything.filter((r) => !had.includes(r));
   const { saving, message, save, left } = useCopySave(rows, p, (n) => `Copied ${count(n)} to ${targetId ? l.childName(targetId) : "another child"}`);
   const shown = rows.filter((r) => left.includes(r));
   const chosen = shown.filter((r) => !unticked.has(r.a.id));
@@ -209,24 +212,34 @@ export function CopyToChildPanel(p: CopyPanelProps) {
         </div>
       ) : null}
       {sourceId && ofSource.length === 0 ? <p className="hint">{l.childName(sourceId)} has no assignments to copy.</p> : null}
-      {shown.length > 0 ? (
+      {listed.length > 0 ? (
         <>
-          <CopyList rows={shown} unticked={unticked} onToggle={toggle} l={l} label="To copy" />
+          {shown.length > 0 ? <CopyList rows={shown} unticked={unticked} onToggle={toggle} l={l} label="To copy" /> : null}
           <div className="field">
             <label htmlFor={ids.target}>Copy to</label>
             <select id={ids.target} value={targetId} onChange={(e) => setTargetId(e.target.value)}>
               <option value="">Choose a child…</option>
               {targets.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+            {/* S7b-12: what the target child already has isn't offered. */}
+            {had.length > 0 ? <p className="hint">{had.length === 1 ? `1 already has ${l.childName(targetId)}.` : `${had.length} already have ${l.childName(targetId)}.`}</p> : null}
           </div>
-          <div className="field">
-            <label htmlFor={ids.start}>New start date (optional)</label>
-            <input id={ids.start} type="date" value={newStart} onChange={(e) => setNewStart(e.target.value)} />
-            <p className="hint">The earliest one starts then; the rest keep their gaps.</p>
-          </div>
-          {tried && problem ? <p className="field-error" role="alert">{problem}</p> : null}
-          <Buttons n={chosen.length} saving={saving} label="Copy" onCancel={onCancel} allTicked={unticked.size === 0}
-            onToggleAll={() => setUnticked(unticked.size === 0 ? new Set(shown.map((r) => r.a.id)) : new Set())} />
+          {shown.length > 0 ? (
+            <>
+              <div className="field">
+                <label htmlFor={ids.start}>New start date (optional)</label>
+                <input id={ids.start} type="date" value={newStart} onChange={(e) => setNewStart(e.target.value)} />
+                <p className="hint">The earliest one starts then; the rest keep their gaps.</p>
+              </div>
+              {tried && problem ? <p className="field-error" role="alert">{problem}</p> : null}
+              <Buttons n={chosen.length} saving={saving} label="Copy" onCancel={onCancel} allTicked={unticked.size === 0}
+                onToggleAll={() => setUnticked(unticked.size === 0 ? new Set(shown.map((r) => r.a.id)) : new Set())} />
+            </>
+          ) : (
+            <div className="btn-row">
+              <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>
+            </div>
+          )}
         </>
       ) : (
         <div className="btn-row">

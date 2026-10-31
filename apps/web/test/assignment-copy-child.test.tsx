@@ -3,8 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { Assignment } from "../src/api/types";
 import { fakeApi } from "./helpers/fake-api";
+import type { Child } from "../src/api/types";
 import { FRANK, MAGGIE, MATH, READING, rowId, withRoster, writes } from "./helpers/schedule-fixtures";
 
+// S7b-12: "Together art" is shared with Leo, not Maggie, so copying Frank's work to Maggie still has a shared one to copy.
+const LEO: Child = { id: "10000000-0000-4000-8000-000000000104", name: "Leo", color: null, sortOrder: 3, archived: false };
 import { renderAt } from "./render";
 
 const make = (n: number, over: Partial<Assignment> = {}): Assignment => ({
@@ -15,11 +18,11 @@ const LIST = [
   make(1, { title: "Saxon 5/4", startDate: "2026-09-07", endDate: "2026-10-30", weightPerUnit: 2, weekdays: [1, 2, 3] }),
   make(2, { title: "Story of the World", subjectId: READING.id, unitType: "chapters", totalUnits: 42, startDate: "2026-09-14", endDate: "2026-12-18" }),
   make(3, { title: "Maggie's phonics", subjectId: READING.id, childIds: [MAGGIE.id] }),
-  make(4, { title: "Together art", childIds: [FRANK.id, MAGGIE.id], startDate: "2026-09-21", endDate: "2026-11-20" }),
+  make(4, { title: "Together art", childIds: [FRANK.id, LEO.id], startDate: "2026-09-21", endDate: "2026-11-20" }),
 ];
 
 async function setup(list: Assignment[] = LIST) {
-  withRoster();
+  withRoster([FRANK, MAGGIE, LEO]);
   fakeApi.on("GET /api/assignments", 200, list);
   const user = userEvent.setup();
   renderAt("/schedule/assignments");
@@ -144,5 +147,66 @@ describe("Copy to another child (S7-02)", () => {
     await user.click(within(form).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("form")).toBeNull();
     expect(writes()).toEqual([]);
+  });
+});
+
+describe("Copy to another child leaves out what the child already has (S7b-12)", () => {
+  async function pick(list: Assignment[], from = FRANK.id, to = MAGGIE.id) {
+    const { user, form } = await setup(list);
+    await user.selectOptions(within(form).getByLabelText("Copy from"), from);
+    await user.selectOptions(within(form).getByLabelText("Copy to"), to);
+    return { user, form };
+  }
+
+  it("the review's case: Frank's History, already shared with Margaret, offers 0 and says so", async () => {
+    const shared = make(1, { title: "History spine", childIds: [FRANK.id, MAGGIE.id] });
+    const { form } = await pick([shared]);
+    expect(within(form).getByText("1 already has Maggie.")).toBeInTheDocument();
+    expect(within(form).queryByRole("checkbox")).toBeNull();
+    expect(within(form).queryByRole("button", { name: /^Copy/ })).toBeNull();
+    expect(writes()).toEqual([]);
+  });
+
+  it("an identical copy the child already has (same subject, title, dates) is left out; one with other dates is not", async () => {
+    const list = [
+      make(1, { title: "Saxon", startDate: "2026-09-07", endDate: "2026-10-30" }),
+      make(2, { title: "Saxon", childIds: [MAGGIE.id], startDate: "2026-09-07", endDate: "2026-10-30" }), // Maggie's identical one
+      make(3, { title: "Story", startDate: "2026-09-14", endDate: "2026-12-18" }),
+      make(4, { title: "Story", childIds: [MAGGIE.id], startDate: "2026-09-15", endDate: "2026-12-18" }), // other dates: not identical
+    ];
+    const { form } = await pick(list);
+    expect(titles(form)).toEqual(["Story"]);
+    expect(within(form).getByText("1 already has Maggie.")).toBeInTheDocument();
+  });
+
+  it("with a new start date, a copy that already exists on the shifted dates is also left out", async () => {
+    const list = [
+      make(1, { title: "A", startDate: "2026-09-07", endDate: "2026-10-30" }),
+      make(2, { title: "C", startDate: "2026-09-14", endDate: "2026-11-06" }),
+      make(3, { title: "A", childIds: [MAGGIE.id], startDate: "2027-01-04", endDate: "2027-02-26" }), // A as it would be copied
+    ];
+    const { form } = await pick(list);
+    expect(titles(form)).toEqual(["A", "C"]); // not identical as is: Maggie's A starts on Jan 4
+    fireEvent.change(within(form).getByLabelText("New start date (optional)"), { target: { value: "2027-01-04" } });
+    expect(within(form).getByText("1 already has Maggie.")).toBeInTheDocument();
+    expect(titles(form)).toEqual(["C"]);
+  });
+
+  it("several that she has say 'N already have'", async () => {
+    const list = [make(1, { title: "A", childIds: [FRANK.id, MAGGIE.id] }), make(2, { title: "B", childIds: [FRANK.id, MAGGIE.id] }), make(3, { title: "C" })];
+    const { form } = await pick(list);
+    expect(within(form).getByText("2 already have Maggie.")).toBeInTheDocument();
+    expect(titles(form)).toEqual(["C"]);
+  });
+
+  it("nothing is left out before a target is chosen, and the target field stays when the list empties", async () => {
+    const shared = make(1, { title: "History spine", childIds: [FRANK.id, MAGGIE.id] });
+    const { user, form } = await setup([shared]);
+    await user.selectOptions(within(form).getByLabelText("Copy from"), FRANK.id);
+    expect(titles(form)).toEqual(["History spine"]);
+    await user.selectOptions(within(form).getByLabelText("Copy to"), MAGGIE.id);
+    expect(within(form).getByLabelText("Copy to")).toHaveValue(MAGGIE.id);
+    await user.selectOptions(within(form).getByLabelText("Copy to"), LEO.id);
+    expect(titles(form)).toEqual(["History spine"]); // Leo doesn't have it
   });
 });

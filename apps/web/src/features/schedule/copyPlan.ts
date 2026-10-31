@@ -95,3 +95,13 @@ export function alreadyCopied(copy: CopyBody, existing: readonly Assignment[]): 
   return existing.some((e) => !e.archived && e.subjectId === copy.subjectId && e.title === copy.title && sameSet(e.childIds, copy.childIds)
     && e.startDate === copy.startDate && e.endDate === copy.endDate);
 }
+
+/**
+ * S7b-12: true when `child` already has `a`: it is on the assignment, or has one with the same subject and title on the same
+ * (or the shifted copy's) dates.
+ */
+export function childAlreadyHas(a: Assignment, copy: CopyBody, child: string, existing: readonly Assignment[]): boolean {
+  if (a.childIds.includes(child)) return true;
+  return existing.some((e) => !e.archived && e.childIds.includes(child) && e.subjectId === a.subjectId && e.title === a.title
+    && ((e.startDate === a.startDate && e.endDate === a.endDate) || (e.startDate === copy.startDate && e.endDate === copy.endDate)));
+}
