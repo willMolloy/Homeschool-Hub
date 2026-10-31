@@ -184,6 +184,10 @@ See [sprint-5-preview-templates-phone/README.md](sprint-5-preview-templates-phon
 
 See [sprint-6-steering/README.md](sprint-6-steering/README.md) (S6-01 to S6-11).
 
+## Sprint 6b: a simple This Week
+
+See [sprint-6b-this-week/README.md](sprint-6b-this-week/README.md) (S6b-01 to S6b-04).
+
 ## Sprint 7: setup and polish
 
 See [sprint-7-setup-polish/README.md](sprint-7-setup-polish/README.md) (S7-01 to S7-14).
