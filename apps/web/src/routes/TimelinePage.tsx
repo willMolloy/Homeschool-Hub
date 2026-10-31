@@ -7,8 +7,10 @@
  * T-07c: with two or more children, a chip row (All, then each child) narrows it to one child, kept in `?child=`.
  * T-10: "+ Add assignment" in the header opens the assignment form; the new bar appears at once, briefly highlighted.
  * S3a-02: the edit bar's Copy opens that form prefilled from the selected assignment.
+ * S6-08: its "Reset to original" asks first, then puts the assignment back to how it was created.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import type { Assignment } from "../api/types";
 import { AddAssignmentButton, AddAssignmentSheet } from "../features/timeline/AddAssignment";
 import { copyOfAssignment } from "../features/schedule/copyAssignment";
@@ -97,6 +99,20 @@ export function TimelinePage() {
     onSelect: select, onPreview: setPreview, onCommit: edit.save,
   });
   const closeEdit = useCallback(() => setSelectedId(null), []);
+  // S6-08: the undo bar rides above the edit bar while it is open.
+  const barHeight = selection ? keep.height : 0;
+  useEffect(() => {
+    document.documentElement.style.setProperty("--edit-bar-height", `${barHeight}px`);
+    return () => { document.documentElement.style.removeProperty("--edit-bar-height"); };
+  }, [barHeight]);
+  const [resetting, setResetting] = useState<{ id: string; title: string } | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const confirmReset = async () => {
+    if (!resetting) return;
+    const message = await edit.reset(resetting.id);
+    if (message) setResetError(message);
+    else setResetting(null);
+  };
   // T-10: adding an assignment. The new bar flashes once it is drawn, with the filter and month moved to show it.
   const [adding, setAdding] = useState(false);
   const [copying, setCopying] = useState<Draft<Assignment> | null>(null);
@@ -165,12 +181,19 @@ export function TimelinePage() {
               <>
                 <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />
                 <EditBar ref={keep.ref} selection={selection} original={edit.originals[selection.assignmentId] ?? null}
-                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onClose={closeEdit} />
+                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected}
+                  onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
               </>
             )}
           </>
         )}
       </div>
+      {resetting && (
+        <ConfirmDialog title={`Put ${resetting.title} back to how you created it?`} confirmLabel="Reset" busy={edit.busy} error={resetError}
+          onConfirm={() => void confirmReset()} onCancel={() => setResetting(null)}>
+          <p>Its dates, weight and days go back, and its week adjustments are removed. You can undo this right after.</p>
+        </ConfirmDialog>
+      )}
       <AddAssignmentSheet open={adding} lookups={lookups} initial={copying} onSaved={added} onClose={closeAdd} />
     </>
   );

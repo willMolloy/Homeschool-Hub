@@ -94,6 +94,8 @@ class FakeApi {
     // S2b-25: no work last week (card hidden); a save echoes the week back as reviewed or skipped.
     this.on("GET /api/check-ins", 200, EMPTY_WEEK);
     this.on("GET /api/check-ins/weeks", 200, { weeks: [] });
+    // S6-08: nothing to undo unless a test says so.
+    this.on("GET /api/undo", 200, null);
     this.on(`PUT /api/check-ins/${EMPTY_WEEK.weekStart}`, (body) =>
       [200, { ...EMPTY_WEEK, status: (body as { status: string }).status, planChanged: false }]);
   }

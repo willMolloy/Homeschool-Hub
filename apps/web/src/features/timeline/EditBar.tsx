@@ -15,12 +15,14 @@ export interface EditBarProps {
   onSave: (dates: DateSpan) => void;
   /** S3a-02: opens the Add assignment sheet prefilled from this assignment. */
   onCopy: () => void;
+  /** S6-08: asks to put the assignment back to how it was created (the page confirms first). */
+  onReset: () => void;
   onClose: () => void;
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, original, busy, error, onSave, onCopy, onClose }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, original, busy, error, onSave, onCopy, onReset, onClose }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -72,6 +74,7 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
           {canEndEarlier(s.startDate, s.endDate) && step("End a week earlier", { startDate: s.startDate, endDate: shiftEnd(s.endDate, -1) })}
           {step("End a week later", { startDate: s.startDate, endDate: shiftEnd(s.endDate, 1) })}
           <button type="button" className="btn btn-secondary" disabled={busy} onClick={onCopy}>Copy</button>
+          <button type="button" className="btn btn-secondary" disabled={busy} onClick={onReset}>Reset to original</button>
         </div>
       </div>
       {message && <p className="tl-edit-error" role="alert">{message}</p>}

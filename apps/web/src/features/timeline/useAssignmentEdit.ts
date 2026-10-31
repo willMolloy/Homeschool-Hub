@@ -1,6 +1,6 @@
-/** T-07e: saving an assignment's dates from the edit bar, with the first dates kept for Reset. */
+/** T-07e: saving an assignment's dates from the edit bar, with the first dates kept for Reset. S6-08: reset to original. */
 import { useState } from "react";
-import { ApiError, apiPatch } from "../../api/client";
+import { ApiError, apiPatch, apiPost } from "../../api/client";
 import type { Assignment } from "../../api/types";
 import { changedDates, type DateSpan } from "./select";
 
@@ -30,5 +30,24 @@ export function useAssignmentEdit(applyAssignment: (a: Assignment) => void) {
       setBusy(false);
     }
   };
-  return { originals, busy, error, save, clearError: () => setError(null) };
+  /** S6-08: back to how it was created. Resolves to null on success or the message to show. */
+  const reset = async (id: string): Promise<string | null> => {
+    setBusy(true);
+    setError(null);
+    try {
+      const { assignment } = await apiPost<{ assignment: Assignment }>(`/api/assignments/${id}/reset`);
+      setOriginals((o) => {
+        const rest = { ...o };
+        delete rest[id];
+        return rest;
+      });
+      applyAssignment(assignment);
+      return null;
+    } catch (e) {
+      return e instanceof ApiError ? e.message : "Couldn't reset. Try again.";
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { originals, busy, error, save, reset, clearError: () => setError(null) };
 }

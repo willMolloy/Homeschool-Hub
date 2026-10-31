@@ -21,6 +21,27 @@ export function onUnauthenticated(fn: (() => void) | null): () => void {
   };
 }
 
+/**
+ * S6-08: requests that change the plan and so leave an undo entry on the API (S6-06): an assignment edit or reset, a
+ * day off, a week adjustment. Creating an assignment is not one. The undo bar listens (`onPlanChange`) and asks what to offer.
+ */
+const PLAN_CHANGES: readonly (readonly [string, RegExp])[] = [
+  ["PATCH", /^\/api\/assignments\/[^/]+$/],
+  ["POST", /^\/api\/assignments\/[^/]+\/reset$/],
+  ["POST", /^\/api\/blocked-ranges(\/bulk)?$/],
+  ["PATCH", /^\/api\/blocked-ranges\/[^/]+$/],
+  ["DELETE", /^\/api\/blocked-ranges\/[^/]+$/],
+  ["PUT", /^\/api\/week-overrides$/],
+  ["DELETE", /^\/api\/week-overrides\/[^/]+$/],
+];
+const planChangeListeners = new Set<() => void>();
+
+/** Call `fn` after every successful plan-changing request. Returns an unsubscribe. */
+export function onPlanChange(fn: () => void): () => void {
+  planChangeListeners.add(fn);
+  return () => { planChangeListeners.delete(fn); };
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   let res: Response;
   try {
@@ -47,6 +68,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     const e = (data ?? {}) as Partial<ApiErrorBody>;
     throw new ApiError(res.status, typeof e.error === "string" ? e.error : "unknown", e.message);
   }
+  const pathname = path.split("?")[0]!;
+  if (PLAN_CHANGES.some(([m, re]) => m === method && re.test(pathname))) for (const fn of planChangeListeners) fn();
   return data as T;
 }
 
