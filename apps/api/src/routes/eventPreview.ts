@@ -3,7 +3,7 @@
  * assignment's daily amount and end date. Plans twice from one load of the inputs; nothing is written.
  */
 import type { FastifyInstance } from "fastify";
-import { diffDays, planAll, type ChildPlan, type RecurringEvent, type SubjectRule, type UnitType, type Weekday } from "@hh/engine";
+import { diffDays, EPS, planAll, type ChildPlan, type RecurringEvent, type SubjectRule, type UnitType, type Weekday } from "@hh/engine";
 import { z } from "zod";
 import { HttpError } from "../http/errors";
 import { familyToday } from "../http/today";
@@ -40,6 +40,8 @@ export interface EventPreviewResponse {
 }
 
 const oneDecimal = (n: number): number => Math.round(n * 10) / 10;
+/** S7-06: some of the plan's units fall on or after `asOf` (a finished assignment, or one that ended earlier, has none). */
+const hasWorkFrom = (p: ChildPlan, asOf: string): boolean => p.days.some((d) => d.date >= asOf && d.units > EPS);
 const side = (p: ChildPlan): PreviewSide => ({ perDay: oneDecimal(p.rate), end: p.end });
 
 /** How big a change is, relative to what it was: the share of the daily amount, or of the time left to the old end. */
@@ -102,6 +104,7 @@ export async function eventPreviewRoutes(app: FastifyInstance): Promise<void> {
     for (const a of after) {
       const o = was.get(`${a.assignmentId}/${a.childId}`);
       if (!o) continue;
+      if (!hasWorkFrom(o, asOf) && !hasWorkFrom(a, asOf)) continue; // S7-06: nothing left to do from today on
       const bs = side(o);
       const as = side(a);
       if (Math.abs(as.perDay - bs.perDay) < 0.05 && as.end === bs.end) continue;

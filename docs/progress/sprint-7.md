@@ -1,6 +1,6 @@
 # Sprint 7 progress: setup and polish
 
-Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (rollover, sibling reuse, custom zoom views). The other Sprint 7 tickets are a later pass.
+Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (rollover, sibling reuse, custom zoom views). Pass B (polish) covers S7-06 to S7-19 except S7-09 (not needed), S7-13 and S7-14.
 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
@@ -8,7 +8,8 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 | S7-02 Copy assignments to another child | a7c95aa | `CopyToChildPanel` (same file) reuses `CopyList`, `shiftedCopy` and `saveInChunks` |
 | S7-03 Store a family's zoom views | 3ee1d42 | Migration `014_zoom_views` (`family.zoom_views`); `http/zoomViews.ts` validates; `GET`/`PATCH /api/family` carry `zoomViews` |
 | S7-04 Show custom and hidden zoom views on the timeline | fc1c526 | `Zoom` is a built-in or `custom:<id>`; `zoomRange` takes the custom views; `visibleZooms` builds the row; `useTimelineData` reads `zoomViews` from `GET /api/family` |
-| S7-05 Edit the zoom views | (this commit) | `EditZoomViewsSheet` (`timeline/EditZoomViews.tsx`) behind a quiet Edit in `ZoomPresets`; rules in `timeline/zoomViews.ts`; `useTimelineData.setZoomViews` |
+| S7-05 Edit the zoom views | 886baea | `EditZoomViewsSheet` (`timeline/EditZoomViews.tsx`) behind a quiet Edit in `ZoomPresets`; rules in `timeline/zoomViews.ts`; `useTimelineData.setZoomViews` |
+| S7-06 The event preview skips finished assignments | (this commit) | `hasWorkFrom` in `routes/eventPreview.ts` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -38,3 +39,7 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 - **S7-05 deleted or hidden zoom.** Covered by tests: deleting the view being looked at, or hiding the built-in being looked at, shows Year.
 - **S7-05 changed test expectation.** `timeline-view.test.tsx` "shows only what's essential" lists the visible buttons; "Edit" now follows "This month" (the ticket adds it). Nothing else changed.
 - **S7-05 not checked.** The sheet and the row were tested in jsdom only; not looked at in a browser at 360 px (the layout reuses the existing form and sheet styles, rows wrap, and the zoom row scrolls inside itself).
+
+## Pass B decisions
+
+- **S7-06 what counts as finished.** A row is left out when neither the before nor the after plan has any units on or after today (`days` with `date >= today` and `units > EPS`). That covers an assignment that ended earlier and one whose check-ins finished it. Both plans are checked so a row is never dropped when the draft would give it work.

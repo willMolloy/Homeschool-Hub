@@ -85,6 +85,14 @@ describe.skipIf(!hasDb)("POST /api/plan/preview-event (S5-01, integration)", () 
     await req("PATCH", `/api/events/${e.id}`, { archived: true });
   });
 
+  it("S7-06: an assignment that ended before today is left out; one still running is listed", async () => {
+    const done = (await req("POST", "/api/assignments", { subjectId: subjects[0], title: "Aesop's Fables", unitType: "pages", totalUnits: 40, startDate: "2026-08-31", endDate: "2026-09-11", childIds: kids })).json();
+    const body = (await preview({ name: "Tue", weekdays: [2], subjectRules: { [subjects[0]!]: "skip" } })).json<EventPreviewResponse>();
+    expect(body.changes.map((c) => c.title)).not.toContain("Aesop's Fables");
+    expect(body.changes.map((c) => c.title)).toContain("Treasure Island");
+    await req("PATCH", `/api/assignments/${done.id}`, { archived: true });
+  });
+
   it("returns at most 20 rows with a count of the rest, biggest relative change first", async () => {
     const f = await rosterFor(app, a.cookies, ["Many"], ["Extra"]);
     const rows = Array.from({ length: 11 }, (_, i) => ({
