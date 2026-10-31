@@ -32,7 +32,9 @@ Each ticket uses the usual format. Build in order, one commit per ticket, each w
 | 10 | [S6b-14 — Clearer undo labels and no engine warnings on screen](S6b-14-clearer-undo-labels-and-plan-warnings.md) (Sprint 6 L3, L5) | none | XS |
 | 11 | [S6b-04 — Tester pass](S6b-04-tester-pass.md) (covers the "now" tickets; the held ones get their own pass) | the above | S |
 
-### Held for the UX direction
+### Moved into Sprint 8 (Soft Paper chosen on 2026-10-31)
+
+These are now S8-05 (pastel bars), S8-06 (check-in) and S8-04 (Home and navigation) in `../sprint-8-soft-paper/`, built in the chosen style.
 
 | Ticket | Depends on | Size |
 |--------|------------|------|

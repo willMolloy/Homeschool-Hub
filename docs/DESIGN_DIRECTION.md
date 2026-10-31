@@ -30,6 +30,10 @@ Before a screen ships, it should pass these checks (the tester includes them in 
 - **Empty state:** what does a brand-new family see here?
 - **Phone first:** does it work one-handed at 360 px, with 44 px targets and nothing scrolling sideways?
 
+## Chosen look (2026-10-31)
+
+**Soft Paper** (`design/ux-research.md`, Direction 1): a well-loved notebook. Cream page, warm hairlines instead of shadows, Fraunces serif titles with Nunito Sans text, a fern-green accent, Phosphor Light icons, and pastel subject bars with a thin coloured rule (slightly stronger than first mocked, at Will's request). Light and dark. Navigation Option B (Home · This week · Year) is provisional until DeeDee confirms. Built in Sprint 8.
+
 ## How this changes the plan
 
 - **Sprint 6b** splits in two. The behaviour fixes that don't depend on a visual style go ahead now: the effort table off This Week, the simpler edit bar, the soft bar cap, the pace check, subjects from the form, the empty calendar, tighter bar spacing. The parts that *are* the new look (Home and navigation, This Week's pastel bars, the Completed / Update status check-in) wait for Will's feedback on the UX research, so they're built once, in the chosen style.

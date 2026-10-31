@@ -1,5 +1,7 @@
 # Homeschool Hub: UX research and design directions
 
+> **Decision (2026-10-31):** Will chose **Direction 1: Soft Paper**, with the assignment colours slightly stronger (light fills mixed 14% toward their strong tone, dark 10%; all still AA; see the updated `mockups/soft-paper.html`). He's checking with DeeDee. Navigation Option B, the names "This week" / "Year" and one child at a time are provisional until she confirms. Built in Sprint 8 (`tickets/sprint-8-soft-paper/`).
+
 Written 2026-10-31 for Will and DeeDee, as the "audit and direction first" step of Sprint 8 (ROADMAP.md, "UI refinement and dark mode"). Nothing here changes app code. The mockups are static HTML files in [`mockups/`](mockups/); open them in any browser.
 
 **Short version**
