@@ -28,6 +28,7 @@ export function onUnauthenticated(fn: (() => void) | null): () => void {
 const PLAN_CHANGES: readonly (readonly [string, RegExp])[] = [
   ["PATCH", /^\/api\/assignments\/[^/]+$/],
   ["POST", /^\/api\/assignments\/[^/]+\/reset$/],
+  ["POST", /^\/api\/assignments\/bulk$/], // S7b-11: a copy with an undo label leaves an entry (other bulk creates leave none)
   ["POST", /^\/api\/blocked-ranges(\/bulk)?$/],
   ["PATCH", /^\/api\/blocked-ranges\/[^/]+$/],
   ["DELETE", /^\/api\/blocked-ranges\/[^/]+$/],

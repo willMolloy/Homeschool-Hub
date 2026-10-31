@@ -14,7 +14,7 @@ import { familyWeekStart } from "../http/familyWeek";
 import { effectiveWeekdays, weekdaysChange } from "../services/weekdaysChange";
 import { recordWeightChoices } from "../repos/weightChoiceRepo";
 import { resetAssignment } from "../services/assignmentReset";
-import { assignmentStep, recordUndo, type UndoStep } from "../services/undoService";
+import { appendCreatedToUndo, assignmentStep, recordUndo, type UndoStep } from "../services/undoService";
 
 const Id = z.string("Must be an id.").regex(UUID_RE, "Must be a UUID.").transform((s) => s.toLowerCase());
 const Children = IdList(MAX_ASSIGNMENT_CHILDREN).min(1, "Pick at least one child.");
@@ -37,6 +37,15 @@ const CreateBody = z.strictObject({
 const MAX_BULK = 50;
 const BulkBody = z.strictObject({
   assignments: z.array(z.unknown(), "Must be a list.").min(1, "Send at least one assignment.").max(MAX_BULK, `Send at most ${MAX_BULK} assignments.`),
+  /**
+   * S7b-11: the copy panels ask for one undo entry covering what they create ("Copied 21 assignments to 2027–28"). Without
+   * it the request is not undoable (Add several and CSV import are not). `append` adds a later chunk of the same copy to
+   * the entry the first chunk made.
+   */
+  undo: z.strictObject({
+    label: z.string("label must be text.").trim().min(1, "label is required.").max(200, "label must be 200 characters or fewer."),
+    append: z.boolean("append must be true or false.").optional(),
+  }).optional(),
 });
 
 const PatchBody = z
@@ -106,7 +115,7 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/api/assignments/bulk", async (req, reply) => {
-    const { assignments } = parseBody(BulkBody, req.body);
+    const { assignments, undo } = parseBody(BulkBody, req.body);
     // Every item is validated before anything is written.
     const items: CreateInput[] = [];
     for (const [i, raw] of assignments.entries()) {
@@ -119,6 +128,12 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
     const rows = await withTransaction(app.db, async (c) => {
       const created = [];
       for (const [i, b] of items.entries()) created.push(await atPosition(i + 1, () => createOne(c, req.familyId, b)));
+      // S7b-11: a copy is one undoable change; undo deletes exactly these.
+      if (undo) {
+        const ids = created.map((r) => r.id);
+        if (undo.append) await appendCreatedToUndo(c, req.familyId, undo.label, ids);
+        else await recordUndo(c, req.familyId, undo.label, [{ op: "assignmentsCreated", ids }]);
+      }
       return created;
     });
     return reply.code(201).send(rows.map(toAssignmentJson));

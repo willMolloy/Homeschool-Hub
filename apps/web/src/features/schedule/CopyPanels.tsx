@@ -1,11 +1,13 @@
 /**
  * S7-01: "Copy to a new year" and S7-02: "Copy to another child", panels in the Assignments screen's panels slot. They copy the
  * plan only (titles, units, totals, effort, days, shifted dates) and share the chosen-rows list and the chunked save (copyPlan.ts).
+ * S7b-11: the year copy lists only what starts inside "this year" and leaves out what is already copied ("N already copied");
+ * both copies are one undo entry.
  */
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { diffDays, isValidLocalDate } from "@hh/engine";
 import type { Assignment } from "../../api/types";
-import { chunkFailureText, copyCandidates, saveInChunks, shiftedCopy, type CopyBody } from "./copyPlan";
+import { alreadyCopied, chunkFailureText, copyCandidates, saveInChunks, shiftedCopy, yearName, type CopyBody } from "./copyPlan";
 import { dateRange } from "./formBits";
 import type { Lookups } from "./lookups";
 
@@ -51,7 +53,7 @@ function CopyList({ rows, unticked, onToggle, l, label }: { rows: Row[]; unticke
 }
 
 /** Everything both panels do after the rows are chosen: save in chunks, then close, or stay and say what was created. */
-function useCopySave(rows: Row[], p: CopyPanelProps) {
+function useCopySave(rows: Row[], p: CopyPanelProps, undoLabel: (created: number) => string) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   /** Sources already copied by an earlier part of a failed save; a retry leaves them out. */
@@ -61,7 +63,7 @@ function useCopySave(rows: Row[], p: CopyPanelProps) {
     setSaving(true);
     setMessage(null);
     try {
-      const r = await saveInChunks(chosen.map((c) => c.copy));
+      const r = await saveInChunks(chosen.map((c) => c.copy), undoLabel, done.size);
       if (!r.failure) {
         p.onSaved(r.created);
         return;
@@ -109,12 +111,15 @@ export function CopyToNewYearPanel(p: CopyPanelProps) {
   const { unticked, toggle, setUnticked } = useTicks();
   const ready = isValidLocalDate(oldFirst) && isValidLocalDate(newFirst);
   const shift = ready ? diffDays(oldFirst, newFirst) : 0;
-  const all = useMemo(
-    () => (ready ? copyCandidates(existing, l).filter((a) => a.startDate >= oldFirst).sort((a, b) => a.startDate.localeCompare(b.startDate) || a.title.localeCompare(b.title)) : []),
-    [ready, existing, l, oldFirst],
+  // S7b-11: only what starts inside this year (its first day up to the day before next year's), not what an earlier copy made.
+  const inYear = useMemo(
+    () => (ready ? copyCandidates(existing, l).filter((a) => a.startDate >= oldFirst && a.startDate < newFirst).sort((a, b) => a.startDate.localeCompare(b.startDate) || a.title.localeCompare(b.title)) : []),
+    [ready, existing, l, oldFirst, newFirst],
   );
-  const rows: Row[] = all.map((a) => ({ a, copy: shiftedCopy(a, shift, l) }));
-  const { saving, message, save, left } = useCopySave(rows, p);
+  const everything: Row[] = inYear.map((a) => ({ a, copy: shiftedCopy(a, shift, l) }));
+  const copied = everything.filter((r) => alreadyCopied(r.copy, existing));
+  const rows = everything.filter((r) => !copied.includes(r));
+  const { saving, message, save, left } = useCopySave(rows, p, (n) => `Copied ${count(n)} to ${yearName(newFirst)}`);
   const shown = left;
   const chosen = shown.filter((r) => !unticked.has(r.a.id));
   const submit = (e: FormEvent) => { e.preventDefault(); void save(chosen); };
@@ -135,10 +140,10 @@ export function CopyToNewYearPanel(p: CopyPanelProps) {
       {!ready ? (
         <p className="hint">Pick both days to choose what to copy. Only the plan is copied, not progress.</p>
       ) : shown.length === 0 ? (
-        <p className="hint">No assignments start on or after that day.</p>
+        <p className="hint">{copied.length > 0 ? `${copied.length} already copied.` : "No assignments start in that year."}</p>
       ) : (
         <>
-          <p>{count(chosen.length)} to copy</p>
+          <p>{count(chosen.length)} to copy{copied.length > 0 ? ` · ${copied.length} already copied` : ""}</p>
           <CopyList rows={shown} unticked={unticked} onToggle={toggle} l={l} label="To copy" />
           <Buttons n={chosen.length} saving={saving} label="Copy" onCancel={onCancel} allTicked={unticked.size === 0}
             onToggleAll={() => setUnticked(unticked.size === 0 ? new Set(shown.map((r) => r.a.id)) : new Set())} />
@@ -177,7 +182,7 @@ export function CopyToChildPanel(p: CopyPanelProps) {
   const first = picked.length ? picked.reduce((m, a) => (a.startDate < m ? a.startDate : m), picked[0]!.startDate) : null;
   const shift = first && isValidLocalDate(newStart) ? diffDays(first, newStart) : 0;
   const rows: Row[] = listed.map((a) => ({ a, copy: shiftedCopy(a, shift, l, targetId ? [targetId] : [sourceId]) }));
-  const { saving, message, save, left } = useCopySave(rows, p);
+  const { saving, message, save, left } = useCopySave(rows, p, (n) => `Copied ${count(n)} to ${targetId ? l.childName(targetId) : "another child"}`);
   const shown = rows.filter((r) => left.includes(r));
   const chosen = shown.filter((r) => !unticked.has(r.a.id));
   const [tried, setTried] = useState(false);

@@ -25,6 +25,8 @@ export type UndoStep =
   | { op: "assignment"; id: string; set: AssignmentState }
   | { op: "blockedRange"; id: string; set: BlockedRangeState | null }
   | { op: "weekOverride"; id: string; set: WeekOverrideState | null }
+  /** S7b-11: assignments a copy created; undone by deleting exactly these (refused once any has a check-in). */
+  | { op: "assignmentsCreated"; ids: string[] }
   /** weight_choice rows the change appended (S2b-07), taken back so an undone nudge doesn't steer the next suggestion. */
   | { op: "weightChoices"; ids: string[] };
 
@@ -48,6 +50,18 @@ export async function recordUndo(tx: Tx, familyId: string, label: string, steps:
     `INSERT INTO undo_entry (family_id, label, inverse) VALUES ($1, $2, $3::jsonb)
      ON CONFLICT (family_id) DO UPDATE SET label = EXCLUDED.label, inverse = EXCLUDED.inverse, created_at = now()`,
     [familyId, trim(label), JSON.stringify({ steps })]);
+}
+
+/**
+ * S7b-11: a copy saved in chunks of 50 is several requests but one change. The first chunk records the entry; each later
+ * one adds its ids to the entry's "assignmentsCreated" step and sets the label (which counts the copies so far).
+ */
+export async function appendCreatedToUndo(tx: Tx, familyId: string, label: string, ids: string[]): Promise<void> {
+  const { rows } = await tx.query<{ inverse: { steps?: UndoStep[] } }>("SELECT inverse FROM undo_entry WHERE family_id = $1 FOR UPDATE", [familyId]);
+  const steps = rows[0]?.inverse.steps ?? [];
+  const mine = steps.find((x): x is Extract<UndoStep, { op: "assignmentsCreated" }> => x.op === "assignmentsCreated");
+  if (!mine) return recordUndo(tx, familyId, label, [{ op: "assignmentsCreated", ids }]);
+  await recordUndo(tx, familyId, label, [{ op: "assignmentsCreated", ids: [...mine.ids, ...ids] }]);
 }
 
 /** The family's undoable change, or null. */
@@ -102,6 +116,12 @@ async function applyStep(tx: Tx, familyId: string, step: UndoStep): Promise<void
          ON CONFLICT (id) DO UPDATE SET planned_units = EXCLUDED.planned_units, mode = EXCLUDED.mode, updated_at = EXCLUDED.updated_at
            WHERE week_override.family_id = EXCLUDED.family_id`,
         [step.id, familyId, s.assignmentId, s.childId, s.weekStart, s.plannedUnits, s.mode, s.createdAt, s.updatedAt]);
+      return;
+    }
+    case "assignmentsCreated": {
+      const { rowCount } = await tx.query("SELECT 1 FROM progress_checkin WHERE family_id = $1 AND assignment_id = ANY($2::uuid[]) LIMIT 1", [familyId, step.ids]);
+      if (rowCount) throw new Stale(); // a check-in now depends on one of the copies
+      await tx.query("DELETE FROM assignment WHERE family_id = $1 AND id = ANY($2::uuid[])", [familyId, step.ids]);
       return;
     }
     case "weightChoices":

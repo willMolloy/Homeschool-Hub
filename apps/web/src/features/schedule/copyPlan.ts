@@ -5,7 +5,7 @@
 import { addDays } from "@hh/engine";
 import { apiPost } from "../../api/client";
 import type { Assignment } from "../../api/types";
-import { bulkSaveError } from "./formBits";
+import { bulkSaveError, sameSet } from "./formBits";
 import type { Lookups } from "./lookups";
 
 /** POST /api/assignments/bulk takes at most this many (S3a-03). */
@@ -53,14 +53,19 @@ export interface ChunkedResult {
   failure: { part: number; parts: number; message: string } | null;
 }
 
-/** Sends the copies in chunks of 50, stopping at the first chunk that fails. */
-export async function saveInChunks(bodies: readonly CopyBody[]): Promise<ChunkedResult> {
+/**
+ * Sends the copies in chunks of 50, stopping at the first chunk that fails. S7b-11: with `undoLabel` (given the number
+ * created so far, `already` counting an earlier part of the same copy) the copy is one undo entry: the first chunk makes it and each
+ * later chunk adds to it.
+ */
+export async function saveInChunks(bodies: readonly CopyBody[], undoLabel?: (created: number) => string, already = 0): Promise<ChunkedResult> {
   const created: Assignment[] = [];
   const parts = Math.ceil(bodies.length / BULK_CHUNK);
   for (let p = 0; p < parts; p++) {
     const chunk = bodies.slice(p * BULK_CHUNK, (p + 1) * BULK_CHUNK);
     try {
-      created.push(...(await apiPost<Assignment[]>("/api/assignments/bulk", { assignments: chunk })));
+      const undo = undoLabel ? { undo: { label: undoLabel(already + created.length + chunk.length), ...(p > 0 || already > 0 ? { append: true } : {}) } } : {};
+      created.push(...(await apiPost<Assignment[]>("/api/assignments/bulk", { assignments: chunk, ...undo })));
     } catch (err) {
       return { created, failure: { part: p + 1, parts, message: bulkSaveError(err, (n) => chunk[n - 1]?.title) } };
     }
@@ -74,4 +79,19 @@ export function chunkFailureText(r: ChunkedResult): string {
   if (!f) return "";
   const done = r.created.length === 0 ? "Nothing was created." : `${r.created.length} ${r.created.length === 1 ? "copy was" : "copies were"} created.`;
   return `${f.parts > 1 ? `Part ${f.part} of ${f.parts} didn't save` : "Couldn't save the copies"}: ${f.message} ${done}`;
+}
+
+/** S7b-11: "2027–28" for a year starting in 2027. */
+export const yearName = (firstDay: string): string => {
+  const y = Number(firstDay.slice(0, 4));
+  return `${y}–${String(y + 1).slice(2)}`;
+};
+
+/**
+ * S7b-11: true when `existing` already holds the copy `copy` would make: the same subject, title and children, on the same dates.
+ * Archived assignments don't count (they are out of the plan).
+ */
+export function alreadyCopied(copy: CopyBody, existing: readonly Assignment[]): boolean {
+  return existing.some((e) => !e.archived && e.subjectId === copy.subjectId && e.title === copy.title && sameSet(e.childIds, copy.childIds)
+    && e.startDate === copy.startDate && e.endDate === copy.endDate);
 }

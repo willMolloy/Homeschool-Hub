@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { Assignment } from "../src/api/types";
 import { fakeApi } from "./helpers/fake-api";
 import { FRANK, MAGGIE, MATH, READING, rowId, withRoster, writes } from "./helpers/schedule-fixtures";
+
 import { renderAt } from "./render";
 
 const make = (n: number, over: Partial<Assignment> = {}): Assignment => ({
@@ -66,7 +67,8 @@ describe("Copy to another child (S7-02)", () => {
     await waitFor(() => expect(writes()).toHaveLength(1));
     expect(writes()[0]).toEqual({
       method: "POST", path: "/api/assignments/bulk",
-      body: { assignments: [{ subjectId: MATH.id, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: 2, startDate: "2026-09-07", endDate: "2026-10-30", childIds: [MAGGIE.id], weekdays: [1, 2, 3] }] },
+      body: { assignments: [{ subjectId: MATH.id, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: 2, startDate: "2026-09-07", endDate: "2026-10-30", childIds: [MAGGIE.id], weekdays: [1, 2, 3] }],
+        undo: { label: "Copied 1 assignment to Maggie" } }, // S7b-11: the copy is one undo entry (this key is new)
     });
     expect(writes().every((w) => w.method === "POST")).toBe(true);
     expect(screen.queryByRole("form")).toBeNull();

@@ -80,7 +80,9 @@ describe("Copy to a new year (S7-01)", () => {
       body: { assignments: [
         { subjectId: MATH.id, title: "Book 1", unitType: "lessons", totalUnits: 20, weightPerUnit: null, startDate: "2027-08-16", endDate: "2027-09-17", childIds: [FRANK.id], weekdays: null },
         { subjectId: READING.id, title: "Reading list", unitType: "pages", totalUnits: 184, weightPerUnit: 1.4, startDate: "2027-08-31", endDate: "2027-12-17", childIds: [FRANK.id, MAGGIE.id], weekdays: [1, 3, 5] },
-      ] },
+      ],
+      // S7b-11: the copy is one undo entry (this key is new).
+      undo: { label: "Copied 2 assignments to 2027–28" } },
     });
     expect(screen.queryByRole("form")).toBeNull();
     expect(await screen.findAllByText("Book 1")).toHaveLength(2);
@@ -106,6 +108,10 @@ describe("Copy to a new year (S7-01)", () => {
     await user.click(within(form).getByRole("button", { name: /^Copy/ }));
     await waitFor(() => expect(writes()).toHaveLength(2));
     expect(writes().map((w) => (w.body as { assignments: unknown[] }).assignments.length)).toEqual([50, 10]);
+    // S7b-11: one undo entry across the chunks: the second adds to the first, its label counts all 60.
+    expect(writes().map((w) => (w.body as { undo: unknown }).undo)).toEqual([
+      { label: "Copied 50 assignments to 2027–28" }, { label: "Copied 60 assignments to 2027–28", append: true },
+    ]);
     await waitFor(() => expect(screen.queryByRole("form")).toBeNull());
   });
 
@@ -130,13 +136,72 @@ describe("Copy to a new year (S7-01)", () => {
     expect((writes()[2]!.body as { assignments: unknown[] }).assignments).toHaveLength(10);
   });
 
-  it("says so when nothing starts on or after the first day; Cancel sends nothing", async () => {
+  it("says so when nothing starts in that year; Cancel sends nothing", async () => {
     const { user, form } = await setup([make(1)]);
     date(form, "This year's first day", "2027-01-01");
     date(form, "Next year's first day", "2027-08-16");
-    expect(within(form).getByText("No assignments start on or after that day.")).toBeInTheDocument();
+    expect(within(form).getByText("No assignments start in that year.")).toBeInTheDocument(); // S7b-11: was "...on or after that day."
     await user.click(within(form).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("form")).toBeNull();
     expect(writes()).toEqual([]);
+  });
+});
+
+describe("Copy to a new year, run again (S7b-11)", () => {
+  it("lists only what starts inside this year: not the copies an earlier run made, not what starts on or after next year's first day", async () => {
+    const list = [
+      make(1),
+      make(2, { title: "Already next year", startDate: "2027-08-16", endDate: "2027-09-17" }), // a copy from an earlier run, in next year
+      make(3, { title: "Two years on", startDate: "2028-08-14", endDate: "2028-09-15" }),
+    ];
+    const { form } = await setup(list);
+    date(form, "This year's first day", "2026-08-17");
+    date(form, "Next year's first day", "2027-08-16");
+    const group = within(form).getByRole("group", { name: "To copy" });
+    expect(within(group).getAllByRole("checkbox")).toHaveLength(1);
+    expect(group).toHaveTextContent("Book 1");
+    expect(group).not.toHaveTextContent("Already next year");
+    expect(group).not.toHaveTextContent("Two years on");
+  });
+
+  it("leaves out what is already copied (same subject, title, children, shifted dates) and says how many; a second run offers 0", async () => {
+    const original = make(1, { title: "Science", subjectId: READING.id });
+    const copy = make(2, { title: "Science", subjectId: READING.id, startDate: "2027-08-16", endDate: "2027-09-17" });
+    const fresh = make(3, { title: "New book" });
+    const { form } = await setup([original, copy, fresh]);
+    date(form, "This year's first day", "2026-08-17");
+    date(form, "Next year's first day", "2027-08-16");
+    expect(within(form).getByText("1 assignment to copy · 1 already copied")).toBeInTheDocument();
+    const group = within(form).getByRole("group", { name: "To copy" });
+    expect(group).toHaveTextContent("New book");
+    expect(group).not.toHaveTextContent("Science");
+  });
+
+  it("with everything already copied it offers 0 and says '2 already copied.'", async () => {
+    const a = make(1, { title: "Science" });
+    const b = make(2, { title: "Art", childIds: [FRANK.id, MAGGIE.id] });
+    const copies = [
+      make(3, { title: "Science", startDate: "2027-08-16", endDate: "2027-09-17" }),
+      make(4, { title: "Art", childIds: [MAGGIE.id, FRANK.id], startDate: "2027-08-16", endDate: "2027-09-17" }),
+    ];
+    const { form } = await setup([a, b, ...copies]);
+    date(form, "This year's first day", "2026-08-17");
+    date(form, "Next year's first day", "2027-08-16");
+    expect(within(form).getByText("2 already copied.")).toBeInTheDocument();
+    expect(within(form).queryByRole("checkbox")).toBeNull();
+    expect(within(form).queryByRole("button", { name: /^Copy/ })).toBeNull();
+  });
+
+  it("a copy that differs (other dates, other children, archived) doesn't count as already copied", async () => {
+    const original = make(1, { title: "Science" });
+    const others = [
+      make(2, { title: "Science", startDate: "2027-08-17", endDate: "2027-09-17" }),            // other dates
+      make(3, { title: "Science", childIds: [MAGGIE.id], startDate: "2027-08-16", endDate: "2027-09-17" }), // other child
+      make(4, { title: "Science", archived: true, startDate: "2027-08-16", endDate: "2027-09-17" }),       // archived
+    ];
+    const { form } = await setup([original, ...others]);
+    date(form, "This year's first day", "2026-08-17");
+    date(form, "Next year's first day", "2027-08-16");
+    expect(within(form).getByText("1 assignment to copy")).toBeInTheDocument();
   });
 });

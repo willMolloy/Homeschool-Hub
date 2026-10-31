@@ -235,6 +235,48 @@ describe.skipIf(!hasDb)("/api/undo (S6-06, integration)", () => {
     expect((await app.inject({ method: "PUT", url: "/api/week-overrides/batch", cookies: b.cookies, payload: { weekStart: NEXT, set: [ok], remove: [] } })).statusCode).toBe(400);
   });
 
+  it("S7b-11: a copy made with an undo label is one change; undo removes exactly the created assignments (chunks add to it)", async () => {
+    const body = (title: string) => ({ subjectId: subject, title, unitType: "pages", totalUnits: 50, weightPerUnit: 2, startDate: "2027-08-16", endDate: "2027-09-24", childIds: kids });
+    const bulk = (items: object[], undo?: object) => req("POST", "/api/assignments/bulk", { assignments: items, ...(undo ? { undo } : {}) });
+    const titles = async () => (await req("GET", "/api/assignments")).json().map((x: { title: string }) => x.title).sort();
+    const before = await titles();
+    const familyChoices = async () => Number((await pool.query("SELECT count(*) FROM weight_choice WHERE family_id = $1", [a.familyId])).rows[0].count);
+    const choicesBefore = await familyChoices();
+    // Without a label a bulk create is not undoable (Add several and CSV import).
+    expect((await bulk([body("Plain")])).statusCode).toBe(201);
+    expect(await undoEntry()).toBeNull();
+    // A copy in two chunks: the second appends; the label counts the copies so far.
+    expect((await bulk([body("Copy A"), body("Copy B")], { label: "Copied 2 assignments to 2027–28" })).statusCode).toBe(201);
+    expect((await undoEntry()).label).toBe("Copied 2 assignments to 2027–28");
+    expect((await bulk([body("Copy C")], { label: "Copied 3 assignments to 2027–28", append: true })).statusCode).toBe(201);
+    expect((await undoEntry()).label).toBe("Copied 3 assignments to 2027–28");
+    expect(await titles()).toEqual([...before, "Copy A", "Copy B", "Copy C", "Plain"].sort());
+    expect((await req("POST", "/api/undo")).statusCode).toBe(200);
+    expect(await titles()).toEqual([...before, "Plain"].sort()); // exactly the copies are gone
+    expect(await familyChoices()).toBe(choicesBefore + 2); // Plain's two (one per child); the copies' went with them
+    expect((await req("POST", "/api/undo")).statusCode).toBe(404);
+  });
+
+  it("S7b-11: the undo of a copy is refused once one of the copies has a check-in, and nothing is removed", async () => {
+    const res = await req("POST", "/api/assignments/bulk", {
+      assignments: [{ subjectId: subject, title: "Copy X", unitType: "pages", totalUnits: 50, weightPerUnit: 2, startDate: "2027-08-16", endDate: "2027-09-24", childIds: kids },
+        { subjectId: subject, title: "Copy Y", unitType: "pages", totalUnits: 50, weightPerUnit: 2, startDate: "2027-08-16", endDate: "2027-09-24", childIds: kids }],
+      undo: { label: "Copied 2 assignments to 2027–28" },
+    });
+    const [x] = res.json() as { id: string }[];
+    await pool.query("INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position) VALUES ($1, $2, $3, '2027-08-16', 5)", [a.familyId, x!.id, kids[0]]);
+    expect((await req("POST", "/api/undo")).statusCode).toBe(409);
+    const titles = (await req("GET", "/api/assignments")).json().map((r: { title: string }) => r.title);
+    expect(titles).toEqual(expect.arrayContaining(["Copy X", "Copy Y"]));
+  });
+
+  it("S7b-11: an undo label must be text, not empty, and bulk takes no other keys", async () => {
+    const one = [{ subjectId: subject, title: "Z", unitType: "pages", totalUnits: 5, startDate: "2027-08-16", endDate: "2027-09-24", childIds: kids }];
+    for (const undo of [{ label: "" }, { label: 5 }, { label: "x", append: "yes" }, { label: "x", extra: 1 }, {}]) {
+      expect((await req("POST", "/api/assignments/bulk", { assignments: one, undo })).statusCode).toBe(400);
+    }
+  });
+
   it("only the last change is kept: a new change replaces the entry", async () => {
     await req("PATCH", `/api/assignments/${id}`, { title: "First" });
     await req("POST", "/api/blocked-ranges", { label: "Trip", kind: "vacation", startDate: "2026-11-09", endDate: "2026-11-09", childIds: [] });
