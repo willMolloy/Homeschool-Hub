@@ -13,7 +13,7 @@ Tickets: `docs/tickets/sprint-6b-this-week/`. Pass A covers S6b-01, S6b-05, S6b-
 | S6b-08 Add a subject from the assignment form, with common presets | f730b69 | `SubjectSelect` (schedule/), `COMMON_SUBJECTS` (roster/commonSubjects.ts); used by the Add/Edit form, the timeline sheet and Add several; chips on the empty Subjects screen |
 | S6b-12 The week adjustment sheet in plain words | 6111c43 | `roundToStep` in `plan/weekAdjust.ts`; `WeekAdjustment` takes `current`; rows say "This week" or "That week" with the amount only in the stepper |
 | S6b-13 Effort in the parent's words everywhere | 01035e0 | presets "15 min a day"; hint "Usually about N min a day"; "Use the subject's usual"; cards "about N min a day"; subject form and list in minutes for a typical day |
-| S6b-14 Clearer undo labels and no engine warnings on screen | (this commit) | API: `adjustmentLabel` in `routes/weekOverrides.ts`; web: `PlanDebugView` lists warnings only with the debug flag |
+| S6b-14 Clearer undo labels and no engine warnings on screen | 016e8ae | API: `adjustmentLabel` in `routes/weekOverrides.ts`; web: `PlanDebugView` lists warnings only with the debug flag |
 
 ## Decisions (conservative calls on ambiguous points)
 
