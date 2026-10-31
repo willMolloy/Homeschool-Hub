@@ -24,16 +24,16 @@ export type FinishForecast = { finish: LocalDate } | { beyondLimit: true } | nul
  * - The pace is units per scheduled day: each included week's gain (the position at its end less the position before
  *   it) over that week's capacity, on the assignment's own days at that time.
  * - When the days changed mid-assignment (S4-01b, `plan.weekdaysFrom`), the pace is measured from the change onward if
- *   at least 2 check-in weeks lie after it. Otherwise it is measured on the weeks before the change and carried over
- *   as a weekly pace (`scale`: old days a week over new days a week), so a weekday change on its own never moves the forecast.
+ *   at least 2 check-in weeks lie after it. Otherwise it is measured on the weeks before the change and projected on those
+ *   same days (`oldDays`, S7b-19), so a weekday change on its own leaves the forecast exactly where it was.
  */
 interface Observed {
   /** Units per scheduled day, as measured. */
   pace: number;
-  /** Multiplier for projecting onto the plan's current days (1 unless the pace was measured on the old days). */
-  scale: number;
   /** Last day (number) of the latest applied check-in week, adjusted weeks included. */
   last: number;
+  /** S7b-19: the pace was measured on the days before a weekday change, so it is projected on those days too (the change alone moves nothing). */
+  oldDays: boolean;
 }
 
 function observedPace(plan: ChildPlan, checkIns: ProgressCheckIn[] | undefined, calendar: FamilyCalendar): Observed | null {
@@ -48,7 +48,7 @@ function observedPace(plan: ChildPlan, checkIns: ProgressCheckIn[] | undefined, 
   const adjusted = new Set((plan.adjustedWeeks ?? []).map((w) => weekStartOfDayNumber(toDayNumber(w), calendar.weekStart)));
   let weeks = [...all].filter((w) => !adjusted.has(w)).sort((x, y) => x - y);
 
-  let scale = 1;
+  let oldDays = false;
   if (plan.weekdaysFrom) {
     const change = toDayNumber(plan.weekdaysFrom);
     const after = weeks.filter((w) => w >= change);
@@ -56,11 +56,7 @@ function observedPace(plan: ChildPlan, checkIns: ProgressCheckIn[] | undefined, 
     if (after.length >= 2) weeks = after;
     else if (before.length >= 2) {
       weeks = before;
-      const school = new Set<number>(calendar.schoolDays);
-      const count = (days: readonly number[] | null) => (days ? days.filter((d) => school.has(d)).length : school.size);
-      const was = count(plan.previousWeekdays);
-      const now = count(plan.weekdays);
-      if (was > 0 && now > 0) scale = was / now;
+      oldDays = true;
     }
   }
   if (weeks.length < 2) return null;
@@ -79,7 +75,7 @@ function observedPace(plan: ChildPlan, checkIns: ProgressCheckIn[] | undefined, 
     }
   }
   if (capacity <= EPS) return null;
-  return { pace: gain / capacity, scale, last: Math.max(...all) + 6 };
+  return { pace: gain / capacity, last: Math.max(...all) + 6, oldDays };
 }
 
 /**
@@ -88,7 +84,8 @@ function observedPace(plan: ChildPlan, checkIns: ProgressCheckIn[] | undefined, 
  * no progress at all (the caller says "no recent progress"), or nothing left. Never NaN or Infinity.
  *
  * - Observed pace: see `observedPace` (units per scheduled day on the assignment's own days; S7b-04 rules there).
- * - Planned pace: the total over the capacity between the start and the planned end.
+ * - On track (S7b-19): the observed pace is enough to finish the remaining units by the plan's end over the days left, so
+ *   there is no forecast. (It used to compare with the whole-year planned pace, which a days change or an adjusted week skewed.)
  * - The remaining units are then placed at the observed pace after the last check-in week, on the plan's capacity
  *   days, and past the plan's last day on the calendar's school days that are also the assignment's days.
  *
@@ -104,23 +101,38 @@ export function forecastFinish(plan: ChildPlan, checkIns: ProgressCheckIn[] | un
 export function forecastOutcome(plan: ChildPlan, checkIns: ProgressCheckIn[] | undefined, calendar: FamilyCalendar): FinishForecast {
   const seen = observedPace(plan, checkIns, calendar);
   if (!seen) return null;
-  let plannedCapacity = 0;
-  for (const d of plan.days) if (d.date <= plan.plannedEnd) plannedCapacity += d.capacity;
-  if (plannedCapacity <= EPS) return null;
-  const planned = plan.totalUnits / plannedCapacity;
-  const observed = seen.pace * seen.scale;
-  if (!Number.isFinite(observed) || !Number.isFinite(planned) || seen.pace <= EPS || observed >= planned - EPS) return null;
+  const observed = seen.pace;
+  if (!Number.isFinite(observed) || observed <= EPS) return null;
+
+  // The day's capacity for the projection. Measured on the days before a weekday change (oldDays), the days after the last
+  // check-in are counted as they were before the change: a day the new days took away counts again as the full school day
+  // it was (or by its own capacity where it still works), so the change alone cannot move the answer (S7b-19).
+  const oldMask = plan.weekdaysFrom && seen.oldDays ? (plan.previousWeekdays ? new Set<number>(plan.previousWeekdays) : null) : undefined;
+  const schoolDays = new Set<number>(calendar.schoolDays);
+  const ownDays = oldMask !== undefined ? oldMask : plan.weekdays ? new Set<number>(plan.weekdays) : null;
+  const planDay = new Map(plan.days.map((d) => [toDayNumber(d.date), d] as const));
+  const lastPlanDay = toDayNumber(plan.days[plan.days.length - 1]!.date);
+  const capacityOn = (n: number): number => {
+    const wd = weekdayOfDayNumber(n);
+    const d = planDay.get(n);
+    if (d) {
+      if (oldMask === undefined) return d.capacity;
+      if (d.capacity > EPS) return d.capacity;
+      return d.schoolDay && (!oldMask || oldMask.has(wd)) ? 1 : 0;
+    }
+    return n > lastPlanDay && schoolDays.has(wd) && (!ownDays || ownDays.has(wd)) ? 1 : 0;
+  };
 
   const last = seen.last;
-  const capacityOf = new Map(plan.days.map((d) => [toDayNumber(d.date), d.capacity] as const));
-  const lastPlanDay = toDayNumber(plan.days[plan.days.length - 1]!.date);
-  const ownDays = plan.weekdays ? new Set<number>(plan.weekdays) : null;
-  const schoolDays = new Set<number>(calendar.schoolDays);
+  // On track: the pace the check-ins show is enough to finish by the plan's end from here (the same days the projection uses).
+  const endDay = toDayNumber(plan.end);
+  let needCap = 0;
+  for (let n = last + 1; n <= endDay; n += 1) needCap += capacityOn(n);
+  if (needCap > EPS && observed >= plan.remainingUnits / needCap - EPS) return null;
+
   let left = plan.remainingUnits;
   for (let n = last + 1; n <= last + 1 + MAX_PUSH_DAYS; n += 1) {
-    const wd = weekdayOfDayNumber(n);
-    const cap = n <= lastPlanDay ? capacityOf.get(n) ?? 0 : schoolDays.has(wd) && (!ownDays || ownDays.has(wd)) ? 1 : 0;
-    left -= observed * cap;
+    left -= observed * capacityOn(n);
     if (left <= EPS) return { finish: fromDayNumber(n) };
   }
   return { beyondLimit: true };

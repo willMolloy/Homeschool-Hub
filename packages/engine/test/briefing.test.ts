@@ -73,7 +73,6 @@ describe("forecastFinish (S4-08)", () => {
   });
 });
 
-const toDay = (d: string) => Date.parse(`${d}T00:00:00Z`) / 86_400_000;
 describe("forecast and deliberate changes (S7b-04)", () => {
   const ov = (weekStart: string, plannedUnits: number) => ({ assignmentId: "a1", childId: "frank", weekStart, plannedUnits, mode: "keepEndDate" as const });
   // Three check-in weeks, a steady 3 a day (15 a week); the second week was deliberately lightened by the parent.
@@ -112,10 +111,8 @@ describe("forecast and deliberate changes (S7b-04)", () => {
     const same = run(checkIns);
     const changed = run(checkIns, book({ totalUnits: 200, end: "2026-10-30", weekdays: [1, 2, 3, 4], weekdaysFrom: "2026-09-28", previousWeekdays: null }));
     expect(changed.plan.weekdaysFrom).toBe("2026-09-28");
-    // Pace is carried over as a weekly one (3 a day x 5 days = 3.75 a day x 4 days): the finish stays within a few days of the same
-    // week (the days it lands on differ), where measuring per day on 4-day weeks would push it out by about three weeks.
-    const gap = Math.abs(toDay(forecast(changed)!) - toDay(forecast(same)!));
-    expect(gap).toBeLessThanOrEqual(3);
+    // S7b-19: measured on the days before the change and projected on those same days, so the date is exactly the same.
+    expect(forecast(changed)).toBe(forecast(same));
   });
 
   it("with 2 or more check-in weeks after the change the pace is measured on the new days", () => {
@@ -131,6 +128,65 @@ describe("forecast and deliberate changes (S7b-04)", () => {
   it("is still pure and never NaN with adjusted weeks everywhere", () => {
     const r = run(three, a, { overrides: [ov("2026-09-07", 1), ov("2026-09-14", 1), ov("2026-09-21", 1)] });
     expect(forecastOutcome(r.plan, r.checkIns, MON_FRI)).toBeNull();
+  });
+});
+
+describe("a days change never hides or moves the late forecast (S7b-19)", () => {
+  // 300 pages, Mon Sep 7 2026 to Fri Jan 29 2027, behind at 10 pages a week; check-ins through week 8 (Oct 26).
+  const asg = book({ totalUnits: 300, start: "2026-09-07", end: "2027-01-29" });
+  const weeks = ["2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26"];
+  const checkIns = (gains: number[]): ProgressCheckIn[] => {
+    let pos = 0;
+    return weeks.slice(0, gains.length).map((w, i) => ({ assignmentId: "a1", childId: "frank", weekStart: w, position: (pos += gains[i]!), mode: "keepEndDate" as const }));
+  };
+  const plan = (cis: ProgressCheckIn[], days: Partial<typeof asg> = {}, overrides: PlanContext["overrides"] = []) =>
+    planChild({ ...asg, ...days }, "frank", { calendar: MON_FRI, checkIns: cis, overrides, asOf: "2026-11-02" });
+  const change = (from: string, weekdays: never) => ({ weekdays, weekdaysFrom: from, previousWeekdays: null }) as Partial<typeof asg>;
+  const late = (p: ChildPlan, cis: ProgressCheckIn[]) => { const f = forecastOutcome(p, cis, MON_FRI); return f && "finish" in f && f.finish > p.end ? f.finish : null; };
+
+  it("N6: a days change with no new check-in leaves the forecast exactly where it was (same date), for several day sets", () => {
+    const cis = checkIns([10, 10, 10, 10]); // the last check-in is Sep 28; the days change Oct 12, after it
+    const before = late(plan(cis), cis);
+    expect(before).not.toBeNull();
+    for (const days of [[1, 2, 3, 4], [1, 3, 5], [1, 2, 3, 4, 5], [2, 4]]) {
+      const p = plan(cis, change("2026-10-12", days as never));
+      expect(late(p, cis), days.join()).toBe(before);
+    }
+  });
+
+  it("N5: a late assignment that has an adjusted week stays late after its days change, as the control does", () => {
+    // 14 pages a week against about 15 planned: only a little late, which is when a days change used to hide the line.
+    const gains = [14, 14, 0, 14, 14, 14, 14, 14];
+    const cis = checkIns(gains);
+    const adjusted: PlanContext["overrides"] = [{ assignmentId: "a1", childId: "frank", weekStart: "2026-09-21", plannedUnits: 0, mode: "keepEndDate" }];
+    for (const upTo of [4, 5, 6]) {
+      const c = cis.slice(0, upTo);
+      const control = late(plan(c), c);
+      const withAdj = late(plan(c, {}, adjusted), c);
+      expect(control, `control ${upTo}`).not.toBeNull();
+      expect(withAdj, `adjusted ${upTo}`).not.toBeNull();
+      for (const days of [[1, 2, 3, 4], [1, 3]]) {
+        const changed = plan(c, change("2026-10-12", days as never), adjusted);
+        expect(late(changed, c), `adjusted + change ${days.join()} after ${upTo} check-ins`).not.toBeNull();
+        const ctl = plan(c, change("2026-10-12", days as never));
+        expect(late(ctl, c), `control + change ${upTo}`).not.toBeNull();
+      }
+    }
+  });
+
+  it("with 2 or more check-in weeks after the change, the pace is measured and projected on the new days", () => {
+    const cis = checkIns([10, 10, 10, 10, 10, 10, 10, 10]); // Oct 12, 19, 26 are after the change
+    const p = plan(cis, change("2026-10-12", [1, 2, 3, 4] as never));
+    const f = late(p, cis)!;
+    expect(new Date(`${f}T00:00:00Z`).getUTCDay()).toBeGreaterThanOrEqual(1);
+    expect(new Date(`${f}T00:00:00Z`).getUTCDay()).toBeLessThanOrEqual(4); // a Monday to Thursday finish
+  });
+
+  it("on track is judged on the days left: a child who catches up to what remains is not late", () => {
+    const cis = checkIns([30, 30, 30, 30, 30, 30, 30, 30]); // 240 of 300 by Oct 30; 60 left over ~13 weeks
+    const p = plan(cis);
+    expect(late(p, cis)).toBeNull();
+    expect(forecastOutcome(p, cis, MON_FRI)).toBeNull();
   });
 });
 
