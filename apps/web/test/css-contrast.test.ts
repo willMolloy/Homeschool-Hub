@@ -53,9 +53,13 @@ function rules(file: string): Rule[] {
 }
 
 const root = rules(join(SRC, "styles.css")).find((r) => r.selector === ":root")!;
-const vars: Record<string, string> = Object.fromEntries(Object.entries(root.decls).filter(([k]) => k.startsWith("--")));
-const PAGE_TEXT = root.decls.color!;
-const PAGE_BG = root.decls.background!;
+/** S8-01: the generated light tokens (hex), then the app's own aliases (`--brand: var(--tl-primary)` …) on top. */
+const tokenRoot = rules(join(SRC, "styles/tokens.css")).find((r) => r.selector === ":root")!;
+const vars: Record<string, string> = Object.fromEntries(
+  Object.entries({ ...tokenRoot.decls, ...root.decls }).filter(([k]) => k.startsWith("--")),
+);
+const PAGE_TEXT = resolve(root.decls.color)!;
+const PAGE_BG = resolve(root.decls.background)!;
 
 /** A concrete colour, or null for anything that isn't one (gradients, currentColor, none…). */
 function resolve(v: string | undefined): string | null {

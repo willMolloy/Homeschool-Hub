@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { ApiError } from "../../api/client";
-import { PALETTE, PALETTE_NAMES } from "./palette";
+import { PALETTE, PALETTE_NAMES, swatchColor } from "./palette";
 
 export interface RosterValues {
   name: string;
@@ -91,7 +91,7 @@ export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extr
         {PALETTE.map((c) => (
           <label key={c} className="swatch" title={PALETTE_NAMES[c]}>
             <input type="radio" name="color" value={c} checked={color === c} onChange={() => setColor(c)} aria-label={PALETTE_NAMES[c]} />
-            <span className="swatch-chip" style={{ background: c }} aria-hidden="true" />
+            <span className="swatch-chip" style={{ background: swatchColor(c) ?? c }} aria-hidden="true" />
           </label>
         ))}
       </fieldset>

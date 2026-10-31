@@ -10,8 +10,8 @@ import type { Assignment, BlockedRange, Child, ScheduleEvent, Subject } from "..
 import { buildDayGrid, gridIndex, sumSeries, zeros, type DayGrid } from "./grid";
 import { breaksOnGrid, eventsOnGrid, type TimelineBreak, type TimelineEvent } from "./marks";
 
-/** Subject colour slots in the T-01b palette (`--tl-subject-1` … `-10`). Slots repeat after this; the lane name is the backup cue. */
-export const PALETTE_SLOTS = 10;
+/** Subject colour slots in the Soft Paper palette (`--tl-subject-1` … `-8`, S8-01). Slots repeat after this; the subject's icon (S8-11) is the cue, never colour alone. */
+export const PALETTE_SLOTS = 8;
 /** A child's sub-lane is a step of its subject's colour (`--tl-subject-N`, `-light`, `-dark`), in child order. */
 export const CHILD_STEPS = ["base", "light", "dark"] as const;
 export type ChildStep = (typeof CHILD_STEPS)[number];

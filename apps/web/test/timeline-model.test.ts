@@ -47,7 +47,7 @@ describe("timeline model", () => {
     const many: Subject[] = Array.from({ length: 12 }, (_, i) => ({ ...SAMPLE_SUBJECTS[0]!, id: `s${i}`, name: `S${i}`, sortOrder: i }));
     const plans = samplePlans().slice(0, 1).flatMap((p) => many.map((s) => ({ ...p, subjectId: s.id, assignmentId: `${p.assignmentId}-${s.id}` })));
     const m = buildTimelineModel(sampleInput({ subjects: many, plans }));
-    expect(m.lanes.map((l) => l.paletteSlot)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2]);
+    expect(m.lanes.map((l) => l.paletteSlot)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4]);
   });
 
   it("puts archived subjects after active ones and gives unknown ids a fallback name", () => {
