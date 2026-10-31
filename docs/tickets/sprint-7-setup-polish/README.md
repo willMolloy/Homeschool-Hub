@@ -20,7 +20,7 @@ Each ticket uses the usual format. Build in order, one commit per ticket, each w
 | 6 | [S7-06 — The event preview skips finished assignments](S7-06-preview-skips-finished-assignments.md) | none | XS |
 | 7 | [S7-07 — Say so when a template adds no breaks](S7-07-say-so-when-a-template-adds-no-breaks.md) | none | XS |
 | 8 | [S7-08 — Say which days off a saved template left out](S7-08-say-which-days-off-a-template-left-out.md) | none | XS |
-| 9 | [S7-09 — Hint that the phone edit bar scrolls](S7-09-hint-that-the-edit-bar-scrolls.md) | none | XS |
+| 9 | ~~[S7-09 — Hint that the phone edit bar scrolls](S7-09-hint-that-the-edit-bar-scrolls.md)~~ Not needed: S6b-05 removes the scrolling row | none | — |
 | 10 | [S7-10 — A very slow pace still gets a briefing line](S7-10-a-very-slow-pace-gets-a-line.md) | none | XS |
 | 11 | [S7-11 — Choosing the subject's own days stores no history](S7-11-same-days-store-no-history.md) | none | XS |
 | 12 | [S7-12 — Let the tap-target script take a width](S7-12-tap-target-script-width.md) | none | XS |
