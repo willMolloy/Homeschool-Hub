@@ -6,6 +6,7 @@ import { useApi } from "../../api/useApi";
 import { useAuth } from "../../auth/AuthProvider";
 import "../../ui/forms.css";
 import { saveError, WeekdayPicker } from "./formBits";
+import { AppearanceChoice } from "../settings/AppearanceChoice";
 import { BackToSchedule } from "./ScheduleHub";
 import "./schedule.css";
 
@@ -40,6 +41,9 @@ export function FamilySettingsPage() {
       ) : (
         <SettingsForm initial={data} onSettings={(s) => setData(s)} />
       )}
+      <div className="card schedule-form">
+        <AppearanceChoice />
+      </div>
     </section>
   );
 }

@@ -4,7 +4,8 @@ Tickets: `docs/tickets/sprint-8-soft-paper/`. S8-10 (tester pass) is the tester'
 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
-| S8-01 Soft Paper tokens, fonts and subject colours | (this commit) | `scripts/palette.ts` now generates the Soft Paper tokens; `styles/tokens.css` (hex), `tokens.theme.css`; fonts via `@fontsource-variable/fraunces` (`soft.css`) and `nunito-sans` (`wght.css`) imported in `tailwind.css`; `styles.css` aliases the old names to tokens |
+| S8-01 Soft Paper tokens, fonts and subject colours | 26f3c28 | `scripts/palette.ts` now generates the Soft Paper tokens; `styles/tokens.css` (hex), `tokens.theme.css`; fonts via `@fontsource-variable/fraunces` (`soft.css`) and `nunito-sans` (`wght.css`) imported in `tailwind.css`; `styles.css` aliases the old names to tokens |
+| S8-02 Light, dark and system themes | (this commit) | `lib/theme.ts` (`hh.theme` in localStorage, try/catch), `settings/AppearanceChoice.tsx` on Family settings, pre-paint script and page colour in `index.html`, `color-scheme` from the theme in `styles.css` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -15,3 +16,7 @@ Tickets: `docs/tickets/sprint-8-soft-paper/`. S8-10 (tester pass) is the tester'
 - **S8-01 swatch mapping** (the stored colour is unchanged; it is only drawn differently by `ColorDot` and the picker chips): Ochre to honey, Teal to sky, Green to mint, Pink to butter, Blue to blue, Brick to coral, Purple to lilac, Slate to sage. Timeline lanes keep dealing slots by display order (as before), not by the subject's stored colour, so existing timeline behaviour and tests are unchanged.
 - **S8-01 child steps.** A subject drawn once per child uses the fill (base), the fill 40% toward the card (light, 14% in dark) and the fill 16% toward its strong tone (dark, 10% in dark).
 - **S8-01 changed test expectations.** `palette.test.ts` rewritten for the new generator (reasons above); `css-contrast.test.ts` reads colours through the generated tokens (the app CSS now uses `var(--tl-*)`), the desktop nav's translucent active fill went from 0.16 to 0.1 white to keep AA on fern; `timeline-opacity.test.ts` (solid bars, dim 0.7, all swatches AA when dimmed); `timeline-model.test.ts` (slots repeat after 8, not 10).
+- **S8-02 System sets no attribute.** Light and Dark set `data-theme` on `<html>`; System removes it, so the tokens follow `prefers-color-scheme` (`:root:not([data-theme="light"])`). The pre-paint script in `index.html` only needs to act for a saved Light or Dark. It also paints the page colour (cream, or charcoal under the device's dark setting) before the stylesheet loads.
+- **S8-02 where Appearance lives.** On Family settings (a card under the form, applies at once, no Save). Home's avatar menu (S8-04) links to Family settings; it does not duplicate the control.
+- **S8-02 changed test expectation.** `css-contrast.test.ts` "declares the app light-only" is now "lets native controls follow the theme": `color-scheme: light dark` on `:root`, `light` / `dark` under the two `data-theme` values, and `light dark` in the meta tag (the whole point of the ticket).
+- **S8-02 dark contrast of older screen CSS** is checked in S8-03, which replaces their hard-coded colours with tokens.

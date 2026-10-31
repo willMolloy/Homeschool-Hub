@@ -10,8 +10,14 @@
   color: var(--tl-foreground);
   background: var(--tl-background);
   line-height: 1.45;
-  /* Light-only until S8-02 switches it with the theme. */
+  /* Native fields, scrollbars and the like follow the theme (S8-02). */
+  color-scheme: light dark;
+}
+:root[data-theme="light"] {
   color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 body {
   margin: 0;

@@ -1,6 +1,6 @@
 // Hand-test fixes: "black text on a dark gray background". Two guards so it can't come back:
-//   1. The app is light-only, so it says so (color-scheme: light). Without it, a dark OS or browser
-//      theme can draw native fields and buttons dark while our text stays dark.
+//   1. The app says which colour schemes it draws (color-scheme, from the theme, S8-02), so native fields and
+//      buttons are never dark under our dark text or light under our light text.
 //   2. Every app CSS rule that paints a solid background pairs it with text that reads on it
 //      (WCAG AA 4.5:1). A rule without its own `color` inherits the page text, so it is checked
 //      against that. The timeline tokens (light and dark) are checked in palette.test.ts.
@@ -85,9 +85,12 @@ function over(c: string, under: string): string {
 const all = cssFiles(SRC).flatMap(rules);
 
 describe("app CSS contrast", () => {
-  it("declares the app light-only, in CSS and in index.html", () => {
-    expect(root.decls["color-scheme"]).toBe("light");
-    expect(readFileSync(join(WEB, "index.html"), "utf8")).toMatch(/<meta name="color-scheme" content="light"/);
+  it("lets native controls follow the theme (S8-02: light dark, or the one the person chose), in CSS and in index.html", () => {
+    expect(root.decls["color-scheme"]).toBe("light dark");
+    const all = rules(join(SRC, "styles.css"));
+    expect(all.find((r) => r.selector === ':root[data-theme="light"]')?.decls["color-scheme"]).toBe("light");
+    expect(all.find((r) => r.selector === ':root[data-theme="dark"]')?.decls["color-scheme"]).toBe("dark");
+    expect(readFileSync(join(WEB, "index.html"), "utf8")).toMatch(/<meta name="color-scheme" content="light dark"/);
   });
 
   it("gives native fields their own text and background colours", () => {
