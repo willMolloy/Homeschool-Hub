@@ -53,6 +53,8 @@ interface Props<T extends ListItem> {
   renderBulkForm?: (p: { onSaved: (created: T[]) => void; onCancel: () => void }) => ReactNode;
   /** S3a-06: the same for an "Import CSV" button. */
   renderImportForm?: (p: { onSaved: (created: T[]) => void; onCancel: () => void }) => ReactNode;
+  /** S5-05: more buttons beside Add, each opening a panel in place of the Add buttons. `existing` is the list as loaded; S7-01: `onAdded` adds rows without closing the panel. */
+  panels?: { id: string; label: string; render: (p: { existing: T[]; onSaved: (created: T[]) => void; onAdded: (created: T[]) => void; onCancel: () => void }) => ReactNode }[];
   /** Extra content above the list (e.g. a hint). */
   intro?: ReactNode;
   /** false hides "Add {noun}" entirely (the demo family can't add events). Default true. */
@@ -60,21 +62,28 @@ interface Props<T extends ListItem> {
 }
 
 export function ScheduleList<T extends ListItem>(props: Props<T>) {
-  const { title, noun, endpoint, emptyText, removal, labelOf, sort, renderCard, renderForm, confirmText, intro, canAdd = true, copyOf, renderBulkForm, renderImportForm } = props;
+  const { title, noun, endpoint, emptyText, removal, labelOf, sort, renderCard, renderForm, confirmText, intro, canAdd = true, copyOf, renderBulkForm, renderImportForm, panels } = props;
   const archivable = removal === "archive";
   const [showArchived, setShowArchived] = useState(false);
   const path = archivable && showArchived ? `${endpoint}?includeArchived=true` : endpoint;
   const { data, error, loading, reload, setData } = useApi<T[]>(path);
   const toggleId = useId();
   const [adding, setAdding] = useState(false);
-  /** Which multi-row form is open: "Add several" (S3a-04) or "Import CSV" (S3a-06). */
-  const [panel, setPanel] = useState<"several" | "import" | null>(null);
+  /** Which multi-row form is open: "Add several" (S3a-04), "Import CSV" (S3a-06) or one of `panels` (S5-05). */
+  const [panel, setPanel] = useState<string | null>(null);
   const [initial, setInitial] = useState<Draft<T> | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<T | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const addBtn = useRef<HTMLButtonElement>(null);
+
+  const panelList = [
+    ...(renderBulkForm ? [{ id: "several", label: "Add several", render: renderBulkForm }] : []),
+    ...(renderImportForm ? [{ id: "import", label: "Import CSV", render: renderImportForm }] : []),
+    ...(panels ?? []).map((p) => ({ id: p.id, label: p.label, render: (q: { onSaved: (created: T[]) => void; onCancel: () => void }) => p.render({ existing: data ?? [], onAdded: (created) => setData((prev) => [...(prev ?? []), ...created]), ...q }) })),
+  ];
+  const openPanel = panelList.find((p) => p.id === panel);
 
   const items = sort ? [...(data ?? [])].sort(sort) : data ?? [];
 
@@ -219,8 +228,8 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
               extra: null,
               externalError: null,
             })
-          ) : panel && canAdd && (panel === "several" ? renderBulkForm : renderImportForm) ? (
-            (panel === "several" ? renderBulkForm : renderImportForm)!({
+          ) : openPanel && canAdd ? (
+            openPanel.render({
               onSaved: (created) => {
                 setData((prev) => [...(prev ?? []), ...created]);
                 setPanel(null);
@@ -242,16 +251,11 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
               >
                 Add {noun}
               </button>
-              {renderBulkForm ? (
-                <button className="btn btn-secondary" type="button" onClick={() => { setEditingId(null); setPanel("several"); }}>
-                  Add several
+              {panelList.map((p) => (
+                <button key={p.id} className="btn btn-secondary" type="button" onClick={() => { setEditingId(null); setPanel(p.id); }}>
+                  {p.label}
                 </button>
-              ) : null}
-              {renderImportForm ? (
-                <button className="btn btn-secondary" type="button" onClick={() => { setEditingId(null); setPanel("import"); }}>
-                  Import CSV
-                </button>
-              ) : null}
+              ))}
             </div>
           ) : null}
           {items.length > 0 ? (

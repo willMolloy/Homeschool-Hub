@@ -1,13 +1,17 @@
 /**
- * Pick a bar width (weight per unit) with presets, a custom value and a live preview (S2b-34, D22).
+ * Pick a subject's usual effort (weight per unit) with presets, a custom value and a live preview (S2b-34, D22).
  * Presets are native radios, so arrow keys move between them and the group is announced by its legend.
+ * S6b-13: the parent sees minutes, never the weight. S7-17: minutes per unit ("Light · 15 min a lesson", Custom is the
+ * minutes one lesson or page takes), worded by `effortWords`.
  */
 import { useEffect, useId, useRef, useState } from "react";
-import { DEFAULT_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, type UnitType } from "@hh/engine";
+import { DEFAULT_WEIGHT_PER_UNIT, type UnitType } from "@hh/engine";
 import { thicknessToPx } from "../features/plan/scale";
 import {
-  PRESETS, REFERENCE_THICKNESS, TYPICAL_DAY, parseCustomWeight, presetFor, presetWeight, previewCaption, type PresetKey,
+  PRESETS, REFERENCE_THICKNESS, TYPICAL_DAY, parseCustomMinutes, presetFor, presetWeight, previewCaption, type PresetKey,
 } from "./weightPresets";
+import { customMinutesText, presetChipDetail, usualEffortText } from "./effortWords";
+import { UNIT_LABELS } from "./unitLabels";
 import "./thickness-picker.css";
 
 export interface ThicknessPickerProps {
@@ -24,18 +28,16 @@ export interface ThicknessPickerProps {
 }
 
 /** The caption while the Custom entry can't be previewed (S2c-03). */
-export const INVALID_CAPTION = "Enter a weight to see the preview";
+export const INVALID_CAPTION = "Enter the minutes to see the preview";
 
-const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
-
-export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width", onValidityChange }: ThicknessPickerProps) {
+export function ThicknessPicker({ unitType, value, onChange, legend = "Usual effort", onValidityChange }: ThicknessPickerProps) {
   const name = useId();
   const customId = useId();
   const errId = useId();
   // Custom stays selected while it's being typed, even when the number happens to equal a preset.
   // It is tied to the unit, so a unit change (the caller resets the value) closes it without an effect.
   const [customFor, setCustomFor] = useState<UnitType | null>(presetFor(unitType, value) === "custom" ? unitType : null);
-  const [customText, setCustomText] = useState(value != null ? String(value) : "");
+  const [customText, setCustomText] = useState(value != null ? customMinutesText(unitType, value) : "");
   const [customError, setCustomError] = useState<string | null>(null);
   const selected: PresetKey = customFor === unitType ? "custom" : presetFor(unitType, value);
   const invalid = selected === "custom" && customError !== null;
@@ -49,7 +51,7 @@ export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width
     if (key === "custom") {
       const start = value ?? DEFAULT_WEIGHT_PER_UNIT[unitType];
       setCustomFor(unitType);
-      setCustomText(String(start));
+      setCustomText(customMinutesText(unitType, start));
       if (value !== start) onChange(start);
       return;
     }
@@ -59,7 +61,7 @@ export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width
   };
   const typeCustom = (raw: string) => {
     setCustomText(raw);
-    const parsed = parseCustomWeight(raw);
+    const parsed = parseCustomMinutes(raw, unitType);
     if (typeof parsed === "string") setCustomError(parsed);
     else {
       setCustomError(null);
@@ -69,7 +71,7 @@ export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width
 
   const options: { key: PresetKey; label: string; detail?: string }[] = [
     { key: "none", label: "None" },
-    ...PRESETS.map((p) => ({ key: p.key, label: p.label, detail: fmt(presetWeight(unitType, p.multiplier)) })),
+    ...PRESETS.map((p) => ({ key: p.key, label: p.label, detail: presetChipDetail(unitType, presetWeight(unitType, p.multiplier)) })),
     { key: "custom", label: "Custom…" },
   ];
   const shown = value ?? DEFAULT_WEIGHT_PER_UNIT[unitType];
@@ -88,8 +90,8 @@ export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width
       </div>
       {selected === "custom" ? (
         <div className="field thickness-custom">
-          <label htmlFor={customId}>Custom weight</label>
-          <input id={customId} type="number" inputMode="decimal" step="0.01" min={MIN_WEIGHT_PER_UNIT} max={MAX_WEIGHT_PER_UNIT}
+          <label htmlFor={customId}>Custom minutes a {UNIT_LABELS[unitType].one}</label>
+          <input id={customId} type="number" inputMode="decimal" step="any" min="0" max="1440"
             value={customText} onChange={(e) => typeCustom(e.target.value)}
             aria-invalid={customError ? true : undefined} aria-describedby={customError ? errId : undefined} />
           {customError ? <p id={errId} className="field-error" role="alert">{customError}</p> : null}
@@ -97,9 +99,9 @@ export function ThicknessPicker({ unitType, value, onChange, legend = "Bar width
       ) : null}
       <div className="thickness-preview">
         <div className="thickness-bar thickness-reference" data-testid="reference-bar" style={{ height: `${thicknessToPx(REFERENCE_THICKNESS)}px` }}
-          role="img" aria-label={`20 pages at normal weight: thickness ${fmt(REFERENCE_THICKNESS)}`} />
+          role="img" aria-label="20 pages a day at the usual effort" />
         <div className="thickness-bar thickness-chosen" data-testid="preview-bar" style={{ height: `${thicknessToPx(thickness)}px` }}
-          role="img" aria-label={`${TYPICAL_DAY[unitType].text} a day: thickness ${fmt(thickness)}`} />
+          role="img" aria-label={`${TYPICAL_DAY[unitType].text} a day, ${usualEffortText(unitType, value)}`} />
       </div>
       <p className="hint thickness-caption">{invalid ? INVALID_CAPTION : previewCaption(unitType, value)}</p>
     </fieldset>

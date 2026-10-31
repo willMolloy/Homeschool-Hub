@@ -1,0 +1,19 @@
+/* S6-08: a quiet bar at the bottom: one line, one 44 px button. It sits above the tab bar on phones and above the
+   timeline's edit bar while that is open (the timeline sets --edit-bar-height). */
+.undo-bar {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 11;
+  bottom: calc(49px + env(safe-area-inset-bottom) + var(--edit-bar-height, 0px) + 8px);
+  display: flex; align-items: center; gap: 4px;
+  width: max-content; max-width: calc(100vw - 32px); box-sizing: border-box;
+  padding: 2px 4px 2px 16px; border-radius: 999px;
+  background: var(--brand); color: #fff; box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+}
+.undo-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.undo-btn {
+  flex: 0 0 auto; min-height: 44px; min-width: 44px; padding: 0 14px; border: 0; border-radius: 999px;
+  background: transparent; color: #fff; font-weight: 600; text-decoration: underline; cursor: pointer;
+}
+.undo-btn:disabled { opacity: 0.6; cursor: default; }
+@media (min-width: 640px) {
+  .undo-bar { bottom: calc(var(--edit-bar-height, 0px) + 16px); }
+}

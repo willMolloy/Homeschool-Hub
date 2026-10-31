@@ -37,9 +37,11 @@ export interface TimelineProps {
   onPick?: (x: number, y: number) => void;
   /** T-10: a just-added assignment, briefly highlighted. */
   flashId?: string | null;
+  /** S7-20: draw the selected bar's end grips (only meaningful while bars can be dragged). */
+  grips?: boolean;
 }
 
-export function Timeline({ layout, label, selectedId = null, onPick, flashId = null }: TimelineProps) {
+export function Timeline({ layout, label, selectedId = null, onPick, flashId = null, grips = true }: TimelineProps) {
   const hatchId = `tl-hatch-${useId().replace(/:/g, "")}`;
   /** T-05c: zoomed out, breaks are a very faint plain tint instead of a hatch. */
   const quiet = layout.detail === "smooth";
@@ -47,7 +49,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
   const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
   const dim = (id: string) => (selectedId === null ? "" : id === selectedId ? " tl-selected" : " tl-dim") + (id === flashId ? " tl-flash" : "");
   // T-08b: one pair of grips per lane the selected assignment is drawn in, at its outer ends.
-  const handles = selectedId === null ? [] : layout.bands.filter((b, i, all) => b.assignmentId === selectedId && b.d
+  const handles = selectedId === null || !grips ? [] : layout.bands.filter((b, i, all) => b.assignmentId === selectedId && b.d
     && all.findIndex((o) => o.assignmentId === selectedId && o.laneKey === b.laneKey && o.d) === i).flatMap((b) => {
     const extent = bandExtent(layout, b);
     const row = layout.rows.find((r) => r.key === b.rowKey);
@@ -89,13 +91,6 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         ) : null))}
       </g>
 
-      <g className="tl-labels">
-        <text className="tl-lane-label" x={layout.plot.x} y={layout.totals.labelY + LABEL_BASELINE}>{TOTALS_LABEL}</text>
-        {layout.labels.map((l) => (
-          <text key={l.laneKey} className="tl-lane-label" x={l.x} y={l.y + LABEL_BASELINE}>{l.text}</text>
-        ))}
-      </g>
-
       <g className="tl-bands">
         {layout.totals.d ? <path className="tl-totals" d={layout.totals.d} /> : null}
         {layout.bands.flatMap((b) => b.connectors.map((c, k) => (
@@ -134,11 +129,19 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
 
       {layout.todayX === null ? null : (
         <g className="tl-today" data-today>
-          <line x1={layout.todayX} x2={layout.todayX} y1={AXIS_HEIGHT_PX - 4} y2={bottom + 4} />
+          <line x1={layout.todayX} x2={layout.todayX} y1={layout.todayTop} y2={bottom + 4} />
           <rect x={pillX} y={bottom + 4} width={PILL_W} height={PILL_H} rx={PILL_H / 2} />
           <text x={pillX + PILL_W / 2} y={bottom + 4 + PILL_H - 5} textAnchor="middle">Today</text>
         </g>
       )}
+
+      {/* S7-19: lane names are drawn last, with a page-coloured halo, so the Today line never runs through them. */}
+      <g className="tl-labels">
+        {layout.rows.length > 0 && <text className="tl-lane-label" x={layout.plot.x} y={layout.totals.labelY + LABEL_BASELINE}>{TOTALS_LABEL}</text>}
+        {layout.labels.map((l) => (
+          <text key={l.laneKey} className="tl-lane-label" x={l.x} y={l.y + LABEL_BASELINE}>{l.text}</text>
+        ))}
+      </g>
     </svg>
   );
 }

@@ -23,10 +23,26 @@ export interface Me {
   demo: boolean;
 }
 
+/** S7-03: one of the family's own timeline zoom views; start and end are YYYY-MM-DD, inclusive. */
+export interface CustomZoomView {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+}
+
+/** S7-03: the built-in zoom views the family hides (never Year) and its own views, in the order shown. */
+export interface ZoomViews {
+  hidden: ("fall" | "spring" | "month")[];
+  custom: CustomZoomView[];
+}
+
 /** GET/PATCH /api/family */
 export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */
   weekStartLocked: boolean;
+  /** S7-03 */
+  zoomViews: ZoomViews;
 };
 /** The PATCH /api/family body: any of the editable fields. */
 export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">>;
@@ -53,7 +69,7 @@ export interface Subject {
   color: string | null;
   sortOrder: number;
   archived: boolean;
-  /** S2b-31: the subject's default bar width for one unit type, or null. */
+  /** S2b-31: the subject's usual effort for one unit type, or null. */
   defaultWeight: SubjectDefaultWeight | null;
   /** S4-03: the days (0 = Sunday … 6 = Saturday, sorted) new work in this subject runs on, or null = every school day. */
   defaultWeekdays: number[] | null;
@@ -115,6 +131,19 @@ export interface BlockedRange {
   childIds: string[];
 }
 
+/** GET/POST /api/calendar-templates (S5-06): breaks counted in days from the year's first day. */
+export interface TemplateBreak {
+  offsetDays: number;
+  lengthDays: number;
+  label: string | null;
+  kind: BlockedKind;
+}
+export interface CalendarTemplate {
+  id: string;
+  name: string;
+  breaks: TemplateBreak[];
+}
+
 /** GET/POST/PATCH /api/events (S2a-08..10) */
 export type EventRule = SubjectRule;
 export interface ScheduleEvent {
@@ -132,6 +161,22 @@ export interface ScheduleEvent {
   /** [] = the whole family. */
   childIds: string[];
   archived: boolean;
+}
+
+/** POST /api/plan/preview-event (S5-01) */
+export interface EventPreviewRow {
+  assignmentId: string;
+  childId: string;
+  title: string;
+  childName: string;
+  unitType: UnitType;
+  before: { perDay: number; end: string };
+  after: { perDay: number; end: string };
+}
+export interface EventPreview {
+  changes: EventPreviewRow[];
+  /** Changed rows beyond the ones returned. */
+  more: number;
 }
 
 /** GET /api/timezones (S2a-17): the zones the server accepts, in canonical spelling. */

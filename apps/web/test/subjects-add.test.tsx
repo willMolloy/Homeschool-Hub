@@ -35,7 +35,8 @@ describe("Add subject", () => {
     await user.type(screen.getByLabelText("Name"), "Art");
     await user.click(screen.getByRole("radio", { name: "Purple" }));
     await user.click(screen.getByRole("button", { name: "Add" }));
-    await screen.findByText("Art");
+    // S6b-08: an empty family is also offered "Art" as a common-subject chip, so look in the list.
+    await within(await screen.findByRole("list", { name: "Subjects" })).findByText("Art");
     expect(fakeApi.calls.at(-1)?.body).toEqual({ name: "Art", color: "#7a5cc2", defaultWeight: null, defaultWeekdays: null });
   });
 
@@ -77,7 +78,7 @@ describe("Add subject", () => {
     await user.type(screen.getByLabelText("Name"), "Art{Enter}");
     expect(await screen.findByRole("button", { name: "Saving…" })).toBeDisabled();
     finish();
-    expect(await screen.findByText("Art")).toBeInTheDocument();
+    expect(await within(await screen.findByRole("list", { name: "Subjects" })).findByText("Art")).toBeInTheDocument();
   });
 
   it("Escape closes the form without saving", async () => {

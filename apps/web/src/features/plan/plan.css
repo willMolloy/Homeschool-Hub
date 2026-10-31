@@ -52,6 +52,3 @@
 .briefing-line { margin: 0 0 8px; overflow-wrap: anywhere; }
 .briefing-line a { display: inline-block; min-height: 44px; line-height: 44px; }
 .briefing-more { min-height: 44px; padding: 0; border: 0; background: none; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }
-/* S4-10: "Missed a day?" sheet: day and who as wrapping 44 px chips. */
-.missed-options { display: flex; flex-wrap: wrap; gap: 4px; }
-.missed-chip { padding: 0 14px; min-width: 44px; }

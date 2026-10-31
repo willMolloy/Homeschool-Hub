@@ -65,6 +65,12 @@ export async function seed(databaseUrl: string, email: string = DEMO_EMAIL, fami
       for (const c of a.childIds) {
         await client.query("INSERT INTO assignment_child (assignment_id, child_id, family_id) VALUES ($1, $2, $3)", [id, ids.child[c], familyId]);
       }
+      // S6-05: the values as created, for reset.
+      await client.query(
+        `UPDATE assignment SET original = jsonb_build_object('title', title, 'subjectId', subject_id, 'unitType', unit_type, 'totalUnits', total_units,
+           'weightPerUnit', weight_per_unit, 'weekdays', to_jsonb(weekdays), 'startDate', to_char(start_date, 'YYYY-MM-DD'),
+           'endDate', to_char(end_date, 'YYYY-MM-DD'), 'childIds', to_jsonb($2::uuid[])) WHERE id = $1`,
+        [id, a.childIds.map((c) => ids.child[c])]);
     }
     for (const e of events) {
       const id = await one(

@@ -5,6 +5,7 @@ import { apiPatch, apiPost } from "../../api/client";
 import { useMe } from "../../auth/AuthProvider";
 import type { EventRule, ScheduleEvent } from "../../api/types";
 import { ChildPicker, dateRange, saveError, sameSet, shortDate, spanDays, WeekdayPicker, weekdaySummary } from "./formBits";
+import { EventPreviewList, useEventPreview } from "./EventPreview";
 import { WithLookups, type Lookups } from "./lookups";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
 
@@ -87,6 +88,16 @@ function EventCard({ e, l }: { e: ScheduleEvent; l: Lookups }) {
 }
 
 type Errors = Partial<Record<"name" | "weekdays" | "dates" | "capacity" | "children", string>>;
+interface EventBody {
+  name: string;
+  weekdays: number[];
+  startDate: string | null;
+  endDate: string | null;
+  capacityFraction: number;
+  defaultRule: EventRule;
+  subjectRules: Record<string, EventRule>;
+  childIds: string[];
+}
 
 function EventForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlotProps<ScheduleEvent> & { l: Lookups }) {
   const [name, setName] = useState(item?.name ?? "");
@@ -118,10 +129,8 @@ function EventForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlo
     });
   }
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (saving) return;
-    setFormError(null);
+  /** The form's problems and, when there are none, the body for the API. */
+  function check(): { errs: Errors; full: EventBody | null } {
     const errs: Errors = {};
     const n = name.trim();
     if (!n) errs.name = "Name is required.";
@@ -131,29 +140,43 @@ function EventForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlo
     const cap = parsePercent(capacity);
     if (typeof cap === "string") errs.capacity = cap;
     if (!wholeFamily && childIds.length === 0) errs.children = "Pick at least one child, or choose Whole family.";
-    setErrors(errs);
-    if (Object.keys(errs).length > 0 || typeof cap === "string") return;
+    if (Object.keys(errs).length > 0 || typeof cap === "string") return { errs, full: null };
 
     // Only active subjects' own rules are sent; "Use default" ones are left out.
     const subjectRules: Record<string, EventRule> = {};
     for (const s of active) if (rules[s.id]) subjectRules[s.id] = rules[s.id]!;
-    const full = {
-      name: n,
-      weekdays: [...weekdays].sort((a, b) => a - b),
-      startDate: startDate || null,
-      endDate: endDate || null,
-      capacityFraction: cap,
-      defaultRule,
-      subjectRules,
-      childIds: wholeFamily ? [] : childIds,
+    return {
+      errs,
+      full: {
+        name: n,
+        weekdays: [...weekdays].sort((a, b) => a - b),
+        startDate: startDate || null,
+        endDate: endDate || null,
+        capacityFraction: cap,
+        defaultRule,
+        subjectRules,
+        childIds: wholeFamily ? [] : childIds,
+      },
     };
+  }
+  const draft = check().full;
+  const preview = useEventPreview(draft, item?.id ?? null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (saving) return;
+    setFormError(null);
+    const { errs, full } = check();
+    setErrors(errs);
+    if (!full) return;
+    const subjectRules = full.subjectRules;
     setSaving(true);
     try {
       if (!item) {
         onSaved(await apiPost<ScheduleEvent>("/api/events", full));
         return;
       }
-      const patch: Partial<typeof full> = {};
+      const patch: Partial<EventBody> = {};
       if (full.name !== item.name) patch.name = full.name;
       if (!sameSet(full.weekdays, item.weekdays)) patch.weekdays = full.weekdays;
       if (full.startDate !== item.startDate) patch.startDate = full.startDate;
@@ -241,6 +264,7 @@ function EventForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlo
           </p>
         )}
       </div>
+      <EventPreviewList preview={preview} />
       <ChildPicker
         legend="Who it's for"
         options={l.children}

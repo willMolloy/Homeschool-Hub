@@ -4,21 +4,30 @@
  * full width (full-bleed on phones). Changing zoom crossfades the old picture out over the new one, names included
  * (T-06: names sit inside the bars wherever they fit). T-07/T-07e: tapping a bar selects it and shows the edit bar at the bottom.
  * T-08: bars can be dragged (body moves, edges change the start or end), previewing live and saving on release.
+ * S7-20: dragging is switched off (`BAR_DRAG_ENABLED` in drag.ts); the code stays.
  * T-07c: with two or more children, a chip row (All, then each child) narrows it to one child, kept in `?child=`.
  * T-10: "+ Add assignment" in the header opens the assignment form; the new bar appears at once, briefly highlighted.
  * S3a-02: the edit bar's Copy opens that form prefilled from the selected assignment.
+ * S6-08: its "Reset to original" asks first, then puts the assignment back to how it was created.
+ * S6-10: its Heavier and Lighter nudge the weight about 25% (which also teaches the next suggestion, S2b-07).
+ * S7-04: the zoom row also holds the family's own views and leaves out the built-ins it hid.
+ * S7-05: its quiet Edit opens the sheet where a family hides built-ins and manages its own views.
+ * S6b-09: with nothing planned the calendar (months, today, days off, events) still draws, with one quiet line under it.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Assignment } from "../api/types";
+import { weightPerUnitOf, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT } from "@hh/engine";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
+import type { Assignment, ZoomViews } from "../api/types";
 import { AddAssignmentButton, AddAssignmentSheet } from "../features/timeline/AddAssignment";
 import { copyOfAssignment } from "../features/schedule/copyAssignment";
 import { makeLookups } from "../features/schedule/lookups";
 import type { Draft } from "../features/schedule/ScheduleList";
 import { afterAdd } from "../features/timeline/afterAdd";
 import { EditBar } from "../features/timeline/EditBar";
+import { nudgedWeight, type Nudge } from "../features/timeline/nudge";
 import { useAssignmentEdit } from "../features/timeline/useAssignmentEdit";
 import { useKeepAbove } from "../features/timeline/useKeepAbove";
-import { grabSelected, previewModel } from "../features/timeline/drag";
+import { BAR_DRAG_ENABLED, grabSelected, previewModel } from "../features/timeline/drag";
 import { useBarDrag, type DragPreview } from "../features/timeline/useBarDrag";
 import { hitTest } from "../features/timeline/hit";
 import { selectionFor } from "../features/timeline/select";
@@ -31,9 +40,10 @@ import { useMeasureText } from "../features/timeline/useMeasureText";
 import { useElementWidth } from "../features/timeline/useElementWidth";
 import { useTimelineData } from "../features/timeline/useTimelineData";
 import { useZoomFade } from "../features/timeline/useZoomFade";
-import { availableZooms, defaultMonth, gridMonths, ZOOM_LABEL, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
+import { defaultMonth, gridMonths, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
+import { EditZoomViewsSheet } from "../features/timeline/EditZoomViews";
 import { ChildFilter } from "../features/timeline/ChildFilter";
 import { filterChildren, forChild, shownChild } from "../features/timeline/childView";
 import { useChildParam } from "../features/timeline/useChildParam";
@@ -44,12 +54,12 @@ const FALLBACK_WIDTH = 360;
 /** T-10: how long a just-added bar stays highlighted (keep in step with tl-flash in timeline.css). */
 export const FLASH_MS = 2400;
 
-interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail }
+interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail; customViews?: ZoomViews["custom"] }
 const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: LayoutArgs) =>
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
 export function TimelinePage() {
-  const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects } = useTimelineData();
+  const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects, zoomViews, setZoomViews } = useTimelineData();
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
   const [childParam, setChild] = useChildParam();
   const childId = shownChild(childParam, childList);
@@ -59,7 +69,9 @@ export function TimelinePage() {
   const drawn = useMemo(() => (model && preview ? previewModel(model, preview.assignmentId, preview.span) : model), [model, preview]);
   const { ref, width } = useElementWidth<HTMLDivElement>(FALLBACK_WIDTH);
   const { zoom, leaving, setZoom, settle } = useZoomFade("year");
-  const zooms = useMemo(() => (model ? availableZooms(model) : (["year"] as Zoom[])), [model]);
+  const customViews = zoomViews.custom;
+  // S7-04: Year, the built-ins the family hasn't hidden, then its own views; a zoom that is gone falls back to Year.
+  const zooms = useMemo(() => (model ? visibleZooms(model, zoomViews) : (["year"] as Zoom[])), [model, zoomViews]);
   const shownZoom = zooms.includes(zoom) ? zoom : "year";
   const measureText = useMeasureText();
   // T-05c: This month starts at the month holding today; ‹ › flip it.
@@ -73,11 +85,11 @@ export function TimelinePage() {
   // The last detail drawn, for the detail threshold's hysteresis.
   const lastDetail = useRef<DrawnDetail | undefined>(undefined);
   const layout = useMemo(
-    () => layoutFor(drawn, shownZoom, { width, measureText, month, previousDetail: lastDetail.current }),
-    [drawn, shownZoom, width, measureText, month],
+    () => layoutFor(drawn, shownZoom, { width, measureText, month, customViews, previousDetail: lastDetail.current }),
+    [drawn, shownZoom, width, measureText, month, customViews],
   );
   lastDetail.current = layout?.detail;
-  const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month }), [model, leaving, width, measureText, month]);
+  const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month, customViews }), [model, leaving, width, measureText, month, customViews]);
   // T-07: the selection lives beside the zoom, so it survives zoom changes and month flips.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const edit = useAssignmentEdit(applyAssignment);
@@ -97,8 +109,32 @@ export function TimelinePage() {
     onSelect: select, onPreview: setPreview, onCommit: edit.save,
   });
   const closeEdit = useCallback(() => setSelectedId(null), []);
+  // S6-08: the undo bar rides above the edit bar while it is open.
+  const barHeight = selection ? keep.height : 0;
+  useEffect(() => {
+    document.documentElement.style.setProperty("--edit-bar-height", `${barHeight}px`);
+    return () => { document.documentElement.style.removeProperty("--edit-bar-height"); };
+  }, [barHeight]);
+  // S6-10: the weight now in effect (its own, else the subject's default, else the built-in), the base of a nudge.
+  const selected = selection ? assignments.find((a) => a.id === selection.assignmentId) : undefined;
+  const effectiveWeight = selected
+    ? weightPerUnitOf(selected, subjects.find((s) => s.id === selected.subjectId)?.defaultWeight ?? null).weight : null;
+  const canNudge = { heavier: effectiveWeight !== null && effectiveWeight < MAX_WEIGHT_PER_UNIT, lighter: effectiveWeight !== null && effectiveWeight > MIN_WEIGHT_PER_UNIT };
+  const nudge = (direction: Nudge) => {
+    if (selected && effectiveWeight !== null) void edit.setWeight(selected.id, nudgedWeight(effectiveWeight, direction));
+  };
+  const [resetting, setResetting] = useState<{ id: string; title: string } | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const confirmReset = async () => {
+    if (!resetting) return;
+    const message = await edit.reset(resetting.id);
+    if (message) setResetError(message);
+    else setResetting(null);
+  };
   // T-10: adding an assignment. The new bar flashes once it is drawn, with the filter and month moved to show it.
   const [adding, setAdding] = useState(false);
+  // S7-05: the zoom views editor.
+  const [editingViews, setEditingViews] = useState(false);
   const [copying, setCopying] = useState<Draft<Assignment> | null>(null);
   const lookups = useMemo(() => makeLookups(children, subjects, applySubject), [children, subjects, applySubject]);
   const [flashId, setFlashId] = useState<string | null>(null);
@@ -128,16 +164,17 @@ export function TimelinePage() {
   };
   const empty = model !== undefined && model.lanes.length === 0;
   const ready = !failed && !loading && model && layout && !empty;
+  const calendar = !failed && !loading && model && layout && empty;
 
   return (
     <>
       <header className="timeline-page-header">
         <h1>Timeline</h1>
         {!failed && !loading && model && <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />}
-        {ready && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} />}
+        {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews)} onEdit={() => setEditingViews(true)} />}
       </header>
       {ready && <ChildFilter childList={childList} value={childId} onChange={setChild} />}
-      {ready && shownZoom === "month" && month && <MonthNav months={months} value={month} onChange={setMonth} />}
+      {(ready || calendar) && shownZoom === "month" && month && <MonthNav months={months} value={month} onChange={setMonth} />}
       <div ref={ref} className="timeline-bleed">
         {failed ? (
           <p role="alert">
@@ -146,17 +183,20 @@ export function TimelinePage() {
         ) : loading || !model || !layout ? (
           <p aria-busy="true">Loading…</p>
         ) : empty ? (
-          <p>Nothing planned yet.</p>
+          <>
+            <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`} />
+            <p className="tl-empty">Nothing planned yet.</p>
+          </>
         ) : (
           <>
-            <div ref={stage} className="tl-stage" data-drag-ready={selection ? "" : undefined} {...drag}>
+            <div ref={stage} className="tl-stage" data-drag-ready={BAR_DRAG_ENABLED && selection ? "" : undefined} {...(BAR_DRAG_ENABLED ? drag : {})}>
               <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
-                <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : ZOOM_LABEL[shownZoom]} timeline`}
-                  selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} />
+                <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`}
+                  selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} grips={BAR_DRAG_ENABLED} />
               </div>
               {leavingLayout && (
                 <div className="tl-leaving" aria-hidden="true" onAnimationEnd={settle}>
-                  <Timeline layout={leavingLayout} label="" selectedId={selection ? selectedId : null} />
+                  <Timeline layout={leavingLayout} label="" selectedId={selection ? selectedId : null} grips={BAR_DRAG_ENABLED} />
                 </div>
               )}
             </div>
@@ -164,13 +204,22 @@ export function TimelinePage() {
             {selection && (
               <>
                 <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />
-                <EditBar ref={keep.ref} selection={selection} original={edit.originals[selection.assignmentId] ?? null}
-                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onClose={closeEdit} />
+                <EditBar ref={keep.ref} selection={selection}
+                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onNudge={nudge} canNudge={canNudge}
+                  onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
               </>
             )}
           </>
         )}
       </div>
+      {resetting && (
+        <ConfirmDialog title={`Put ${resetting.title} back to how you created it?`} confirmLabel="Reset" busy={edit.busy} error={resetError}
+          onConfirm={() => void confirmReset()} onCancel={() => setResetting(null)}>
+          <p>Its dates, effort and days go back, and its week adjustments are removed. You can undo this right after.</p>
+        </ConfirmDialog>
+      )}
+      <EditZoomViewsSheet open={editingViews} views={zoomViews} onClose={() => setEditingViews(false)}
+        onSaved={(saved) => { setZoomViews(saved); setEditingViews(false); }} />
       <AddAssignmentSheet open={adding} lookups={lookups} initial={copying} onSaved={added} onClose={closeAdd} />
     </>
   );

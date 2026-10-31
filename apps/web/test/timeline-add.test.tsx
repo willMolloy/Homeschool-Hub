@@ -101,13 +101,13 @@ describe("adding an assignment from the timeline", () => {
     stubSample();
     const { sheet } = await openForm();
     expect(sheet).toHaveAttribute("data-sheet", "side");
-    // Essentials first, in order; the weight waits behind "More".
+    // Essentials first, in order; then the effort question (S6-09), asked in time, with no weight field and no "More".
     const labels = [...sheet.querySelectorAll("label, legend, summary")].map((e) => e.textContent!.trim()).filter((t) => !["Frank", "Margaret", "Mon", "Tue", "Wed", "Thu", "Fri"].includes(t));
     // S4-07: the Days chips sit right under the dates.
     expect(labels.slice(0, 8)).toEqual(["Subject", "Title", "Children", "Start", "End", "Days", "Unit", "Total"]);
-    const more = within(sheet).getByText("More").closest("details")!;
-    expect(more.open).toBe(false);
-    expect(within(more).getByLabelText(/^Weight per/)).toBeInTheDocument();
+    expect(labels[8]).toBe("About how long will that take?");
+    expect(within(sheet).queryByText("More")).toBeNull();
+    expect(within(sheet).queryByLabelText(/^Weight per/)).toBeNull();
     // Nothing non-essential: the form's own buttons and the close button, no helper text or badges.
     expect(within(sheet).getAllByRole("button").map((b) => b.textContent)).toEqual(["×", "Add", "Cancel"]);
   });
@@ -156,6 +156,27 @@ describe("adding an assignment from the timeline", () => {
     await user.click(within(sheet).getByRole("button", { name: "Add" }));
     await waitFor(() => expect(router.state.location.search).not.toContain("child=frank"));
     await waitFor(() => expect(document.querySelector('path.tl-band[data-assignment="new1"]')).not.toBeNull());
+  });
+
+  it("S6b-09: from an empty calendar, Add assignment works and the first bar replaces the empty line", async () => {
+    stubSample();
+    fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: DEMO_ME.today, from: "x", to: "y", plans: [] });
+    fakeApi.on("GET /api/assignments", 200, []);
+    fakeApi.on("POST /api/assignments", (body) => {
+      const plans = planAll(
+        [{ id: NEW.id, subjectId: NEW.subjectId, unitType: NEW.unitType, totalUnits: NEW.totalUnits, start: NEW.startDate, end: NEW.endDate, childIds: NEW.childIds }],
+        { calendar: S.calendar, events: [], blocked: [], subjectWeights: S.subjectWeights, asOf: "2026-10-14" },
+      );
+      fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: DEMO_ME.today, from: "x", to: "y", plans });
+      fakeApi.on("GET /api/assignments", 200, [NEW]);
+      return [201, { ...NEW, ...(body as object), id: NEW.id, archived: false }];
+    });
+    const { user, sheet } = await openForm();
+    expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
+    await fillEssentials(user, sheet);
+    await user.click(within(sheet).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(document.querySelector('path.tl-band[data-assignment="new1"]')).not.toBeNull());
+    expect(screen.queryByText("Nothing planned yet.")).toBeNull();
   });
 
   it("Cancel closes the panel without saving", async () => {

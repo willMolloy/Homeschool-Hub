@@ -4,14 +4,14 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { addDays, ENGINE_VERSION, type LocalDate } from "@hh/engine";
 import type { Assignment } from "../src/api/types";
-import { canEndEarlier, changedDates, datesError, moveWeeks, shiftEnd } from "../src/features/timeline/select";
+import { changedDates, datesError } from "../src/features/timeline/select";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import {
   SAMPLE_ASSIGNMENTS, SAMPLE_BLOCKED, SAMPLE_CHILDREN, SAMPLE_EVENTS, SAMPLE_SUBJECTS, samplePlans,
 } from "./helpers/timeline-fixtures";
 import { renderAt } from "./render";
 
-const EDIT = ["Move back a week", "Move forward a week", "End a week earlier", "End a week later", "Reset", "Copy", "Close"];
+const EDIT = ["Copy", "More", "Close"];
 
 function stub(assignments: Assignment[] = SAMPLE_ASSIGNMENTS) {
   fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: DEMO_ME.today, from: "x", to: "y", plans: samplePlans() });
@@ -43,20 +43,8 @@ const bar = () => screen.queryByRole("region", { name: /^Edit / });
 const patches = () => fakeApi.calls.filter((c) => c.method === "PATCH");
 const planGets = () => fakeApi.calls.filter((c) => c.method === "GET" && c.path.startsWith("/api/plan")).length;
 
-describe("end-date steps", () => {
-  it("moves the end by whole weeks and never before the start", () => {
-    expect(shiftEnd("2026-10-30", 1)).toBe("2026-11-06");
-    expect(shiftEnd("2026-10-30", -1)).toBe("2026-10-23");
-    expect(canEndEarlier("2026-10-20", "2026-10-30")).toBe(true);
-    expect(canEndEarlier("2026-10-23", "2026-10-30")).toBe(true);
-    expect(canEndEarlier("2026-10-24", "2026-10-30")).toBe(false);
-  });
-});
-
-describe("whole-week moves", () => {
-  it("moves both dates, keeps only changed fields and checks the order", () => {
-    expect(moveWeeks({ startDate: "2026-10-19", endDate: "2026-11-04" }, 1)).toEqual({ startDate: "2026-10-26", endDate: "2026-11-11" });
-    expect(moveWeeks({ startDate: "2026-10-19", endDate: "2026-11-04" }, -1)).toEqual({ startDate: "2026-10-12", endDate: "2026-10-28" });
+describe("date helpers", () => {
+  it("keeps only changed fields and checks the order", () => {
     expect(changedDates({ startDate: "a", endDate: "b" }, { startDate: "a", endDate: "c" })).toEqual({ endDate: "c" });
     expect(changedDates({ startDate: "a", endDate: "b" }, { startDate: "a", endDate: "b" })).toBeNull();
     expect(datesError({ startDate: "2026-10-20", endDate: "2026-10-19" })).toBe("The start must be on or before the end.");
@@ -84,7 +72,7 @@ describe("the edit bar", () => {
     expect(within(panel).getByText(/ · /)).toBeInTheDocument();
     expect(within(panel).getByLabelText("Start")).toHaveValue(a.startDate);
     expect(within(panel).getByLabelText("End")).toHaveValue(a.endDate);
-    for (const name of ["Move back a week", "Move forward a week", "End a week later", "Close"]) expect(within(panel).getByRole("button", { name })).toBeEnabled();
+    for (const name of ["Copy", "More", "Close"]) expect(within(panel).getByRole("button", { name })).toBeEnabled();
     expect(within(panel).queryByRole("button", { name: "Reset" })).toBeNull();
     const bands = [...svg.querySelectorAll("path.tl-band")];
     expect(bands.filter((b) => b.getAttribute("data-assignment") === id).every((b) => !b.classList.contains("tl-dim"))).toBe(true);
@@ -99,28 +87,53 @@ describe("the edit bar", () => {
     expect(svg.querySelector(".tl-dim")).toBeNull();
   });
 
-  it("moves the whole assignment a week, redraws from a fresh plan, then Reset puts both dates back", async () => {
+  it("has Start, End, Copy and More only: no week steps and no date-only Reset (S6b-05)", async () => {
     stub();
     const svg = await open();
     const id = tapBand(svg);
     const a = SAMPLE_ASSIGNMENTS.find((x) => x.id === id)!;
+    const panel = await sheet();
+    for (const name of ["Move back a week", "Move forward a week", "End a week earlier", "End a week later", "Reset", "Heavier", "Lighter", "Reset to original"]) {
+      expect(within(panel).queryByRole("button", { name })).toBeNull();
+    }
+    // A date change redraws from a fresh plan and still doesn't offer a date-only Reset.
     const before = planGets();
-    await userEvent.click(within(await sheet()).getByRole("button", { name: "Move forward a week" }));
+    fireEvent.change(within(panel).getByLabelText("End"), { target: { value: addDays(a.endDate as LocalDate, 7) } });
     await waitFor(() => expect(patches()).toHaveLength(1));
-    expect(patches()[0]).toMatchObject({ path: `/api/assignments/${id}`, body: { startDate: addDays(a.startDate as LocalDate, 7), endDate: addDays(a.endDate as LocalDate, 7) } });
+    expect(patches()[0]).toMatchObject({ path: `/api/assignments/${id}`, body: { endDate: addDays(a.endDate as LocalDate, 7) } });
     await waitFor(() => expect(planGets()).toBeGreaterThan(before));
-    await userEvent.click(await within(await sheet()).findByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(patches()).toHaveLength(2));
-    expect(patches()[1]!.body).toEqual({ startDate: a.startDate, endDate: a.endDate });
-    await waitFor(() => expect(within(bar()!).queryByRole("button", { name: "Reset" })).toBeNull());
+    expect(within(bar()!).queryByRole("button", { name: "Reset" })).toBeNull();
   });
 
-  it("ends a week later, keeping the start", async () => {
+  it("More opens Heavier, Lighter and Reset to original; Esc closes the menu first, then the bar; a tap outside closes it", async () => {
+    stub();
+    const user = userEvent.setup();
+    const svg = await open();
+    tapBand(svg);
+    const panel = await sheet();
+    const more = within(panel).getByRole("button", { name: "More" });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(within(panel).queryByRole("button", { name: "Heavier" })).toBeNull();
+    await user.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    expect(within(panel).getAllByRole("button").map((b) => b.textContent)).toEqual(expect.arrayContaining(["Heavier", "Lighter", "Reset to original"]));
+    await user.keyboard("{Escape}");
+    expect(within(panel).queryByRole("button", { name: "Heavier" })).toBeNull();
+    expect(bar()).not.toBeNull();
+    await user.click(more);
+    await user.click(document.body);
+    expect(within(panel).queryByRole("button", { name: "Heavier" })).toBeNull();
+    await user.click(more);
+    await user.keyboard("{Escape}{Escape}");
+    await waitFor(() => expect(bar()).toBeNull());
+  });
+
+  it("the date pickers save a changed End, keeping the start", async () => {
     stub();
     const svg = await open();
     const id = tapBand(svg);
     const a = SAMPLE_ASSIGNMENTS.find((x) => x.id === id)!;
-    await userEvent.click(within(await sheet()).getByRole("button", { name: "End a week later" }));
+    fireEvent.change(within(await sheet()).getByLabelText("End"), { target: { value: addDays(a.endDate as LocalDate, 7) } });
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(patches()[0]!.body).toEqual({ endDate: addDays(a.endDate as LocalDate, 7) });
   });
@@ -139,22 +152,12 @@ describe("the edit bar", () => {
     expect(patches()[0]!.body).toEqual({ startDate: addDays(a.startDate as LocalDate, -3) });
   });
 
-  it("leaves out End a week earlier when that would cross the start", async () => {
-    const short = SAMPLE_ASSIGNMENTS.map((a, i) => (i === 0 ? { ...a, endDate: addDays(a.startDate as LocalDate, 3) } : a));
-    stub(short);
-    await open();
-    await userEvent.click(screen.getAllByRole("button", { name: new RegExp(`^${short[0]!.title},`) })[0]!);
-    const panel = await sheet();
-    expect(within(panel).queryByRole("button", { name: "End a week earlier" })).toBeNull();
-    expect(within(panel).getByRole("button", { name: "End a week later" })).toBeInTheDocument();
-  });
-
   it("shows the API's message inline when a save fails", async () => {
     stub();
     const svg = await open();
     const id = tapBand(svg);
     fakeApi.on(`PATCH /api/assignments/${id}`, 409, { error: "check_in_outside", message: "The week of Oct 19 has a check-in, so the start can't move past it." });
-    await userEvent.click(within(await sheet()).getByRole("button", { name: "Move forward a week" }));
+    fireEvent.change(within(await sheet()).getByLabelText("End"), { target: { value: "2027-06-30" } });
     expect(await within(bar()!).findByRole("alert")).toHaveTextContent("The week of Oct 19 has a check-in");
   });
 
@@ -244,5 +247,19 @@ describe("Copy in the edit bar (S3a-02)", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     await userEvent.click(screen.getByRole("button", { name: "+ Add assignment" }));
     expect(within(await screen.findByRole("dialog", { name: "Add assignment" })).getByLabelText("Title")).toHaveValue("");
+  });
+});
+
+describe("the edit bar's order on phones (S5-08, S6b-05)", () => {
+  it("lists the close button, Copy and More, with the date fields before them, each by name", async () => {
+    stub();
+    const svg = await open();
+    tapBand(svg);
+    const region = await sheet();
+    expect(within(region).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual(["Close", "Copy", "More"]);
+    const order = [...region.querySelectorAll("button, input")].map((e) => (e.matches("input") ? (e as HTMLInputElement).labels?.[0]?.textContent?.trim() : e.getAttribute("aria-label") ?? e.textContent));
+    expect(order.indexOf("Start")).toBeLessThan(order.indexOf("End"));
+    expect(order.indexOf("End")).toBeLessThan(order.indexOf("Copy"));
+    expect(order.indexOf("Copy")).toBeLessThan(order.indexOf("More"));
   });
 });

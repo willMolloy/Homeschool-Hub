@@ -49,6 +49,8 @@ export interface RosterConfig<T extends RosterItem = RosterItem, V extends Roste
   /** Singular noun for buttons and form labels, e.g. "child". */
   noun: string;
   extension?: RosterExtension<T, V>;
+  /** S6b-08: one-tap names offered to a family that arrives with none (subjects: the common ones). */
+  suggestions?: { label: string; names: readonly string[] };
 }
 
 function messageFor(err: unknown): string {
@@ -61,7 +63,7 @@ function messageFor(err: unknown): string {
 }
 
 export function RosterPage<T extends RosterItem = RosterItem, V extends RosterValues = RosterValues>({
-  title, endpoint, emptyText, noun, extension,
+  title, endpoint, emptyText, noun, extension, suggestions,
 }: RosterConfig<T, V>) {
   const [showArchived, setShowArchived] = useState(false);
   const path = showArchived ? `${endpoint}?includeArchived=true` : endpoint;
@@ -75,6 +77,10 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
   const addBtn = useRef<HTMLButtonElement>(null);
 
   const items = data ?? [];
+  // S6b-08: a family that arrives with none keeps being offered the rest while it taps through them.
+  const [startedEmpty, setStartedEmpty] = useState(false);
+  if (!startedEmpty && suggestions && !loading && !error && data && data.length === 0) setStartedEmpty(true);
+  const remaining = startedEmpty && suggestions ? suggestions.names.filter((n) => !items.some((i) => i.name.trim().toLowerCase() === n.toLowerCase())) : [];
 
   function focusLater(selector: () => HTMLElement | null | undefined) {
     requestAnimationFrame(() => selector()?.focus());
@@ -108,6 +114,20 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
     const created = await apiPost<T>(endpoint, values);
     setData((prev) => [...(prev ?? []), created]);
     closeAdd();
+  }
+
+  /** S6b-08: one tap adds the name with the next free colour. */
+  async function addSuggested(name: string) {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const created = await apiPost<T>(endpoint, { name, color: nextUnusedColor(items.filter((i) => !i.archived).map((i) => i.color)) });
+      setData((prev) => [...(prev ?? []), created]);
+    } catch (err) {
+      setActionError(messageFor(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
   /** Only the changed fields are sent. */
@@ -238,6 +258,17 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
           <p>{emptyText}</p>
         </div>
       )}
+      {suggestions && remaining.length > 0 && !loading && !error ? (
+        <div className="roster-suggest" role="group" aria-label={suggestions.label}>
+          <h2>{suggestions.label}</h2>
+          <div className="roster-suggest-chips">
+            {remaining.map((n) => (
+              <button key={n} type="button" className="btn btn-secondary" disabled={busy} onClick={() => void addSuggested(n)}>{n}</button>
+            ))}
+          </div>
+          {actionError ? <p className="field-error" role="alert">{actionError}</p> : null}
+        </div>
+      ) : null}
       {!loading && !error ? addArea : null}
 
       {archiving ? (

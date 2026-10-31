@@ -4,6 +4,9 @@ DeeDee and Will co-own the product. DeeDee approves what gets built. This plan w
 
 ## What we're building
 
+Design direction: [DESIGN_DIRECTION.md](DESIGN_DIRECTION.md) (from Will's reviews of 2026-10-31).
+
+
 **A steering tool for the homeschool year.** A parent sees the shape of the whole year in seconds, corrects course when life happens, and gets their records with no extra work. It is a planning tool parents steer with, not a daily to-do app they have to feed. Nothing in the core needs daily input or tedious data entry.
 
 **Core plus optional modules.**
@@ -27,7 +30,7 @@ DeeDee and Will co-own the product. DeeDee approves what gets built. This plan w
 | 4 | **Friends beta** | From about March 2027 | The tester has verified the timeline sprint and the read-only share link is in; then 3–6 invited families, ideally the Charlotte Mason friends; the go-public signals are measured at week 6 |
 | 5 | **Decide on going public** | After the friends beta | The go-public signals below are met, or we decide what to change |
 
-**The dates are targets, not promises.** At 6–8 hours a week the core is doable by mid-December, but it holds assignment weekdays, the weekly briefing, the effort rework, undo, week adjust, the event preview and fast setup. The additions of 2026-10-30 (assignment weekdays, the briefing and forecasts, "Missed a day?", book lookup, calendar templates, rollover and separate parent logins) add about 8–10 days of work. If it slips, defer book lookup and calendar templates first; after that, phase 3 moves rather than cutting the rest of the core.
+**The dates are targets, not promises.** At 6–8 hours a week the core is doable by mid-December, but it holds assignment weekdays, the weekly briefing, the effort rework, undo, week adjust, the event preview and fast setup. The additions of 2026-10-30 (assignment weekdays, the briefing and forecasts, "Missed a day?", book lookup, calendar templates, rollover and separate parent logins) add about 8–10 days of work. If it slips, defer the Sprint 7 polish fixes (S7-06 to S7-12) first; after that, phase 3 moves rather than cutting the rest of the core.
 
 **Beta demos before January.** From the end of November, show finished core pieces to DeeDee and, if she chooses, a friend or two. These are short guided demos on the demo family, not real use, run locally or over screen share until phase 2. They catch confusion early without asking anyone to rely on the app.
 
@@ -47,7 +50,7 @@ Agreed now, so they don't drift later. We consider going public only if:
 
 Status as of 2026-10-30. "Built" means a sprint delivered it; the end-to-end pass in the last row confirms it.
 
-**Build order for what's left:** assignment weekdays first (it changes what the bars mean, so it comes ahead of the effort rework), then the weekly briefing with finish-date forecasts, then "Missed a day?", then the C1–C3 items (week adjust, undo, effort), now decided. Fast setup, accounts and the hosting fixes fit around these.
+**Build order for what's left:** assignment weekdays first (it changes what the bars mean, so it comes ahead of the effort rework), then the weekly briefing with finish-date forecasts, then the C1–C3 items (week adjust, undo, effort), now decided. Fast setup, accounts and the hosting fixes fit around these.
 
 ### Assignment weekdays
 - [ ] **Which weekdays an assignment runs on** (Sprint 4: tappable day chips, a subject default that assignments follow until customised). Today the engine spreads every assignment over all school days, so a once-a-week subject (picture study, composer, nature study) shows as a fifth of a lesson every day, and math can't be Monday to Thursday only. An assignment gets optional weekdays (default: every school day); the plan places its work only on those days, and the bars, This Week and check-ins follow. Events already have weekdays; assignments don't.
@@ -63,7 +66,7 @@ Status as of 2026-10-30. "Built" means a sprint delivered it; the end-to-end pas
 - [ ] **Adjust the current or a coming week:** change this week's amount, then keep the end date or push it back. The `week_override` table exists; C1 is decided (the most recent edit wins).
 - [ ] **Undo, and reset an assignment to how it was.** C2 decided: the last change, plus reset to how it was created.
 - [ ] **Weekly briefing on This Week, with finish-date forecasts.** A short status line per child above the week's work: "On track", or "Latin will finish 2 weeks late at this pace. Keep the end date or push it back?", or "This is your heaviest week." It appears only when there's something to act on. It is part of This Week, not a new screen. The engine already produces the warnings (work past the end date, no capacity, unplaced work); forecasts move once check-ins show a slower or faster pace. Its keep-or-push buttons use week adjust (C1).
-- [ ] **"Missed a day?" on This Week.** Pick any day of the shown week up to today, for one child or everyone (a day off underneath), and the plan reflows at once (Sprint 4, S4-10). Next, with week adjust (C1 is decided), it asks how to make the work up: make it up this week, spread it evenly before the end date, or push the end date back. Missing one assignment rather than a whole day waits until after the core; the parent makes it up that week or reports it in the check-in. Undoing a mis-tap is part of undo (C2).
+- [x] ~~**"Missed a day?" on This Week.**~~ Built in Sprint 4, then **removed by Will's decision of 2026-10-31** (Sprint 6, S6-04): the weekly check-in already covers missed work ("keep the end date or push it back"), and a second way to report it clutters This Week. Sick days can still be added under Days off; attendance totals come with the records module.
 - [ ] **Preview before saving an event:** for example "Treasure Island goes from 5 to 6 pages a day". Events already have skip, lighter and normal rules per subject (S2a); the preview is missing.
 
 ### Effort (decision C3: approved)
@@ -80,12 +83,23 @@ Sprint 3a (`tickets/sprint-3a-setup/`) builds the first three.
 - [ ] **Bulk-add** several assignments in one go.
 - [ ] **Copy an assignment**, including to another child (for example a younger sibling).
 - [ ] **CSV import** of assignments.
-- [ ] **Book lookup by title.** Type a title and pick the book; its title and page count fill in (Open Library's free API). ISBN barcode scanning comes later.
+- [x] ~~**Book lookup by title.**~~ **Dropped by Will on 2026-10-31:** editions differ in page count, and a wrong prefilled total would quietly mislead parents.
 - [ ] **Calendar templates for the year's shape** (terms and breaks; the weekly shape is the weekday chips). Set up in one step, with a preview of the breaks it adds; everything stays editable under Days off.
   - **Built in:** 36 weeks, a Sabbath schedule (6 weeks on, 1 off), three terms of 12 weeks, plus US holidays offered as days off.
   - **Build your own:** a simple pattern ("__ weeks on, __ weeks off", start and end dates, which holidays to skip), or "Save this year as a template" from breaks set up by hand, reused at rollover.
   - Sharing a template with friends or a co-op comes later.
+- [ ] **Custom zoom views** (Sprint 7). A quiet Edit at the end of the zoom row: hide Fall, Spring or This month, and add, rename, delete and reorder the family's own views (for example terms), up to 6 including Year.
 - [ ] **Year rollover and sibling reuse.** Start next year from this one, or copy a plan to a younger child, with the dates shifted.
+
+### UI refinement and dark mode (Sprint 8, after Sprint 7): Soft Paper chosen
+Added by Will on 2026-10-31: the UI isn't up to modern standards yet. Done once the core features stop changing, so nothing is restyled twice; accounts and hosting hardening follow it.
+- **Chosen 2026-10-31:** Soft Paper (`design/ux-research.md`), with slightly stronger assignment colours; tickets in `tickets/sprint-8-soft-paper/`. Navigation: Home · Track work · Schedule (Schedule has Week | Year), decided by Will on 2026-10-31.
+- **Design brief:** calm and airy, with the soft, rounded shapes of a warm and friendly app; pastel colours; very clean and tidy.
+- [ ] **Audit and direction first:** screenshot every screen at phone and desktop widths, critique against a modern standard, and show 2–3 visual directions on one page for Will and DeeDee to choose from before code changes.
+- [ ] **One design system:** tokens for type, spacing, radius, elevation and colour (light and dark), and shared components (buttons, fields, chips, cards, sheets, lists) in place of per-screen CSS.
+- [ ] **Screen-by-screen refinement:** the shell and navigation, This Week, the timeline, the schedule screens, forms and sheets, empty and loading states.
+- [ ] **Light, dark and system themes:** follows the device by default; Settings offers Light / Dark / System, remembered on that device. Pastel bars get dark-tuned versions; contrast tests run in both themes. (Today the app is locked to light: `color-scheme: light` in `styles.css`; timeline dark tokens already exist in `tokens.css`.)
+- [ ] **Checks:** the tap-target script and contrast in both themes, and a tester pass with before-and-after screenshots.
 
 ### Accounts
 - [ ] **Invite-only accounts, with separate parent logins.** An invite link creates a family account, and the same kind of link adds a second parent to an existing family. Each parent has their own login to the one family; today the login is stored on the family itself, so it moves to its own table. Password resets are done by hand with the existing `set-family-login` CLI. Self-serve signup and emailed resets wait until going public, so no email provider is needed yet.
@@ -127,7 +141,6 @@ Each follows the module rules above. In order:
 2. **Daily checklist**, for families who want it: a Today list per child with one-tap done. A tick confirms what the plan already assumes. Never required.
 3. **Later, as the hub grows:**
    - **"Smooth this month":** the app suggests moving a bar out of an overloaded week, accepted with one tap. It waits until the briefing shows where overload actually happens.
-   - **ISBN barcode scanning** for book lookup.
    - **Co-op groups:** a co-op shares class schedules that appear in each member family's plan. Wait until a co-op asks; the share link and separate parent logins cover the first needs.
    - Quick capture (photos and voice notes for a portfolio), one-way calendar export (ICS), library due dates, and a curriculum budget with ESA receipts.
    - Curriculum templates (tied to curriculum partnerships), print, and the rest of the hub list in `spec/SPEC.md` ("Hub features").

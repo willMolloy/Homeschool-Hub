@@ -1,5 +1,5 @@
 /**
- * The subject create/edit form: the shared roster fields plus the default bar width (S2b-35).
+ * The subject create/edit form: the shared roster fields plus the usual effort (S2b-35).
  * Kept separate from RosterForm so the kids form never sees subject-only fields.
  */
 import { useState } from "react";

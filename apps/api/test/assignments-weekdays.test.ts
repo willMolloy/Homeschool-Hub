@@ -47,6 +47,17 @@ describe.skipIf(!hasDb)("assignment weekdays (integration)", () => {
     expect(list.find((x: { id: string }) => x.id === res.json().id).weekdays).toEqual([5]);
   });
 
+  it("S7-11: switching between following the school days and the same days spelled out stores no history; a real change does", async () => {
+    const id = (await req("POST", "/api/assignments", valid({ title: "Same days", startDate: "2026-10-12" }))).json().id; // started before this week
+    const days = (await req("GET", "/api/family")).json().schoolDays as number[];
+    expect((await req("PATCH", `/api/assignments/${id}`, { weekdays: days })).statusCode).toBe(200);
+    expect(await history(id)).toEqual(none);
+    expect((await req("PATCH", `/api/assignments/${id}`, { weekdays: null })).statusCode).toBe(200);
+    expect(await history(id)).toEqual(none);
+    expect((await req("PATCH", `/api/assignments/${id}`, { weekdays: [1, 2, 3] })).statusCode).toBe(200);
+    expect(await history(id)).toEqual({ f: "2026-10-26", p: null });
+  });
+
   it("bulk: one item with days, one null", async () => {
     const res = await req("POST", "/api/assignments/bulk", { assignments: [valid({ title: "One", weekdays: [5] }), valid({ title: "Two", weekdays: null })] });
     expect(res.statusCode, res.body).toBe(201);

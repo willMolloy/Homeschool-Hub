@@ -2,16 +2,21 @@
 .timeline-page-header { margin-bottom: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .timeline-page-header h1 { margin: 0; }
 /* T-05: zoom presets. Plain text buttons; the chosen one is bold on a soft fill. No borders. */
-.tl-zoom { display: flex; gap: 4px; }
+.tl-zoom-row { display: flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; }
+.tl-zoom { display: flex; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+/* S7-05: Edit is quiet: muted text, no fill, still a 44 px target. */
+.tl-zoom-edit { flex: none; font: inherit; font-size: 0.9rem; color: var(--muted); background: transparent; border: 0; border-radius: 999px; padding: 0 12px; min-width: 44px; min-height: 44px; cursor: pointer; }
+.tl-zoom-edit:hover { text-decoration: underline; }
 /* T-05c: ‹ month › under the presets, only with This month. */
 .tl-month-nav { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
 .tl-month-nav button { font: inherit; font-size: 20px; color: inherit; background: transparent; border: 0; border-radius: 999px; min-width: 44px; min-height: 44px; cursor: pointer; }
 .tl-month-nav button:disabled { opacity: 0.35; cursor: default; }
-.tl-zoom button { font: inherit; color: inherit; background: transparent; border: 0; border-radius: 999px; padding: 0 14px; min-height: 44px; cursor: pointer; }
+.tl-zoom button { flex: none; white-space: nowrap; font: inherit; color: inherit; background: transparent; border: 0; border-radius: 999px; padding: 0 14px; min-width: 44px; min-height: 44px; cursor: pointer; }
 .tl-zoom button[aria-pressed="true"] { font-weight: 600; background: var(--line); }
 /* T-05c: phones get the presets as one compact row under the title. */
 @media (max-width: 639px) {
-  .timeline-page-header .tl-zoom { flex: 1 0 100%; justify-content: space-between; }
+  .timeline-page-header .tl-zoom-row { flex: 1 0 100%; }
+  .tl-zoom { flex: 1 1 auto; justify-content: space-between; }
   .tl-zoom button { padding: 0 10px; }
 }
 /* T-05: crossfade between zooms (keep in step with FADE_MS in useZoomFade.ts). */
@@ -23,6 +28,8 @@
 @media (prefers-reduced-motion: reduce) { .tl-leaving { display: none; } .tl-entering { animation: none; } }
 /* Full-bleed on phones (the shell pads main by 16 px there). */
 .timeline-bleed { margin-inline: -16px; }
+/* S6b-09: the one quiet line under an empty calendar. */
+.tl-empty { margin: 8px 16px 0; color: var(--muted); }
 @media (min-width: 640px) { .timeline-bleed { margin-inline: 0; } }
 .tl-svg { display: block; touch-action: pan-x pan-y; font-family: inherit; }
 .tl-break-quiet { fill: var(--tl-hatch); fill-opacity: 0.12; }
@@ -30,7 +37,7 @@
 .tl-tick-month { stroke: var(--tl-grid); stroke-width: 1; }
 .tl-tick-week { stroke: var(--tl-grid); stroke-width: 1; stroke-opacity: 0.5; }
 .tl-axis-label { font-size: 11px; fill: var(--tl-muted-foreground); }
-.tl-lane-label { font-size: 12px; fill: var(--tl-foreground); }
+.tl-lane-label { font-size: 12px; fill: var(--tl-foreground); paint-order: stroke; stroke: var(--tl-background); stroke-width: 3px; stroke-linejoin: round; } /* S7-19: halo */
 .tl-band { fill-opacity: var(--tl-bar-opacity); }
 .tl-name { font-size: 11px; font-weight: 500; }
 /* T-11d: a thin piece's name, in the lane above its row: page text, small and calm. */
@@ -63,18 +70,44 @@
 .tl-edit-title { margin: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tl-edit-sub { margin: 0; color: var(--muted); font-size: 0.875rem; }
 .tl-edit-close { flex: 0 0 auto; width: 44px; height: 44px; margin: -8px -12px 0 0; border: 0; background: none; font-size: 1.5rem; line-height: 1; color: var(--muted); cursor: pointer; }
-.tl-edit-body { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-.tl-edit-moves, .tl-edit-ends, .tl-edit-dates { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tl-edit-body { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.tl-edit-ends, .tl-edit-dates { display: flex; gap: 8px; align-items: center; }
 .tl-edit-dates label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.875rem; }
-.tl-edit-dates input { min-height: 40px; font: inherit; color: var(--tl-foreground, inherit); border: 0; border-radius: 8px; background: var(--tl-secondary); padding: 0 8px; }
+.tl-edit-dates input { min-height: 44px; font: inherit; color: var(--tl-foreground, inherit); border: 0; border-radius: 8px; background: var(--tl-secondary); padding: 0 8px; }
 .tl-edit .btn { min-height: 44px; border-color: transparent; background: var(--tl-secondary); color: var(--tl-foreground, inherit); border-radius: 999px; }
 .tl-edit-error { margin: 8px 0 0; color: var(--tl-destructive); }
+/* S6b-05: "More" is quiet (no fill) and opens a small menu upward, since the bar sits at the bottom. */
+.tl-more { position: relative; }
+.tl-edit .btn.tl-more-btn { background: none; color: var(--muted); }
+.tl-more-menu { position: absolute; left: 0; bottom: calc(100% + 4px); z-index: 10; display: flex; flex-direction: column; min-width: 180px; padding: 6px; border-radius: 16px; background: #fff; box-shadow: 0 4px 16px rgb(0 0 0 / 0.16); }
+.tl-more-menu button { min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px; background: none; font: inherit; color: var(--tl-foreground, inherit); text-align: left; cursor: pointer; }
+.tl-more-menu button:hover:not(:disabled) { background: var(--tl-secondary); }
+.tl-more-menu button:disabled { opacity: 0.5; cursor: default; }
 @media (min-width: 640px) {
   .tl-edit { bottom: 0; }
-  /* The end steps fit beside the moves; the dates go under them. */
-  .tl-edit-body { flex-direction: row; flex-wrap: wrap; }
-  .tl-edit-ends { order: 1; }
-  .tl-edit-dates { order: 2; flex-basis: 100%; }
+}
+/* S6b-05: on phones the bar is the name and close on top, then the two dates sharing one row and Copy with More
+   under them. Nothing scrolls sideways (this replaces S5-08's scrolling row). */
+@media (max-width: 480px) {
+  .tl-edit { padding: 4px 16px 8px; }
+  .tl-edit-head { align-items: center; }
+  .tl-edit-name { display: flex; align-items: baseline; gap: 8px; }
+  .tl-edit-title { flex: 0 1 auto; min-width: 0; }
+  .tl-edit-sub { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tl-edit-close { margin: 0 -12px 0 0; }
+  .tl-edit-body { margin-top: 0; }
+  .tl-edit-dates { flex: 1 1 100%; }
+  .tl-edit-dates { gap: 6px; }
+  .tl-edit-dates label { flex: 1 1 0; min-width: 0; gap: 4px; }
+  .tl-edit-dates input { flex: 1 1 0; min-width: 0; width: 100%; font-size: 0.8125rem; padding: 0 2px; }
+}
+
+/* S7-15: under 360 px the two dates don't fit side by side (the End picker ran 11 px past the edge at 320), so they
+   stack, Start over End, each field filling the row; the bar is one 44 px row taller there. */
+@media (max-width: 359px) {
+  .tl-edit-dates { flex-direction: column; align-items: stretch; gap: 4px; }
+  .tl-edit-dates label { display: grid; grid-template-columns: 2.75em minmax(0, 1fr); align-items: center; flex: none; }
+  .tl-edit-dates input { width: 100%; }
 }
 
 /* T-07c: the child filter, one quiet row of chips like the zoom presets. */
@@ -95,3 +128,7 @@
 @media (max-width: 639px) {
   .timeline-page-header h1 + .tl-add-btn { margin-right: 0; margin-left: auto; }
 }
+/* S7-05: the zoom views sheet */
+.zoom-edit-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.zoom-edit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
+.zoom-edit-view { margin: 0 0 14px; padding-top: 12px; border-top: 1px solid var(--line); }

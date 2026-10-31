@@ -74,7 +74,9 @@ function phone(matches: boolean) {
 }
 afterEach(() => vi.unstubAllGlobals());
 
-async function openSheet(name = "Frank", path = "/") {
+// S6-03: on the current or a coming week the button sets that week's amounts (week-adjustment.test.tsx); the check-in
+// sheet is for a finished week, so these tests open it on last week.
+async function openSheet(name = "Frank", path = "/?week=2026-10-19") {
   renderAt(path);
   await userEvent.click(await screen.findByRole("button", { name: `Make an adjustment for ${name}` }));
   return screen.findByRole("dialog");
@@ -84,7 +86,7 @@ describe("This Week header", () => {
   it("has the title and one week switcher; no Prev/Next bar, past-week list, or debug extras", async () => {
     stub();
     renderAt("/");
-    await screen.findByRole("table", { name: "Frank" });
+    await screen.findByRole("button", { name: "Make an adjustment for Frank" });
     expect(screen.getByRole("heading", { level: 1, name: "Plan" })).toBeInTheDocument();
     const switcher = screen.getByRole("group", { name: "Week" });
     expect(within(switcher).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["Previous week", "Next week"]);
@@ -92,6 +94,17 @@ describe("This Week header", () => {
     expect(screen.queryByRole("button", { name: "Review a past week" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Prev week/ })).toBeNull();
     expect(screen.queryByText(/Debug view|Plan as of|Week of/)).toBeNull();
+  });
+
+  it("has no \"Missed a day?\" control: missed work is reported through the weekly check-in (S6-04)", async () => {
+    stub();
+    fakeApi.on("GET /api/check-ins", 200, OCT19);
+    renderAt("/");
+    await screen.findByRole("button", { name: "Make an adjustment for Frank" });
+    expect(screen.queryByRole("button", { name: /Missed a day/ })).toBeNull();
+    expect(screen.queryByText(/Missed a day/)).toBeNull();
+    // The weekly check-in is still there for it.
+    expect(await screen.findByRole("region", { name: /How did last week go\?/ })).toBeInTheDocument();
   });
 
   it("shownWeek: the sheet edits the shown week once it's over, otherwise last week", () => {
@@ -109,10 +122,10 @@ describe("Make an adjustment", () => {
     expect(await screen.findByRole("button", { name: "Make an adjustment for Frank" })).toHaveTextContent("Make an adjustment");
     expect(screen.getByRole("button", { name: "Make an adjustment for Margaret" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Old Kid/ })).toBeNull();
-    // Beside the student's name, above their table (which keeps its caption as its name).
+    // Beside the student's name (S6b-01: no table below it any more).
     const frank = screen.getByRole("button", { name: "Make an adjustment for Frank" });
     expect(frank.closest(".plan-child-head")).toHaveTextContent(/^Frank/);
-    expect(screen.getByRole("table", { name: "Frank" })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(fakeApi.calls.some((c) => c.path.startsWith("/api/check-ins?weekStart="))).toBe(false);
   });
@@ -179,7 +192,7 @@ describe("Make an adjustment", () => {
       home = { ...OCT19, status: "reviewed" };
       return [200, { ...home, planChanged: true }];
     });
-    renderAt("/");
+    renderAt("/?week=2026-10-19");
     expect(await screen.findByRole("region", { name: /How did last week go\?/ })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Make an adjustment for Frank" }));
     const sheet = await screen.findByRole("dialog");

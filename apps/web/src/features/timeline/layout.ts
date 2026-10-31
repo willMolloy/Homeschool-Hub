@@ -12,14 +12,15 @@
  * - Horizontal room: labels sit above their rows, not in a column, so the plot spans the width.
  */
 import { weekdayOf } from "@hh/engine";
-import { PX_PER_THICKNESS } from "../plan/scale";
+import type { CustomZoomView } from "../../api/types";
+import { PX_PER_THICKNESS, softCapPx } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
 import { estimateTextWidth, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows } from "./rows";
 import { sumSeries } from "./grid";
-import { cleanSeries, smoothSeries } from "./smooth";
+import { calmSeries, limitSlope } from "./smooth";
 import { makeXScale, type XScale } from "./xscale";
 import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, type Zoom } from "./zoom";
 
@@ -36,15 +37,22 @@ export const AXIS_HEIGHT_PX = 20;
 /** A month label is shown only when its slot is at least this wide. T-05c: on phones, labels also keep this far apart. */
 export const MIN_TICK_LABEL_PX = 24;
 export const PHONE_MIN_TICK_LABEL_PX = 48;
+/**
+ * S7-19: how far a week's day label must be from a month label, in px of axis. A month label ("Dec", 11 px text) starts
+ * 3 px right of its tick and is about 23 px wide, so a day label just after it needs `MONTH_LABEL_CLEAR_PX`; one just
+ * before it ("30" is about 12 px wide, 3 px right of its tick) needs `DAY_LABEL_CLEAR_PX`.
+ */
+export const MONTH_LABEL_CLEAR_PX = 28;
+export const DAY_LABEL_CLEAR_PX = 16;
 /** Layout widths under this are phones (matches the app's 640 px breakpoint). */
 export const PHONE_WIDTH_PX = 640;
 /** One strip row per recurring event, above the lanes. */
 export const EVENT_ROW_PX = 6;
 export const EVENT_ROW_GAP_PX = 2;
-/** The one uniform gap between rows (agreed: spacing = each row's thickest point + the same small gap). */
-export const LANE_GAP_PX = 4;
-/** The extra gap before each subject. */
-export const SUBJECT_GAP_PX = 8;
+/** The one uniform gap between rows (agreed: spacing = each row's thickest point + the same small gap). S6b-10: 2 px (was 4), so bars sit close but never touch. */
+export const LANE_GAP_PX = 2;
+/** The extra gap before each subject. S6b-10: 4 px (was 8). */
+export const SUBJECT_GAP_PX = 4;
 /** Any band with thickness is drawn at least this thick (agreed 2 px floor); an empty row is this tall too. */
 export const MIN_BAND_PX = 2;
 /** The total-load strip's fixed height; its own scale fits the year's busiest day. */
@@ -53,6 +61,8 @@ export const BOTTOM_PAD_PX = 4;
 
 export interface LayoutOptions {
   zoom: Zoom;
+  /** S7-04: the family's own zoom views, for a custom `zoom`. */
+  customViews?: readonly CustomZoomView[];
   /** Available width in CSS px. */
   width: number;
   detail?: Detail;
@@ -183,6 +193,8 @@ export interface TimelineLayout {
   ticks: Tick[];
   /** Centre of today's column, or its boundary on a day off; null when today isn't shown. */
   todayX: number | null;
+  /** S7-19: where the Today line starts: the top of the first lane's bars (below its name), else just under the axis. */
+  todayTop: number;
   /** The total-load strip, with its "Total" label row above it (labelY). */
   totals: { labelY: number; y: number; height: number; cy: number; d: string };
   /** Top and bottom of the lane area (breaks span it). */
@@ -202,8 +214,11 @@ export function totalsPxPerPoint(totals: { daily: readonly number[]; weekly: rea
   return peak > 0 ? maxPx / peak : 0;
 }
 
-/** Drawn height of one value: nothing at zero, otherwise at least the 2 px floor. */
-export const bandHeight = (value: number, pxPerPoint: number): number => (value > 0 ? Math.max(value * pxPerPoint, MIN_BAND_PX) : 0);
+/**
+ * Drawn height of one value: nothing at zero, otherwise at least the 2 px floor. S6b-06: soft-capped, so no bar
+ * passes `MAX_BAR_PX` and a heavier day still looks heavier (the All subjects strip stays under the knee).
+ */
+export const bandHeight = (value: number, pxPerPoint: number): number => (value > 0 ? Math.max(softCapPx(value * pxPerPoint), MIN_BAND_PX) : 0);
 
 /** A row's height: its thickest drawn point anywhere on the grid, daily or weekly, so it never moves between zooms. */
 function rowHeight(assignments: readonly TimelineAssignment[], pxPerPoint: number): number {
@@ -236,9 +251,12 @@ export const SMOOTH_DEADBAND_PX = 3;
 export function smoothColumns(series: readonly number[], xs: XScale, cy: number, pxPerPoint: number, maxPx: number): (BandColumn | null)[] {
   const out: (BandColumn | null)[] = [];
   let held = 0;
-  for (let i = xs.first; i <= xs.last; i++) {
-    if (!xs.isColumn(i)) continue;
-    const raw = (series[i] ?? 0) * pxPerPoint;
+  // S7-21: the heights first, then their change from column to column is limited (a gentle slope per week).
+  const at: number[] = [];
+  for (let i = xs.first; i <= xs.last; i++) if (xs.isColumn(i)) at.push(i);
+  const heights = limitSlope(at.map((i) => softCapPx((series[i] ?? 0) * pxPerPoint)), at.map((i, k) => (k === 0 ? 1 : i - at[k - 1]!)));
+  for (const [k, i] of at.entries()) {
+    const raw = heights[k]!;
     // Even heights keep both edges on whole pixels; a change under the dead band keeps the height held.
     if (raw <= 0) held = 0;
     else if (held === 0 || Math.abs(raw - held) >= SMOOTH_DEADBAND_PX) held = Math.max(MIN_BAND_PX, 2 * Math.round(raw / 2));
@@ -265,7 +283,7 @@ function runsOf(columns: readonly (BandColumn | null)[]): { x0: number; x1: numb
 
 export function layoutTimeline(model: TimelineModel, options: LayoutOptions): TimelineLayout {
   const pxPerPoint = options.pxPerPoint ?? PX_PER_THICKNESS;
-  const range = zoomRange(model, options.zoom, options.month);
+  const range = zoomRange(model, options.zoom, options.month, options.customViews);
   const weeks = spanWeeks(model, range);
   const detail = resolveDetail(weeks, options.detail, options.previousDetail);
   const width = Math.max(0, options.width);
@@ -304,6 +322,12 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
       ticks.push({ index: i, x: xs.start(i), kind: "week", label });
     }
     ticks.sort((a, b) => a.x - b.x || a.index - b.index);
+    // S7-19: a day label that would touch a month label is dropped (its tick line stays).
+    const labelled = ticks.filter((t) => t.kind === "month" && t.label);
+    for (const t of ticks) {
+      if (t.kind !== "week" || !t.label) continue;
+      if (labelled.some((m) => (t.x >= m.x ? t.x - m.x < MONTH_LABEL_CLEAR_PX : m.x - t.x < DAY_LABEL_CLEAR_PX))) t.label = null;
+    }
   }
 
   // Event strips, one row each, under the axis. T-05c: only with daily detail; zoomed out they are noise.
@@ -318,16 +342,17 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   // T-05c: which series and outline a band uses at this detail.
   const schoolColumns = model.dates.map((_, i) => i).filter((i) => model.schoolDay[i]);
   // T-08b: zoomed out, an assignment is its clean shape (no lumps); All subjects smooths the sum of those shapes.
+  // S7-21: that shape is now a four-week moving average (`calmSeries`) with the slope limited in `smoothColumns`.
   const clean = new Map<TimelineAssignment, number[]>();
   const cleanOf = (a: TimelineAssignment) => {
     let c = clean.get(a);
-    if (!c) clean.set(a, (c = cleanSeries(a.daily, schoolColumns)));
+    if (!c) clean.set(a, (c = calmSeries(a.daily, schoolColumns)));
     return c;
   };
   const seriesFor = (a: TimelineAssignment) => (detail === "smooth" ? cleanOf(a) : detail === "weekly" ? a.weekly : a.daily);
   const totalsSeries = () =>
     detail === "smooth"
-      ? smoothSeries(sumSeries(model.lanes.flatMap((l) => l.children.flatMap((c) => c.assignments.map(cleanOf))), model.dates.length), schoolColumns)
+      ? calmSeries(sumSeries(model.lanes.flatMap((l) => l.children.flatMap((c) => c.assignments.map(cleanOf))), model.dates.length), schoolColumns)
       : detail === "weekly" ? model.totals.weekly : model.totals.daily;
   const columnsFor = (series: readonly number[], cy: number, scale: number, maxPx: number) =>
     detail === "smooth" ? smoothColumns(series, xs, cy, scale, maxPx) : bandColumns(series, xs, cy, scale);
@@ -449,6 +474,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     events,
     ticks,
     todayX,
+    todayTop: labels[0] ? labels[0].y + LABEL_ROW_PX : AXIS_HEIGHT_PX - 4,
     totals,
     lanesTop,
     lanesBottom,

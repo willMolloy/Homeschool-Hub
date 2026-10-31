@@ -1,6 +1,6 @@
 /** S4-08: forecastFinish and heavyWeek. */
 import { describe, expect, it } from "vitest";
-import { addDays, forecastFinish, heavyWeek, HEAVY_WEEK_RATIO, planChild, type ChildPlan, type PlanContext, type ProgressCheckIn } from "../src";
+import { addDays, forecastFinish, forecastOutcome, heavyWeek, HEAVY_WEEK_RATIO, planChild, type ChildPlan, type PlanContext, type ProgressCheckIn } from "../src";
 import { book, MON_FRI } from "./helpers";
 
 // 200 pages, Mon 7 Sep to Fri 30 Oct: 40 school days, 5 a day, 25 a week.
@@ -40,6 +40,17 @@ describe("forecastFinish (S4-08)", () => {
   it("zero progress over 2 weeks gives null and does not crash", () => {
     const r = run([ci("2026-09-07", 0), ci("2026-09-14", 0)]);
     expect(forecast(r)).toBeNull();
+  });
+
+  it("S7-10: forecastOutcome tells a pace too slow to finish (beyondLimit) from nothing to forecast (null)", () => {
+    const slow = run([ci("2026-09-07", 0.1), ci("2026-09-14", 0.2)]);
+    expect(forecastFinish(slow.plan, slow.checkIns, MON_FRI)).toBeNull();
+    expect(forecastOutcome(slow.plan, slow.checkIns, MON_FRI)).toEqual({ beyondLimit: true });
+    const late = run([ci("2026-09-07", 15), ci("2026-09-14", 30)]);
+    expect(forecastOutcome(late.plan, late.checkIns, MON_FRI)).toEqual({ finish: "2026-12-08" });
+    for (const none of [run([]), run([ci("2026-09-07", 25), ci("2026-09-14", 50)]), run([ci("2026-09-07", 0), ci("2026-09-14", 0)])]) {
+      expect(forecastOutcome(none.plan, none.checkIns, MON_FRI)).toBeNull();
+    }
   });
 
   it("a finished assignment gives null", () => {

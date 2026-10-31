@@ -44,7 +44,10 @@ const BLOCKED = ["label", "kind", "startDate", "endDate", "childIds"];
 /** The keys each API body schema accepts (apps/api/src/routes/*, all z.strictObject). `:id` = one path segment. */
 export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/auth/login": ["email", "password"],
-  "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone"],
+  "POST /api/plan/preview-event": ["event", "eventId"],
+  "POST /api/blocked-ranges/bulk": ["blockedRanges"],
+  "POST /api/calendar-templates": ["name", "breaks"],
+  "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone", "zoomViews"],
   "POST /api/children": ["name", "color"],
   "PATCH /api/children/:id": ROSTER_PATCH,
   "POST /api/subjects": ["name", "color", "defaultWeight", "defaultWeekdays"],
@@ -56,6 +59,7 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/blocked-ranges": BLOCKED,
   "PATCH /api/blocked-ranges/:id": BLOCKED,
   "PUT /api/check-ins/:id": ["status", "items"],
+  "PUT /api/week-overrides": ["assignmentId", "childId", "weekStart", "plannedUnits", "mode"],
 };
 
 /** S2b-25: last week as GET /api/check-ins returns it with nothing planned, so the card stays hidden by default. */
@@ -90,6 +94,8 @@ class FakeApi {
     // S2b-25: no work last week (card hidden); a save echoes the week back as reviewed or skipped.
     this.on("GET /api/check-ins", 200, EMPTY_WEEK);
     this.on("GET /api/check-ins/weeks", 200, { weeks: [] });
+    // S6-08: nothing to undo unless a test says so.
+    this.on("GET /api/undo", 200, null);
     this.on(`PUT /api/check-ins/${EMPTY_WEEK.weekStart}`, (body) =>
       [200, { ...EMPTY_WEEK, status: (body as { status: string }).status, planChanged: false }]);
   }

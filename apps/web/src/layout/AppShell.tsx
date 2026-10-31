@@ -11,6 +11,8 @@ export interface AppShellProps {
   footer?: ReactNode;
   /** Above the main content (e.g. a warning banner). */
   banner?: ReactNode;
+  /** S6-08: changing it remounts the page (after an undo, so every list reloads). */
+  contentKey?: number;
 }
 
 const NAV = [
@@ -21,7 +23,7 @@ const NAV = [
   { to: "/schedule", label: "Schedule", end: false },
 ];
 
-export function AppShell({ familyName, headerActions, footer, banner }: AppShellProps) {
+export function AppShell({ familyName, headerActions, footer, banner, contentKey }: AppShellProps) {
   return (
     <div className="shell">
       <a className="skip-link" href="#main">Skip to content</a>
@@ -43,7 +45,7 @@ export function AppShell({ familyName, headerActions, footer, banner }: AppShell
       </header>
       {banner}
       <main id="main" className="shell-main" tabIndex={-1}>
-        <Outlet />
+        <Outlet key={contentKey} />
       </main>
       <footer className="shell-footer">{footer}</footer>
     </div>

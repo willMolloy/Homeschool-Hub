@@ -56,3 +56,11 @@
 /* The adjustment sheet (T-03b): the same rows; the note only when later weeks have check-ins. */
 .checkin-note { color: var(--muted); margin: 0 0 8px; }
 .checkin-sheet .checkin-footer { margin: 16px 0 0; }
+
+/* A current or coming week's adjustment sheet (S6-03): a title and its plan, then the stepper (and Back to plan). */
+.week-adjust-row { padding: 8px 12px; }
+.week-adjust-head { display: flex; align-items: baseline; gap: 10px; }
+.week-adjust-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
+.week-adjust-controls .checkin-stepper { flex: 1; }
+.week-adjust-end { margin-top: 12px; }
+.week-adjust-choice { grid-template-columns: repeat(2, 1fr); }
