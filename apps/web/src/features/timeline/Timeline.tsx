@@ -90,7 +90,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
       </g>
 
       <g className="tl-labels">
-        <text className="tl-lane-label" x={layout.plot.x} y={layout.totals.labelY + LABEL_BASELINE}>{TOTALS_LABEL}</text>
+        {layout.rows.length > 0 && <text className="tl-lane-label" x={layout.plot.x} y={layout.totals.labelY + LABEL_BASELINE}>{TOTALS_LABEL}</text>}
         {layout.labels.map((l) => (
           <text key={l.laneKey} className="tl-lane-label" x={l.x} y={l.y + LABEL_BASELINE}>{l.text}</text>
         ))}

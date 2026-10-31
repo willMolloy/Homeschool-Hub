@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
-import { fetchRange, schoolYearOf, shownRange } from "../src/features/timeline/range";
+import { emptyCalendarRange, fetchRange, schoolYearOf, shownRange } from "../src/features/timeline/range";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import {
   SAMPLE_ASSIGNMENTS, SAMPLE_BLOCKED, SAMPLE_CHILDREN, SAMPLE_EVENTS, SAMPLE_SUBJECTS, sampleInput, samplePlans,
@@ -47,8 +47,18 @@ describe("which days the Year view covers", () => {
     expect(shownRange(fetched, samplePlans(), "2026-10-28", "mon")).toEqual({ from: "2026-08-31", to: "2027-05-23" });
     // Today before anything starts still shows.
     expect(shownRange(fetched, samplePlans(), "2026-08-05", "mon").from).toBe("2026-08-03");
-    // Nothing planned: the whole fetched year.
-    expect(shownRange(fetched, [], "2026-10-28", "mon")).toEqual(fetched);
+    // Planned days nowhere in range (plans exist, all empty): the whole fetched year, as before.
+    const blank = samplePlans().map((p) => ({ ...p, days: p.days.map((d) => ({ ...d, thickness: 0 })) }));
+    expect(shownRange(fetched, blank, "2026-10-28", "mon")).toEqual(fetched);
+  });
+
+  it("S6b-09: with no plans at all it is today's month through ten months on, week-aligned (not the school year)", () => {
+    const fetched = fetchRange("2026-10-28", "mon");
+    expect(emptyCalendarRange("2026-10-28", "mon")).toEqual({ from: "2026-09-28", to: "2027-09-05" });
+    expect(shownRange(fetched, [], "2026-10-28", "mon")).toEqual({ from: "2026-09-28", to: "2027-09-05" });
+    expect(emptyCalendarRange("2026-10-28", "sun")).toEqual({ from: "2026-09-27", to: "2027-09-04" });
+    // Across the year end: December through the October after (ten months on), whose last day is a Sunday.
+    expect(emptyCalendarRange("2026-12-31", "mon")).toEqual({ from: "2026-11-30", to: "2027-10-31" });
   });
 });
 
@@ -119,11 +129,31 @@ describe("the Year timeline page", () => {
     expect(bleed.querySelectorAll("svg")).toHaveLength(1);
   });
 
-  it("says so when nothing is planned", async () => {
+  it("S6b-09: with nothing planned it still draws the calendar (months, today) with one quiet line and Add assignment", async () => {
     stubSample({ plans: [], assignments: [] });
     renderAt("/timeline");
-    expect(await screen.findByText("Nothing planned yet.")).toBeInTheDocument();
-    expect(screen.queryByRole("img", { name: "Year timeline" })).toBeNull();
+    const svg = await screen.findByRole("img", { name: "Year timeline" });
+    expect(svg.querySelectorAll("path.tl-band")).toHaveLength(0);
+    expect(svg.querySelector("[data-today]")).not.toBeNull();
+    const months = [...svg.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
+    expect(months.length).toBeGreaterThan(2);
+    expect(svg.querySelectorAll("text.tl-lane-label")).toHaveLength(0);
+    expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ Add assignment" })).toBeInTheDocument();
+    // The plan is still fetched for the school year (nothing to fetch for, but the range is one rule).
+    expect(plansPath()).toEqual(["/api/plan?from=2026-07-27&to=2027-07-04"]);
+  });
+
+  it("S6b-09: the zoom presets work on the empty calendar", async () => {
+    stubSample({ plans: [], assignments: [] });
+    renderAt("/timeline");
+    await screen.findByRole("img", { name: "Year timeline" });
+    const user = userEvent.setup();
+    expect(screen.getByRole("button", { name: "This month" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "This month" }));
+    expect(await screen.findByRole("img", { name: /timeline$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next month" })).toBeInTheDocument();
+    expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
   });
 
   it("offers Retry when a fetch fails, and refetches only what failed", async () => {

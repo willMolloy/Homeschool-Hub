@@ -9,6 +9,7 @@
  * S3a-02: the edit bar's Copy opens that form prefilled from the selected assignment.
  * S6-08: its "Reset to original" asks first, then puts the assignment back to how it was created.
  * S6-10: its Heavier and Lighter nudge the weight about 25% (which also teaches the next suggestion, S2b-07).
+ * S6b-09: with nothing planned the calendar (months, today, days off, events) still draws, with one quiet line under it.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { weightPerUnitOf, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT } from "@hh/engine";
@@ -155,16 +156,17 @@ export function TimelinePage() {
   };
   const empty = model !== undefined && model.lanes.length === 0;
   const ready = !failed && !loading && model && layout && !empty;
+  const calendar = !failed && !loading && model && layout && empty;
 
   return (
     <>
       <header className="timeline-page-header">
         <h1>Timeline</h1>
         {!failed && !loading && model && <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />}
-        {ready && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} />}
+        {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} />}
       </header>
       {ready && <ChildFilter childList={childList} value={childId} onChange={setChild} />}
-      {ready && shownZoom === "month" && month && <MonthNav months={months} value={month} onChange={setMonth} />}
+      {(ready || calendar) && shownZoom === "month" && month && <MonthNav months={months} value={month} onChange={setMonth} />}
       <div ref={ref} className="timeline-bleed">
         {failed ? (
           <p role="alert">
@@ -173,7 +175,10 @@ export function TimelinePage() {
         ) : loading || !model || !layout ? (
           <p aria-busy="true">Loading…</p>
         ) : empty ? (
-          <p>Nothing planned yet.</p>
+          <>
+            <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : ZOOM_LABEL[shownZoom]} timeline`} />
+            <p className="tl-empty">Nothing planned yet.</p>
+          </>
         ) : (
           <>
             <div ref={stage} className="tl-stage" data-drag-ready={selection ? "" : undefined} {...drag}>

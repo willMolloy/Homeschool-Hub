@@ -290,3 +290,19 @@ describe("spacing between bars (S6b-10)", () => {
     for (let i = 1; i < rows.length; i++) expect(rows[i]!.y - rows[i]!.labelLane).toBeGreaterThanOrEqual(rows[i - 1]!.y + rows[i - 1]!.height + LANE_GAP_PX);
   });
 });
+
+describe("an empty calendar (S6b-09)", () => {
+  it.each(WIDTHS)("zero lanes still give month ticks, today, days off and events, at %i px, at every zoom", (width) => {
+    const empty: TimelineModel = { ...sample, lanes: [], totals: { daily: sample.totals.daily.map(() => 0), weekly: sample.totals.weekly.map(() => 0) } };
+    for (const zoom of ZOOMS) {
+      const l = layoutTimeline(empty, { zoom, width });
+      expect(l.rows).toEqual([]);
+      expect(l.bands).toEqual([]);
+      expect(l.ticks.filter((t) => t.kind === "month").length).toBeGreaterThan(0);
+      expect(l.height).toBeGreaterThan(0);
+    }
+    expect(layoutTimeline(empty, { zoom: "year", width }).breaks.length).toBeGreaterThan(0);
+    expect(layoutTimeline(empty, { zoom: "year", width: 1280 }).todayX).not.toBeNull();
+    expect(layoutTimeline(empty, { zoom: "year", width: 1280, detail: "daily" }).events.length).toBe(empty.events.length);
+  });
+});

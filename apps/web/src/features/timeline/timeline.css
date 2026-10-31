@@ -23,6 +23,8 @@
 @media (prefers-reduced-motion: reduce) { .tl-leaving { display: none; } .tl-entering { animation: none; } }
 /* Full-bleed on phones (the shell pads main by 16 px there). */
 .timeline-bleed { margin-inline: -16px; }
+/* S6b-09: the one quiet line under an empty calendar. */
+.tl-empty { margin: 8px 16px 0; color: var(--muted); }
 @media (min-width: 640px) { .timeline-bleed { margin-inline: 0; } }
 .tl-svg { display: block; touch-action: pan-x pan-y; font-family: inherit; }
 .tl-break-quiet { fill: var(--tl-hatch); fill-opacity: 0.12; }
