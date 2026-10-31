@@ -245,8 +245,8 @@ describe("saved templates keep holidays on their real dates (S7b-13)", () => {
     expect(sun.find((x) => x.label === "m")!.start).toBe("2027-09-01");
   });
 
-  it("a holiday that isn't in the saved year's dates exactly is kept as a plain break; one in a new year picks the nearest to where it was", () => {
-    const own = [day(1, "Labor weekend", "vacation", "2026-09-05", "2026-09-07")]; // not exactly Labor Day
+  it("a break with no holiday inside it is kept as a plain break; one in a new year picks the nearest to where it was", () => {
+    const own = [day(1, "Weekend", "vacation", "2026-09-05", "2026-09-06")]; // next to Labor Day, but not containing it
     expect(templateBreaksFrom(own, "2026-08-31").breaks[0]).not.toHaveProperty("holiday");
     const [h] = shiftedBreaks([brk({ offsetDays: 7, label: "Labor Day", kind: "holiday", holiday: "labor-day", weekday: 1 })], "2026-08-31");
     expect(h!.start).toBe("2026-09-07"); // not Sep 6 2027, which is also within a year of the first day's margin
@@ -259,5 +259,49 @@ describe("saved templates keep holidays on their real dates (S7b-13)", () => {
     expect(labor!.start).toBe("2027-09-06");
     const existing = [day(9, "Labor Day", "holiday", "2027-09-06", "2027-09-06")];
     expect(leaveOutExisting([labor!], existing)).toEqual({ add: [], skipped: 1 });
+  });
+});
+
+describe("week-long breaks stay around their holiday (S7b-17)", () => {
+  const FIRST = "2026-08-31";
+  it("the tester's two cases: Thanksgiving week (Nov 23-27) and Christmas break (Dec 21 - Jan 1) land around the holidays in 2027", () => {
+    const year = [
+      day(1, "Thanksgiving break", "holiday", "2026-11-23", "2026-11-27"),
+      day(2, "Christmas break", "vacation", "2026-12-21", "2027-01-01"),
+      day(3, "Spring break", "vacation", "2027-03-01", "2027-03-05"), // no holiday inside
+    ];
+    const { breaks } = templateBreaksFrom(year, FIRST);
+    expect(breaks.map((b) => [b.holiday, b.holidayBefore, b.holidayAfter])).toEqual([
+      ["thanksgiving", 3, 0], ["winter-break", 3, 0], [undefined, undefined, undefined],
+    ]);
+    const shifted = shiftedBreaks(breaks, "2027-08-16");
+    expect(shifted.map((b) => [b.label, b.start, b.end])).toEqual([
+      ["Thanksgiving break", "2027-11-22", "2027-11-26"], // the Monday of Thanksgiving week to the Friday
+      ["Christmas break", "2027-12-20", "2028-01-01"],   // still starts on a Monday, and ends with the winter break
+      ["Spring break", "2028-02-14", "2028-02-18"], // 182 days after the first day, Monday to Friday
+    ]);
+  });
+
+  it("a break that was exactly the holiday keeps no offsets; one that runs after it keeps them", () => {
+    const year = [day(1, "Thanksgiving", "holiday", "2026-11-26", "2026-11-27"), day(2, "Long weekend", "holiday", "2026-11-26", "2026-11-30")];
+    const [exact, longer] = templateBreaksFrom(year, FIRST).breaks;
+    expect(exact).not.toHaveProperty("holidayBefore");
+    expect([longer!.holiday, longer!.holidayBefore, longer!.holidayAfter]).toEqual(["thanksgiving", 0, 3]);
+    const out = shiftedBreaks([exact!, longer!], "2027-08-16");
+    expect(out.map((b) => [b.start, b.end])).toEqual([["2027-11-25", "2027-11-26"], ["2027-11-25", "2027-11-29"]]);
+  });
+
+  it("an older template (a holiday with no offsets) behaves as in S7b-13, and the start never goes past the holiday", () => {
+    const [old] = shiftedBreaks([{ offsetDays: 85, lengthDays: 5, label: "Thanksgiving", kind: "holiday", holiday: "thanksgiving" }], "2027-08-16");
+    expect([old!.start, old!.end]).toEqual(["2027-11-25", "2027-11-26"]);
+    // Aligning the start to a weekday never moves it after the holiday's first day.
+    const [b] = shiftedBreaks([{ offsetDays: 90, lengthDays: 3, label: null, kind: "vacation", holiday: "thanksgiving", holidayBefore: 1, holidayAfter: 0, weekday: 5 }], "2027-08-16");
+    expect(b!.start <= "2027-11-25").toBe(true);
+  });
+
+  it("the whole save-then-apply flow around Thanksgiving week: the preview shows Nov 22-26", async () => {
+    // (the panel uses the same functions; the full screens are covered above)
+    const t: CalendarTemplate = { id: rowId(90), name: "Year", breaks: templateBreaksFrom([day(1, "Thanksgiving break", "holiday", "2026-11-23", "2026-11-27")], FIRST).breaks };
+    expect(t.breaks[0]).toMatchObject({ holiday: "thanksgiving", holidayBefore: 3, holidayAfter: 0, weekday: 1 });
   });
 });

@@ -141,6 +141,9 @@ export interface TemplateBreak {
   weekday?: number;
   /** S7b-13: set when the break is exactly a US holiday's dates, so it follows that holiday in a new year. */
   holiday?: HolidayKey;
+  /** S7b-17: with `holiday`, how many days the break runs before the holiday's first day and after its last (0 or absent: exactly the holiday). */
+  holidayBefore?: number;
+  holidayAfter?: number;
 }
 export interface CalendarTemplate {
   id: string;

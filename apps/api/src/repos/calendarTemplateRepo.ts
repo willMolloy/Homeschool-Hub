@@ -11,6 +11,9 @@ export interface TemplateBreak {
   /** S7b-13: the weekday the break started on (0 = Sunday), and the holiday it is when it is exactly one. Older templates have neither. */
   weekday?: number;
   holiday?: HolidayKey;
+  /** S7b-17: days the break runs before the holiday's first day and after its last (a whole week around Thanksgiving); absent = exactly the holiday. */
+  holidayBefore?: number;
+  holidayAfter?: number;
 }
 
 export interface CalendarTemplateJson {

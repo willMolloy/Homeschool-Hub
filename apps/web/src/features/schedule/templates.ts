@@ -59,27 +59,41 @@ export function breakDates(start: string, end: string): string {
 export const breakText = (b: PlannedBreak, kindLabels: Record<BlockedKind, string>) => `${b.label ?? kindLabels[b.kind]}: ${breakDates(b.start, b.end)}`;
 
 /**
- * S5-07, S7b-13: a saved template's breaks moved to a year that starts on `first`.
- * - A break saved by its holiday key (it was exactly Labor Day, Thanksgiving, winter break, ... that year) lands on that
- *   holiday's real dates in the new year (the one nearest where it was in the saved year), not shifted by days.
+ * S5-07, S7b-13, S7b-17: a saved template's breaks moved to a year that starts on `first`.
+ * - A break saved with a `holiday` is placed around that holiday's real dates in the new year (the one nearest where the
+ *   break was): from `holidayBefore` days before it to `holidayAfter` days after it. A break that was exactly the holiday
+ *   has neither (0 and 0) and lands on its dates. When it has days before, it starts on the weekday it started on (the
+ *   Monday of Thanksgiving week) if that weekday was saved, never later than the holiday itself.
  * - Any other break is shifted by days. When it started on the family's week start (a Monday, say), it is moved to the
  *   nearest such day, so a week-long break stays Monday to Friday whatever the two years' first days are.
- * Templates saved before S7b-13 carry no key or weekday and are just shifted.
+ * Templates saved before S7b-13 carry no key or weekday and are just shifted; before S7b-17, a holiday has no offsets.
  */
 export function shiftedBreaks(breaks: TemplateBreak[], first: string, weekStart: WeekStart = "mon"): PlannedBreak[] {
   const startDay = weekStart === "sun" ? 0 : 1;
   const holidays = usHolidays(addDays(first, -14) as LocalDate, addDays(first, TEMPLATE_YEAR_DAYS + 14) as LocalDate);
+  const onWeekday = (date: string, weekday: number) => {
+    let d = (weekday - weekdayOfDayNumber(toDayNumber(date as LocalDate)) + 7) % 7;
+    if (d > 3) d -= 7;
+    return addDays(date, d);
+  };
   return breaks
     .map((b): PlannedBreak => {
       const nominal = addDays(first, b.offsetDays);
-      const h = b.holiday ? holidays.filter((x) => x.key === b.holiday).sort((x, y) => Math.abs(diffDays(nominal, x.start)) - Math.abs(diffDays(nominal, y.start)))[0] : undefined;
-      if (h) return { label: b.label ?? h.label, kind: b.kind, start: h.start, end: h.end };
-      let start = nominal;
-      if (b.weekday === startDay) {
-        let d = (startDay - weekdayOfDayNumber(toDayNumber(nominal as LocalDate)) + 7) % 7;
-        if (d > 3) d -= 7;
-        start = addDays(nominal, d);
+      const before = b.holidayBefore ?? 0;
+      const after = b.holidayAfter ?? 0;
+      const h = b.holiday
+        ? holidays.filter((x) => x.key === b.holiday).sort((x, y) => Math.abs(diffDays(nominal, addDays(x.start, -before))) - Math.abs(diffDays(nominal, addDays(y.start, -before))))[0]
+        : undefined;
+      if (h) {
+        let start = addDays(h.start, -before);
+        if (before > 0 && b.weekday !== undefined) {
+          const aligned = onWeekday(start, b.weekday);
+          start = aligned <= h.start ? aligned : start;
+        }
+        return { label: b.label ?? h.label, kind: b.kind, start, end: addDays(h.end, after) };
       }
+      let start = nominal;
+      if (b.weekday === startDay) start = onWeekday(nominal, startDay);
       return { label: b.label, kind: b.kind, start, end: addDays(start, b.lengthDays - 1) };
     })
     .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
@@ -106,15 +120,20 @@ export function templateBreaksFrom(existing: BlockedRange[], first: string): { b
   const breaks = inYear
     .filter((r) => r.childIds.length === 0)
     .map((r): TemplateBreak => {
-      // S7b-13: a day off that is exactly a US holiday's dates that year is kept by its holiday, so it follows the holiday next year.
-      const holiday = usHolidays(addDays(r.startDate, -14) as LocalDate, addDays(r.endDate, 14) as LocalDate).find((h) => h.start === r.startDate && h.end === r.endDate);
+      // S7b-13, S7b-17: a day off that is a US holiday, or a break with a whole holiday inside it (a Thanksgiving week), is kept by
+      // that holiday and the days before and after it, so it follows the holiday next year. Exactly the holiday: no offsets.
+      const near = usHolidays(addDays(r.startDate, -14) as LocalDate, addDays(r.endDate, 14) as LocalDate);
+      const holiday = near.find((h) => h.start === r.startDate && h.end === r.endDate)
+        ?? near.filter((h) => h.start >= r.startDate && h.end <= r.endDate).sort((x, y) => diffDays(y.start, y.end) - diffDays(x.start, x.end))[0];
+      const around = holiday && !(holiday.start === r.startDate && holiday.end === r.endDate)
+        ? { holidayBefore: diffDays(r.startDate, holiday.start), holidayAfter: diffDays(holiday.end, r.endDate) } : {};
       return {
         offsetDays: diffDays(first, r.startDate),
         lengthDays: Math.min(diffDays(r.startDate, r.endDate) + 1, MAX_TEMPLATE_LENGTH),
         label: r.label,
         kind: r.kind,
         weekday: weekdayOfDayNumber(toDayNumber(r.startDate as LocalDate)),
-        ...(holiday ? { holiday: holiday.key } : {}),
+        ...(holiday ? { holiday: holiday.key, ...around } : {}),
       };
     })
     .sort((a, b) => a.offsetDays - b.offsetDays || a.lengthDays - b.lengthDays);

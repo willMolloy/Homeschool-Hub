@@ -29,7 +29,10 @@ const Break = z.strictObject({
   // S7b-13: the weekday the break started on, and the US holiday it is exactly (so a new year recomputes its dates).
   weekday: whole("weekday", 0, 6).optional(),
   holiday: z.enum(HOLIDAY_KEYS, `holiday must be ${humanList(HOLIDAY_KEYS)}.`).optional(),
-});
+  // S7b-17: with a holiday, the days the break runs before and after it.
+  holidayBefore: whole("holidayBefore", 0, MAX_TEMPLATE_LENGTH).optional(),
+  holidayAfter: whole("holidayAfter", 0, MAX_TEMPLATE_LENGTH).optional(),
+}).refine((b) => b.holiday !== undefined || (b.holidayBefore === undefined && b.holidayAfter === undefined), "holidayBefore and holidayAfter need a holiday.");
 const CreateBody = z.strictObject({
   name: Name,
   breaks: z.array(Break, "breaks must be a list.").min(1, "Send at least one break.").max(MAX_TEMPLATE_BREAKS, `Send at most ${MAX_TEMPLATE_BREAKS} breaks.`),

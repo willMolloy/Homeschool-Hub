@@ -84,6 +84,9 @@ describe.skipIf(!hasDb)("/api/calendar-templates (S5-06, integration)", () => {
     ["an unknown holiday (S7b-13)", { breaks: [brk({ holiday: "arbor-day" })] }],
     ["weekday 7 (S7b-13)", { breaks: [brk({ weekday: 7 })] }],
     ["weekday as text (S7b-13)", { breaks: [brk({ weekday: "1" })] }],
+    ["offsets without a holiday (S7b-17)", { breaks: [brk({ holidayBefore: 3 })] }],
+    ["a negative offset (S7b-17)", { breaks: [brk({ holiday: "thanksgiving", holidayBefore: -1 })] }],
+    ["an offset over 60 (S7b-17)", { breaks: [brk({ holiday: "thanksgiving", holidayAfter: 61 })] }],
     ["an unknown key on the body", { familyId: "x" }],
   ];
   it.each(bad)("invalid: %s → 400, nothing stored", async (_label, over) => {
@@ -114,5 +117,11 @@ describe.skipIf(!hasDb)("/api/calendar-templates (S5-06, integration)", () => {
     const stored = (await req("GET", "/api/calendar-templates")).json().find((x: { id: string }) => x.id === t.id);
     expect(stored.breaks).toEqual(breaks);
     expect(stored.breaks[2]).not.toHaveProperty("holiday");
+  });
+
+  it("S7b-17: a break may carry the days before and after its holiday; they round-trip", async () => {
+    const breaks = [brk({ offsetDays: 84, lengthDays: 5, label: "Thanksgiving break", kind: "holiday", weekday: 1, holiday: "thanksgiving", holidayBefore: 3, holidayAfter: 0 })];
+    const t = (await req("POST", "/api/calendar-templates", { name: "Week around", breaks })).json();
+    expect(t.breaks).toEqual(breaks);
   });
 });
