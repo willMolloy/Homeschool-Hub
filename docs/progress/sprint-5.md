@@ -5,7 +5,8 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 | Ticket | Commit | Notes |
 |--------|--------|-------|
 | S5-01 Add the event preview endpoint | 297ffcb | `POST /api/plan/preview-event` in `routes/eventPreview.ts`; the event create schema is exported from `events.ts` and reused |
-| S5-02 Show the plan change before saving an event | (this commit) | `EventPreview.tsx` (`useEventPreview`, `EventPreviewList`); the form's checks are one `check()` shared by the preview and Save |
+| S5-02 Show the plan change before saving an event | d7855ed | `EventPreview.tsx` (`useEventPreview`, `EventPreviewList`); the form's checks are one `check()` shared by the preview and Save |
+| S5-03 Add year-shape helpers | (this commit) | `yearShape.ts`: `usHolidays`, `onOffBreaks`, `CALENDAR_SHAPES`; exported from `@hh/engine` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -18,3 +19,8 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 - **S5-02 the list.** Under the capacity field, after all the rules: a "What changes" title and plain list, no box or icon. The unit is singular only when the new amount is exactly 1 ("1 lesson a day"). "and N more" counts the rows hidden past 5 plus the server's own `more`. While a new answer loads the old list stays; an error (or a 401/404) clears it and Save is unaffected, as it never waits for the preview.
 - **S5-02 changed test helper.** `writes()` in `schedule-fixtures.ts` now leaves out the preview POST, since it only reads; otherwise every existing event-form test would count it as a write. The fake API's allowed body keys gained the preview's (`event`, `eventId`).
 - **S5-02 not checked.** 360 px layout is a plain list with wrapping text (jsdom has no layout, so it was not measured).
+- **S5-03 holiday shape.** Each holiday is `{ key, start, end, label }` (the ticket asks for `{ start, end, label }` plus a stable key). Keys: `labor-day`, `thanksgiving`, `winter-break`, `mlk-day`, `presidents-day`, `good-friday`, `memorial-day` (`HOLIDAY_KEYS`). Thanksgiving is one entry, Thursday to Friday. Results are in date order.
+- **S5-03 "in range".** A holiday is returned when any of its days falls in `[start, end]`, and it is cut to the range, so a template never adds days outside the school year (a winter break running past the last day ends on that day; a range starting on Jan 1 still gets that day of last year's break). Good Friday comes from the Gregorian Easter algorithm in integer arithmetic.
+- **S5-03 break runs.** `onOffBreaks` returns one range per run of break weeks (2 weeks off is one 14-day range, first day of the first week to last day of the last), not one per week, because a parent sees it as one break. The range is whole weeks, so it includes the weekend; the last is cut at `end`. A break that would start after `end` is dropped. `weeksOn` below 1 or `weeksOff` below 0 (or not whole) throws `EngineInputError`; `weeksOff` 0 gives none.
+- **S5-03 shapes as data.** `CALENDAR_SHAPES`: `36-weeks` (pattern null, holidays only), `sabbath` (6 on, 1 off), `three-terms` (12 on, 2 off), each with a label for the screen.
+- **S5-03 no version bump.** Only new exports and no plan number changes, as in S4-08, so `ENGINE_VERSION` stays 0.9.0.
