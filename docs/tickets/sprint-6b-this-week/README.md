@@ -27,7 +27,10 @@ Each ticket uses the usual format. Build in order, one commit per ticket, each w
 | 5 | [S6b-08 — Add a subject from the assignment form, with common presets](S6b-08-add-a-subject-from-the-assignment-form.md) | none | S |
 | 6 | [S6b-09 — Show an empty calendar when nothing is planned](S6b-09-show-an-empty-calendar.md) | none | S |
 | 7 | [S6b-10 — Tighter spacing between bars](S6b-10-tighter-spacing-between-bars.md) | S6b-06 | XS |
-| 8 | [S6b-04 — Tester pass](S6b-04-tester-pass.md) (covers the "now" tickets; the held ones get their own pass) | the above | S |
+| 8 | [S6b-12 — The week adjustment sheet in plain words](S6b-12-adjustment-sheet-in-plain-words.md) (Sprint 6 L1, L2) | none | XS |
+| 9 | [S6b-13 — Effort in the parent's words everywhere](S6b-13-effort-in-the-parents-words.md) (Sprint 6 L4) | none | S |
+| 10 | [S6b-14 — Clearer undo labels and no engine warnings on screen](S6b-14-clearer-undo-labels-and-plan-warnings.md) (Sprint 6 L3, L5) | none | XS |
+| 11 | [S6b-04 — Tester pass](S6b-04-tester-pass.md) (covers the "now" tickets; the held ones get their own pass) | the above | S |
 
 ### Held for the UX direction
 

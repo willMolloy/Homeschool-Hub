@@ -13,7 +13,7 @@ Tickets: `docs/tickets/sprint-6-steering/`. Pass 1 covers S6-01 to S6-04; pass 2
 | S6-07 Reset an assignment to how it was created | b6691ff | `POST /api/assignments/:id/reset` (`services/assignmentReset.ts`): restores `original`, removes the assignment's week adjustments, records an undo entry |
 | S6-08 Undo after a change, and reset from the edit bar | f7da9a4 | `features/undo/` (`UndoProvider`, `UndoBar`); `onPlanChange` in `api/client.ts`; `SignedInShell` mounts the bar; the timeline edit bar has "Reset to original" |
 | S6-09 Ask effort in time on the assignment form | 1bba56a | Engine `weightFromMinutesPerDay` / `minutesPerDayFromWeight` (`weights.ts`); web `features/schedule/effort.ts` (pure) and `EffortField.tsx`; the weight field and "More" are gone from `AssignmentForm` |
-| S6-10 "Feels heavier / lighter" on the edit bar | (this commit) | `features/timeline/nudge.ts` (`nudgedWeight`); edit bar **Heavier** / **Lighter**, sent as a weight-only PATCH by `useAssignmentEdit.setWeight` |
+| S6-10 "Feels heavier / lighter" on the edit bar | 675590c | `features/timeline/nudge.ts` (`nudgedWeight`); edit bar **Heavier** / **Lighter**, sent as a weight-only PATCH by `useAssignmentEdit.setWeight` |
 
 ## Decisions (conservative calls on ambiguous points)
 
