@@ -93,12 +93,13 @@ describe("Days chips on the assignment form (S4-07)", () => {
     expect(writes()[0]!.body).toMatchObject({ weekdays: null });
   });
 
-  it("Set as default patches the subject, then the assignment saves null", async () => {
+  it("Set as default only marks it (no request) and Save then patches the subject first, then saves null (S4b-05)", async () => {
     const { user, form } = await openAdd();
     await fillBasics(user, form, MATH.id);
     for (const d of ["Tuesday", "Thursday", "Friday"]) await user.click(chip(form, d));
     await user.click(within(form).getByRole("button", { name: "Set as default for Math" }));
-    await waitFor(() => expect(within(form).queryByRole("button", { name: /Set as default/ })).toBeNull());
+    expect(writes()).toEqual([]);
+    expect(within(form).getByText("Will be the default for Math.")).toBeInTheDocument();
     expect(checkedDays(form)).toEqual(["Monday", "Wednesday"]);
     await user.click(within(form).getByRole("button", { name: "Add" }));
     await waitFor(() => expect(writes()).toHaveLength(2));
@@ -109,13 +110,63 @@ describe("Days chips on the assignment form (S4-07)", () => {
     expect(fakeApi.bodyKeyViolations).toEqual([]);
   });
 
-  it("choosing every school day on a subject with a default offers to clear it (null)", async () => {
+  it("Set as default then Cancel makes no requests (S4b-05)", async () => {
+    const { user, form } = await openAdd();
+    await fillBasics(user, form, MATH.id);
+    await user.click(chip(form, "Tuesday"));
+    await user.click(within(form).getByRole("button", { name: "Set as default for Math" }));
+    await user.click(within(form).getByRole("button", { name: "Cancel" }));
+    expect(writes()).toEqual([]);
+  });
+
+  it("Undo withdraws the mark: the assignment saves its own list and the subject is untouched (S4b-05)", async () => {
+    const { user, form } = await openAdd();
+    await fillBasics(user, form, MATH.id);
+    await user.click(chip(form, "Tuesday"));
+    await user.click(within(form).getByRole("button", { name: "Set as default for Math" }));
+    await user.click(within(form).getByRole("button", { name: "Undo" }));
+    expect(within(form).getByRole("button", { name: "Set as default for Math" })).toBeInTheDocument();
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0]).toMatchObject({ method: "POST", body: { weekdays: [1, 3, 4, 5] } });
+  });
+
+  it("a failed subject PATCH shows the error and saves no assignment (S4b-05)", async () => {
+    const { user, form } = await openAdd();
+    fakeApi.on(`PATCH /api/subjects/${MATH.id}`, 500, { error: "boom" });
+    await fillBasics(user, form, MATH.id);
+    await user.click(chip(form, "Tuesday"));
+    await user.click(within(form).getByRole("button", { name: "Set as default for Math" }));
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    expect(await within(form).findByRole("alert")).toBeInTheDocument();
+    expect(writes().filter((w) => w.method === "POST")).toEqual([]);
+  });
+
+  it("choosing every school day on a subject with a default clears it on Save (null)", async () => {
     const { user, form } = await openAdd([FRIDAY_ONLY, READING]);
     await fillBasics(user, form, MATH.id);
     for (const d of ["Monday", "Tuesday", "Wednesday", "Thursday"]) await user.click(chip(form, d));
     await user.click(within(form).getByRole("button", { name: "Set as default for Math" }));
-    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()).toEqual([]);
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(writes()).toHaveLength(2));
     expect(writes()[0]).toMatchObject({ method: "PATCH", body: { defaultWeekdays: null } });
+  });
+
+  it("editing an assignment with its own days: Set as default then Save patches the subject and sends weekdays null (S4b-05)", async () => {
+    withRoster([FRANK], [MON_TO_FRI, READING]);
+    fakeApi.on("GET /api/assignments", 200, [MON_WED]);
+    fakeApi.on(`PATCH /api/subjects/${MATH.id}`, patchMerging(MATH));
+    fakeApi.on(`PATCH /api/assignments/${MON_WED.id}`, patchMerging(MON_WED));
+    const user = userEvent.setup();
+    renderAt("/schedule/assignments");
+    await user.click(await screen.findByRole("button", { name: /Piano duets/ }));
+    const edit = screen.getByRole("form", { name: "Edit Piano duets" });
+    await user.click(within(edit).getByRole("button", { name: "Set as default for Math" }));
+    await user.click(within(edit).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(2));
+    expect(writes()[0]).toMatchObject({ path: `/api/subjects/${MATH.id}`, body: { defaultWeekdays: [1, 3] } });
+    expect(writes()[1]).toMatchObject({ path: `/api/assignments/${MON_WED.id}`, body: { weekdays: null } });
   });
 
   it("the last chip can't be switched off", async () => {
