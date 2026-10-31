@@ -5,7 +5,7 @@
 **Size:** M
 
 ## Goal
-This week shows each child's work as Soft Paper pastel bars, one per assignment, with a child switch.
+Schedule's **Week** view shows each child's planned work for the week as Soft Paper pastel bars, one per assignment, with a child switch.
 
 ## Steps
 1. Header: "This week", the dates, and previous/next week buttons.

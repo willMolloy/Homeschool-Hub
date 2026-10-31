@@ -5,7 +5,7 @@
 **Size:** M
 
 ## Goal
-Last week's check-in is one question at the top of This week, with a check per bar and a small Update status sheet for anything different.
+**Track work** holds the check-in: last week's one question at the top (shown until answered), a check per bar and a small Update status sheet for anything different.
 
 ## Steps
 1. While last week isn't checked in, a card at the top: "Last week (19–25 Oct) · Did everything get done?" with **Yes, all done** (saves the week as planned) and **Not quite** (shows last week's bars).

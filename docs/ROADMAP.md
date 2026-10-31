@@ -93,7 +93,7 @@ Sprint 3a (`tickets/sprint-3a-setup/`) builds the first three.
 
 ### UI refinement and dark mode (Sprint 8, after Sprint 7): Soft Paper chosen
 Added by Will on 2026-10-31: the UI isn't up to modern standards yet. Done once the core features stop changing, so nothing is restyled twice; accounts and hosting hardening follow it.
-- **Chosen 2026-10-31:** Soft Paper (`design/ux-research.md`), with slightly stronger assignment colours; tickets in `tickets/sprint-8-soft-paper/`. Navigation Option B is provisional until DeeDee confirms.
+- **Chosen 2026-10-31:** Soft Paper (`design/ux-research.md`), with slightly stronger assignment colours; tickets in `tickets/sprint-8-soft-paper/`. Navigation: Home · Track work · Schedule (Schedule has Week | Year), decided by Will on 2026-10-31.
 - **Design brief:** calm and airy, with the soft, rounded shapes of a warm and friendly app; pastel colours; very clean and tidy.
 - [ ] **Audit and direction first:** screenshot every screen at phone and desktop widths, critique against a modern standard, and show 2–3 visual directions on one page for Will and DeeDee to choose from before code changes.
 - [ ] **One design system:** tokens for type, spacing, radius, elevation and colour (light and dark), and shared components (buttons, fields, chips, cards, sheets, lists) in place of per-screen CSS.

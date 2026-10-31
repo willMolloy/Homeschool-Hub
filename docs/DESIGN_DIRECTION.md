@@ -10,7 +10,7 @@ The features are largely there. What's missing is the feeling that the app was d
 
 ## What the critiques add up to
 
-1. **One home, two jobs.** The app has a home page (with a real logo) and two main places: **Schedule** (plan and steer the year) and **Log** (this week and the check-in). Settings sit to the side. From anywhere there is an obvious way home, and a direct switch between Schedule and Log. A parent never wonders what a tab means.
+1. **One home, two jobs.** The app has a home page (with a real logo) and two main places: **Schedule** (this week's plan and the year, steered from there) and **Track work** (the check-in). Settings sit to the side. From anywhere there is an obvious way home, and a direct switch between Schedule and Log. A parent never wonders what a tab means.
 2. **One way to do each thing.** When two controls do the same job, keep the clearer one and remove the other (the "Missed a day?" button went because the weekly check-in already covers missed work; the week-step buttons go because date pickers and dragging cover them). Redundant options make parents think they *must* use them.
 3. **Show the parent's words, never the engine's numbers.** Pages, lessons, chapters, minutes, dates. Internal values (effort points, thickness, rates) never appear on a parent-facing screen. Debug views live behind a developer flag only.
 4. **The default is right; changes take one tap.** The plan assumes work happened. Checking in is "Completed" or a small "Update status" pop-up, not a row of chips, sliders and steppers. Rare actions hide behind a quiet "More".
@@ -32,7 +32,7 @@ Before a screen ships, it should pass these checks (the tester includes them in 
 
 ## Chosen look (2026-10-31)
 
-**Soft Paper** (`design/ux-research.md`, Direction 1): a well-loved notebook. Cream page, warm hairlines instead of shadows, Fraunces serif titles with Nunito Sans text, a fern-green accent, Phosphor Light icons, and pastel subject bars with a thin coloured rule (slightly stronger than first mocked, at Will's request). Light and dark. Navigation Option B (Home · This week · Year) is provisional until DeeDee confirms. Built in Sprint 8.
+**Soft Paper** (`design/ux-research.md`, Direction 1): a well-loved notebook. Cream page, warm hairlines instead of shadows, Fraunces serif titles with Nunito Sans text, a fern-green accent, Phosphor Light icons, and pastel subject bars with a thin coloured rule (slightly stronger than first mocked, at Will's request). Light and dark. Navigation: **Home · Track work · Schedule**, with Schedule holding a Week | Year switch (Will, 2026-10-31). Built in Sprint 8.
 
 ## How this changes the plan
 

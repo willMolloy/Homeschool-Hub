@@ -1,6 +1,16 @@
 # Sprint 8 — Soft Paper: the new look, Home and navigation, light and dark
 
-> **Status: approved, not started** (2026-10-31). Will chose **Soft Paper** ("Start on soft paper… these look way better than before. I would slightly increase opacity in the assignment colors."), pending a check with DeeDee. Starts after Sprint 7 passes its tester check. **Provisional until DeeDee confirms:** navigation Option B (Home · This week · Year), the names "This week" and "Year", one child at a time with a "Both" choice, and the logo placeholder. These are isolated in S8-04/S8-05 so they can change without redoing the rest.
+> **Status: approved, not started** (2026-10-31). Will chose **Soft Paper** ("Start on soft paper… these look way better than before. I would slightly increase opacity in the assignment colors."), pending a check with DeeDee. Starts after Sprint 7 passes its tester check. **Decided by Will on 2026-10-31** (DeeDee may still adjust; names and tabs live in one config):
+- **Navigation:** Home plus three tabs with icons: **Home · Track work · Schedule**.
+- **Schedule** holds a **Week | Year** switch: this week's planned bars (Week) and the year timeline (Year). "The this week feature is a feature of the schedule."
+- **Track work** is checking in: last week's "Did everything get done?", the Completed checks and Update status.
+- **One child at a time**, with a Frank / Margaret / Both switch.
+- **The last-week card stays until answered.**
+- **Optional subject icons** (S8-11).
+- **Starter subjects stay the 14 basic ones** (no Charlotte Mason extras).
+- **Zoom row order as built:** Year, built-ins, then custom views.
+- **Logo:** the book-and-sunrise placeholder for now.
+- **Year lanes sit tighter**, with subject names inline (S8-07).
 
 **Source:** `docs/DESIGN_DIRECTION.md`, `docs/design/ux-research.md` (Direction 1: Soft Paper; IA Option B), the mockup `docs/design/mockups/soft-paper.html` (and its `.png`), and Will's critiques. This sprint absorbs the held Sprint 6b tickets: S6b-11 → S8-04, S6b-02 → S8-05, S6b-03 → S8-06.
 
@@ -21,4 +31,5 @@ Each ticket uses the usual format. Build in order, one commit per ticket, each w
 | 7 | [S8-07 — The Year timeline in Soft Paper](S8-07-the-year-timeline.md) | S8-03 | M |
 | 8 | [S8-08 — Set up screens and forms in Soft Paper](S8-08-set-up-screens-and-forms.md) | S8-04 | M |
 | 9 | [S8-09 — First-run checklist and empty states](S8-09-first-run-and-empty-states.md) | S8-04, S8-08 | S |
-| 10 | [S8-10 — Tester pass: the new look](S8-10-tester-pass.md) | S8-01 to S8-09 | S |
+| 10 | [S8-11 — Optional subject icons](S8-11-optional-subject-icons.md) | S8-03 | S |
+| 11 | [S8-10 — Tester pass: the new look](S8-10-tester-pass.md) | S8-01 to S8-09, S8-11 | S |
