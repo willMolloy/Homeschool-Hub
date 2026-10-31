@@ -1,4 +1,4 @@
-/** /api/assignments (S2a-04..06); POST /api/assignments/bulk (S3a-03). */
+/** /api/assignments (S2a-04..06); POST /api/assignments/bulk (S3a-03); POST /api/assignments/:id/reset (S6-07). */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { withTransaction, type Tx } from "../db";
@@ -13,6 +13,7 @@ import { subjectDefaultWeekdays } from "../repos/subjectRepo";
 import { familyWeekStart } from "../http/familyWeek";
 import { effectiveWeekdays, weekdaysChange } from "../services/weekdaysChange";
 import { recordWeightChoices } from "../repos/weightChoiceRepo";
+import { resetAssignment } from "../services/assignmentReset";
 import { assignmentStep, recordUndo, type UndoStep } from "../services/undoService";
 
 const Id = z.string("Must be an id.").regex(UUID_RE, "Must be a UUID.").transform((s) => s.toLowerCase());
@@ -164,5 +165,12 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       return after;
     });
     return toAssignmentJson(row);
+  });
+
+  // S6-07: back to how it was created, without the week adjustments; undoable.
+  app.post<{ Params: { id: string } }>("/api/assignments/:id/reset", async (req) => {
+    if (!UUID_RE.test(req.params.id)) throw notFound();
+    const { assignment, kept } = await withTransaction(app.db, (c) => resetAssignment(c, req.familyId, req.params.id));
+    return { assignment: toAssignmentJson(assignment), kept };
   });
 }
