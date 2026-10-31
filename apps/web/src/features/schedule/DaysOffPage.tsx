@@ -113,7 +113,7 @@ function DaysOffForm({ item, onSaved, onCancel, extra, externalError, l }: FormS
       <div className="field">
         <label htmlFor={ids.kind}>Kind</label>
         <select id={ids.kind} value={kind} onChange={(e) => setKind(e.target.value as BlockedKind)}>
-          {/* "Missed day" is made from This Week (S4-10), not here. */}
+          {/* "Missed day" is no longer made anywhere (S6-04: missed work goes through the weekly check-in); existing ones stay editable. */}
           {BLOCKED_KINDS.filter((k) => k !== "missed" || kind === "missed").map((k) => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
         </select>
       </div>

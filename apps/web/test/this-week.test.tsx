@@ -96,6 +96,17 @@ describe("This Week header", () => {
     expect(screen.queryByText(/Debug view|Plan as of|Week of/)).toBeNull();
   });
 
+  it("has no \"Missed a day?\" control: missed work is reported through the weekly check-in (S6-04)", async () => {
+    stub();
+    fakeApi.on("GET /api/check-ins", 200, OCT19);
+    renderAt("/");
+    await screen.findByRole("table", { name: "Frank" });
+    expect(screen.queryByRole("button", { name: /Missed a day/ })).toBeNull();
+    expect(screen.queryByText(/Missed a day/)).toBeNull();
+    // The weekly check-in is still there for it.
+    expect(await screen.findByRole("region", { name: /How did last week go\?/ })).toBeInTheDocument();
+  });
+
   it("shownWeek: the sheet edits the shown week once it's over, otherwise last week", () => {
     expect(shownWeek(null, "2026-10-28", "mon")).toEqual({ weekStart: "2026-10-26", weekEnd: "2026-11-01", currentWeekStart: "2026-10-26", checkInWeekStart: "2026-10-19" });
     expect(shownWeek("2026-10-14", "2026-10-28", "mon").checkInWeekStart).toBe("2026-10-12");

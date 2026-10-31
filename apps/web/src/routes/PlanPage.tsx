@@ -5,7 +5,6 @@
 import { Briefing } from "../features/plan/Briefing";
 import { ChildAdjustment } from "../features/checkin/ChildAdjustment";
 import { LastWeekCheckIn } from "../features/checkin/LastWeekCheckIn";
-import { MissedDay } from "../features/plan/MissedDay";
 import { PlanDebugView } from "../features/plan/PlanDebugView";
 import { PlanRefreshProvider } from "../features/plan/planRefresh";
 import { useDebugFlag, useShownWeek } from "../features/plan/useShownWeek";
@@ -22,7 +21,6 @@ export function PlanPage() {
       <header className="plan-header">
         <h1>Plan</h1>
         <WeekSwitcher week={week} />
-        <MissedDay weekStart={week.weekStart} />
       </header>
       <Briefing weekStart={week.weekStart} />
       <LastWeekCheckIn />

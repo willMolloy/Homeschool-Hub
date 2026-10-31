@@ -38,6 +38,15 @@ describe("Days off screen", () => {
     expect(screen.queryByLabelText("Show archived")).toBeNull();
   });
 
+  it("an existing missed day is still listed as Missed day and stays editable, but can't be added from the form (S6-04)", async () => {
+    const MISSED: BlockedRange = { id: rowId(13), label: null, kind: "missed", startDate: "2026-11-03", endDate: "2026-11-03", childIds: [] };
+    const user = await setup([MISSED]);
+    expect(cards()[0]).toHaveTextContent("Missed day");
+    await user.click(screen.getByRole("button", { name: "Add days off" }));
+    const form = screen.getByRole("form", { name: "Add days off" });
+    expect(within(within(form).getByLabelText("Kind")).queryByRole("option", { name: "Missed day" })).toBeNull();
+  });
+
   it("empty and error states", async () => {
     withRoster();
     fakeApi.on("GET /api/blocked-ranges", 200, []);

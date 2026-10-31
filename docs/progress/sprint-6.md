@@ -6,7 +6,8 @@ Tickets: `docs/tickets/sprint-6-steering/`. Pass 1 covers S6-01 to S6-04.
 |--------|--------|-------|
 | S6-01 Load week adjustments newest edit last | efdc463 | `loadPlanInputs` orders `week_override` by `updated_at, id` |
 | S6-02 Add the week adjustment endpoints | 2090014 | `routes/weekOverrides.ts`: `PUT` / `GET ?weekStart=` / `DELETE /:id` on `/api/week-overrides` |
-| S6-03 Adjust this or a coming week on This Week | (this commit) | `features/plan/WeekAdjustment.tsx` and `weekAdjust.ts` (pure); `ChildAdjustment` takes `ahead`; `PlanPage` picks it for the current or a coming week |
+| S6-03 Adjust this or a coming week on This Week | c829656 | `features/plan/WeekAdjustment.tsx` and `weekAdjust.ts` (pure); `ChildAdjustment` takes `ahead`; `PlanPage` picks it for the current or a coming week |
+| S6-04 Remove "Missed a day?" from This Week | (this commit) | Deleted `features/plan/MissedDay.tsx`, `test/missed-day.test.tsx` and the `.missed-*` styles; API, engine and `KIND_LABELS` untouched |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -23,3 +24,5 @@ Tickets: `docs/tickets/sprint-6-steering/`. Pass 1 covers S6-01 to S6-04.
 - **S6-03 the end-date question.** One choice for the whole sheet, shown only once an amount moved (not for removals), defaulting to "Keep the end date", other option "Move the end date" (later if less, sooner if more). The check-in no longer asks per row (T-09), so there is no AbsorbChoice to reuse; this is a two-button group in the check-in's own style.
 - **S6-03 limits.** Steps are 5 for minutes and 1 otherwise (the check-in's); the most an amount can be is what is left of the assignment, never below the current amount. Save sends one PUT per changed row in order, then closes the sheet and refreshes the plan; a refused save shows the message and keeps the sheet. The engine, not the sheet, handles the case where the plan cannot keep the end date.
 - **S6-03 not checked.** The 360 px layout and 44 px targets come from CSS (44 px buttons, rows wrap) but jsdom has no layout, so they were not measured.
+- **S6-04 removed tests.** `test/missed-day.test.tsx` (the S4-10 and S4b-07 sheet tests: offered days, today preselected, save for one child or everyone, errors, Cancel) is deleted with the feature it tested; nothing else covered them. Two tests were added: This Week has no "Missed a day?" control while the check-in card is still there, and an existing `missed` day off is still listed as "Missed day" under Days off and can't be picked as a kind on a new one.
+- **S6-04 left alone.** The `missed` blocked kind (API, engine `pastMissedDays`, `KIND_LABELS`) and the Days off form's rule that an existing missed day keeps its kind when edited. Only the comment there changed, since the button it named is gone.
