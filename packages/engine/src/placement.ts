@@ -66,6 +66,51 @@ export interface Placement {
   mode: OverrideMode | null;
 }
 
+/**
+ * S7b-09: the anchored keepEndDate placement (see placeSegment), or null when the units left after the last applied
+ * override have no free day after it to go on (the caller then spreads them over the free days before it).
+ */
+function anchorKeep(seg: SegmentInput, c: CapacityOf, applied: Set<PreparedOverride>, baseRate: number):
+  { planned: Map<number, number>; kinds: Map<number, DayKind>; rate: number } | null {
+  const { from, end } = seg;
+  const planned = new Map<number, number>();
+  const kinds = new Map<number, DayKind>();
+  const capBetween = (a: number, b: number) => {
+    let s = 0;
+    for (let d = a; d <= b; d += 1) s += c(d);
+    return s;
+  };
+  let remaining = seg.remaining;
+  let cursor = from;
+  let rate = baseRate;
+  const spread = (a: number, b: number) => {
+    const cap = capBetween(a, end);
+    rate = cap > EPS ? remaining / cap : 0;
+    for (let d = a; d <= b; d += 1) {
+      planned.set(d, rate * c(d));
+      kinds.set(d, "planned");
+      remaining -= rate * c(d);
+    }
+  };
+  for (const o of [...applied].sort((x, y) => x.w0 - y.w0)) {
+    const lo = Math.max(o.w0, from);
+    const hi = Math.min(o.w1, end);
+    if (lo > hi || lo < cursor) continue;
+    if (lo > cursor) spread(cursor, lo - 1);
+    const weekCap = capBetween(lo, hi);
+    const units = Math.min(o.plannedUnits, Math.max(0, remaining));
+    for (let d = lo; d <= hi; d += 1) {
+      kinds.set(d, "override");
+      planned.set(d, (units * c(d)) / weekCap);
+    }
+    remaining -= units;
+    cursor = hi + 1;
+  }
+  if (cursor <= end && capBetween(cursor, end) > EPS) spread(cursor, end);
+  else if (remaining > EPS) return null;
+  return { planned, kinds, rate };
+}
+
 export function placeSegment(seg: SegmentInput, c: CapacityOf, warn: Warn): Placement {
   const out: Placement = {
     planned: new Map(), kinds: new Map(), baseRate: 0, rate: 0, endDay: seg.end, unplaced: 0, noCapacity: false, mode: seg.forcedMode ?? null,
@@ -139,18 +184,30 @@ export function placeSegment(seg: SegmentInput, c: CapacityOf, warn: Warn): Plac
     }
     out.endDay = Number.isFinite(last) ? last : end;
   } else {
-    let freeCap = 0;
-    for (let d = from; d <= end; d += 1) if (!fixed.has(d)) freeCap += c(d);
-    if (freeCap > EPS) {
-      out.rate = left / freeCap;
-      for (let d = from; d <= end; d += 1) {
-        if (fixed.has(d)) continue;
-        out.planned.set(d, out.rate * c(d));
-        out.kinds.set(d, "planned");
+    // S7b-09: keepEndDate is anchored at each adjusted week. Days before the first adjusted week keep the plan as it
+    // was without the adjustment; the week gets its units; what is left is spread over the days after it, up to the
+    // end, and the next adjusted week anchors there in turn (adjustments apply in week order, on top of each other).
+    // Nothing before an adjusted week changes. Only when nothing is left after the last adjusted week to take the rest
+    // (an adjustment in the last week) is the rest pulled back into the free days before it, as before.
+    const anchored = anchorKeep(seg, c, applied, out.baseRate);
+    if (anchored) {
+      for (const [d, v] of anchored.planned) out.planned.set(d, v);
+      for (const [d, k] of anchored.kinds) out.kinds.set(d, k);
+      out.rate = anchored.rate;
+    } else {
+      let freeCap = 0;
+      for (let d = from; d <= end; d += 1) if (!fixed.has(d)) freeCap += c(d);
+      if (freeCap > EPS) {
+        out.rate = left / freeCap;
+        for (let d = from; d <= end; d += 1) {
+          if (fixed.has(d)) continue;
+          out.planned.set(d, out.rate * c(d));
+          out.kinds.set(d, "planned");
+        }
+      } else if (left > EPS) {
+        warn("keep-no-free-capacity");
+        out.unplaced = left;
       }
-    } else if (left > EPS) {
-      warn("keep-no-free-capacity");
-      out.unplaced = left;
     }
     out.endDay = end;
   }

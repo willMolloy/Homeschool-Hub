@@ -32,7 +32,9 @@ function subjectDefaultFor(a: Assignment, ctx: PlanContext): SubjectWeight | nul
  * - The plan runs from the assignment's start, as if every scheduled day before today was done (S2b-18).
  *   Logs don't move bars; `ctx.asOf` only labels earlier days `assumed`.
  * - Override weeks are fixed first: their units are spread over that week's capacity.
- * - keepEndDate: rate = remaining after overrides / sum of capacity on the other days up to the end.
+ * - keepEndDate (S7b-09): anchored at each adjusted week. Days before the first one keep the plan without it, the week
+ *   gets its units, and the rest is spread over the days after it up to the end (next adjusted week anchors there in turn).
+ *   Only an adjustment in the last week, with no day after it, pulls the rest back into the days before it.
  * - pushEndDate: the other days keep the old pace (baseRate) and the end moves to where the work runs out.
  * - Check-ins (S2b-20) re-anchor the plan after their week and replan what is left (checkins.ts).
  * - The rate is an output only; nothing here is meant to be persisted.

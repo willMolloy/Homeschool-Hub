@@ -135,7 +135,7 @@ describe("planning on weekdays (S4-01)", () => {
     expect(unitsOn(p, "2026-10-09")).toBeCloseTo(3, 9);
     expect(unitsBetween(p, "2026-10-05", "2026-10-11")).toBeCloseTo(3, 9);
     expect(unitsOn(p, "2026-10-06")).toBe(0);
-    expect(unitsOn(p, "2026-09-11")).toBeCloseTo(9 / 11, 9);
+    expect(unitsOn(p, "2026-09-11")).toBeCloseTo(1, 9); // S7b-09: weeks before the adjusted one keep their plan (was 9/11)
     expectConserved(p);
   });
 

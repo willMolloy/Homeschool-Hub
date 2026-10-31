@@ -137,4 +137,21 @@ describe.skipIf(!hasDb)("/api/week-overrides (integration)", () => {
     await app.inject({ method: "DELETE", url: `/api/week-overrides/${row.id}`, cookies });
     expect(next(await plan())).toBeCloseTo(before);
   });
+
+  it("S7b-09: a keepEndDate adjustment on a coming week leaves every earlier day exactly as it was", async () => {
+    const days = async () => {
+      const res = await app.inject({ method: "GET", url: "/api/plan?from=2026-10-19&to=2026-11-30&asOf=2026-10-28", cookies });
+      return res.json<PlanResponse>().plans.find((p) => p.assignmentId === ti && p.childId === frank)!.days;
+    };
+    const before = await days();
+    // Treasure Island runs Oct 19 to Nov 6; adjust the middle week (this week, Oct 26) so a week remains after it.
+    const THIS = "2026-10-26";
+    expect((await put(body({ weekStart: THIS, plannedUnits: 10, mode: "keepEndDate" }))).statusCode).toBe(200);
+    const after = await days();
+    const upTo = (ds: typeof before) => ds.filter((d) => d.date < THIS).map((d) => [d.date, d.units]);
+    expect(upTo(after)).toEqual(upTo(before)); // last week and every day before the adjusted week
+    expect(after.filter((d) => d.date >= THIS && d.date <= "2026-11-01").reduce((s, d) => s + d.units, 0)).toBeCloseTo(10);
+    const total = (ds: typeof before) => ds.reduce((s, d) => s + d.units, 0);
+    expect(total(after)).toBeCloseTo(total(before)); // units conserved
+  });
 });

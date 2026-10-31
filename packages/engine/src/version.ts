@@ -13,4 +13,5 @@
 // 0.8.0: an assignment is planned only on its weekdays (S4-01); ChildPlan.weekdays and weekdaysSource.
 // 0.9.0: changing weekdays mid-assignment keeps the plan before the change (S4-01b).
 // 0.10.0: ChildPlan.adjustedWeeks, weekdaysFrom and previousWeekdays (S7b-04); the briefing forecast leaves adjusted weeks out and survives a weekday change.
-export const ENGINE_VERSION = "0.10.0";
+// 0.11.0: a keepEndDate week adjustment only re-spreads the weeks after it; earlier weeks keep their amounts (S7b-09).
+export const ENGINE_VERSION = "0.11.0";

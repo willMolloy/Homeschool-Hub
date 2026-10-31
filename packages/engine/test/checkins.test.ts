@@ -258,7 +258,8 @@ describe("check-ins (S2b-20)", () => {
     const zeroWeek: PlanContext = { calendar: MON_FRI, overrides: [{ assignmentId: "a1", weekStart: "2026-09-14", plannedUnits: 0, mode: "keepEndDate" }] };
     const p = plan([ci("2026-09-14", 60, "keepEndDate")], zeroWeek, threeWeeks);
     expect(p.warnings).toContain("unplanned-progress");
-    expect(unitsOn(p, "2026-09-18")).toBeCloseTo(10);
+    // S7b-09: week 1 keeps its plan without the adjustment (100 over 15 days: 33.3), so 60 reported is 26.7 more (was 10 over 50).
+    expect(unitsOn(p, "2026-09-18")).toBeCloseTo(60 - (100 / 15) * 5);
     expect(positionAt(p, "2026-09-20")).toBeCloseTo(60);
     expect(unitsBetween(p, "2026-09-21", "2026-09-25")).toBeCloseTo(40);
     expectInvariants(p);
