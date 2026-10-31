@@ -192,6 +192,10 @@ See [sprint-6b-this-week/README.md](sprint-6b-this-week/README.md) (S6b-01 to S6
 
 See [sprint-7-setup-polish/README.md](sprint-7-setup-polish/README.md) (S7-01 to S7-14).
 
+## Sprint 7b: fixes from the Charlotte Mason run
+
+See [sprint-7b-fixes/README.md](sprint-7b-fixes/README.md) (S7b-01 to S7b-07).
+
 ## Sprint 8: Soft Paper — the new look, Home and navigation, light and dark
 
 See [sprint-8-soft-paper/README.md](sprint-8-soft-paper/README.md) (S8-01 to S8-10). Absorbs the held S6b-02, S6b-03 and S6b-11.
