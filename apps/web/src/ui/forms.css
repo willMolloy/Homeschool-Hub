@@ -19,6 +19,14 @@
   width: 100%;
   box-sizing: border-box;
 }
+.field select {
+  padding: 10px 12px;
+  border: 1px solid #b7c0cc;
+  border-radius: 8px;
+  background: #fff;
+  min-height: 44px;
+  box-sizing: border-box;
+}
 .field input[aria-invalid="true"] {
   border-color: var(--danger);
 }

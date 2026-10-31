@@ -4,7 +4,7 @@
 .thickness-presets { display: flex; flex-wrap: wrap; gap: 0; }
 .thickness-preset { position: relative; }
 .thickness-preset input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.thickness-chip { display: inline-block; padding: 6px 10px; border: 1px solid #b7c0cc; margin-left: -1px; background: #fff; font-size: 0.9rem; }
+.thickness-chip { display: inline-flex; align-items: center; min-height: 44px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #b7c0cc; margin-left: -1px; background: #fff; font-size: 0.9rem; }
 .thickness-preset:first-child .thickness-chip { border-radius: 8px 0 0 8px; margin-left: 0; }
 .thickness-preset:last-child .thickness-chip { border-radius: 0 8px 8px 0; }
 .thickness-preset input:checked + .thickness-chip { background: #2f6fb0; border-color: #2f6fb0; color: #fff; }
