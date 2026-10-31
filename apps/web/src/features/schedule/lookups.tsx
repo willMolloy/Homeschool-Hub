@@ -13,7 +13,7 @@ export interface Lookups {
   subjectDefault: (id: string) => SubjectDefaultWeight | null;
   /** S4-07: the subject's default weekdays (S4-03), or null when it has none or is unknown. */
   subjectWeekdays: (id: string) => number[] | null;
-  /** S4-07: swap in a subject that was just saved (its default days changed from an assignment form). */
+  /** S4-07: swap in a subject that was just saved (its default days changed from an assignment form); S6b-08: or add one just created there. */
   subjectSaved?: (saved: Subject) => void;
 }
 
@@ -45,7 +45,7 @@ export function WithLookups({ title, children }: { title: string; children: (l: 
       </section>
     );
   }
-  const saved = (s: Subject) => subs.setData((list) => list?.map((x) => (x.id === s.id ? s : x)));
+  const saved = (s: Subject) => subs.setData((list) => list && (list.some((x) => x.id === s.id) ? list.map((x) => (x.id === s.id ? s : x)) : [...list, s]));
   return <>{children(makeLookups(kids.data, subs.data, saved))}</>;
 }
 

@@ -1,5 +1,6 @@
 import type { Subject } from "../api/types";
 import { perUnitText } from "../components/unitLabels";
+import { COMMON_SUBJECTS } from "../features/roster/commonSubjects";
 import { RosterPage, type RosterExtension } from "../features/roster/RosterPage";
 import { weekdayRanges } from "../features/schedule/formBits";
 import { SubjectForm, type SubjectValues } from "../features/roster/SubjectForm";
@@ -19,5 +20,5 @@ const subjectExtension: RosterExtension<Subject, SubjectValues> = {
 };
 
 export function SubjectsPage() {
-  return <RosterPage title="Subjects" endpoint="/api/subjects" emptyText="No subjects yet." noun="subject" extension={subjectExtension} />;
+  return <RosterPage title="Subjects" endpoint="/api/subjects" emptyText="No subjects yet." noun="subject" suggestions={{ label: "Add common subjects", names: COMMON_SUBJECTS }} extension={subjectExtension} />;
 }

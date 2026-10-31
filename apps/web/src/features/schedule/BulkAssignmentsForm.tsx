@@ -10,6 +10,7 @@ import { unitTitle } from "../../components/unitLabels";
 import { LIMITS } from "./assignmentLimits";
 import { bulkSaveError, ChildPicker, dateRangeError, parsePositive, WeekdayPicker } from "./formBits";
 import type { Lookups } from "./lookups";
+import { SubjectSelect } from "./SubjectSelect";
 import { useWeekdayChoice } from "./useWeekdayChoice";
 
 const START_ROWS = 3;
@@ -93,12 +94,7 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
       {formError ? <p className="form-error" role="alert">{formError}</p> : null}
       <div className="field">
         <label htmlFor={ids.subject}>Subject</label>
-        <select id={ids.subject} value={subjectId} onChange={(e) => setSubjectId(e.target.value)} aria-invalid={errors.subject ? true : undefined}>
-          <option value="">Choose a subject…</option>
-          {activeSubjects.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+        <SubjectSelect id={ids.subject} value={subjectId} onChange={setSubjectId} l={l} options={activeSubjects} invalidProps={errors.subject ? { "aria-invalid": true } : {}} />
         {errors.subject ? <p className="field-error" role="alert">{errors.subject}</p> : null}
       </div>
       <ChildPicker options={l.children} value={childIds} onChange={setChildIds} error={errors.children} />

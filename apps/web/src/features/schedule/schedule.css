@@ -276,3 +276,14 @@
 .effort-chip:has(input:focus-visible) { outline: 3px solid var(--brand); outline-offset: 2px; }
 .effort-custom { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: var(--muted); }
 .effort-custom input { width: 7rem; min-height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid #b7c0cc; border-radius: 8px; }
+
+/* S6b-08: the inline name field under the subject dropdown */
+.subject-new {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.subject-new .btn {
+  align-self: flex-start;
+}

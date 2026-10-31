@@ -2,6 +2,7 @@
  * /schedule/assignments (S2a-14): list, add, edit, archive. T-10: the same form opens from the timeline, with the
  * essentials first (subject, title, children, dates, unit and total). S6-09: then "About how long will that take?",
  * asked in minutes a day and saved as a weight per unit; the parent never types a weight.
+ * S6b-08: the subject dropdown also offers common subjects and "New subject…" (SubjectSelect).
  * S3a-04: "Add several" enters a subject's books in one form. S3a-06: "Import CSV" does it from a file.
  */
 import { useId, useState, type FormEvent, type ReactNode } from "react";
@@ -18,6 +19,7 @@ import { copyOfAssignment } from "./copyAssignment";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
 import { UNIT_LABELS, unitTitle } from "../../components/unitLabels";
 import { useWeightSuggestion } from "./useWeightSuggestion";
+import { SubjectSelect } from "./SubjectSelect";
 import { EffortField } from "./EffortField";
 import { paceLooksHigh, paceNoteText, unitsPerDay } from "./effort";
 import type { EffortPick } from "./effort";
@@ -208,13 +210,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     <form className="card schedule-form" aria-label={item ? `Edit ${item.title}` : "Add assignment"} onSubmit={submit} noValidate>
       {shownError ? <p className="form-error" role="alert">{shownError}</p> : null}
       {field(ids.subject, "Subject", errors.subject,
-        <select id={ids.subject} value={subjectId} onChange={(e) => setSubjectId(e.target.value)} {...inv(errors.subject, ids.subject)}>
-          <option value="">Choose a subject…</option>
-          {activeSubjects.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}{s.archived ? " (archived)" : ""}</option>
-          ))}
-        </select>,
-        activeSubjects.length === 0 ? <p className="hint">No subjects yet. Add them under Subjects.</p> : null)}
+        <SubjectSelect id={ids.subject} value={subjectId} onChange={setSubjectId} l={l} options={activeSubjects} invalidProps={inv(errors.subject, ids.subject)} />)}
       {field(ids.title, "Title", errors.title,
         <input id={ids.title} type="text" value={title} autoComplete="off" onChange={(e) => setTitle(e.target.value)} {...inv(errors.title, ids.title)} />)}
       <ChildPicker options={l.children} value={childIds} onChange={setChildIds} error={errors.children} />

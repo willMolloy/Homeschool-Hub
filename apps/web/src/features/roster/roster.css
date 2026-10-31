@@ -217,3 +217,21 @@
 .tag-weight {
   flex: none;
 }
+
+/* S6b-08: common subjects as one-tap chips for a family with none yet */
+.roster-suggest {
+  margin: 16px 0;
+}
+.roster-suggest h2 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+.roster-suggest-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.roster-suggest-chips .btn {
+  min-height: 44px;
+  border-radius: 999px;
+}

@@ -35,7 +35,7 @@ export function useTimelineData(): TimelineData {
   const blocked = useApi<BlockedRange[]>("/api/blocked-ranges");
   const events = useApi<ScheduleEvent[]>("/api/events");
   const setSubjects = subjects.setData;
-  const applySubject = useCallback((saved: Subject) => setSubjects((list) => list?.map((s) => (s.id === saved.id ? saved : s))), [setSubjects]);
+  const applySubject = useCallback((saved: Subject) => setSubjects((list) => list && (list.some((s) => s.id === saved.id) ? list.map((s) => (s.id === saved.id ? saved : s)) : [...list, saved])), [setSubjects]);
   const all = [plan, children, subjects, assignments, blocked, events];
 
   const model = useMemo(() => {
