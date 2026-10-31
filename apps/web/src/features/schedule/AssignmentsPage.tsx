@@ -22,7 +22,8 @@ import { UNIT_LABELS, unitTitle } from "../../components/unitLabels";
 import { useWeightSuggestion } from "./useWeightSuggestion";
 import { SubjectSelect } from "./SubjectSelect";
 import { EffortField } from "./EffortField";
-import { paceLooksHigh, paceNoteText, unitsPerDay } from "./effort";
+import { paceLooksHigh, paceNoteText, unitsPerCapacityDay, unitsPerDay } from "./effort";
+import { requestPace, usableDraft, usePace, type PaceDraft } from "./usePace";
 import type { EffortPick } from "./effort";
 import { effortCardText } from "./weightText";
 import { useMe } from "../../auth/AuthProvider";
@@ -67,7 +68,10 @@ export function AssignmentsPage() {
 function AssignmentCard({ a, l }: { a: Assignment; l: Lookups }) {
   // S6b-13: effort as minutes a day at the assignment's own pace (its days, else the subject's, else every school day).
   const { schoolDays } = useMe();
-  const perDay = unitsPerDay(a.totalUnits, a.startDate, a.endDate, a.weekdays ?? l.subjectWeekdays(a.subjectId) ?? schoolDays);
+  // S7b-10: over the days the plan really has (breaks, days off, skips); until that answers, the weekdays in the dates.
+  const days = a.weekdays ?? l.subjectWeekdays(a.subjectId) ?? schoolDays;
+  const real = usePace({ subjectId: a.subjectId, childIds: a.childIds, startDate: a.startDate, endDate: a.endDate, weekdays: days });
+  const perDay = real ? unitsPerCapacityDay(a.totalUnits, real.capacityDays) : unitsPerDay(a.totalUnits, a.startDate, a.endDate, days);
   const effort = effortCardText(a, l.subjectDefault(a.subjectId), perDay);
   return (
     <span className="card-body">
@@ -170,9 +174,16 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     let wpu: number | null = usualNow ? null : followsSuggestion ? suggestedValue() : suggesting ? null : start?.weightPerUnit ?? null;
     if (pick) {
       const minutes = pick.kind === "preset" ? pick.minutes : parsePositive(pick.text, "Minutes", MAX_MINUTES_A_DAY);
+      // S7b-10: the pace is asked afresh here, so the weight never rests on a count that is still loading.
+      let exact = pace;
+      if (typeof total === "number" && paceDraft && usableDraft(paceDraft)) {
+        try {
+          exact = unitsPerCapacityDay(total, (await requestPace({ ...paceDraft, subjectId: sid || null })).capacityDays);
+        } catch { /* keep the pace the form shows */ }
+      }
       if (typeof minutes === "string") errs.effort = minutes;
-      else if (pace === null) errs.effort = "Fill in the total, the dates and the days first.";
-      else wpu = weightFromMinutesPerDay(minutes, pace);
+      else if (exact === null) errs.effort = "Fill in the total, the dates and the days first.";
+      else wpu = weightFromMinutesPerDay(minutes, exact);
     }
     const d = dateRangeError(startDate, endDate, LIMITS.days);
     if (d) errs.dates = d;
@@ -217,7 +228,16 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
 
   // S6-09: the weight the form stands on (the suggestion, or what's stored resolved like the engine does) as minutes a day.
   const totalNumber = Number(totalUnits);
-  const pace = totalUnits.trim() ? unitsPerDay(totalNumber, startDate, endDate, dayChoice.shown) : null;
+  // S7b-10: units a day over the days the plan will really use (breaks, days off, event skips and the days chosen), asked
+  // from the API; until it answers (or if it can't), the weekdays between the dates.
+  const paceDraft: PaceDraft = { subjectId: subjectId || null, childIds, startDate, endDate, weekdays: dayChoice.shown };
+  const real = usePace(totalUnits.trim() ? paceDraft : null, 250);
+  const pace = !totalUnits.trim() ? null : real ? unitsPerCapacityDay(totalNumber, real.capacityDays) : unitsPerDay(totalNumber, startDate, endDate, dayChoice.shown);
+  const paceNote = (() => {
+    if (!real || real.perChild.length < 2 || real.perChild.every((c) => c.capacityDays === real.capacityDays)) return null;
+    const fewest = real.perChild.find((c) => c.capacityDays === real.capacityDays)!;
+    return `${l.childName(fewest.childId)} has the fewest school days here, so this counts ${l.childName(fewest.childId)}'s.`;
+  })();
   const baseWeight = usualNow
     ? weightPerUnitOf({ unitType, weightPerUnit: null }, subjectUsual).weight
     : suggesting
@@ -276,7 +296,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       </div>
       {/* S6b-07: one quiet line for a pace that looks like a typo; it never blocks Save. */}
       {pace !== null && paceLooksHigh(pace, unitType) ? <p className="hint pace-note" role="note">{paceNoteText(pace, unitType)}</p> : null}
-      <EffortField id={ids.effort} unitType={unitType} pace={pace} pick={pick} onPick={setPick} baseMinutes={baseMinutes}
+      <EffortField id={ids.effort} unitType={unitType} pace={pace} paceNote={paceNote} pick={pick} onPick={setPick} baseMinutes={baseMinutes}
         suggestion={suggesting && !usualNow ? suggestion : null} subjectName={l.subjectName(subjectId)}
         usual={{
           active: usualNow,

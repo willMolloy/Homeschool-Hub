@@ -37,6 +37,11 @@ export function unitsPerDay(total: number, start: string, end: string, weekdays:
   return days > 0 ? total / days : null;
 }
 
+/** S7b-10: units a day over the days the plan really has (usePace); null when there are no such days or no total. */
+export function unitsPerCapacityDay(total: number, capacityDays: number): number | null {
+  return Number.isFinite(total) && total > 0 && capacityDays > 0 ? total / capacityDays : null;
+}
+
 /** The option a number of minutes shows as: the preset it is within half a step of, else "custom". */
 export function optionFor(minutes: number): number | "custom" {
   const nearest = PRESET_MINUTES.reduce((best, p) => (Math.abs(p - minutes) < Math.abs(best - minutes) ? p : best), PRESET_MINUTES[0] as number);

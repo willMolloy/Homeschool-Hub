@@ -127,7 +127,7 @@ describe("adding an assignment from the timeline", () => {
     await user.type(within(sheet).getByLabelText("Title"), "   ");
     await user.click(within(sheet).getByRole("button", { name: "Add" }));
     expect(await within(sheet).findByText("Title is required.")).toBeInTheDocument();
-    expect(fakeApi.calls.some((c) => c.method === "POST")).toBe(false);
+    expect(fakeApi.calls.some((c) => c.method === "POST" && c.path !== "/api/plan/pace")).toBe(false); // S7b-10: the pace count is a read
   });
 
   it("on save, closes, draws the new bar at once and highlights it briefly", async () => {

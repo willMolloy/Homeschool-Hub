@@ -24,7 +24,8 @@ import type { Draft } from "../features/schedule/ScheduleList";
 import { afterAdd } from "../features/timeline/afterAdd";
 import { EditBar } from "../features/timeline/EditBar";
 import { UpdateEstimateSheet } from "../features/timeline/UpdateEstimate";
-import { unitsPerDay } from "../features/schedule/effort";
+import { unitsPerCapacityDay, unitsPerDay } from "../features/schedule/effort";
+import { usePace } from "../features/schedule/usePace";
 import { useMe } from "../auth/AuthProvider";
 import { useAssignmentEdit } from "../features/timeline/useAssignmentEdit";
 import { useKeepAbove } from "../features/timeline/useKeepAbove";
@@ -124,7 +125,11 @@ export function TimelinePage() {
   const [estimating, setEstimating] = useState<string | null>(null);
   const estimated = assignments.find((a) => a.id === estimating);
   const estimatedSubject = estimated ? subjects.find((s) => s.id === estimated.subjectId) : undefined;
-  const estimatedPace = estimated ? unitsPerDay(estimated.totalUnits, estimated.startDate, estimated.endDate, estimated.weekdays ?? estimatedSubject?.defaultWeekdays ?? schoolDays) : null;
+  const estimatedDays = estimated ? estimated.weekdays ?? estimatedSubject?.defaultWeekdays ?? schoolDays : null;
+  // S7b-10: over the days the plan really has; until that answers, the weekdays in the dates.
+  const estimatedReal = usePace(estimated && estimatedDays ? { subjectId: estimated.subjectId, childIds: estimated.childIds, startDate: estimated.startDate, endDate: estimated.endDate, weekdays: estimatedDays } : null);
+  const estimatedPace = !estimated || !estimatedDays ? null
+    : estimatedReal ? unitsPerCapacityDay(estimated.totalUnits, estimatedReal.capacityDays) : unitsPerDay(estimated.totalUnits, estimated.startDate, estimated.endDate, estimatedDays);
   const [resetting, setResetting] = useState<{ id: string; title: string } | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
   const confirmReset = async () => {

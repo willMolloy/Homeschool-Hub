@@ -16,6 +16,8 @@ interface Props {
   unitType: UnitType;
   /** Units a day; null until the total, dates and days are filled in. */
   pace: number | null;
+  /** S7b-10: says whose days were counted when the children's differ. */
+  paceNote?: string | null;
   /** What the parent picked; null = untouched. */
   pick: EffortPick | null;
   onPick: (p: EffortPick | null) => void;
@@ -31,7 +33,7 @@ interface Props {
   error?: string;
 }
 
-export function EffortField({ id, unitType, pace, pick, onPick, baseMinutes, suggestion, subjectName, chosenMinutes, usual, error }: Props) {
+export function EffortField({ id, unitType, pace, paceNote, pick, onPick, baseMinutes, suggestion, subjectName, chosenMinutes, usual, error }: Props) {
   const legend = "About how long will that take?";
   if (pace === null) {
     return (
@@ -72,6 +74,7 @@ export function EffortField({ id, unitType, pace, pick, onPick, baseMinutes, sug
     <fieldset className="effort" aria-describedby={describedBy} aria-invalid={error ? true : undefined}>
       <legend>{legend}</legend>
       <p className="effort-pace">{paceText(pace, unitType)}</p>
+      {paceNote ? <p className="hint">{paceNote}</p> : null}
       <div className="effort-options">
         {PRESET_MINUTES.map((m) => (
           <label key={m} className="effort-chip">

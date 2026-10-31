@@ -28,6 +28,7 @@ export {
 } from "./weights";
 export { validWeekdays, weekdaysOf, type WeekdaysSource } from "./weekdays";
 export { buildCapacityModel, ruleFactor, type CapacityModel } from "./capacity";
+export { capacityDays, type CapacityDaysInput } from "./pace";
 export { planChild, planAssignment, planAll, EPS, MAX_PUSH_DAYS } from "./plan";
 export { forecastFinish, forecastOutcome, noRecentProgress, heavyWeek, HEAVY_WEEK_RATIO, type FinishForecast } from "./briefing";
 export { plannedRangeForWeek } from "./checkins";
