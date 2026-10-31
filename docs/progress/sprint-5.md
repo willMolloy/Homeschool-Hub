@@ -10,7 +10,8 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 | S5-04 Add the bulk-create days off endpoint | 04e0152 | `POST /api/blocked-ranges/bulk` in `blockedRanges.ts`; `createOne` and `atPosition` shared with the single create |
 | S5-05 Apply a calendar template from Days off | 5bbab6f | `TemplatePanel.tsx` and `templates.ts`; `ScheduleList` gets a `panels` prop; engine gains `HOLIDAY_LABELS` |
 | S5-06 Store saved calendar templates | 49053f9 | `db/012_calendar_template.sql`; `routes/calendarTemplates.ts` and `repos/calendarTemplateRepo.ts` |
-| S5-07 Save this year as a template, and reuse it | (this commit) | `SaveTemplatePanel.tsx`; `TemplatePanel.tsx` lists saved templates; `templateBreaksFrom` and `shiftedBreaks` in `templates.ts` |
+| S5-07 Save this year as a template, and reuse it | 5ea02a0 | `SaveTemplatePanel.tsx`; `TemplatePanel.tsx` lists saved templates; `templateBreaksFrom` and `shiftedBreaks` in `templates.ts` |
+| S5-08 A compact edit bar on phones | (this commit) | CSS only (`timeline.css`, up to 480 px); test for the control order in `timeline-edit-bar.test.tsx` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -45,6 +46,10 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 - **S5-07 applying.** Saved templates are listed under "Your templates" after the built-in shapes and Custom. A saved one asks only for the new year's first day (no last day, no holidays) and previews every break shifted by days (`first + offsetDays`, length kept), with the same family-wide overlap rule and "N already in your days off" note, then one bulk POST (`childIds: []`, kind and label as saved). A failed load of the saved list just offers none.
 - **S5-07 deleting.** "Delete this template" appears when a saved one is chosen and asks first (the same confirm dialog as the lists use: "Days off already added stay as they are."); the choice falls back to 36 weeks.
 - **S5-07 not checked.** 360 px layout and the native `<dialog>`'s look, as jsdom has no layout; the panels reuse the forms' existing classes.
+- **S5-08 how.** Up to 480 px the three control groups (`tl-edit-moves`, `-dates`, `-ends`) become `display: contents`, so their controls form one non-wrapping row that scrolls sideways (scrollbar hidden), in the DOM order: week moves, Start and End fields, Reset (when changed), end steps, Copy. The markup is unchanged. Above 480 px nothing changed (the 640 px rules are untouched).
+- **S5-08 the top row.** Title and "Subject · Child" now sit side by side on one line (title first, the subtitle taking what is left and ellipsised), with the 44 px × beside them, so the bar is two rows, not three. The date fields and their labels are 44 px tall in this layout (40 px on wider screens, as before).
+- **S5-08 keeping the selection visible.** No code change: `useKeepAbove` already measures the bar's height and scrolls the selected bar above it, and the bar is now shorter. Measured in Chromium (puppeteer, dev data): the bar is 101 px tall at 360 and 390 px (was about 220 at 700 px), every control 44 px or more, and the selected bar's bottom sits well above the bar's top.
+- **S5-08 test.** A web test checks the order and names (Close, Move back, Move forward, Start, End, End a week later, Copy). Sizes are the tester's browser pass and the S5-09 script.
 
 ## Gate counts (end of pass 1)
 

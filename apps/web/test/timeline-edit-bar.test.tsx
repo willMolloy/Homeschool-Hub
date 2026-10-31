@@ -246,3 +246,19 @@ describe("Copy in the edit bar (S3a-02)", () => {
     expect(within(await screen.findByRole("dialog", { name: "Add assignment" })).getByLabelText("Title")).toHaveValue("");
   });
 });
+
+describe("the edit bar's order on phones (S5-08)", () => {
+  it("lists the close button, then the week moves, the date fields, the end steps and Copy, each by name", async () => {
+    stub();
+    const svg = await open();
+    tapBand(svg);
+    const names = within(await sheet()).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent);
+    expect(names.filter((n) => n !== "End a week earlier")).toEqual(["Close", "Move back a week", "Move forward a week", "End a week later", "Copy"]);
+    const region = await sheet();
+    const order = [...region.querySelectorAll("button, input")].map((e) => (e.matches("input") ? (e as HTMLInputElement).labels?.[0]?.textContent?.trim() : e.getAttribute("aria-label") ?? e.textContent));
+    expect(order.indexOf("Move forward a week")).toBeLessThan(order.indexOf("Start"));
+    expect(order.indexOf("Start")).toBeLessThan(order.indexOf("End"));
+    expect(order.indexOf("End")).toBeLessThan(order.indexOf("End a week later"));
+    expect(order.indexOf("End a week later")).toBeLessThan(order.indexOf("Copy"));
+  });
+});

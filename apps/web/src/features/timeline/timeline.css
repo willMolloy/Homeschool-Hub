@@ -76,6 +76,21 @@
   .tl-edit-ends { order: 1; }
   .tl-edit-dates { order: 2; flex-basis: 100%; }
 }
+/* S5-08: on phones the bar is two rows: name and close on top, then one sideways-scrolling row of every control,
+   each 44 px tall. The groups dissolve into that row, keeping their order (moves, dates, ends). */
+@media (max-width: 480px) {
+  .tl-edit { padding: 4px 16px 8px; }
+  .tl-edit-head { align-items: center; }
+  .tl-edit-name { display: flex; align-items: baseline; gap: 8px; }
+  .tl-edit-title { flex: 0 1 auto; min-width: 0; }
+  .tl-edit-sub { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tl-edit-close { margin: 0 -12px 0 0; }
+  .tl-edit-body { flex-direction: row; flex-wrap: nowrap; align-items: center; margin-top: 0; overflow-x: auto; scrollbar-width: none; }
+  .tl-edit-moves, .tl-edit-ends, .tl-edit-dates { display: contents; }
+  .tl-edit-body .btn, .tl-edit-dates label { flex: 0 0 auto; white-space: nowrap; }
+  .tl-edit-dates label { min-height: 44px; }
+  .tl-edit-dates input { min-height: 44px; }
+}
 
 /* T-07c: the child filter, one quiet row of chips like the zoom presets. */
 .tl-children { margin-bottom: 4px; overflow-x: auto; scrollbar-width: none; }
