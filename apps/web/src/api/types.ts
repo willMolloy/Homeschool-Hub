@@ -134,6 +134,22 @@ export interface ScheduleEvent {
   archived: boolean;
 }
 
+/** POST /api/plan/preview-event (S5-01) */
+export interface EventPreviewRow {
+  assignmentId: string;
+  childId: string;
+  title: string;
+  childName: string;
+  unitType: UnitType;
+  before: { perDay: number; end: string };
+  after: { perDay: number; end: string };
+}
+export interface EventPreview {
+  changes: EventPreviewRow[];
+  /** Changed rows beyond the ones returned. */
+  more: number;
+}
+
 /** GET /api/timezones (S2a-17): the zones the server accepts, in canonical spelling. */
 export interface TimeZones {
   zones: string[];

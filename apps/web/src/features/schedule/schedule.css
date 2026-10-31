@@ -253,3 +253,8 @@
 /* S3b-07: the CSV file picker is a 44 px target, like the other controls (the native one is 24 px). */
 .schedule-form input[type="file"] { width: 100%; max-width: 100%; box-sizing: border-box; min-height: 44px; font: inherit; }
 .schedule-form input[type="file"]::file-selector-button { min-height: 44px; margin-right: 12px; padding: 0 16px; border: 1px solid #b7c0cc; border-radius: 8px; background: #fff; font: inherit; cursor: pointer; }
+/* S5-02: "What changes" under the event form's rules: plain text, no box. */
+.event-preview { margin: 0 0 14px; }
+.event-preview-title { margin: 0 0 4px; font-weight: 600; }
+.event-preview ul { margin: 0; padding-left: 20px; overflow-wrap: anywhere; }
+.event-preview .hint { margin: 0; }

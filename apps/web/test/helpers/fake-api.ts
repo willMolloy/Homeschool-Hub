@@ -44,6 +44,7 @@ const BLOCKED = ["label", "kind", "startDate", "endDate", "childIds"];
 /** The keys each API body schema accepts (apps/api/src/routes/*, all z.strictObject). `:id` = one path segment. */
 export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/auth/login": ["email", "password"],
+  "POST /api/plan/preview-event": ["event", "eventId"],
   "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone"],
   "POST /api/children": ["name", "color"],
   "PATCH /api/children/:id": ROSTER_PATCH,

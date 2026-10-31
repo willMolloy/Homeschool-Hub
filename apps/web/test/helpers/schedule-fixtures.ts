@@ -28,4 +28,5 @@ export function patchMerging<T extends { id: string }>(...rows: T[]) {
   };
 }
 
-export const writes = () => fakeApi.calls.filter((c) => c.method !== "GET");
+/** Requests that change something. The event preview (S5-02) is a POST that only reads, so it isn't one. */
+export const writes = () => fakeApi.calls.filter((c) => c.method !== "GET" && c.path !== "/api/plan/preview-event");
