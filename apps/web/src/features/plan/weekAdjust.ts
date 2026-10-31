@@ -6,7 +6,7 @@ export interface AdjustRow {
   assignmentId: string;
   title: string;
   unitType: UnitType;
-  /** What the plan has this child doing this week now (an earlier adjustment is already in it). */
+  /** What the plan has this child doing this week now (an earlier adjustment is already in it), rounded to whole steps (S6b-12). */
   planned: number;
   /** The most the amount can be: what is left of the assignment, never less than `planned`. */
   max: number;
@@ -22,6 +22,12 @@ export interface StoredOverride {
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
+/** S6b-12: a plan's amount as a parent says it: the nearest whole page, lesson or chapter (5 minutes), never 0 for work that is there. */
+export const roundToStep = (unitType: UnitType, n: number): number => {
+  const s = stepOf(unitType);
+  return Math.max(s, Math.round(n / s) * s);
+};
+
 /**
  * One row per assignment this child has work on in the week, or an adjustment for it. Only the child's own adjustment
  * can be taken back here: one for every child (`childId` null) is left to whoever set it.
@@ -33,12 +39,14 @@ export function adjustRows(
   const rows: AdjustRow[] = [];
   for (const p of plans) {
     if (p.childId !== childId) continue;
-    const planned = round(p.days.filter((d) => d.date >= from && d.date <= to).reduce((s, d) => s + d.units, 0));
+    const exact = round(p.days.filter((d) => d.date >= from && d.date <= to).reduce((s, d) => s + d.units, 0));
     const overrideId = overrides.find((o) => o.assignmentId === p.assignmentId && o.childId === childId)?.id ?? null;
-    if (planned <= 0 && overrideId === null) continue;
+    if (exact <= 0 && overrideId === null) continue;
+    // S6b-12: whole amounts from the start (an adjustment to 0 stays 0).
+    const planned = exact <= 0 ? 0 : roundToStep(p.unitType, exact);
     rows.push({
       assignmentId: p.assignmentId, title: titleOf(p.assignmentId), unitType: p.unitType, planned,
-      max: Math.max(planned, round(p.remainingUnits)), overrideId,
+      max: Math.max(planned, roundToStep(p.unitType, p.remainingUnits)), overrideId,
     });
   }
   return rows.sort((a, b) => a.title.localeCompare(b.title) || a.assignmentId.localeCompare(b.assignmentId));

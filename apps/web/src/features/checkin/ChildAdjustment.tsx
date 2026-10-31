@@ -68,7 +68,7 @@ export function ChildAdjustment({ childId, childName, weekStart, weekEnd, lastWe
       </button>
       <ResponsiveSheet open={open} onOpenChange={setOpen} title={ahead ? aheadTitle(childName, weekStart, weekEnd, ahead.current) : sheetTitle(childName, weekStart, weekEnd, lastWeek)}>
         {open && (ahead
-          ? <WeekAdjustment childId={childId} weekStart={weekStart} weekEnd={weekEnd} onSaved={() => setOpen(false)} />
+          ? <WeekAdjustment childId={childId} weekStart={weekStart} weekEnd={weekEnd} current={ahead.current} onSaved={() => setOpen(false)} />
           : <ChildWeekEditor childId={childId} weekStart={weekStart} />)}
       </ResponsiveSheet>
     </>

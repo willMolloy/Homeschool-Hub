@@ -7,7 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
 import { aheadTitle } from "../src/features/checkin/ChildAdjustment";
-import { adjustRows, changesFor, stepAmount, type AdjustRow } from "../src/features/plan/weekAdjust";
+import { adjustRows, changesFor, roundToStep, stepAmount, type AdjustRow } from "../src/features/plan/weekAdjust";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
@@ -55,7 +55,7 @@ async function openSheet(path = "/", name = "Frank") {
   await within(sheet).findByRole("list");
   return sheet;
 }
-const stepper = (sheet: HTMLElement, title: string) => within(sheet).getByRole("group", { name: `Amount this week for ${title}` });
+const stepper = (sheet: HTMLElement, title: string, week = "this week") => within(sheet).getByRole("group", { name: `Amount ${week} for ${title}` });
 
 describe("This Week adjustment (current week)", () => {
   it("opens with each of the child's assignments at this week's planned amount, titled This week", async () => {
@@ -155,10 +155,45 @@ describe("This Week adjustment (other weeks)", () => {
     expect(sheet).toHaveAccessibleName("Frank · Nov 2–8");
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/week-overrides?weekStart=2026-11-02");
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
-    await userEvent.click(within(stepper(sheet, "Treasure Island")).getByRole("button", { name: "One less" }));
+    await userEvent.click(within(stepper(sheet, "Treasure Island", "that week")).getByRole("button", { name: "One less" }));
     await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(puts()[0]!.body).toMatchObject({ weekStart: "2026-11-02", plannedUnits: 19 });
+  });
+
+  it("S6b-12: a coming week's rows say 'That week', the current week's say 'This week'; each amount shows once", async () => {
+    stub();
+    const sheet = await openSheet();
+    const rows = within(sheet).getAllByRole("listitem");
+    expect(rows.map((li) => li.querySelector(".checkin-row-plan")?.textContent)).toEqual(["This week", "This week"]);
+    // The amount is the stepper's value only.
+    for (const li of rows) expect(li.textContent!.match(/\d+ (pages|lessons)/g)).toHaveLength(1);
+  });
+
+  it("S6b-12: a coming week says 'That week', never 'This week'", async () => {
+    stub();
+    const next = plan("ti", "c1", { days: ["2026-11-02", "2026-11-03"].map((date) => ({ date, capacity: 1, schoolDay: true, units: 10, thickness: 10, kind: "planned" as const, position: 10 })) } as Partial<ChildPlan>);
+    fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-11-02", to: "2026-11-08", plans: [next] });
+    const sheet = await openSheet("/?week=2026-11-04");
+    expect(within(sheet).getByText("That week")).toBeInTheDocument();
+    expect(within(sheet).queryByText(/This week/)).toBeNull();
+  });
+
+  it("S6b-12: starting amounts are whole (4.38 lessons shows 4, 88.89 minutes shows 90) and a first tap steps from them", async () => {
+    stub();
+    const day = (date: string, units: number) => ({ date, capacity: 1, schoolDay: true, units, thickness: units, kind: "planned" as const, position: units });
+    fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [
+      plan("math", "c1", { unitType: "lessons", totalUnits: 120, remainingUnits: 110, days: [day("2026-10-28", 4.38)] } as Partial<ChildPlan>),
+      plan("violin", "c1", { unitType: "minutes", totalUnits: 3000, remainingUnits: 2000, days: [day("2026-10-28", 88.89)] } as Partial<ChildPlan>),
+    ] });
+    const sheet = await openSheet();
+    expect(within(stepper(sheet, "Math 5")).getByRole("status")).toHaveTextContent(/^4 lessons$/);
+    expect(within(stepper(sheet, "Violin")).getByRole("status")).toHaveTextContent(/^90 minutes$/);
+    expect(sheet.textContent).not.toMatch(/\d\.\d/);
+    // Nothing moved, so nothing to save; a tap goes to the next whole step.
+    expect(within(sheet).getByRole("button", { name: "Save" })).toBeDisabled();
+    await userEvent.click(within(stepper(sheet, "Violin")).getByRole("button", { name: "One less" }));
+    expect(within(stepper(sheet, "Violin")).getByRole("status")).toHaveTextContent(/^85 minutes$/);
   });
 
   it("a past week still uses the check-in sheet", async () => {
@@ -186,6 +221,13 @@ describe("weekAdjust (pure)", () => {
   });
   it("only counts days inside the week", () => {
     expect(adjustRows([TI], "c1", "2026-10-27", "2026-11-01", [], titleOf)[0]!.planned).toBe(10);
+  });
+  it("roundToStep: whole units, 5 minutes, never 0 for work that is there", () => {
+    expect(roundToStep("lessons", 4.38)).toBe(4);
+    expect(roundToStep("pages", 4.5)).toBe(5);
+    expect(roundToStep("minutes", 88.89)).toBe(90);
+    expect(roundToStep("minutes", 2)).toBe(5);
+    expect(roundToStep("chapters", 0.3)).toBe(1);
   });
   it("stepAmount: minutes by 5, others by 1, within 0 and max", () => {
     expect(stepAmount("minutes", 150, 1, 1000)).toBe(155);

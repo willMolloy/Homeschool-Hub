@@ -21,11 +21,13 @@ export interface WeekAdjustmentProps {
   childId: string;
   weekStart: string;
   weekEnd: string;
+  /** S6b-12: the week is the current one ("This week"), else a coming one ("That week"). */
+  current: boolean;
   /** Called after a successful save, so the sheet can close. */
   onSaved: () => void;
 }
 
-export function WeekAdjustment({ childId, weekStart, weekEnd, onSaved }: WeekAdjustmentProps) {
+export function WeekAdjustment({ childId, weekStart, weekEnd, current, onSaved }: WeekAdjustmentProps) {
   const plan = useApi<PlanResponse>(`/api/plan?from=${weekStart}&to=${weekEnd}`);
   const stored = useApi<{ overrides: StoredOverride[] }>(`/api/week-overrides?weekStart=${weekStart}`);
   const assignments = useApi<Assignment[]>("/api/assignments");
@@ -86,11 +88,11 @@ export function WeekAdjustment({ childId, weekStart, weekEnd, onSaved }: WeekAdj
             <li key={r.assignmentId} className="checkin-row week-adjust-row">
               <div className="week-adjust-head">
                 <span className="checkin-row-title">{r.title}</span>
-                <span className="checkin-row-plan">{isTaken ? "Back to plan" : `This week: ${amountText(r, r.planned)}`}</span>
+                <span className="checkin-row-plan">{isTaken ? "Back to plan" : current ? "This week" : "That week"}</span>
               </div>
               <div className="week-adjust-controls">
                 {!isTaken && (
-                  <div className="checkin-stepper" role="group" aria-label={`Amount this week for ${r.title}`}>
+                  <div className="checkin-stepper" role="group" aria-label={`Amount ${current ? "this week" : "that week"} for ${r.title}`}>
                     <button type="button" aria-label="One less" disabled={busy || n <= 0}
                       onClick={() => setAmount(r, stepAmount(r.unitType, n, -1, r.max))}>−</button>
                     <output aria-live="polite">{amountText(r, n)}</output>
