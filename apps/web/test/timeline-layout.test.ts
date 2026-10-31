@@ -4,7 +4,7 @@ import { MAX_BAR_PX, PX_PER_THICKNESS, SOFT_CAP_KNEE_PX, softCapPx, thicknessToP
 import { buildDayGrid } from "../src/features/timeline/grid";
 import { MIN_TAP_PX, hitTest, tapBox } from "../src/features/timeline/hit";
 import {
-  LABEL_ROW_PX, LANE_GAP_PX, MIN_BAND_PX, SIDE_PAD_PX, bandHeight, layoutTimeline, type TimelineLayout,
+  LABEL_ROW_PX, LANE_GAP_PX, MIN_BAND_PX, SIDE_PAD_PX, SUBJECT_GAP_PX, bandHeight, layoutTimeline, type TimelineLayout,
 } from "../src/features/timeline/layout";
 import { buildTimelineModel, type TimelineAssignment, type TimelineModel } from "../src/features/timeline/model";
 import { drawnExtent, packRows } from "../src/features/timeline/rows";
@@ -261,5 +261,32 @@ describe("the soft cap on bar height (S6b-06)", () => {
     }
     const one = layoutTimeline(synth([["normal", 0, 20, 10]]), { zoom: "year", width: 1280 });
     expect(rowsOf(one, "math:frank")[0]!.height).toBe(10 * PX_PER_THICKNESS);
+  });
+});
+
+describe("spacing between bars (S6b-10)", () => {
+  it("uses the tighter gaps: 2 px between a child's rows, 4 px before a subject", () => {
+    expect(LANE_GAP_PX).toBe(2);
+    expect(SUBJECT_GAP_PX).toBe(4);
+  });
+
+  it.each(WIDTHS)("in the sample family at %i px, every row starts at least 2 px under the one above, at any zoom", (width) => {
+    for (const zoom of ZOOMS) {
+      const l = layoutTimeline(sample, { zoom, width });
+      for (let i = 1; i < l.rows.length; i++) {
+        const prev = l.rows[i - 1]!;
+        expect(l.rows[i]!.y).toBeGreaterThanOrEqual(prev.y + prev.height + 2);
+      }
+      // The first row clears the All subjects strip.
+      expect(l.rows[0]!.y).toBeGreaterThanOrEqual(l.totals.y + l.totals.height + 2);
+    }
+  });
+
+  it("a name outside a thin bar still sits clear of the bar above it", () => {
+    const m = synth([["thick", 0, 9, 10], ["thin", 12, 25, 0.5]]);
+    const l = layoutTimeline(m, { zoom: "year", width: 360 });
+    for (const r of l.rows) expect(r.labelLane).toBeGreaterThanOrEqual(0);
+    const rows = rowsOf(l, "math:frank");
+    for (let i = 1; i < rows.length; i++) expect(rows[i]!.y - rows[i]!.labelLane).toBeGreaterThanOrEqual(rows[i - 1]!.y + rows[i - 1]!.height + LANE_GAP_PX);
   });
 });

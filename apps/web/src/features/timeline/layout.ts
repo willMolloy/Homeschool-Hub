@@ -41,10 +41,10 @@ export const PHONE_WIDTH_PX = 640;
 /** One strip row per recurring event, above the lanes. */
 export const EVENT_ROW_PX = 6;
 export const EVENT_ROW_GAP_PX = 2;
-/** The one uniform gap between rows (agreed: spacing = each row's thickest point + the same small gap). */
-export const LANE_GAP_PX = 4;
-/** The extra gap before each subject. */
-export const SUBJECT_GAP_PX = 8;
+/** The one uniform gap between rows (agreed: spacing = each row's thickest point + the same small gap). S6b-10: 2 px (was 4), so bars sit close but never touch. */
+export const LANE_GAP_PX = 2;
+/** The extra gap before each subject. S6b-10: 4 px (was 8). */
+export const SUBJECT_GAP_PX = 4;
 /** Any band with thickness is drawn at least this thick (agreed 2 px floor); an empty row is this tall too. */
 export const MIN_BAND_PX = 2;
 /** The total-load strip's fixed height; its own scale fits the year's busiest day. */

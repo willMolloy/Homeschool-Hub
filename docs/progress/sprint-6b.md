@@ -6,7 +6,8 @@ Tickets: `docs/tickets/sprint-6b-this-week/`. Pass A covers S6b-01, S6b-05, S6b-
 |--------|--------|-------|
 | S6b-01 Take the effort table off This Week | 0f365ad | `PlanDebugView` draws the table only with the debug flag; each child keeps their name, "Make an adjustment" and warnings |
 | S6b-05 A simpler timeline edit bar | 8d2915c | Edit bar is Start, End, Copy and a quiet More (Heavier, Lighter, Reset to original); week steps and the date-only Reset removed |
-| S6b-06 Soft-cap very thick bars on the timeline | (this commit) | `softCapPx` in `features/plan/scale.ts`: knee 56 px, max 96 px; `bandHeight`, `smoothColumns` (so rows) and the picker preview use it |
+| S6b-06 Soft-cap very thick bars on the timeline | aff7e1a | `softCapPx` in `features/plan/scale.ts`: knee 56 px, max 96 px; `bandHeight`, `smoothColumns` (so rows) and the picker preview use it |
+| S6b-10 Tighter spacing between bars | (this commit) | `LANE_GAP_PX` 4 to 2, `SUBJECT_GAP_PX` 8 to 4; before and after screenshots in `screens/sprint-6b/` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -20,3 +21,6 @@ Tickets: `docs/tickets/sprint-6b-this-week/`. Pass A covers S6b-01, S6b-05, S6b-
 - **S6b-06 constants.** `SOFT_CAP_KNEE_PX` 56 (a typical day, 20 points) and `MAX_BAR_PX` 96 (was 100, which only the picker preview used), both in `features/plan/scale.ts` as the ticket's starting values. A bar is exact up to 56 px, then 56 + 40 x (1 - e^(-(raw - 56) / 40)): 84 px raw draws about 76, 280 px about 95.9, 840 px (300 pages a day) 96 to the pixel.
 - **S6b-06 where it applies.** `bandHeight` (daily and weekly bands, and so `rowHeight`), `smoothColumns` (the raw height before its dead band) and `thicknessToPx` (the picker preview). The All subjects strip normalises to 32 px, under the knee, so the cap leaves it alone. `PX_PER_THICKNESS` is unchanged.
 - **S6b-06 changed test expectations.** `thickness-picker.test.tsx`: the "Very heavy" preview was `30 * PX_PER_THICKNESS` (84 px) and is now `softCapPx(...)` (about 76 px) because 84 px is above the knee; the 100-per-page and 100,000-point clamp checks are unchanged (they still reach 96, now `MAX_BAR_PX`). The existing layout tests (all under the knee) are unchanged.
+- **S6b-10 final constants.** `LANE_GAP_PX` 2 and `SUBJECT_GAP_PX` 4, the ticket's starting values, kept after one look in Chromium at 360, 390 and 1280 px on the demo family (`screens/sprint-6b/before-*.png`, `after-*.png`; the before is after S6b-06, so only the gaps differ). `LABEL_ROW_PX` stays 16: the name of each lane sits in its own 16 px line between bars, so two lanes' bars are still about 20 px apart (and rows of the same lane 2 px); shrinking that line would crowd the 12 px names, and the ticket asks to keep labels readable. Outside names (T-11d/e) are unchanged and still clear the bar above (tested).
+- **S6b-10 tests.** No existing layout expectation changed (they use the constants by name). Added: the constants, every row at least 2 px below the one above (sample family, both widths, every zoom), the first row clear of All subjects, and an outside name clear of the bar above.
+- **S6b-10 browser check.** Scratch database `hh_scratch_dev` (reset and seeded), dev servers on 3000 and 5173; both stopped and the database dropped afterwards.
