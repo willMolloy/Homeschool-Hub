@@ -1,6 +1,7 @@
 /**
  * S5-05: "Use a template" on Days off: pick a year shape and the year's dates, see the breaks, add them in one step.
  * S5-07: the family's saved templates follow the built-in shapes; one asks only for the new year's first day.
+ * S7-07: with nothing to add the panel says why and Add breaks is off.
  */
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { CALENDAR_SHAPES, HOLIDAY_KEYS, HOLIDAY_LABELS, isValidLocalDate, type HolidayKey } from "@hh/engine";
@@ -65,6 +66,9 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
     const pattern = custom ? { weeksOn: on!, weeksOff: off! } : builtIn?.pattern ?? null;
     return leaveOutExisting(plannedBreaks(start, end, pattern, holidays, weekStart), existing);
   }, [datesError, weeksError, chosen, custom, on, off, builtIn, start, end, holidays, weekStart, existing]);
+
+  /** S7-07: the dates are fine but no break would be added (all are already days off, or the range has none). */
+  const nothingToAdd = !problem && add.length === 0;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -172,13 +176,19 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
       {tried && problem ? <p className="field-error" role="alert">{problem}</p> : null}
       {!problem ? (
         <div className="template-preview" aria-live="polite">
-          <p className="event-preview-title">{add.length === 1 ? "1 break to add" : `${add.length} breaks to add`}</p>
-          {add.length > 0 ? <ul>{add.map((b) => <li key={`${b.start}/${b.end}/${b.label}`}>{breakText(b, kindLabels)}</li>)}</ul> : null}
-          {skipped > 0 ? <p className="hint">{skipped} already in your days off</p> : null}
+          {nothingToAdd ? (
+            <p className="event-preview-title">{skipped > 0 ? "Nothing new to add: these breaks are already in your days off." : "No breaks in this range."}</p>
+          ) : (
+            <>
+              <p className="event-preview-title">{add.length === 1 ? "1 break to add" : `${add.length} breaks to add`}</p>
+              <ul>{add.map((b) => <li key={`${b.start}/${b.end}/${b.label}`}>{breakText(b, kindLabels)}</li>)}</ul>
+              {skipped > 0 ? <p className="hint">{skipped} already in your days off</p> : null}
+            </>
+          )}
         </div>
       ) : null}
       <div className="btn-row">
-        <button className="btn" type="submit" disabled={saving}>{saving ? "Adding…" : "Add breaks"}</button>
+        <button className="btn" type="submit" disabled={saving || nothingToAdd}>{saving ? "Adding…" : "Add breaks"}</button>
         <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>
       </div>
       {deleting && chosen ? (

@@ -9,7 +9,8 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 | S7-03 Store a family's zoom views | 3ee1d42 | Migration `014_zoom_views` (`family.zoom_views`); `http/zoomViews.ts` validates; `GET`/`PATCH /api/family` carry `zoomViews` |
 | S7-04 Show custom and hidden zoom views on the timeline | fc1c526 | `Zoom` is a built-in or `custom:<id>`; `zoomRange` takes the custom views; `visibleZooms` builds the row; `useTimelineData` reads `zoomViews` from `GET /api/family` |
 | S7-05 Edit the zoom views | 886baea | `EditZoomViewsSheet` (`timeline/EditZoomViews.tsx`) behind a quiet Edit in `ZoomPresets`; rules in `timeline/zoomViews.ts`; `useTimelineData.setZoomViews` |
-| S7-06 The event preview skips finished assignments | (this commit) | `hasWorkFrom` in `routes/eventPreview.ts` |
+| S7-06 The event preview skips finished assignments | 4582ef7 | `hasWorkFrom` in `routes/eventPreview.ts` |
+| S7-07 Say so when a template adds no breaks | (this commit) | `nothingToAdd` in `TemplatePanel.tsx` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -43,3 +44,4 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 ## Pass B decisions
 
 - **S7-06 what counts as finished.** A row is left out when neither the before nor the after plan has any units on or after today (`days` with `date >= today` and `units > EPS`). That covers an assignment that ended earlier and one whose check-ins finished it. Both plans are checked so a row is never dropped when the draft would give it work.
+- **S7-07 the messages.** With the dates valid and nothing to add: "Nothing new to add: these breaks are already in your days off." when some were skipped as already days off, otherwise "No breaks in this range.". They replace the "0 breaks to add" heading and the "already in your days off" hint; Add breaks is disabled (no request). While the dates are invalid the button stays enabled so its error still shows.
