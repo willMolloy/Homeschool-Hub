@@ -5,6 +5,7 @@ import { apiPatch, apiPost } from "../../api/client";
 import type { BlockedKind, BlockedRange } from "../../api/types";
 import { ChildPicker, dateRange, dateRangeError, saveError, sameSet, spanDays } from "./formBits";
 import { WithLookups, type Lookups } from "./lookups";
+import { SaveTemplatePanel } from "./SaveTemplatePanel";
 import { TemplatePanel } from "./TemplatePanel";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
 
@@ -31,7 +32,10 @@ export function DaysOffPage() {
           confirmText="Those days go back to normal school days in the plan. This can't be undone."
           renderCard={(r) => <DaysOffCard r={r} l={l} />}
           renderForm={(p) => <DaysOffForm {...p} l={l} />}
-          panels={[{ id: "template", label: "Use a template", render: (p) => <TemplatePanel {...p} /> }]}
+          panels={[
+            { id: "template", label: "Use a template", render: (p) => <TemplatePanel {...p} kindLabels={KIND_LABELS} /> },
+            { id: "save-template", label: "Save as a template", render: (p) => <SaveTemplatePanel {...p} /> },
+          ]}
         />
       )}
     </WithLookups>

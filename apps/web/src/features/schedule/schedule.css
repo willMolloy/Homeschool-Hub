@@ -262,3 +262,5 @@
 .template-preview { margin: 0 0 14px; }
 .template-preview ul { margin: 0; padding-left: 20px; overflow-wrap: anywhere; }
 .template-preview .hint { margin: 4px 0 0; }
+/* S5-07: delete sits under the new year's date, not stretched. */
+.template-delete { margin: 0 0 14px; }

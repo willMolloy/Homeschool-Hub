@@ -115,6 +115,19 @@ export interface BlockedRange {
   childIds: string[];
 }
 
+/** GET/POST /api/calendar-templates (S5-06): breaks counted in days from the year's first day. */
+export interface TemplateBreak {
+  offsetDays: number;
+  lengthDays: number;
+  label: string | null;
+  kind: BlockedKind;
+}
+export interface CalendarTemplate {
+  id: string;
+  name: string;
+  breaks: TemplateBreak[];
+}
+
 /** GET/POST/PATCH /api/events (S2a-08..10) */
 export type EventRule = SubjectRule;
 export interface ScheduleEvent {

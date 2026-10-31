@@ -1,10 +1,11 @@
 /** S5-05: the breaks a calendar template adds, worked out from the year's dates. Pure; dates are "YYYY-MM-DD" strings. */
-import { HOLIDAY_KEYS, onOffBreaks, usHolidays, type HolidayKey, type WeekStart } from "@hh/engine";
-import type { BlockedKind, BlockedRange } from "../../api/types";
+import { addDays, diffDays, HOLIDAY_KEYS, onOffBreaks, usHolidays, type HolidayKey, type WeekStart } from "@hh/engine";
+import type { BlockedKind, BlockedRange, TemplateBreak } from "../../api/types";
 
 export interface PlannedBreak {
-  label: string;
-  kind: Extract<BlockedKind, "holiday" | "vacation">;
+  /** null = a day off with no label of its own (S5-07). */
+  label: string | null;
+  kind: BlockedKind;
   start: string;
   end: string;
 }
@@ -54,7 +55,44 @@ export function breakDates(start: string, end: string): string {
   return `${md(start)} – ${md(end)}`;
 }
 
-export const breakText = (b: PlannedBreak) => `${b.label}: ${breakDates(b.start, b.end)}`;
+/** "Thanksgiving: Nov 26–27"; a break with no label is named by its kind ("Sick day: Nov 4"). */
+export const breakText = (b: PlannedBreak, kindLabels: Record<BlockedKind, string>) => `${b.label ?? kindLabels[b.kind]}: ${breakDates(b.start, b.end)}`;
+
+/** S5-07: a saved template's breaks moved to a year that starts on `first` (shifted by days, not by weekday). */
+export function shiftedBreaks(breaks: TemplateBreak[], first: string): PlannedBreak[] {
+  return breaks
+    .map((b) => ({ label: b.label, kind: b.kind, start: addDays(first, b.offsetDays), end: addDays(first, b.offsetDays + b.lengthDays - 1) }))
+    .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
+}
+
+/** The longest break a template stores (apps/api/src/routes/calendarTemplates.ts). */
+export const MAX_TEMPLATE_LENGTH = 60;
+/** The most breaks a template holds. */
+export const MAX_TEMPLATE_BREAKS = 100;
+/** A saved year covers the first day and the 365 days after it. */
+export const TEMPLATE_YEAR_DAYS = 365;
+
+/**
+ * S5-07: what "Save as a template" stores for the year starting on `first`: every family-wide day off that starts
+ * from that day to a year later, as offsets from `first` (kind and label kept, a break over 60 days cut to 60).
+ * `leftOut` counts the days off in that year that are for some children only.
+ */
+export function templateBreaksFrom(existing: BlockedRange[], first: string): { breaks: TemplateBreak[]; leftOut: number } {
+  const inYear = existing.filter((r) => {
+    const offset = diffDays(first, r.startDate);
+    return offset >= 0 && offset <= TEMPLATE_YEAR_DAYS;
+  });
+  const breaks = inYear
+    .filter((r) => r.childIds.length === 0)
+    .map((r) => ({
+      offsetDays: diffDays(first, r.startDate),
+      lengthDays: Math.min(diffDays(r.startDate, r.endDate) + 1, MAX_TEMPLATE_LENGTH),
+      label: r.label,
+      kind: r.kind,
+    }))
+    .sort((a, b) => a.offsetDays - b.offsetDays || a.lengthDays - b.lengthDays);
+  return { breaks, leftOut: inYear.length - breaks.length };
+}
 
 /** Every holiday key, in the order a school year meets them. */
 export const ALL_HOLIDAYS: ReadonlySet<HolidayKey> = new Set(HOLIDAY_KEYS);

@@ -46,6 +46,7 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/auth/login": ["email", "password"],
   "POST /api/plan/preview-event": ["event", "eventId"],
   "POST /api/blocked-ranges/bulk": ["blockedRanges"],
+  "POST /api/calendar-templates": ["name", "breaks"],
   "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone"],
   "POST /api/children": ["name", "color"],
   "PATCH /api/children/:id": ROSTER_PATCH,

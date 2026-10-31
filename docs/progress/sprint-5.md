@@ -9,7 +9,8 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 | S5-03 Add year-shape helpers | 3a57d34 | `yearShape.ts`: `usHolidays`, `onOffBreaks`, `CALENDAR_SHAPES`; exported from `@hh/engine` |
 | S5-04 Add the bulk-create days off endpoint | 04e0152 | `POST /api/blocked-ranges/bulk` in `blockedRanges.ts`; `createOne` and `atPosition` shared with the single create |
 | S5-05 Apply a calendar template from Days off | 5bbab6f | `TemplatePanel.tsx` and `templates.ts`; `ScheduleList` gets a `panels` prop; engine gains `HOLIDAY_LABELS` |
-| S5-06 Store saved calendar templates | (this commit) | `db/012_calendar_template.sql`; `routes/calendarTemplates.ts` and `repos/calendarTemplateRepo.ts` |
+| S5-06 Store saved calendar templates | 49053f9 | `db/012_calendar_template.sql`; `routes/calendarTemplates.ts` and `repos/calendarTemplateRepo.ts` |
+| S5-07 Save this year as a template, and reuse it | (this commit) | `SaveTemplatePanel.tsx`; `TemplatePanel.tsx` lists saved templates; `templateBreaksFrom` and `shiftedBreaks` in `templates.ts` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -39,3 +40,12 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 - **S5-06 what the database checks.** A name of 1 to 60 characters, `breaks` a JSON array of 1 to 100 entries, a real family (ON DELETE CASCADE). The fields inside each break are checked by the API only (a CHECK over JSON elements would need a function for little gain, as the table is only written by the API). `db/test/validate.sql` and `db/test/calendar-template-migration.test.ts` cover these.
 - **S5-06 breaks.** Each break is a strict `{ offsetDays 0-400, lengthDays 1-60, label, kind }`, whole numbers; `kind` is any day-off kind (`BLOCKED_KINDS`, as the ticket says, so a saved `missed` day round-trips). `label` is trimmed, up to 60, and a blank one is stored as null (a day off may have no label, so "Save this year" can keep it).
 - **S5-06 API.** GET returns `{ id, name, breaks }` oldest first; POST validates strictly (unknown keys 400) and returns 201 with the saved template; DELETE is 204, or 404 for a malformed id, a missing one or another family's. Names need not be unique. Like days off, templates are not blocked for the demo family.
+- **S5-07 which days off are saved.** Those that start from the year's first day up to 365 days after it (so a year is the first day plus the 365 after it), and are for the whole family. Days off for some children only are left out and counted ("2 days off for individual children are left out"). A day off that starts before the first day is not saved even if it runs into the year. Kind and label are kept as they are (a day off with no label stays unlabelled; the preview names it by its kind). A break longer than the 60 days a template stores is cut to 60.
+- **S5-07 the form.** "Save as a template" sits beside "Use a template" (another `panels` entry). It asks a name (1 to 60) and the year's first day, says how many days off will be saved, and errors (no name, no date, no whole-family days off in that year, more than 100) show on Save template. After saving it shows "Saved “name”. Find it under Use a template." with Done, because closing at once would give no sign it worked; the days off list is not touched.
+- **S5-07 applying.** Saved templates are listed under "Your templates" after the built-in shapes and Custom. A saved one asks only for the new year's first day (no last day, no holidays) and previews every break shifted by days (`first + offsetDays`, length kept), with the same family-wide overlap rule and "N already in your days off" note, then one bulk POST (`childIds: []`, kind and label as saved). A failed load of the saved list just offers none.
+- **S5-07 deleting.** "Delete this template" appears when a saved one is chosen and asks first (the same confirm dialog as the lists use: "Days off already added stay as they are."); the choice falls back to 36 weeks.
+- **S5-07 not checked.** 360 px layout and the native `<dialog>`'s look, as jsdom has no layout; the panels reuse the forms' existing classes.
+
+## Gate counts (end of pass 1)
+
+Engine 373, API 879, web 713, db 102 tests, all green; migration `012_calendar_template.sql` is the only new one.
