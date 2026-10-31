@@ -20,7 +20,7 @@ import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows } from "./rows";
 import { sumSeries } from "./grid";
-import { cleanSeries, smoothSeries } from "./smooth";
+import { calmSeries, limitSlope } from "./smooth";
 import { makeXScale, type XScale } from "./xscale";
 import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, type Zoom } from "./zoom";
 
@@ -251,9 +251,12 @@ export const SMOOTH_DEADBAND_PX = 3;
 export function smoothColumns(series: readonly number[], xs: XScale, cy: number, pxPerPoint: number, maxPx: number): (BandColumn | null)[] {
   const out: (BandColumn | null)[] = [];
   let held = 0;
-  for (let i = xs.first; i <= xs.last; i++) {
-    if (!xs.isColumn(i)) continue;
-    const raw = softCapPx((series[i] ?? 0) * pxPerPoint);
+  // S7-21: the heights first, then their change from column to column is limited (a gentle slope per week).
+  const at: number[] = [];
+  for (let i = xs.first; i <= xs.last; i++) if (xs.isColumn(i)) at.push(i);
+  const heights = limitSlope(at.map((i) => softCapPx((series[i] ?? 0) * pxPerPoint)), at.map((i, k) => (k === 0 ? 1 : i - at[k - 1]!)));
+  for (const [k, i] of at.entries()) {
+    const raw = heights[k]!;
     // Even heights keep both edges on whole pixels; a change under the dead band keeps the height held.
     if (raw <= 0) held = 0;
     else if (held === 0 || Math.abs(raw - held) >= SMOOTH_DEADBAND_PX) held = Math.max(MIN_BAND_PX, 2 * Math.round(raw / 2));
@@ -339,16 +342,17 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   // T-05c: which series and outline a band uses at this detail.
   const schoolColumns = model.dates.map((_, i) => i).filter((i) => model.schoolDay[i]);
   // T-08b: zoomed out, an assignment is its clean shape (no lumps); All subjects smooths the sum of those shapes.
+  // S7-21: that shape is now a four-week moving average (`calmSeries`) with the slope limited in `smoothColumns`.
   const clean = new Map<TimelineAssignment, number[]>();
   const cleanOf = (a: TimelineAssignment) => {
     let c = clean.get(a);
-    if (!c) clean.set(a, (c = cleanSeries(a.daily, schoolColumns)));
+    if (!c) clean.set(a, (c = calmSeries(a.daily, schoolColumns)));
     return c;
   };
   const seriesFor = (a: TimelineAssignment) => (detail === "smooth" ? cleanOf(a) : detail === "weekly" ? a.weekly : a.daily);
   const totalsSeries = () =>
     detail === "smooth"
-      ? smoothSeries(sumSeries(model.lanes.flatMap((l) => l.children.flatMap((c) => c.assignments.map(cleanOf))), model.dates.length), schoolColumns)
+      ? calmSeries(sumSeries(model.lanes.flatMap((l) => l.children.flatMap((c) => c.assignments.map(cleanOf))), model.dates.length), schoolColumns)
       : detail === "weekly" ? model.totals.weekly : model.totals.daily;
   const columnsFor = (series: readonly number[], cy: number, scale: number, maxPx: number) =>
     detail === "smooth" ? smoothColumns(series, xs, cy, scale, maxPx) : bandColumns(series, xs, cy, scale);

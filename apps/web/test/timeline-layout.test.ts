@@ -4,10 +4,12 @@ import { MAX_BAR_PX, PX_PER_THICKNESS, SOFT_CAP_KNEE_PX, softCapPx, thicknessToP
 import { buildDayGrid } from "../src/features/timeline/grid";
 import { MIN_TAP_PX, hitTest, tapBox } from "../src/features/timeline/hit";
 import {
-  AXIS_HEIGHT_PX, DAY_LABEL_CLEAR_PX, LABEL_ROW_PX, LANE_GAP_PX, MONTH_LABEL_CLEAR_PX, MIN_BAND_PX, SIDE_PAD_PX, SUBJECT_GAP_PX, bandHeight, layoutTimeline, type TimelineLayout,
+  AXIS_HEIGHT_PX, DAY_LABEL_CLEAR_PX, SMOOTH_DEADBAND_PX, smoothColumns, LABEL_ROW_PX, LANE_GAP_PX, MONTH_LABEL_CLEAR_PX, MIN_BAND_PX, SIDE_PAD_PX, SUBJECT_GAP_PX, bandHeight, layoutTimeline, type TimelineLayout,
 } from "../src/features/timeline/layout";
 import { buildTimelineModel, type TimelineAssignment, type TimelineModel } from "../src/features/timeline/model";
 import { drawnExtent, packRows } from "../src/features/timeline/rows";
+import { CALM_SLOPE_PX_PER_WEEK, calmSeries, limitSlope } from "../src/features/timeline/smooth";
+import { makeXScale } from "../src/features/timeline/xscale";
 import { ZOOMS, zoomRange } from "../src/features/timeline/zoom";
 import { SAMPLE_CHILDREN, sampleInput } from "./helpers/timeline-fixtures";
 
@@ -218,6 +220,86 @@ describe("zoom ranges and the rest of the layout", () => {
     const l = layoutTimeline(empty, { zoom: "year", width: 360 });
     expect(l.bands.every((b) => b.d === "")).toBe(true);
     expect(l.todayX).toBeNull();
+  });
+});
+
+const total = (xs: readonly number[]) => xs.reduce((sum, v) => sum + v, 0);
+
+/** S7-21: one assignment over 40 school weeks at 4 points a day, with a two-week sprint of 20 a day in the middle. */
+function sprintModel() {
+  const grid = buildDayGrid("2026-09-07", "2027-06-04", [1, 2, 3, 4, 5]);
+  const school = grid.dates.map((_, i) => i).filter((i) => grid.schoolDay[i]);
+  const daily = Array.from({ length: grid.dates.length }, () => 0);
+  school.forEach((gi, k) => { daily[gi] = k >= 100 && k < 110 ? 20 : 4; });
+  const base = synth([["a", 0, 0, 1]]);
+  const a: TimelineAssignment = {
+    assignmentId: "sprint", childId: "frank", title: "Sprint", daily, weekly: daily, first: school[0]!, last: school.at(-1)!,
+    end: grid.dates[school.at(-1)!]!, plannedEnd: grid.dates[school.at(-1)!]!, estimated: false, complete: false, warnings: [],
+  };
+  const model: TimelineModel = {
+    ...base, ...grid, today: "2026-09-08", todayIndex: 1,
+    lanes: [{ ...base.lanes[0]!, children: [{ ...base.lanes[0]!.children[0]!, assignments: [a] }] }],
+    totals: { daily, weekly: daily },
+  };
+  return { model, grid, school, daily };
+}
+
+describe("calm bars when zoomed out (S7-21)", () => {
+  it("limitSlope: neighbouring columns differ by at most the limit per week, runs are separate", () => {
+    const h = [10, 10, 10, 40, 40, 40, 10, 10, 10, 0, 0, 30, 30];
+    const gaps = h.map(() => 1);
+    const out = limitSlope(h, gaps, 7); // 1 px per day
+    for (let k = 1; k < 9; k++) expect(Math.abs(out[k]! - out[k - 1]!)).toBeLessThanOrEqual(1 + 1e-9);
+    expect(out[9]).toBe(0);
+    expect(out[10]).toBe(0);
+    expect(out[11]).toBe(30); // a run of its own starts at its own height
+    expect(Math.max(...out.slice(0, 9))).toBeLessThan(40); // an abrupt spike is rounded off
+    // A gap of several days allows several days' change.
+    expect(limitSlope([10, 40], [1, 7], 7)[1]! - limitSlope([10, 40], [1, 7], 7)[0]!).toBeLessThanOrEqual(7);
+  });
+
+  it("at Year zoom a two-week sprint draws as an even band: weekly changes stay near the slope limit", () => {
+    const { model } = sprintModel();
+    const l = layoutTimeline(model, { zoom: "year", width: 1280 });
+    expect(l.detail).toBe("smooth");
+    const band = l.bands[0]!;
+    // The bar is centred on cy; its tallest point is the largest distance of the outline from cy.
+    const half = (Math.max(...ys(band.d).map((y) => Math.abs(y - band.cy))));
+    const sprintRaw = softCapPx(20 * PX_PER_THICKNESS);
+    expect(half * 2).toBeLessThan(sprintRaw * 0.75); // the sprint's own 56 px is not drawn
+    expect(band.runs.length).toBe(1); // one bar, start to end
+  });
+
+  it("smoothColumns: weekly steps are within the slope limit plus the 3 px dead band, and the average thickness is the true average", () => {
+    const { model, school, daily } = sprintModel();
+    const xs = makeXScale(model, 0, model.dates.length - 1, 4, 1272);
+    const calm = calmSeries(daily, school);
+    const cols = smoothColumns(calm, xs, 50, PX_PER_THICKNESS, 112);
+    const h = cols.map((c) => (c ? c.bottom - c.top : 0));
+    expect(h.length).toBe(school.length);
+    for (let k = 5; k < h.length; k++) expect(Math.abs(h[k]! - h[k - 5]!)).toBeLessThanOrEqual(CALM_SLOPE_PX_PER_WEEK + SMOOTH_DEADBAND_PX + 1);
+    // Honest size: the drawn mean is within 10% of the true mean thickness (4 points a day, 20 in the sprint).
+    const trueMean = total(daily.filter((v) => v > 0)) / daily.filter((v) => v > 0).length;
+    expect(Math.abs(total(h) / h.length / PX_PER_THICKNESS - trueMean) / trueMean).toBeLessThan(0.1);
+    // Its peak is far below the sprint's own 56 px.
+    expect(Math.max(...h)).toBeLessThan(0.75 * 20 * PX_PER_THICKNESS);
+  });
+
+  it("a heavier assignment is still a thicker band", () => {
+    const light = sprintModel();
+    const heavyDaily = light.daily.map((v) => v * 2);
+    const heavy = { ...light.model, lanes: [{ ...light.model.lanes[0]!, children: [{ ...light.model.lanes[0]!.children[0]!, assignments: [{ ...light.model.lanes[0]!.children[0]!.assignments[0]!, daily: heavyDaily, weekly: heavyDaily }] }] }] };
+    const top = (m: TimelineModel) => { const b = layoutTimeline(m, { zoom: "year", width: 1280 }).bands[0]!; return Math.max(...ys(b.d).map((y) => Math.abs(y - b.cy))); };
+    expect(top(heavy)).toBeGreaterThan(top(light.model));
+  });
+
+  it("daily detail is unchanged: at This month the sprint's real steps show", () => {
+    const { model } = sprintModel();
+    const l = layoutTimeline(model, { zoom: "month", width: 1280, month: "2027-01" });
+    expect(l.detail).toBe("daily");
+    const band = l.bands[0]!;
+    const peak = Math.max(...ys(band.d).map((y) => Math.abs(y - band.cy)));
+    expect(peak * 2).toBeCloseTo(bandHeight(20, PX_PER_THICKNESS), 3);
   });
 });
 
