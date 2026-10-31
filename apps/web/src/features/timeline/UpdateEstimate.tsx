@@ -9,7 +9,7 @@ import { isLearnedUnit, minutesPerDayFromWeight, weightFromMinutesPerDay, weight
 import { ApiError, apiPatch } from "../../api/client";
 import type { Assignment, Subject } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
-import { optionFor, paceText, PRESET_MINUTES, wholeMinutes } from "../schedule/effort";
+import { paceText, PRESET_MINUTES, wholeMinutes } from "../schedule/effort";
 import { parsePositive } from "../schedule/formBits";
 import "../../ui/forms.css";
 import "../schedule/schedule.css";
@@ -37,6 +37,12 @@ export function UpdateEstimateSheet({ assignment, subject, childNames, pace, onS
   );
 }
 
+/** S7b-16: a preset matches when it is within 2.5 minutes of the estimate; otherwise Custom, to the nearest 5. */
+export function startingChoice(minutes: number): { choice: number | "custom"; custom: string } {
+  const preset = PRESET_MINUTES.find((p) => Math.abs(p - minutes) < 2.5);
+  return { choice: preset ?? "custom", custom: String(Math.max(5, Math.round(minutes / 5) * 5)) };
+}
+
 /** "Frank's", "Their": whose next books the answer teaches. */
 const whose = (names: string[]) => (names.length === 1 ? `${names[0]}'s` : "Their");
 
@@ -44,9 +50,16 @@ function EstimateForm({ assignment: a, subject, childNames, pace, onSaved, onCan
   const id = useId();
   const weight = weightPerUnitOf(a, subject?.defaultWeight ?? null).weight;
   const current = minutesPerDayFromWeight(weight, pace);
-  const nearest = optionFor(current);
-  const [choice, setChoice] = useState<number | "custom">(nearest);
-  const [custom, setCustom] = useState(String(wholeMinutes(current)));
+  // S7b-16: the sheet starts at the current estimate (the preset it matches, else Custom to the nearest 5 minutes), and follows it
+  // while untouched, so a pace that arrives a moment later (the real day count) moves the selection with the text above it.
+  const initial = startingChoice(current);
+  const [picked, setPicked] = useState<{ choice: number | "custom"; custom: string } | null>(null);
+  const choice = (picked ?? initial).choice;
+  const custom = (picked ?? initial).custom;
+  const setChoice = (c: number | "custom") => setPicked({ choice: c, custom });
+  const setCustom = (t: string) => setPicked({ choice: "custom", custom: t });
+  /** Save stays off until the answer differs from where the sheet started. */
+  const unchanged = picked === null || (picked.choice === initial.choice && (picked.choice !== "custom" || picked.custom.trim() === initial.custom));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -95,7 +108,7 @@ function EstimateForm({ assignment: a, subject, childNames, pace, onSaved, onCan
       ) : null}
       {error ? <p className="field-error" role="alert">{error}</p> : null}
       <div className="btn-row">
-        <button className="btn" type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+        <button className="btn" type="submit" disabled={saving || unchanged}>{saving ? "Saving…" : "Save"}</button>
         <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>
       </div>
     </form>

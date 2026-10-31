@@ -17,7 +17,8 @@ Tickets: `docs/tickets/sprint-7b-fixes/`. S7b-08 (tester pass) is the tester's.
 | S7b-12 Copy to another child skips what the child already has | 1d4493f | `childAlreadyHas` in `copyPlan.ts`; `CopyToChildPanel` |
 | S7b-13 Saved templates keep holidays on their real dates | 929c9b2 | `templateBreaksFrom` / `shiftedBreaks` in `schedule/templates.ts`; the template break gains `holiday` and `weekday` (API schema, repo and web types) |
 | S7b-14 Small fixes from the independent review | 4ee4ac2 | F-04 `UndoBar`; F-11 `capSuggestion` (`AssignmentsPage`); F-12 `SubjectSelect`; F-13 `usePlanEnds` and the card line; F-14 `HOST` in `config.ts` / `server.ts` |
-| S7b-15 An "ahead" check-in row fits a phone | (this commit) | `checkin.css` (`.checkin-row-toggle` wraps, title keeps 9rem, `[data-long]` state on its own line), `CheckInRow.tsx` |
+| S7b-15 An "ahead" check-in row fits a phone | 13ce723 | `checkin.css` (`.checkin-row-toggle` wraps, title keeps 9rem, `[data-long]` state on its own line), `CheckInRow.tsx` |
+| S7b-16 Update time estimate starts at the current estimate | (this commit) | `UpdateEstimate.tsx` (`startingChoice`) |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -77,3 +78,4 @@ Tickets: `docs/tickets/sprint-7b-fixes/`. S7b-08 (tester pass) is the tester's.
 ## Round 2 (the S7b-08 tester's N1 to N9)
 
 - **S7b-15 the layout.** The row's button is now `flex-wrap: wrap`; the title has `flex: 1 1 9rem` with a 9rem minimum (or the row's width if narrower), and a state longer than 14 characters ("4 chapters (1 more than planned)") carries `data-long` and takes the whole line under the title. Short states ("2 of 3 ch.", the tick) stay on the title's line as before. Only the CSS rules and the marker are tested in jsdom (no layout there); the 360 and 390 px check is the tester's.
+- **S7b-16 the cause and the fix.** The sheet seeded its choice once from the pace it had on first render (the weekday count) and the real pace arrived later, so the text moved and the chip did not. The starting choice is now derived from the current estimate on every render until the parent touches something, so it follows the pace. It is the preset within 2.5 minutes of the estimate, else Custom to the nearest 5 (about 37 opens on Custom 35, about 30 on 30). Save is off until the choice differs from where it started (tapping the chip already chosen is not a change; typing the same Custom number is not either). Changed expectation: the "refused save" test picks 45 first, since Save is off untouched.
