@@ -4,7 +4,8 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
-| S7-01 Copy a year's plan into a new year | (this commit) | `CopyToNewYearPanel` (`schedule/CopyPanels.tsx`) in the Assignments `panels` slot; `copyPlan.ts` holds `shiftedCopy`, `copyCandidates` and the chunked bulk save |
+| S7-01 Copy a year's plan into a new year | 394470e | `CopyToNewYearPanel` (`schedule/CopyPanels.tsx`) in the Assignments `panels` slot; `copyPlan.ts` holds `shiftedCopy`, `copyCandidates` and the chunked bulk save |
+| S7-02 Copy assignments to another child | (this commit) | `CopyToChildPanel` (same file) reuses `CopyList`, `shiftedCopy` and `saveInChunks` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -13,3 +14,7 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 - **S7-01 grouping.** Grouped by the children an assignment is for ("Frank", "Maggie", or "Frank, Maggie" for a shared one) rather than splitting a shared assignment under each child, so it is ticked once. Rows are ordered by start date, then title.
 - **S7-01 partly saved.** Chunks of 50 go one after another and stop at the first failure. Earlier chunks stay: they are added to the list through a new `onAdded` on the `panels` render prop (adds rows without closing the panel). The panel stays open, says "Part 2 of 2 didn't save: <title>: <message> 50 copies were created.", and offers only the assignments not yet copied, so Copy again never duplicates. The list of sources is fixed when the panel opens, so the copies just created are never offered.
 - **S7-01 copied as stored.** `weightPerUnit` and `weekdays` are copied exactly (null stays null); title is unchanged (no " (copy)"), because the copies are for another year.
+- **S7-02 the picks.** Copy from (active children), then an optional Subject (only the subjects that child has work in), the child's assignments ticked (all by default), Copy to (every active child except the source), and an optional New start date. Nothing is listed until a source is chosen; a child with nothing says so.
+- **S7-02 the shift.** The new start date is where the earliest *ticked* assignment starts; the others keep their gaps from it (so unticking the first changes the base). With no date, dates are unchanged. The preview line under each title shows the new dates as the date is typed.
+- **S7-02 shared assignments.** An assignment Frank shares with Maggie is listed under "Frank, Maggie" and copied for the target child alone. Copying to a child who already has the same work makes a second assignment (not checked for or blocked: the parent ticks what they want).
+- **S7-02 same rules as S7-01.** Assignments with an archived subject or no active child are not offered; chunks of 50; a failed chunk keeps the earlier ones and a retry sends only the rest. Titles are unchanged (no " (copy)").

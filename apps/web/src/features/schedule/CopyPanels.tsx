@@ -1,6 +1,6 @@
 /**
- * S7-01: "Copy to a new year", a panel in the Assignments screen's panels slot. It copies the plan only (titles, units,
- * totals, effort, days, shifted dates) and uses the chosen-rows list and the chunked save (copyPlan.ts).
+ * S7-01: "Copy to a new year" and S7-02: "Copy to another child", panels in the Assignments screen's panels slot. They copy the
+ * plan only (titles, units, totals, effort, days, shifted dates) and share the chosen-rows list and the chunked save (copyPlan.ts).
  */
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { diffDays, isValidLocalDate } from "@hh/engine";
@@ -149,6 +149,85 @@ export function CopyToNewYearPanel(p: CopyPanelProps) {
           <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>
         </div>
       ) : null}
+    </form>
+  );
+}
+
+/** S7-02: one child's assignments (optionally one subject) copied to another child, optionally starting on a new date. */
+export function CopyToChildPanel(p: CopyPanelProps) {
+  const { l, onCancel } = p;
+  const [existing] = useState(p.existing);
+  const [sourceId, setSourceId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [targetId, setTargetId] = useState("");
+  const [newStart, setNewStart] = useState("");
+  const ids = { source: useId(), subject: useId(), target: useId(), start: useId() };
+  const { unticked, toggle, setUnticked } = useTicks();
+  const activeChildren = l.children.filter((c) => !c.archived);
+  const candidates = useMemo(() => copyCandidates(existing, l), [existing, l]);
+  const ofSource = candidates.filter((a) => a.childIds.includes(sourceId));
+  // Only subjects the source child has work in.
+  const subjects = l.subjects.filter((s) => ofSource.some((a) => a.subjectId === s.id));
+  const listed = ofSource
+    .filter((a) => !subjectId || a.subjectId === subjectId)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.title.localeCompare(b.title));
+  const targets = activeChildren.filter((c) => c.id !== sourceId);
+  const picked = listed.filter((a) => !unticked.has(a.id));
+  // The first ticked assignment keeps its place only when no new start is given; the others keep their offset from it.
+  const first = picked.length ? picked.reduce((m, a) => (a.startDate < m ? a.startDate : m), picked[0]!.startDate) : null;
+  const shift = first && isValidLocalDate(newStart) ? diffDays(first, newStart) : 0;
+  const rows: Row[] = listed.map((a) => ({ a, copy: shiftedCopy(a, shift, l, targetId ? [targetId] : [sourceId]) }));
+  const { saving, message, save, left } = useCopySave(rows, p);
+  const shown = rows.filter((r) => left.includes(r));
+  const chosen = shown.filter((r) => !unticked.has(r.a.id));
+  const [tried, setTried] = useState(false);
+  const problem = !sourceId ? "Pick the child to copy from." : !targetId ? "Pick the child to copy to." : chosen.length === 0 ? "Tick at least one assignment." : null;
+  const submit = (e: FormEvent) => { e.preventDefault(); setTried(true); if (!problem) void save(chosen); };
+
+  return (
+    <form className="card schedule-form" aria-label="Copy to another child" onSubmit={submit} noValidate>
+      {message ? <p className="form-error" role="alert">{message}</p> : null}
+      <div className="field">
+        <label htmlFor={ids.source}>Copy from</label>
+        <select id={ids.source} value={sourceId} onChange={(e) => { setSourceId(e.target.value); setSubjectId(""); setUnticked(new Set()); if (e.target.value === targetId) setTargetId(""); }}>
+          <option value="">Choose a child…</option>
+          {activeChildren.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+      {sourceId ? (
+        <div className="field">
+          <label htmlFor={ids.subject}>Subject</label>
+          <select id={ids.subject} value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setUnticked(new Set()); }}>
+            <option value="">All subjects</option>
+            {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+      ) : null}
+      {sourceId && ofSource.length === 0 ? <p className="hint">{l.childName(sourceId)} has no assignments to copy.</p> : null}
+      {shown.length > 0 ? (
+        <>
+          <CopyList rows={shown} unticked={unticked} onToggle={toggle} l={l} label="To copy" />
+          <div className="field">
+            <label htmlFor={ids.target}>Copy to</label>
+            <select id={ids.target} value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+              <option value="">Choose a child…</option>
+              {targets.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor={ids.start}>New start date (optional)</label>
+            <input id={ids.start} type="date" value={newStart} onChange={(e) => setNewStart(e.target.value)} />
+            <p className="hint">The earliest one starts then; the rest keep their gaps.</p>
+          </div>
+          {tried && problem ? <p className="field-error" role="alert">{problem}</p> : null}
+          <Buttons n={chosen.length} saving={saving} label="Copy" onCancel={onCancel} allTicked={unticked.size === 0}
+            onToggleAll={() => setUnticked(unticked.size === 0 ? new Set(shown.map((r) => r.a.id)) : new Set())} />
+        </>
+      ) : (
+        <div className="btn-row">
+          <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>
+        </div>
+      )}
     </form>
   );
 }
