@@ -6,11 +6,11 @@
 - **Track work** is checking in: last week's "Did everything get done?", the Completed checks and Update status.
 - **One child at a time**, with a Frank / Margaret / Both switch.
 - **The last-week card stays until answered.**
-- **Optional subject icons** (S8-11).
+- **Subject icons on every subject** (S8-11): auto-chosen for common subjects, a first-letter badge for custom ones, changeable on the subject form.
 - **Starter subjects stay the 14 basic ones** (no Charlotte Mason extras).
 - **Zoom row order as built:** Year, built-ins, then custom views.
 - **Logo:** the book-and-sunrise placeholder for now.
-- **Year lanes sit tighter**, with subject names inline (S8-07).
+- **Year lanes are identified by icon badges** in a narrow left gutter, not names; bars carry only assignment names; tapping a badge shows the subject name and highlights its lane (S8-07). Mockup: `design/mockups/soft-paper-year-badges.png`.
 
 **Source:** `docs/DESIGN_DIRECTION.md`, `docs/design/ux-research.md` (Direction 1: Soft Paper; IA Option B), the mockup `docs/design/mockups/soft-paper.html` (and its `.png`), and Will's critiques. This sprint absorbs the held Sprint 6b tickets: S6b-11 → S8-04, S6b-02 → S8-05, S6b-03 → S8-06.
 
@@ -28,8 +28,8 @@ Each ticket uses the usual format. Build in order, one commit per ticket, each w
 | 4 | [S8-04 — Home page and navigation](S8-04-home-page-and-navigation.md) | S8-03 | M |
 | 5 | [S8-05 — This week as pastel bars](S8-05-this-week-as-pastel-bars.md) | S8-04 | M |
 | 6 | [S8-06 — Check in with one question, a check or Update status](S8-06-check-in.md) | S8-05 | M |
-| 7 | [S8-07 — The Year timeline in Soft Paper](S8-07-the-year-timeline.md) | S8-03 | M |
+| 7 | [S8-07 — The Year timeline in Soft Paper](S8-07-the-year-timeline.md) | S8-03, S8-11 (build S8-11 first) | M |
 | 8 | [S8-08 — Set up screens and forms in Soft Paper](S8-08-set-up-screens-and-forms.md) | S8-04 | M |
 | 9 | [S8-09 — First-run checklist and empty states](S8-09-first-run-and-empty-states.md) | S8-04, S8-08 | S |
-| 10 | [S8-11 — Optional subject icons](S8-11-optional-subject-icons.md) | S8-03 | S |
+| 10 | [S8-11 — Subject icons on every subject](S8-11-optional-subject-icons.md) | S8-03 | S |
 | 11 | [S8-10 — Tester pass: the new look](S8-10-tester-pass.md) | S8-01 to S8-09, S8-11 | S |
