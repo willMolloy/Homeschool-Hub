@@ -10,6 +10,12 @@ import type { ChildPlan, FamilyCalendar, LocalDate, ProgressCheckIn } from "./ty
 export const HEAVY_WEEK_RATIO = 1.5;
 
 /**
+ * S7-10: what `forecastOutcome` found: a finish date, or `beyondLimit` when the pace is so slow the work doesn't
+ * finish within the push limit (MAX_PUSH_DAYS) of the last check-in week.
+ */
+export type FinishForecast = { finish: LocalDate } | { beyondLimit: true } | null;
+
+/**
  * The projected finish date at the pace the check-ins show (S4-08), or null: fewer than 2 check-in weeks for this
  * assignment and child, a pace that is on plan or ahead, no progress at all (the caller says "no recent progress"),
  * or nothing left. Never NaN or Infinity.
@@ -19,8 +25,17 @@ export const HEAVY_WEEK_RATIO = 1.5;
  * - Planned pace: the total over the capacity between the start and the planned end.
  * - The remaining units are then placed at the observed pace after the last check-in week, on the plan's capacity
  *   days, and past the plan's last day on the calendar's school days that are also the assignment's days.
+ *
+ * S7-10: `forecastFinish` keeps the date-or-null answer; a pace too slow to finish within MAX_PUSH_DAYS is `null`
+ * there, and `{ beyondLimit: true }` from `forecastOutcome`, so the briefing can still say it won't finish.
  */
 export function forecastFinish(plan: ChildPlan, checkIns: ProgressCheckIn[] | undefined, calendar: FamilyCalendar): LocalDate | null {
+  const f = forecastOutcome(plan, checkIns, calendar);
+  return f && "finish" in f ? f.finish : null;
+}
+
+/** S7-10: `forecastFinish`, telling "gave up: too slow" apart from "nothing to forecast" (null). */
+export function forecastOutcome(plan: ChildPlan, checkIns: ProgressCheckIn[] | undefined, calendar: FamilyCalendar): FinishForecast {
   const applied = new Set(plan.checkInWeeks);
   const weeks = new Set<string>();
   for (const ci of checkIns ?? []) {
@@ -58,9 +73,9 @@ export function forecastFinish(plan: ChildPlan, checkIns: ProgressCheckIn[] | un
     const wd = weekdayOfDayNumber(n);
     const cap = n <= lastPlanDay ? capacityOf.get(n) ?? 0 : schoolDays.has(wd) && (!ownDays || ownDays.has(wd)) ? 1 : 0;
     left -= observed * cap;
-    if (left <= EPS) return fromDayNumber(n);
+    if (left <= EPS) return { finish: fromDayNumber(n) };
   }
-  return null;
+  return { beyondLimit: true };
 }
 
 /**

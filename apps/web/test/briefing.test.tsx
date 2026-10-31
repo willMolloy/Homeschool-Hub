@@ -86,6 +86,15 @@ describe("briefing lines (pure)", () => {
     expect(text(addDays(forecast, -61 * 7))).toBe("Treasure Island won't finish this school year at this pace.");
   });
 
+  it("S7-10: a pace so slow the forecast gives up still gets the plain line", () => {
+    const book: EngineAssignment = { id: "ti", subjectId: "lit", childIds: ["c1"], unitType: "pages", totalUnits: 100, start: "2026-10-05", end: "2026-10-30" };
+    const checkIns: ProgressCheckIn[] = [["2026-10-05", 0.1], ["2026-10-12", 0.2]].map(([weekStart, position]) =>
+      ({ assignmentId: "ti", childId: "c1", weekStart: weekStart as string, position: position as number, mode: "keepEndDate" as const }));
+    const plan = planAll([book], { calendar: CALENDAR, asOf: TODAY, checkIns })[0]!;
+    expect(forecastFinish(plan, checkIns, CALENDAR)).toBeNull();
+    expect(buildBriefing(input([plan]))[0]!.lines[0]!.text).toBe("Treasure Island won't finish this school year at this pace.");
+  });
+
   it("orders late, plan problems, heavy; leaves out a child with nothing", () => {
     const heavy = loadPlan("math", "c1", { "2026-10-26": 30, "2026-11-02": 10, "2026-11-09": 10, "2026-11-16": 10 });
     const stuck = { ...onPaceBase("poems", "c1"), unplacedUnits: 12, end: "2026-11-26" };

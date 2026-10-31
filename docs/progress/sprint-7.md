@@ -11,7 +11,8 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 | S7-05 Edit the zoom views | 886baea | `EditZoomViewsSheet` (`timeline/EditZoomViews.tsx`) behind a quiet Edit in `ZoomPresets`; rules in `timeline/zoomViews.ts`; `useTimelineData.setZoomViews` |
 | S7-06 The event preview skips finished assignments | 4582ef7 | `hasWorkFrom` in `routes/eventPreview.ts` |
 | S7-07 Say so when a template adds no breaks | 9c8e9b7 | `nothingToAdd` in `TemplatePanel.tsx` |
-| S7-08 Say which days off a saved template left out | (this commit) | `templateBreaksFrom` also returns `before`; line in `SaveTemplatePanel.tsx` |
+| S7-08 Say which days off a saved template left out | ae903ea | `templateBreaksFrom` also returns `before`; line in `SaveTemplatePanel.tsx` |
+| S7-10 A very slow pace still gets a briefing line | (this commit) | `forecastOutcome` in `engine/briefing.ts`; `briefingLines.ts` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -47,3 +48,4 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 - **S7-06 what counts as finished.** A row is left out when neither the before nor the after plan has any units on or after today (`days` with `date >= today` and `units > EPS`). That covers an assignment that ended earlier and one whose check-ins finished it. Both plans are checked so a row is never dropped when the draft would give it work.
 - **S7-07 the messages.** With the dates valid and nothing to add: "Nothing new to add: these breaks are already in your days off." when some were skipped as already days off, otherwise "No breaks in this range.". They replace the "0 breaks to add" heading and the "already in your days off" hint; Add breaks is disabled (no request). While the dates are invalid the button stays enabled so its error still shows.
 - **S7-08 what is counted.** Every family-wide day off that starts before the chosen first day (any age; days off for individual children are not counted, they are already in the per-child note only when inside the year). Text: "1 day off before Aug 17, 2026 isn't included." / "N days off before ... aren't included." under the per-child note. Days off that span the start are counted by their start day, as ticketed (not included).
+- **S7-10 approach.** The engine returns the marker: `forecastOutcome` gives `{ finish }`, `{ beyondLimit: true }` (the loop ran out of its 730 days) or null (nothing to forecast); `forecastFinish` is kept as a wrapper with its old date-or-null answer, so its callers and tests are unchanged. `briefingLines` uses `forecastOutcome` and gives `beyondLimit` the same plain line as a forecast over 26 weeks late. The 730-day limit is unchanged. The test case is a 100-page book with check-ins of 0.1 and 0.2 pages (the tester's 44.4/44.6 depends on dates not recorded in the finding; the same shape: positive progress too small to finish).

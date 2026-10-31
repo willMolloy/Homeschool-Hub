@@ -2,7 +2,7 @@
  * S4-09: the weekly briefing's lines, as pure functions of plans the API already made. Per child, in this order:
  * will finish late (or no recent progress), plan problems, a heavy week. The check-in nudge is one line for the family (see Briefing.tsx).
  */
-import { EPS, forecastFinish, fromDayNumber, heavyWeek, HEAVY_WEEK_RATIO, toDayNumber, weekStartOfDayNumber, type ChildPlan, type FamilyCalendar, type LocalDate, type ProgressCheckIn } from "@hh/engine";
+import { EPS, forecastOutcome, fromDayNumber, heavyWeek, HEAVY_WEEK_RATIO, toDayNumber, weekStartOfDayNumber, type ChildPlan, type FamilyCalendar, type LocalDate, type ProgressCheckIn } from "@hh/engine";
 import { shortDate } from "../schedule/formBits";
 
 export interface BriefingLine {
@@ -26,7 +26,7 @@ export interface BriefingInput {
   calendar: FamilyCalendar;
 }
 
-/** The check-ins the engine applied, one per week, rebuilt from the plan (`forecastFinish` only counts weeks). */
+/** The check-ins the engine applied, one per week, rebuilt from the plan (the forecast only counts weeks). */
 const appliedCheckIns = (p: ChildPlan): ProgressCheckIn[] =>
   p.checkInWeeks.map((weekStart) => ({ assignmentId: p.assignmentId, childId: p.childId, weekStart, position: 0, mode: null }));
 
@@ -79,10 +79,14 @@ export function buildBriefing(input: BriefingInput): ChildBriefing[] {
         late.push({ key: `noprogress-${p.assignmentId}`, text: `No progress on ${title} in the last ${new Set(p.checkInWeeks).size} weeks.` });
         continue;
       }
-      const forecast = forecastFinish(p, appliedCheckIns(p), calendar);
-      if (forecast && forecast > p.end) {
-        const n = weeksLate(p.end, forecast);
-        const text = n > VERY_LATE_WEEKS ? `${title} won't finish this school year at this pace.` : `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late at this pace.`;
+      const forecast = forecastOutcome(p, appliedCheckIns(p), calendar);
+      const wontFinish = `${title} won't finish this school year at this pace.`;
+      // S7-10: a pace so slow the forecast gives up (past its limit) is the same plain line as a very late one.
+      if (forecast && "beyondLimit" in forecast) {
+        late.push({ key: `late-${p.assignmentId}`, text: wontFinish });
+      } else if (forecast && forecast.finish > p.end) {
+        const n = weeksLate(p.end, forecast.finish);
+        const text = n > VERY_LATE_WEEKS ? wontFinish : `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late at this pace.`;
         late.push({ key: `late-${p.assignmentId}`, text });
       }
     }
