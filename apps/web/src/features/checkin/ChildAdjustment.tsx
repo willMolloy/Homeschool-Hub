@@ -1,7 +1,8 @@
 /**
  * "Make an adjustment" for one student on This Week (T-03b). The button opens a sheet (Drawer on phones,
  * Dialog wider) holding that child's rows of the check-in week, in the last-week card's own rows (CheckInRow since T-09). The
- * week is the shown one once it's over, otherwise last week: the API only takes finished weeks.
+ * week is the shown one once it's over: the check-in API only takes finished weeks. S6-03: for the current or a coming
+ * week the sheet is WeekAdjustment instead (`ahead`).
  */
 import { useState } from "react";
 import type { PastWeek } from "../../api/types";
@@ -9,6 +10,7 @@ import { useApi } from "../../api/useApi";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { weekRangeText } from "./checkinText";
 import { forChild, withOtherChildren } from "./childWeek";
+import { WeekAdjustment } from "../plan/WeekAdjustment";
 import { LastWeekCard } from "./LastWeekCard";
 import { usePastels } from "./usePastels";
 import { useWeekCheckIn } from "./useLastWeekCheckIn";
@@ -39,18 +41,24 @@ function ChildWeekEditor({ childId, weekStart }: { childId: string; weekStart: s
 export interface ChildAdjustmentProps {
   childId: string;
   childName: string;
-  /** The finished week the sheet edits (`useShownWeek().checkInWeekStart`). */
+  /** The week the sheet edits: a finished one (`useShownWeek().checkInWeekStart`), or the shown one with `ahead`. */
   weekStart: string;
   weekEnd: string;
   /** Whether that week is last week, so the title says so (T-09). */
   lastWeek?: boolean;
+  /** S6-03: the week is the current or a coming one, so the sheet sets this week's amounts instead of checking in. */
+  ahead?: { current: boolean };
 }
 
 /** "Frank · Last week · Oct 19–25", or "Frank · Oct 12–18" for an older week. */
 export const sheetTitle = (childName: string, weekStart: string, weekEnd: string, lastWeek: boolean) =>
   `${childName} · ${lastWeek ? "Last week · " : ""}${weekRangeText(weekStart, weekEnd)}`;
 
-export function ChildAdjustment({ childId, childName, weekStart, weekEnd, lastWeek = false }: ChildAdjustmentProps) {
+/** "Frank · This week · Oct 26–Nov 1", or "Frank · Nov 2–8" for a coming week (S6-03). */
+export const aheadTitle = (childName: string, weekStart: string, weekEnd: string, current: boolean) =>
+  `${childName} · ${current ? "This week · " : ""}${weekRangeText(weekStart, weekEnd)}`;
+
+export function ChildAdjustment({ childId, childName, weekStart, weekEnd, lastWeek = false, ahead }: ChildAdjustmentProps) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -58,8 +66,10 @@ export function ChildAdjustment({ childId, childName, weekStart, weekEnd, lastWe
         onClick={() => setOpen(true)}>
         Make an adjustment
       </button>
-      <ResponsiveSheet open={open} onOpenChange={setOpen} title={sheetTitle(childName, weekStart, weekEnd, lastWeek)}>
-        {open && <ChildWeekEditor childId={childId} weekStart={weekStart} />}
+      <ResponsiveSheet open={open} onOpenChange={setOpen} title={ahead ? aheadTitle(childName, weekStart, weekEnd, ahead.current) : sheetTitle(childName, weekStart, weekEnd, lastWeek)}>
+        {open && (ahead
+          ? <WeekAdjustment childId={childId} weekStart={weekStart} weekEnd={weekEnd} onSaved={() => setOpen(false)} />
+          : <ChildWeekEditor childId={childId} weekStart={weekStart} />)}
       </ResponsiveSheet>
     </>
   );

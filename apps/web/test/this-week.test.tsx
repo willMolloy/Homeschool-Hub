@@ -74,7 +74,9 @@ function phone(matches: boolean) {
 }
 afterEach(() => vi.unstubAllGlobals());
 
-async function openSheet(name = "Frank", path = "/") {
+// S6-03: on the current or a coming week the button sets that week's amounts (week-adjustment.test.tsx); the check-in
+// sheet is for a finished week, so these tests open it on last week.
+async function openSheet(name = "Frank", path = "/?week=2026-10-19") {
   renderAt(path);
   await userEvent.click(await screen.findByRole("button", { name: `Make an adjustment for ${name}` }));
   return screen.findByRole("dialog");
@@ -179,7 +181,7 @@ describe("Make an adjustment", () => {
       home = { ...OCT19, status: "reviewed" };
       return [200, { ...home, planChanged: true }];
     });
-    renderAt("/");
+    renderAt("/?week=2026-10-19");
     expect(await screen.findByRole("region", { name: /How did last week go\?/ })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Make an adjustment for Frank" }));
     const sheet = await screen.findByRole("dialog");
