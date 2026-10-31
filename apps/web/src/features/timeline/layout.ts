@@ -12,6 +12,7 @@
  * - Horizontal room: labels sit above their rows, not in a column, so the plot spans the width.
  */
 import { weekdayOf } from "@hh/engine";
+import type { CustomZoomView } from "../../api/types";
 import { PX_PER_THICKNESS, softCapPx } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
 import { estimateTextWidth, placePieceNames, type MeasureText } from "./names";
@@ -53,6 +54,8 @@ export const BOTTOM_PAD_PX = 4;
 
 export interface LayoutOptions {
   zoom: Zoom;
+  /** S7-04: the family's own zoom views, for a custom `zoom`. */
+  customViews?: readonly CustomZoomView[];
   /** Available width in CSS px. */
   width: number;
   detail?: Detail;
@@ -268,7 +271,7 @@ function runsOf(columns: readonly (BandColumn | null)[]): { x0: number; x1: numb
 
 export function layoutTimeline(model: TimelineModel, options: LayoutOptions): TimelineLayout {
   const pxPerPoint = options.pxPerPoint ?? PX_PER_THICKNESS;
-  const range = zoomRange(model, options.zoom, options.month);
+  const range = zoomRange(model, options.zoom, options.month, options.customViews);
   const weeks = spanWeeks(model, range);
   const detail = resolveDetail(weeks, options.detail, options.previousDetail);
   const width = Math.max(0, options.width);

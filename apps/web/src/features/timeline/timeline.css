@@ -2,12 +2,12 @@
 .timeline-page-header { margin-bottom: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .timeline-page-header h1 { margin: 0; }
 /* T-05: zoom presets. Plain text buttons; the chosen one is bold on a soft fill. No borders. */
-.tl-zoom { display: flex; gap: 4px; }
+.tl-zoom { display: flex; gap: 4px; max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
 /* T-05c: ‹ month › under the presets, only with This month. */
 .tl-month-nav { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
 .tl-month-nav button { font: inherit; font-size: 20px; color: inherit; background: transparent; border: 0; border-radius: 999px; min-width: 44px; min-height: 44px; cursor: pointer; }
 .tl-month-nav button:disabled { opacity: 0.35; cursor: default; }
-.tl-zoom button { font: inherit; color: inherit; background: transparent; border: 0; border-radius: 999px; padding: 0 14px; min-width: 44px; min-height: 44px; cursor: pointer; }
+.tl-zoom button { flex: none; white-space: nowrap; font: inherit; color: inherit; background: transparent; border: 0; border-radius: 999px; padding: 0 14px; min-width: 44px; min-height: 44px; cursor: pointer; }
 .tl-zoom button[aria-pressed="true"] { font-weight: 600; background: var(--line); }
 /* T-05c: phones get the presets as one compact row under the title. */
 @media (max-width: 639px) {

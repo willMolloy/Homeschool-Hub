@@ -9,12 +9,13 @@
  * S3a-02: the edit bar's Copy opens that form prefilled from the selected assignment.
  * S6-08: its "Reset to original" asks first, then puts the assignment back to how it was created.
  * S6-10: its Heavier and Lighter nudge the weight about 25% (which also teaches the next suggestion, S2b-07).
+ * S7-04: the zoom row also holds the family's own views and leaves out the built-ins it hid.
  * S6b-09: with nothing planned the calendar (months, today, days off, events) still draws, with one quiet line under it.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { weightPerUnitOf, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT } from "@hh/engine";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
-import type { Assignment } from "../api/types";
+import type { Assignment, ZoomViews } from "../api/types";
 import { AddAssignmentButton, AddAssignmentSheet } from "../features/timeline/AddAssignment";
 import { copyOfAssignment } from "../features/schedule/copyAssignment";
 import { makeLookups } from "../features/schedule/lookups";
@@ -37,7 +38,7 @@ import { useMeasureText } from "../features/timeline/useMeasureText";
 import { useElementWidth } from "../features/timeline/useElementWidth";
 import { useTimelineData } from "../features/timeline/useTimelineData";
 import { useZoomFade } from "../features/timeline/useZoomFade";
-import { availableZooms, defaultMonth, gridMonths, ZOOM_LABEL, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
+import { defaultMonth, gridMonths, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
 import { ChildFilter } from "../features/timeline/ChildFilter";
@@ -50,12 +51,12 @@ const FALLBACK_WIDTH = 360;
 /** T-10: how long a just-added bar stays highlighted (keep in step with tl-flash in timeline.css). */
 export const FLASH_MS = 2400;
 
-interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail }
+interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail; customViews?: ZoomViews["custom"] }
 const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: LayoutArgs) =>
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
 export function TimelinePage() {
-  const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects } = useTimelineData();
+  const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects, zoomViews } = useTimelineData();
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
   const [childParam, setChild] = useChildParam();
   const childId = shownChild(childParam, childList);
@@ -65,7 +66,9 @@ export function TimelinePage() {
   const drawn = useMemo(() => (model && preview ? previewModel(model, preview.assignmentId, preview.span) : model), [model, preview]);
   const { ref, width } = useElementWidth<HTMLDivElement>(FALLBACK_WIDTH);
   const { zoom, leaving, setZoom, settle } = useZoomFade("year");
-  const zooms = useMemo(() => (model ? availableZooms(model) : (["year"] as Zoom[])), [model]);
+  const customViews = zoomViews.custom;
+  // S7-04: Year, the built-ins the family hasn't hidden, then its own views; a zoom that is gone falls back to Year.
+  const zooms = useMemo(() => (model ? visibleZooms(model, zoomViews) : (["year"] as Zoom[])), [model, zoomViews]);
   const shownZoom = zooms.includes(zoom) ? zoom : "year";
   const measureText = useMeasureText();
   // T-05c: This month starts at the month holding today; ‹ › flip it.
@@ -79,11 +82,11 @@ export function TimelinePage() {
   // The last detail drawn, for the detail threshold's hysteresis.
   const lastDetail = useRef<DrawnDetail | undefined>(undefined);
   const layout = useMemo(
-    () => layoutFor(drawn, shownZoom, { width, measureText, month, previousDetail: lastDetail.current }),
-    [drawn, shownZoom, width, measureText, month],
+    () => layoutFor(drawn, shownZoom, { width, measureText, month, customViews, previousDetail: lastDetail.current }),
+    [drawn, shownZoom, width, measureText, month, customViews],
   );
   lastDetail.current = layout?.detail;
-  const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month }), [model, leaving, width, measureText, month]);
+  const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month, customViews }), [model, leaving, width, measureText, month, customViews]);
   // T-07: the selection lives beside the zoom, so it survives zoom changes and month flips.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const edit = useAssignmentEdit(applyAssignment);
@@ -163,7 +166,7 @@ export function TimelinePage() {
       <header className="timeline-page-header">
         <h1>Timeline</h1>
         {!failed && !loading && model && <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />}
-        {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} />}
+        {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews)} />}
       </header>
       {ready && <ChildFilter childList={childList} value={childId} onChange={setChild} />}
       {(ready || calendar) && shownZoom === "month" && month && <MonthNav months={months} value={month} onChange={setMonth} />}
@@ -176,14 +179,14 @@ export function TimelinePage() {
           <p aria-busy="true">Loading…</p>
         ) : empty ? (
           <>
-            <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : ZOOM_LABEL[shownZoom]} timeline`} />
+            <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`} />
             <p className="tl-empty">Nothing planned yet.</p>
           </>
         ) : (
           <>
             <div ref={stage} className="tl-stage" data-drag-ready={selection ? "" : undefined} {...drag}>
               <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
-                <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : ZOOM_LABEL[shownZoom]} timeline`}
+                <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`}
                   selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} />
               </div>
               {leavingLayout && (

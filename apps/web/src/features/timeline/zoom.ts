@@ -5,10 +5,17 @@
  * This month, and detail follows the *visible span*, not the preset: at DETAIL_SPAN_WEEKS or less the bars are
  * the daily, stepped ones with event strips; above it they are smooth curves with events hidden.
  */
+import type { CustomZoomView, ZoomViews } from "../../api/types";
 import type { TimelineModel } from "./model";
 
 export const ZOOMS = ["year", "fall", "spring", "month"] as const;
-export type Zoom = (typeof ZOOMS)[number];
+export type BuiltInZoom = (typeof ZOOMS)[number];
+/** S7-04: a family's own view, chosen by its id. */
+export type CustomZoom = `custom:${string}`;
+export type Zoom = BuiltInZoom | CustomZoom;
+
+export const customZoom = (id: string): CustomZoom => `custom:${id}`;
+export const isCustomZoom = (z: Zoom): z is CustomZoom => z.startsWith("custom:");
 
 /** The one threshold: spans of this many weeks or fewer show daily detail. */
 export const DETAIL_SPAN_WEEKS = 8;
@@ -56,10 +63,21 @@ export function defaultMonth(model: Pick<TimelineModel, "dates" | "today">): str
  * after it, Month is one calendar month (`month`, default: the one holding today). A half or month with no days
  * on the grid falls back to the whole grid; an empty grid gives null.
  */
-export function zoomRange(model: Pick<TimelineModel, "dates" | "today">, zoom: Zoom, month?: string | null): [number, number] | null {
+export function zoomRange(
+  model: Pick<TimelineModel, "dates" | "today">, zoom: Zoom, month?: string | null, custom: readonly CustomZoomView[] = [],
+): [number, number] | null {
   const n = model.dates.length;
   if (n === 0) return null;
   if (zoom === "year") return [0, n - 1];
+  if (isCustomZoom(zoom)) {
+    // S7-04: the view's first to last day, clamped to the grid; no overlap (or an unknown view) shows the whole grid.
+    const view = custom.find((v) => customZoom(v.id) === zoom);
+    if (!view) return [0, n - 1];
+    const a = model.dates.findIndex((d) => d >= view.start);
+    let b = n - 1;
+    while (b >= 0 && model.dates[b]! > view.end) b--;
+    return a < 0 || b < 0 || a > b ? [0, n - 1] : [a, b];
+  }
   if (zoom === "month") {
     const m = month ?? defaultMonth(model);
     const a = model.dates.findIndex((d) => d.startsWith(`${m}-`));
@@ -87,4 +105,18 @@ export function availableZooms(model: Pick<TimelineModel, "dates">): Zoom[] {
   return split > 0 ? [...ZOOMS] : ["year", "month"];
 }
 
-export const ZOOM_LABEL: Record<Zoom, string> = { year: "Year", fall: "Fall", spring: "Spring", month: "This month" };
+/**
+ * S7-04: the zoom row, in order: Year, the built-ins the family hasn't hidden (and the grid offers), then its own views.
+ * Without a grid there is only Year.
+ */
+export function visibleZooms(model: Pick<TimelineModel, "dates">, views?: ZoomViews | null): Zoom[] {
+  const builtIns = availableZooms(model).filter((z) => z === "year" || !views?.hidden.includes(z as ZoomViews["hidden"][number]));
+  return model.dates.length === 0 ? builtIns : [...builtIns, ...(views?.custom ?? []).map((v) => customZoom(v.id))];
+}
+
+export const ZOOM_LABEL: Record<BuiltInZoom, string> = { year: "Year", fall: "Fall", spring: "Spring", month: "This month" };
+
+/** The words for a zoom: a built-in's name, or the family's own name for its view. */
+export function zoomLabel(zoom: Zoom, custom: readonly CustomZoomView[] = []): string {
+  return isCustomZoom(zoom) ? custom.find((v) => customZoom(v.id) === zoom)?.name ?? ZOOM_LABEL.year : ZOOM_LABEL[zoom];
+}
