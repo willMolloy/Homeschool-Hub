@@ -88,6 +88,15 @@ Sprint 3a (`tickets/sprint-3a-setup/`) builds the first three.
 - [ ] **Custom zoom views** (Sprint 7). A quiet Edit at the end of the zoom row: hide Fall, Spring or This month, and add, rename, delete and reorder the family's own views (for example terms), up to 6 including Year.
 - [ ] **Year rollover and sibling reuse.** Start next year from this one, or copy a plan to a younger child, with the dates shifted.
 
+### UI refinement and dark mode (Sprint 8, after Sprint 7)
+Added by Will on 2026-10-31: the UI isn't up to modern standards yet. Done once the core features stop changing, so nothing is restyled twice; accounts and hosting hardening follow it.
+- **Design brief:** calm and airy, with the soft, rounded shapes of a warm and friendly app; pastel colours; very clean and tidy.
+- [ ] **Audit and direction first:** screenshot every screen at phone and desktop widths, critique against a modern standard, and show 2–3 visual directions on one page for Will and DeeDee to choose from before code changes.
+- [ ] **One design system:** tokens for type, spacing, radius, elevation and colour (light and dark), and shared components (buttons, fields, chips, cards, sheets, lists) in place of per-screen CSS.
+- [ ] **Screen-by-screen refinement:** the shell and navigation, This Week, the timeline, the schedule screens, forms and sheets, empty and loading states.
+- [ ] **Light, dark and system themes:** follows the device by default; Settings offers Light / Dark / System, remembered on that device. Pastel bars get dark-tuned versions; contrast tests run in both themes. (Today the app is locked to light: `color-scheme: light` in `styles.css`; timeline dark tokens already exist in `tokens.css`.)
+- [ ] **Checks:** the tap-target script and contrast in both themes, and a tester pass with before-and-after screenshots.
+
 ### Accounts
 - [ ] **Invite-only accounts, with separate parent logins.** An invite link creates a family account, and the same kind of link adds a second parent to an existing family. Each parent has their own login to the one family; today the login is stored on the family itself, so it moves to its own table. Password resets are done by hand with the existing `set-family-login` CLI. Self-serve signup and emailed resets wait until going public, so no email provider is needed yet.
 - [ ] **Read-only share link** (before the friends beta, phase 4). A secret, revocable link to one family's timeline and This Week, for a grandparent, evaluator or co-op leader. Links are unguessable and hidden from search engines, since they show children's names.
