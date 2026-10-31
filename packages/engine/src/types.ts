@@ -150,6 +150,8 @@ export type PlanWarning =
   | "override-clamped"
   | "push-horizon-exceeded"
   | "keep-no-free-capacity"
+  /** S7b-18: a keepEndDate adjustment left no free day from today to the end, so the end moved later to hold the work. */
+  | "keep-end-extended"
   | "checkin-misaligned"
   | "checkin-duplicate-week"
   | "checkin-clamped"

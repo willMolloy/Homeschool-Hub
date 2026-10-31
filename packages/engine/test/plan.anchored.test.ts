@@ -101,3 +101,82 @@ describe("keepEndDate adjustments anchor at the adjusted week (S7b-09)", () => {
     }
   });
 });
+
+describe("an adjustment in the last week never changes past weeks either (S7b-18)", () => {
+  // 300 pages over 8 weeks (Sep 7 - Oct 30); today is Wed Oct 7 (week 5), the last week is Oct 26-30.
+  const TODAY = "2026-10-07";
+  const none = run({ asOf: TODAY });
+
+  it("the tester's case: lightening the last week keeps every day before today exactly as it was, and spreads the rest from today", () => {
+    const p = run({ asOf: TODAY, overrides: [ov(8, 10)] });
+    expect(amounts(p, TODAY)).toEqual(amounts(none, TODAY)); // every day before today
+    expect(unitsBetween(p, W(8), "2026-11-01")).toBeCloseTo(10);
+    expect(p.end).toBe("2026-10-30");
+    expect(p.unplacedUnits).toBe(0);
+    // The 27.5 not done in the last week (37.5 - 10) goes on the school days from today to the day before it (Oct 7 - Oct 23: 13 days).
+    const extra = 27.5 / 13;
+    for (const d of p.days.filter((x) => x.date >= TODAY && x.date < W(8) && x.capacity > 0)) {
+      expect(d.units).toBeCloseTo(7.5 + extra, 9);
+    }
+    expect(p.warnings).not.toContain("keep-end-extended");
+    expectConserved(p);
+  });
+
+  it("an adjustment of 0 in the last week works the same way", () => {
+    const p = run({ asOf: TODAY, overrides: [ov(8, 0)] });
+    expect(amounts(p, TODAY)).toEqual(amounts(none, TODAY));
+    expect(unitsBetween(p, W(8), "2026-11-01")).toBe(0);
+    expectConserved(p);
+  });
+
+  it("with no free day from today (the adjusted week is the current one and the last), the end moves later, at the old pace, and says so", () => {
+    // Today is in the last week; weeks 1 to 7 are past.
+    const p = run({ asOf: "2026-10-27", overrides: [ov(8, 10)] });
+    expect(amounts(p, W(8))).toEqual(amounts(run({ asOf: "2026-10-27" }), W(8))); // the adjusted week itself (even its past days) is the one that changes
+    expect(p.warnings).toContain("keep-end-extended");
+    expect(unitsBetween(p, W(8), "2026-11-01")).toBeCloseTo(10);
+    // 27.5 pages that no day before the end can hold, at 7.5 a day: three full school days after Oct 30 and 5 on the fourth.
+    expect(p.end).toBe("2026-11-05");
+    expect(unitsOn(p, "2026-11-02")).toBeCloseTo(7.5);
+    expect(unitsOn(p, "2026-11-05")).toBeCloseTo(27.5 - 3 * 7.5);
+    expect(p.unplacedUnits).toBe(0);
+    expectConserved(p);
+  });
+
+  it("with no asOf nothing is frozen: the rest is pulled back over the whole range as before", () => {
+    const p = run({ overrides: [ov(8, 10)] });
+    expect(p.warnings).not.toContain("keep-end-extended");
+    expect(p.unplacedUnits).toBe(0);
+    expect(unitsOn(p, W(1))).toBeCloseTo(7.5 + 27.5 / 35);
+    expectConserved(p);
+  });
+
+  it("a one-week assignment whose only week is adjusted still reports unplaced work (no free day anywhere), not a moved end", () => {
+    const m = planChild(book({ totalUnits: 100, start: "2026-09-14", end: "2026-09-18" }), "frank", { calendar: MON_FRI, asOf: "2026-09-14", overrides: [ov(2, 10)] });
+    expect(m.end).toBe("2026-09-18");
+    expect(m.unplacedUnits).toBeCloseTo(90);
+    expect(m.warnings).toContain("keep-no-free-capacity");
+  });
+
+  it("a check-in before the last week: the same rule holds inside the check-in's segment", () => {
+    const checkIns = [ci(5, 150)];
+    const p = run({ asOf: "2026-10-14", checkIns, overrides: [ov(8, 10)] });
+    const without = run({ asOf: "2026-10-14", checkIns });
+    expect(amounts(p, "2026-10-14")).toEqual(amounts(without, "2026-10-14"));
+    expect(unitsBetween(p, W(8), "2026-11-01")).toBeCloseTo(10);
+    expectConserved(p);
+  });
+
+  it("random last-week adjustments with a random today: days before today never change; units are conserved", () => {
+    let seed = 11;
+    const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+    for (let i = 0; i < 150; i++) {
+      const asOf = `2026-${rnd() < 0.5 ? "09" : "10"}-${String(1 + Math.floor(rnd() * 28)).padStart(2, "0")}`;
+      const base = run({ asOf });
+      const p = run({ asOf, overrides: [ov(8, Math.floor(rnd() * 80))] });
+      expectSane(p);
+      expect(sumUnits(p) + p.unplacedUnits).toBeCloseTo(300, 6);
+      expect(amounts(p, asOf > "2026-10-26" ? "2026-10-26" : asOf)).toEqual(amounts(base, asOf > "2026-10-26" ? "2026-10-26" : asOf));
+    }
+  });
+});

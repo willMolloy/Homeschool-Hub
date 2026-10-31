@@ -53,6 +53,11 @@ export interface SegmentInput {
   pace?: number;
   /** Only the first segment reports overrides that lie wholly before it. */
   first: boolean;
+  /**
+   * S7b-18: the first day an adjustment may still change (today). A keepEndDate adjustment in the last week, with nothing after
+   * it to take the rest, pulls the rest back only into the days from here, never into earlier ones.
+   */
+  notBefore?: number;
 }
 
 export interface Placement {
@@ -195,18 +200,56 @@ export function placeSegment(seg: SegmentInput, c: CapacityOf, warn: Warn): Plac
       for (const [d, k] of anchored.kinds) out.kinds.set(d, k);
       out.rate = anchored.rate;
     } else {
-      let freeCap = 0;
-      for (let d = from; d <= end; d += 1) if (!fixed.has(d)) freeCap += c(d);
-      if (freeCap > EPS) {
-        out.rate = left / freeCap;
-        for (let d = from; d <= end; d += 1) {
+      // S7b-18: nothing after the last adjusted week can take the rest. It goes into the free days from today (`notBefore`) up to
+      // the end; the days before today keep the plan they had without the adjustment. With no free day from today, the end
+      // moves later, at the old pace, just enough to hold the work (and "keep-end-extended" says so).
+      const floor = Math.max(from, seg.notBefore ?? from);
+      let freeFrom = 0;
+      let freePast = 0;
+      for (let d = from; d <= end; d += 1) {
+        if (fixed.has(d)) continue;
+        if (d >= floor) freeFrom += c(d);
+        else freePast += c(d);
+      }
+      let rest = left;
+      if (freePast > EPS) {
+        for (let d = from; d < floor && d <= end; d += 1) {
+          if (fixed.has(d)) continue;
+          const v = Math.min(out.baseRate * c(d), Math.max(0, rest));
+          out.planned.set(d, v);
+          out.kinds.set(d, "planned");
+          rest -= v;
+        }
+      }
+      if (freeFrom > EPS) {
+        out.rate = Math.max(0, rest) / freeFrom;
+        for (let d = floor; d <= end; d += 1) {
           if (fixed.has(d)) continue;
           out.planned.set(d, out.rate * c(d));
           out.kinds.set(d, "planned");
         }
-      } else if (left > EPS) {
+      } else if (freePast > EPS && rest > EPS && out.baseRate > EPS) {
+        out.rate = out.baseRate;
+        let last = end;
+        for (let d = end + 1; d <= seg.pushLimit && rest > EPS; d += 1) {
+          const v = Math.min(out.baseRate * c(d), rest);
+          if (v > 0) {
+            out.planned.set(d, v);
+            out.kinds.set(d, "planned");
+            rest -= v;
+            last = d;
+          }
+        }
+        warn("keep-end-extended");
+        if (rest > EPS) {
+          warn("push-horizon-exceeded");
+          out.unplaced = rest;
+        }
+        out.endDay = last;
+        return out;
+      } else if (rest > EPS) {
         warn("keep-no-free-capacity");
-        out.unplaced = left;
+        out.unplaced = rest;
       }
     }
     out.endDay = end;

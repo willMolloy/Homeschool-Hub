@@ -77,6 +77,15 @@ export function buildBriefing(input: BriefingInput): ChildBriefing[] {
         late.push({ key: `noprogress-${p.assignmentId}`, text: `No progress on ${title} in the last ${new Set(p.checkInWeeks).size} weeks.` });
         continue;
       }
+      // S7b-18: a keepEndDate adjustment left no free day from today, so the plan itself runs past its end: say so, and offer the move.
+      if (p.warnings.includes("keep-end-extended") && p.end > p.plannedEnd) {
+        const n = weeksLate(p.plannedEnd, p.end);
+        late.push({
+          key: `late-${p.assignmentId}`, text: `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late.`,
+          action: { assignmentId: p.assignmentId, childId: p.childId, end: p.plannedEnd, moveTo: p.end, signature: `extended-${p.end}` },
+        });
+        continue;
+      }
       const forecast = forecastOutcome(p, appliedCheckIns(p), calendar);
       const wontFinish = `${title} won't finish this school year at this pace.`;
       // S7-10: a pace so slow the forecast gives up (past its limit) is the same plain line as a very late one.

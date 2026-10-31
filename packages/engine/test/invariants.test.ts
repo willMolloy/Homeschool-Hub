@@ -40,7 +40,8 @@ describe("randomized invariants (seeded, 400 cases)", () => {
         expect(Number.isFinite(d.thickness) && d.thickness >= 0).toBe(true);
         expect(d.thickness).toBe(d.units * p.weightPerUnit);
       }
-      if (p.mode === "keepEndDate" && end >= start) expect(p.end <= end || p.days.length === 0 || p.end === end).toBe(true);
+      // S7b-18: keep holds its end, except when an adjustment left no free day from today and the end moved later (flagged).
+      if (p.mode === "keepEndDate" && end >= start && !p.warnings.includes("keep-end-extended")) expect(p.end <= end || p.days.length === 0 || p.end === end).toBe(true);
       for (const w of weeklySummary(p.days, weekStart)) expect(w.average * w.capacityDays).toBeCloseTo(w.totalThickness, 6);
       for (const d of aggregate(p.days, "weekly", weekStart)) expect(Number.isFinite(d.value)).toBe(true);
     }

@@ -372,3 +372,17 @@ describe("A late line offers one next step (S7b-05)", () => {
     expect(screen.queryByRole("button", { name: /^Move end to/ })).toBeNull();
   });
 });
+
+describe("a plan that had to move its end (S7b-18)", () => {
+  it("says it will finish late, with the stored end to keep and the plan's end to move to", () => {
+    const p = { ...slowPlan(), checkInWeeks: [], warnings: ["keep-end-extended" as const], plannedEnd: "2026-12-18", end: "2027-01-06" };
+    const [frank] = buildBriefing({ plans: [p], children: CHILDREN, titleOf: (id) => titles.get(id) ?? id, weekStart: "2026-10-26", calendar: CALENDAR });
+    expect(frank!.lines).toHaveLength(1);
+    expect(frank!.lines[0]!.text).toBe("Treasure Island will finish about 3 weeks late.");
+    expect(frank!.lines[0]!.action).toMatchObject({ end: "2026-12-18", moveTo: "2027-01-06" });
+  });
+  it("a pushEndDate plan that ends later (the parent's choice) says nothing", () => {
+    const p = { ...onPacePlan(), end: "2027-01-06", plannedEnd: "2026-12-18" };
+    expect(buildBriefing({ plans: [p], children: CHILDREN, titleOf: (id) => titles.get(id) ?? id, weekStart: "2026-10-26", calendar: CALENDAR })).toEqual([]);
+  });
+});

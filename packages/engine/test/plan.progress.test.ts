@@ -80,7 +80,10 @@ describe("assumed progress (S2b-18)", () => {
       else if (d.date >= "2026-09-14") expect(d.kind).toBe("override");
       else expect(d.kind).toBe("planned");
     }
-    expect(unitsOn(p, "2026-09-07")).toBeCloseTo(16);
+    // S7b-18: the adjustment is in the last week, so the rest is pulled back only into the days from asOf; the assumed days keep
+    // the plan they had (100 over 10 days: 10 a day). It used to be 16 (pulled back into the assumed days too).
+    expect(unitsOn(p, "2026-09-07")).toBeCloseTo(10);
+    expect(unitsBetween(p, "2026-09-10", "2026-09-11")).toBeCloseTo(100 - 20 - 30);
   });
 
   it("a past override week keeps its override units (kind assumed, mode kept)", () => {
