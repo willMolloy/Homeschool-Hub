@@ -1,5 +1,7 @@
 # Sprint 7b — Fixes from the Charlotte Mason run (and the Sprint 7 tester)
 
+**Also from:** `docs/reviews/pr3-independent-verification.md` (an independent tester, pushed to the branch on 2026-10-31): S7b-09 to S7b-14.
+
 **Source:** `docs/reviews/cm-term-run.md` (S7-13, 2026-10-31) and, when it lands, `docs/reviews/sprint-7-verification.md` (S7-14). **Approval:** fix tickets from a review, per HOW_WE_WORK; S7b-02 is Will's decision of 2026-10-31 ("Yep that works": replace Heavier/Lighter with "Update time estimate"). Runs after Sprint 7's tester pass and before Sprint 8.
 
 Findings handled elsewhere: #2 (This Week shows nothing of the week) is fixed by Sprint 8's Week bars (S8-05); #3 (a behind child can't let it finish later in the check-in) by Sprint 8's Update status with "Move to {date}" (S8-06).
@@ -15,4 +17,10 @@ Each ticket uses the usual format. Build in order, one commit per ticket, each w
 | 5 | [S7b-05 — A late line offers one next step](S7b-05-a-late-line-offers-a-next-step.md) | CM #3 (part), #6 | S7b-04 | S |
 | 6 | [S7b-06 — Add several: optional dates per row](S7b-06-add-several-dates-per-row.md) | CM #7 | none | S |
 | 7 | [S7b-07 — Small fixes from the Sprint 7 tester](S7b-07-small-fixes-from-the-sprint-7-tester.md) | 7-tester F1, F3–F5, F7 | none | S |
-| 8 | [S7b-08 — Tester pass](S7b-08-tester-pass.md) | — | S7b-01 to S7b-07 | S |
+| 8 | [S7b-09 — Week adjustments never change past weeks](S7b-09-week-adjustments-never-change-past-weeks.md) | Indep. F-02 (High) | none | M |
+| 9 | [S7b-10 — "Minutes a day" counts the days the work really happens](S7b-10-minutes-a-day-counts-the-real-days.md) | Indep. F-03 (High) | S7b-09 | M |
+| 10 | [S7b-11 — Copy to a new year skips what's already copied, and can be undone](S7b-11-copy-to-a-new-year-skips-what-is-already-copied.md) | Indep. F-05 (High) | none | S |
+| 11 | [S7b-12 — Copy to another child skips shared assignments](S7b-12-copy-to-another-child-skips-shared-assignments.md) | Indep. F-07 | S7b-11 | XS |
+| 12 | [S7b-13 — Saved templates keep holidays on their real dates](S7b-13-saved-templates-keep-holidays-on-their-dates.md) | Indep. F-06 | none | S |
+| 13 | [S7b-14 — Small fixes from the independent review](S7b-14-small-fixes-from-the-independent-review.md) | Indep. F-04, F-11–F-14 | S7b-02 | S |
+| 14 | [S7b-08 — Tester pass](S7b-08-tester-pass.md) | — | S7b-01 to S7b-07, S7b-09 to S7b-14 | S |
