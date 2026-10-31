@@ -13,6 +13,7 @@ import { subjectDefaultWeekdays } from "../repos/subjectRepo";
 import { familyWeekStart } from "../http/familyWeek";
 import { effectiveWeekdays, weekdaysChange } from "../services/weekdaysChange";
 import { recordWeightChoices } from "../repos/weightChoiceRepo";
+import { assignmentStep, recordUndo, type UndoStep } from "../services/undoService";
 
 const Id = z.string("Must be an id.").regex(UUID_RE, "Must be a UUID.").transform((s) => s.toLowerCase());
 const Children = IdList(MAX_ASSIGNMENT_CHILDREN).min(1, "Pick at least one child.");
@@ -79,6 +80,15 @@ async function atPosition<T>(n: number, fn: () => T | Promise<T>): Promise<T> {
 
 const notFound = () => new HttpError(404, "not_found", "No such assignment.");
 
+/** S6-06: the label of the undo entry for an edit, e.g. "Moved Treasure Island". */
+function patchLabel(p: z.infer<typeof PatchBody>, title: string): string {
+  if (p.archived !== undefined) return `${p.archived ? "Archived" : "Restored"} ${title}`;
+  const sent = Object.entries(p).filter(([, v]) => v !== undefined).map(([k]) => k);
+  if (sent.every((k) => k === "startDate" || k === "endDate")) return `Moved ${title}`;
+  if (sent.every((k) => k === "weightPerUnit")) return `Changed the weight of ${title}`;
+  return `Changed ${title}`;
+}
+
 export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/assignments", async (req) => {
     const { includeArchived } = parseListQuery(req.query);
@@ -140,10 +150,18 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       }
       await updateAssignment(c, req.familyId, cur.id, { ...p, history });
       // A new weight (or the same number under a new unit type) is a choice for every child left on the assignment.
+      let choiceIds: string[] = [];
       if (p.weightPerUnit !== undefined && (p.weightPerUnit !== cur.weight_per_unit || unitType !== cur.unit_type)) {
-        await recordWeightChoices(c, { familyId: req.familyId, assignmentId: cur.id, childIds: p.childIds ?? cur.child_ids, unitType, weight: p.weightPerUnit });
+        choiceIds = await recordWeightChoices(c, { familyId: req.familyId, assignmentId: cur.id, childIds: p.childIds ?? cur.child_ids, unitType, weight: p.weightPerUnit });
       }
-      return (await getAssignment(c, req.familyId, cur.id))!;
+      const after = (await getAssignment(c, req.familyId, cur.id))!;
+      // S6-06: the edit can be undone (its fields come back, and so does the weight choice it recorded).
+      const step = assignmentStep(cur, after);
+      if (step) {
+        const steps: UndoStep[] = choiceIds.length ? [step, { op: "weightChoices", ids: choiceIds }] : [step];
+        await recordUndo(c, req.familyId, patchLabel(p, after.title), steps);
+      }
+      return after;
     });
     return toAssignmentJson(row);
   });

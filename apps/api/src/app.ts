@@ -19,6 +19,7 @@ import { timeZonesRoutes } from "./routes/timezones";
 import { weightsRoutes } from "./routes/weights";
 import { checkInsRoutes } from "./routes/checkIns";
 import { weekOverridesRoutes } from "./routes/weekOverrides";
+import { undoRoutes } from "./routes/undo";
 import { registerSessionAuth } from "./auth/session";
 import { HttpError } from "./http/errors";
 import { loggerOptions, type LogStream } from "./http/logging";
@@ -105,6 +106,7 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
   app.register(weightsRoutes);
   app.register(checkInsRoutes);
   app.register(weekOverridesRoutes);
+  app.register(undoRoutes);
 
   return app;
 }

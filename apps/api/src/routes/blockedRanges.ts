@@ -7,9 +7,10 @@ import { withTransaction, type Tx } from "../db";
 import { checkDateOrder, IdList, LocalDate, MAX_BLOCKED_DAYS } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
 import {
-  createBlockedRange, deleteBlockedRange, getBlockedRange, listBlockedRanges, lockBlockedRange, toBlockedRangeJson, updateBlockedRange,
+  createBlockedRange, deleteBlockedRange, getBlockedRange, listBlockedRanges, lockBlockedRange, toBlockedRangeJson, updateBlockedRange, type BlockedRangeRow,
 } from "../repos/blockedRangeRepo";
 import { checkRefs } from "../repos/refs";
+import { recordUndo, type BlockedRangeState, type UndoStep } from "../services/undoService";
 
 /** Optional label: trimmed, ≤ 60, no NUL; blank → null. */
 const Label = z.string("label must be text.").trim().max(60, "Label must be 60 characters or fewer.")
@@ -58,13 +59,20 @@ const PatchBody = z
 
 const notFound = () => new HttpError(404, "not_found", "No such day off.");
 
+/** S6-06: what to put back for a day off (its fields and children as they were). */
+const stateOf = (r: BlockedRangeRow): BlockedRangeState => ({ label: r.label, kind: r.kind, startDate: r.start_date, endDate: r.end_date, childIds: r.child_ids });
+
 export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/blocked-ranges", async (req) => (await listBlockedRanges(app.db, req.familyId)).map(toBlockedRangeJson));
 
   app.post("/api/blocked-ranges", async (req, reply) => {
     const b = parseBody(CreateBody, req.body);
     checkDateOrder(b.startDate, b.endDate, MAX_BLOCKED_DAYS);
-    const row = await withTransaction(app.db, (c) => createOne(c, req.familyId, b));
+    const row = await withTransaction(app.db, async (c) => {
+      const created = await createOne(c, req.familyId, b);
+      await recordUndo(c, req.familyId, "Added a day off", [{ op: "blockedRange", id: created.id, set: null }]);
+      return created;
+    });
     return reply.code(201).send(toBlockedRangeJson(row));
   });
 
@@ -82,6 +90,8 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
     const rows = await withTransaction(app.db, async (c) => {
       const created = [];
       for (const [i, b] of items.entries()) created.push(await atPosition(i + 1, () => createOne(c, req.familyId, b)));
+      const steps: UndoStep[] = created.map((r) => ({ op: "blockedRange", id: r.id, set: null }));
+      await recordUndo(c, req.familyId, created.length === 1 ? "Added a day off" : `Added ${created.length} days off`, steps);
       return created;
     });
     return reply.code(201).send(rows.map(toBlockedRangeJson));
@@ -97,14 +107,23 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
       // Children already linked may stay even if archived since (the forms keep them ticked); new ones must be active.
       await checkRefs(c, req.familyId, { childIds: (p.childIds ?? []).filter((id) => !cur.child_ids.includes(id)) });
       await updateBlockedRange(c, req.familyId, cur.id, p);
-      return (await getBlockedRange(c, req.familyId, cur.id))!;
+      const after = (await getBlockedRange(c, req.familyId, cur.id))!;
+      if (JSON.stringify(stateOf(cur)) !== JSON.stringify(stateOf(after))) {
+        await recordUndo(c, req.familyId, "Changed a day off", [{ op: "blockedRange", id: cur.id, set: stateOf(cur) }]);
+      }
+      return after;
     });
     return toBlockedRangeJson(row);
   });
 
   app.delete<{ Params: { id: string } }>("/api/blocked-ranges/:id", async (req, reply) => {
     if (!UUID_RE.test(req.params.id)) throw notFound();
-    if (!(await deleteBlockedRange(app.db, req.familyId, req.params.id))) throw notFound();
+    await withTransaction(app.db, async (c) => {
+      const cur = await lockBlockedRange(c, req.familyId, req.params.id);
+      if (!cur) throw notFound();
+      await deleteBlockedRange(c, req.familyId, cur.id);
+      await recordUndo(c, req.familyId, "Removed a day off", [{ op: "blockedRange", id: cur.id, set: stateOf(cur) }]);
+    });
     return reply.code(204).send();
   });
 }

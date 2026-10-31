@@ -17,13 +17,15 @@ export interface WeightChoiceWrite {
 /**
  * Append one choice per child. A no-op for units that aren't learned (lessons, minutes: D17) or no children.
  * Takes the save's `Tx` (RF-11), so a failed save leaves no choice behind.
+ * Returns the new rows' ids (as strings) so an undo (S6-06) can take them back.
  */
-export async function recordWeightChoices(tx: Tx, c: WeightChoiceWrite): Promise<void> {
-  if (!isLearnedUnit(c.unitType) || c.childIds.length === 0) return;
-  await tx.query(
+export async function recordWeightChoices(tx: Tx, c: WeightChoiceWrite): Promise<string[]> {
+  if (!isLearnedUnit(c.unitType) || c.childIds.length === 0) return [];
+  const { rows } = await tx.query<{ id: string }>(
     `INSERT INTO weight_choice (family_id, child_id, assignment_id, unit_type, weight)
-     SELECT $1, child_id, $2, $3, $4 FROM unnest($5::uuid[]) AS child_id`,
+     SELECT $1, child_id, $2, $3, $4 FROM unnest($5::uuid[]) AS child_id RETURNING id`,
     [c.familyId, c.assignmentId, c.unitType, c.weight, c.childIds]);
+  return rows.map((r) => r.id);
 }
 
 /** A child's history row, ready for the engine's `usualWeight`. */
