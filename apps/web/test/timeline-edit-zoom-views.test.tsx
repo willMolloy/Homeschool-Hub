@@ -4,10 +4,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import type { ZoomViews } from "../src/api/types";
+import { readFileSync } from "node:fs";
+import { EditZoomViewsSheet } from "../src/features/timeline/EditZoomViews";
 import { MAX_VISIBLE_ZOOMS, newViewId, viewProblem, visibleCount } from "../src/features/timeline/zoomViews";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { SAMPLE_ASSIGNMENTS, SAMPLE_BLOCKED, SAMPLE_CHILDREN, SAMPLE_SUBJECTS, samplePlans } from "./helpers/timeline-fixtures";
 import { writes } from "./helpers/schedule-fixtures";
+import { render } from "@testing-library/react";
 import { renderAt } from "./render";
 
 const id = (n: number) => `70000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -235,5 +238,40 @@ describe("the zoom views sheet (S7-05)", () => {
     await user.click(within(form).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(screen.queryByRole("form", { name: "Zoom views" })).toBeNull());
     expect(writes()).toEqual([]);
+  });
+});
+
+describe("the Zoom views sheet's small fixes (S7b-07)", () => {
+  it("F3: Fall and Spring a grid can't offer say so instead of showing a switch; This month keeps its switch", async () => {
+    render(<EditZoomViewsSheet open views={{ hidden: [], custom: [] }} unavailable={["fall", "spring"]} onSaved={() => {}} onClose={() => {}} />);
+    const form = await screen.findByRole("form", { name: "Zoom views" });
+    expect(within(form).queryByRole("switch", { name: "Fall" })).toBeNull();
+    expect(within(form).queryByRole("switch", { name: "Spring" })).toBeNull();
+    expect(within(form).getAllByText("Not in this year's dates")).toHaveLength(2);
+    expect(within(form).getByText("Fall")).toBeInTheDocument();
+    expect(within(form).getByRole("switch", { name: "This month" })).toBeChecked();
+  });
+
+  it("F3: with nothing unavailable all three switches show", async () => {
+    render(<EditZoomViewsSheet open views={{ hidden: [], custom: [] }} onSaved={() => {}} onClose={() => {}} />);
+    const form = await screen.findByRole("form", { name: "Zoom views" });
+    expect(within(form).getAllByRole("switch")).toHaveLength(3);
+    expect(within(form).queryByText("Not in this year's dates")).toBeNull();
+  });
+
+  it("F1: each switch's label is the whole 44 px row (CSS), so the label and switch are one target", () => {
+    const css = readFileSync("src/features/timeline/timeline.css", "utf8");
+    const rule = css.match(/\.zoom-edit-row \.choice \{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toMatch(/min-height: 44px/);
+    expect(rule).toMatch(/flex: 1/);
+  });
+
+  it("F5: the tap-target script opens the Copy panels and the Zoom views sheet", () => {
+    const script = readFileSync("../../scripts/smoke/scenarios/tap-targets.mjs", "utf8");
+    expect(script).toMatch(/OPENER = \/\^\([^)]*Copy to /);
+    expect(script).toContain(".tl-zoom-edit");
+    expect(script).toContain("form[aria-label='Zoom views']");
+    expect("Copy to a new year").toMatch(/^(Add|Import|Use a template|Save as a template|New |Copy to )/);
+    expect("Copy to another child").toMatch(/^(Add|Import|Use a template|Save as a template|New |Copy to )/);
   });
 });

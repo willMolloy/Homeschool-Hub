@@ -140,7 +140,8 @@ describe("ThicknessPicker", () => {
     expect(screen.getByText("About 2 min a page. The bar shows 20 pages a day.")).toBeInTheDocument();
     unmount();
     render(<Host unitType="minutes" />);
-    expect(screen.getByText("About 1 min a minute. The bar shows 30 minutes a day.")).toBeInTheDocument();
+    // S7b-07 (F4): a minutes subject says "about 30 min a day"; it was "About 1 min a minute. The bar shows 30 minutes a day."
+    expect(screen.getByText("About 30 min a day.")).toBeInTheDocument();
   });
 
   it("each preset label gives its minutes a unit (\"Light · 15 min a lesson\"; S6b-13, S7-17)", () => {

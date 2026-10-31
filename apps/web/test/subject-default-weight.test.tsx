@@ -81,7 +81,7 @@ describe("Subject usual effort", () => {
     await user.selectOptions(within(form).getByLabelText("Usually measured in"), "minutes");
     expect(within(form).getByRole("radio", { name: "None" })).toBeChecked();
     // The presets now read in the new unit (minutes: 0.5 built-in → Heavy 0.75 → 1.5 min a minute; S6b-13, S7-17).
-    expect(within(form).getByRole("radio", { name: /^Heavy/ }).closest("label")).toHaveTextContent("1.5 min a minute");
+    expect(within(form).getByRole("radio", { name: /^Heavy/ }).closest("label")).toHaveTextContent("45 min a day"); // S7b-07 (F4): was "1.5 min a minute"
   });
 
   it("the list shows a chip only on subjects with a default", async () => {

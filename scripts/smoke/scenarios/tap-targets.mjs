@@ -13,7 +13,8 @@ const SCREENS = [
   ["Events", "/schedule/events"], ["Settings", "/schedule/settings"],
 ];
 // Buttons in the page that open a form or panel in place (by the start of their label); each is opened in turn and measured too.
-const OPENER = /^(Add|Import|Use a template|Save as a template|New )/;
+// S7b-07 (F5): the two Copy panels on Assignments are opened too.
+const OPENER = /^(Add|Import|Use a template|Save as a template|New |Copy to )/;
 
 function undersized(min) {
   const out = [];
@@ -74,6 +75,17 @@ export default async function ({ page, login, log, BASE }) {
       await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0" });
       await settle();
     }
+  }
+  // S7b-07 (F5): the Zoom views sheet behind the zoom row's quiet Edit.
+  await page.goto(`${BASE}/timeline`, { waitUntil: "networkidle0" });
+  await settle();
+  if (await page.$(".tl-zoom-edit")) {
+    await page.click(".tl-zoom-edit");
+    await page.waitForSelector("form[aria-label='Zoom views']");
+    await settle();
+    await report("Timeline > Edit zoom views");
+  } else {
+    log("Timeline > Edit zoom views: skipped (no zoom row on this family's timeline)");
   }
   // A row opened for editing (Kids, Subjects, and the Schedule lists' cards).
   for (const [name, path, row] of [["Kids", "/kids", ".roster-row-btn"], ["Subjects", "/subjects", ".roster-row-btn"]]) {

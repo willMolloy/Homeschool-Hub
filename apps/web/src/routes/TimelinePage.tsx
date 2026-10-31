@@ -41,7 +41,7 @@ import { useMeasureText } from "../features/timeline/useMeasureText";
 import { useElementWidth } from "../features/timeline/useElementWidth";
 import { useTimelineData } from "../features/timeline/useTimelineData";
 import { useZoomFade } from "../features/timeline/useZoomFade";
-import { defaultMonth, gridMonths, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
+import { availableZooms, defaultMonth, gridMonths, viewWithoutPlan, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
 import { EditZoomViewsSheet } from "../features/timeline/EditZoomViews";
@@ -74,6 +74,9 @@ export function TimelinePage() {
   // S7-04: Year, the built-ins the family hasn't hidden, then its own views; a zoom that is gone falls back to Year.
   const zooms = useMemo(() => (model ? visibleZooms(model, zoomViews) : (["year"] as Zoom[])), [model, zoomViews]);
   const shownZoom = zooms.includes(zoom) ? zoom : "year";
+  // S7b-07 (F3): Fall and Spring the grid can't offer (it doesn't span New Year) say so in the Zoom views sheet.
+  const unavailable = model && model.dates.length > 0 ? (["fall", "spring"] as const).filter((z) => !availableZooms(model).includes(z)) : [];
+  const noPlanView = model ? viewWithoutPlan(model, shownZoom, zoomViews.custom) : null;
   const measureText = useMeasureText();
   // T-05c: This month starts at the month holding today; ‹ › flip it.
   const months = useMemo(() => (model ? gridMonths(model) : []), [model]);
@@ -188,6 +191,8 @@ export function TimelinePage() {
           </>
         ) : (
           <>
+            {/* S7b-07 (F3): a view in dates with no plan would otherwise look exactly like Year. */}
+            {noPlanView && <p className="tl-empty" role="status">Nothing planned in {noPlanView.name} yet.</p>}
             <div ref={stage} className="tl-stage" data-drag-ready={BAR_DRAG_ENABLED && selection ? "" : undefined} {...(BAR_DRAG_ENABLED ? drag : {})}>
               <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
                 <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`}
@@ -199,6 +204,8 @@ export function TimelinePage() {
                 </div>
               )}
             </div>
+            {/* S7b-07 (F7): This month with nothing in it draws only the axis; say so under it. */}
+            {shownZoom === "month" && layout.rows.length === 0 && <p className="tl-empty" role="status">Nothing planned this month.</p>}
             <TimelineLanesList model={model} onSelect={select} />
             {selection && (
               <>
@@ -220,7 +227,7 @@ export function TimelinePage() {
       <UpdateEstimateSheet assignment={estimated} subject={estimatedSubject} pace={estimatedPace}
         childNames={estimated ? estimated.childIds.map((id) => children.find((c) => c.id === id)?.name ?? "").filter(Boolean) : []}
         onSaved={(saved) => { applyAssignment(saved); setEstimating(null); }} onClose={() => setEstimating(null)} />
-      <EditZoomViewsSheet open={editingViews} views={zoomViews} onClose={() => setEditingViews(false)}
+      <EditZoomViewsSheet open={editingViews} views={zoomViews} unavailable={unavailable} onClose={() => setEditingViews(false)}
         onSaved={(saved) => { setZoomViews(saved); setEditingViews(false); }} />
       <AddAssignmentSheet open={adding} lookups={lookups} initial={copying} onSaved={added} onClose={closeAdd} />
     </>

@@ -7,7 +7,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { Assignment, Subject } from "../src/api/types";
-import { presetChipDetail, subjectUsualHint, usualEffortText } from "../src/components/effortWords";
+import { customMinutesText, presetChipDetail, subjectUsualHint, usualEffortText } from "../src/components/effortWords";
 import { parseCustomMinutes, typicalDayMinutes } from "../src/components/weightPresets";
 import { effortCardText } from "../src/features/schedule/weightText";
 import { usuallyText } from "../src/features/schedule/WeightHint";
@@ -44,7 +44,7 @@ describe("helpers", () => {
     expect(usualEffortText("lessons", 15)).toBe("about 30 min a lesson");
     expect(usualEffortText("pages", 0.75)).toBe("about 1.5 min a page");
     expect(usualEffortText("chapters", null)).toBe("about 20 min a chapter");
-    expect(usualEffortText("minutes", null)).toBe("about 1 min a minute");
+    expect(usualEffortText("minutes", null)).toBe("about 30 min a day"); // S7b-07 (F4): was "about 1 min a minute"
     expect(presetChipDetail("lessons", 7.5)).toBe("· 15 min a lesson");
     expect(subjectUsualHint("Math", "lessons", 15, 32)).toBe("Math usually takes about 30 min a lesson (about 32 min a day here).");
   });
@@ -202,5 +202,18 @@ describe("S7-17: the same figure on the Subjects list and the subject form", () 
     await user.click(screen.getByRole("button", { name: /Reading/ }));
     expect(within(screen.getByRole("form", { name: "Edit Reading" })).getByLabelText("Custom minutes a page")).toHaveValue(1.5);
     expect(document.body.textContent).not.toMatch(/bar width/i);
+  });
+
+  it("S7b-07 (F4): minutes-based subjects say minutes a day, never 'a minute'", () => {
+    expect(usualEffortText("minutes", 0.25)).toBe("about 15 min a day");
+    expect(usualEffortText("minutes", 0.75)).toBe("about 45 min a day");
+    expect(presetChipDetail("minutes", 0.5)).toBe("· 30 min a day");
+    expect(customMinutesText("minutes", 0.5)).toBe("30");
+    expect(subjectUsualHint("Music", "minutes", 0.5, 32)).toBe("Music usually takes about 32 min a day.");
+    expect(subjectUsualHint("Math", "lessons", 15, 32)).toBe("Math usually takes about 30 min a lesson (about 32 min a day here).");
+    // The Custom field is minutes a typical day for minutes: 45 is a weight of 0.75; 1,441 is too many for a day.
+    expect(parseCustomMinutes("45", "minutes")).toBe(0.75);
+    expect(parseCustomMinutes("1441", "minutes")).toMatch(/at most 1,440/);
+    for (const w of [0.25, 0.5, 0.75, 1]) expect(usualEffortText("minutes", w)).not.toMatch(/a minute/);
   });
 });

@@ -1,6 +1,6 @@
 /** Thickness-picker presets and the bits of arithmetic behind its preview (S2b-34, D22). Pure. */
 import { DEFAULT_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, MINUTES_PER_WEIGHT_POINT, roundWeight, type UnitType } from "@hh/engine";
-import { usualEffortText } from "./effortWords";
+import { MINUTES_UNIT_TYPICAL_DAY, usualEffortText } from "./effortWords";
 import { UNIT_LABELS } from "./unitLabels";
 
 export type PresetKey = "none" | "light" | "normal" | "heavy" | "veryHeavy" | "custom";
@@ -34,7 +34,9 @@ export const REFERENCE_THICKNESS = TYPICAL_DAY.pages.units * DEFAULT_WEIGHT_PER_
 /** S7-17: "About 30 min a lesson. The bar shows 1 lesson a day." (null = the built-in). */
 export function previewCaption(unitType: UnitType, value: number | null): string {
   const about = usualEffortText(unitType, value);
-  return `${about[0]!.toUpperCase()}${about.slice(1)}. The bar shows ${TYPICAL_DAY[unitType].text} a day.`;
+  const said = `${about[0]!.toUpperCase()}${about.slice(1)}.`;
+  // S7b-07: a minutes subject already says it per day; the bar line would repeat it.
+  return unitType === "minutes" ? said : `${said} The bar shows ${TYPICAL_DAY[unitType].text} a day.`;
 }
 
 /** Parse the Custom field: a number more than 0, at most the engine max, two decimals. Message on failure. */
@@ -64,8 +66,11 @@ export function parseCustomMinutes(raw: string, unitType: UnitType): number | st
   if (!t) return "Enter the minutes.";
   const m = Number(t);
   if (!Number.isFinite(m)) return "Minutes must be a number.";
-  if (m <= 0 || m > MAX_UNIT_MINUTES) return `Minutes must be more than 0 and at most ${MAX_UNIT_MINUTES.toLocaleString("en-US")}.`;
-  const weight = roundWeight(m / MINUTES_PER_WEIGHT_POINT);
+  const max = unitType === "minutes" ? Math.min(1440, MAX_UNIT_MINUTES * MINUTES_UNIT_TYPICAL_DAY) : MAX_UNIT_MINUTES; // a day has 1,440 minutes
+  if (m <= 0 || m > max) return `Minutes must be more than 0 and at most ${max.toLocaleString("en-US")}.`;
+  // S7b-07: for minutes the field is minutes in a typical day (MINUTES_UNIT_TYPICAL_DAY units), not per unit.
+  const perUnit = unitType === "minutes" ? m / MINUTES_UNIT_TYPICAL_DAY : m;
+  const weight = roundWeight(perUnit / MINUTES_PER_WEIGHT_POINT);
   if (weight < MIN_WEIGHT_PER_UNIT || weight > MAX_WEIGHT_PER_UNIT) return `That is too far from usual for a ${UNIT_LABELS[unitType].one}. Try another number of minutes.`;
   return weight;
 }

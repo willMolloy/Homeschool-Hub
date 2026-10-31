@@ -90,7 +90,7 @@ export function ThicknessPicker({ unitType, value, onChange, legend = "Usual eff
       </div>
       {selected === "custom" ? (
         <div className="field thickness-custom">
-          <label htmlFor={customId}>Custom minutes a {UNIT_LABELS[unitType].one}</label>
+          <label htmlFor={customId}>{unitType === "minutes" ? "Custom minutes a day" : `Custom minutes a ${UNIT_LABELS[unitType].one}`}</label>
           <input id={customId} type="number" inputMode="decimal" step="any" min="0" max="1440"
             value={customText} onChange={(e) => typeCustom(e.target.value)}
             aria-invalid={customError ? true : undefined} aria-describedby={customError ? errId : undefined} />

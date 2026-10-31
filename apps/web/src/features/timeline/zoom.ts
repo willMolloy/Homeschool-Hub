@@ -94,6 +94,18 @@ export function zoomRange(
 }
 
 /**
+ * S7b-07 (F3): the family's view when the zoom is that view and none of its days is on the grid (zoomRange then draws
+ * the whole grid, which would look exactly like Year); otherwise null.
+ */
+export function viewWithoutPlan(model: Pick<TimelineModel, "dates">, zoom: Zoom, custom: readonly CustomZoomView[] = []): CustomZoomView | null {
+  if (!isCustomZoom(zoom) || model.dates.length === 0) return null;
+  const view = custom.find((v) => customZoom(v.id) === zoom);
+  if (!view) return null;
+  const overlaps = model.dates.some((d) => d >= view.start && d <= view.end);
+  return overlaps ? null : view;
+}
+
+/**
  * The presets worth offering. Fall and Spring only when the grid spans New Year (otherwise either half is the
  * whole grid again); This month whenever there is a grid.
  */

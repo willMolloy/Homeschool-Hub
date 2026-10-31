@@ -18,19 +18,21 @@ interface SheetProps {
   open: boolean;
   /** What is stored now. */
   views: ZoomViews;
+  /** S7b-07 (F3): built-ins the timeline's dates can't offer (Fall or Spring on a grid without that half); they say so instead of showing a switch. */
+  unavailable?: readonly ZoomViews["hidden"][number][];
   onSaved: (saved: ZoomViews) => void;
   onClose: () => void;
 }
 
-export function EditZoomViewsSheet({ open, views, onSaved, onClose }: SheetProps) {
+export function EditZoomViewsSheet({ open, views, unavailable = [], onSaved, onClose }: SheetProps) {
   return (
     <ResponsiveSheet open={open} onOpenChange={(o) => { if (!o) onClose(); }} title="Zoom views" wide="side">
-      <ZoomViewsForm views={views} onSaved={onSaved} onCancel={onClose} />
+      <ZoomViewsForm views={views} unavailable={unavailable} onSaved={onSaved} onCancel={onClose} />
     </ResponsiveSheet>
   );
 }
 
-function ZoomViewsForm({ views, onSaved, onCancel }: { views: ZoomViews; onSaved: (saved: ZoomViews) => void; onCancel: () => void }) {
+function ZoomViewsForm({ views, unavailable, onSaved, onCancel }: { views: ZoomViews; unavailable: readonly ZoomViews["hidden"][number][]; onSaved: (saved: ZoomViews) => void; onCancel: () => void }) {
   const [hidden, setHidden] = useState(views.hidden);
   const [custom, setCustom] = useState<CustomZoomView[]>(views.custom);
   const [tried, setTried] = useState(false);
@@ -75,6 +77,14 @@ function ZoomViewsForm({ views, onSaved, onCancel }: { views: ZoomViews; onSaved
         </li>
         {HIDEABLE_ZOOMS.map((z) => {
           const shown = !hidden.includes(z);
+          if (unavailable.includes(z)) {
+            return (
+              <li key={z} className="zoom-edit-row">
+                <span>{BUILT_IN_NAME[z]}</span>
+                <span className="hint">Not in this year's dates</span>
+              </li>
+            );
+          }
           return (
             <li key={z} className="zoom-edit-row">
               <label className="choice">

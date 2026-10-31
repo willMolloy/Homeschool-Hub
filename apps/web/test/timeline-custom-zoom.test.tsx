@@ -1,12 +1,12 @@
 /** S7-04: a family's own zoom views and hidden built-ins on the timeline (zoom.ts, ZoomPresets, TimelinePage). */
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { ENGINE_VERSION } from "@hh/engine";
+import { ENGINE_VERSION, planAll } from "@hh/engine";
 import type { ZoomViews } from "../src/api/types";
 import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
-import { customZoom, visibleZooms, zoomLabel, zoomRange } from "../src/features/timeline/zoom";
+import { customZoom, viewWithoutPlan, visibleZooms, zoomLabel, zoomRange } from "../src/features/timeline/zoom";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { SAMPLE_ASSIGNMENTS, SAMPLE_BLOCKED, SAMPLE_CHILDREN, SAMPLE_SUBJECTS, sampleInput, samplePlans } from "./helpers/timeline-fixtures";
 import { renderAt } from "./render";
@@ -135,5 +135,71 @@ describe("the zoom row on the timeline (S7-04)", () => {
     const css = readFileSync("src/features/timeline/timeline.css", "utf8");
     expect(css).toMatch(/\.tl-zoom \{[^}]*overflow-x: auto/);
     expect(css).toMatch(/\.tl-zoom button \{[^}]*flex: none/);
+  });
+});
+
+describe("a view with no plan, and an empty month (S7b-07)", () => {
+  it("viewWithoutPlan: only a family's view none of whose days is on the grid", () => {
+    const far = { id: "f", name: "Far future", start: "2035-01-05", end: "2035-03-01" };
+    expect(viewWithoutPlan(model, customZoom("f"), [far])).toEqual(far);
+    expect(viewWithoutPlan(model, customZoom(TERM2.id), [TERM2])).toBeNull();
+    // Partly on the grid still shows something of its own.
+    expect(viewWithoutPlan(model, customZoom("p"), [{ id: "p", name: "P", start: "2027-05-01", end: "2027-08-31" }])).toBeNull();
+    expect(viewWithoutPlan(model, "year", [far])).toBeNull();
+    expect(viewWithoutPlan(model, customZoom("gone"), [far])).toBeNull();
+    expect(viewWithoutPlan({ dates: [] }, customZoom("f"), [far])).toBeNull();
+  });
+
+  it("a view outside the plan says 'Nothing planned in {name} yet.' over the grid; one inside doesn't", async () => {
+    const far = { id: "70000000-0000-4000-8000-0000000000ff", name: "Far future", start: "2035-01-05", end: "2035-03-01" };
+    stub({ hidden: [], custom: [TERM2, far] });
+    const user = userEvent.setup();
+    renderAt("/timeline");
+    await screen.findByRole("img", { name: "Year timeline" });
+    expect(screen.queryByText(/^Nothing planned in /)).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Far future" }));
+    expect(await screen.findByText("Nothing planned in Far future yet.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Term 2" }));
+    expect(screen.queryByText(/^Nothing planned in /)).toBeNull();
+  });
+
+  it("This month with nothing planned that month says so under the axis", async () => {
+    // Today is Oct 28; the only assignment starts Nov 2 (the tester's new family).
+    const a = { ...SAMPLE_ASSIGNMENTS[0]!, startDate: "2026-11-02", endDate: "2026-11-27", childIds: [SAMPLE_CHILDREN[0]!.id], weightPerUnit: null };
+    const plans = planAll([{ id: a.id, subjectId: a.subjectId, childIds: a.childIds, unitType: a.unitType, totalUnits: a.totalUnits, start: a.startDate, end: a.endDate }],
+      { calendar: { weekStart: "mon", schoolDays: [1, 2, 3, 4, 5] }, asOf: DEMO_ME.today });
+    fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: DEMO_ME.today, from: "x", to: "y", plans });
+    fakeApi.on("GET /api/children", 200, SAMPLE_CHILDREN);
+    fakeApi.on("GET /api/subjects", 200, SAMPLE_SUBJECTS);
+    fakeApi.on("GET /api/assignments", 200, [a]);
+    fakeApi.on("GET /api/blocked-ranges", 200, []);
+    fakeApi.on("GET /api/events", 200, []);
+    const user = userEvent.setup();
+    renderAt("/timeline");
+    await screen.findByRole("img", { name: "Year timeline" });
+    expect(screen.queryByText("Nothing planned this month.")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "This month" }));
+    expect(await screen.findByText("Nothing planned this month.")).toBeInTheDocument();
+    // Next month has work: the line goes.
+    await user.click(screen.getByRole("button", { name: "Next month" }));
+    await waitFor(() => expect(screen.queryByText("Nothing planned this month.")).toBeNull());
+  });
+
+  it("the Zoom views sheet says Fall and Spring aren't in the dates when the plan doesn't span New Year", async () => {
+    const a = { ...SAMPLE_ASSIGNMENTS[0]!, startDate: "2026-11-02", endDate: "2026-11-27", childIds: [SAMPLE_CHILDREN[0]!.id], weightPerUnit: null };
+    const plans = planAll([{ id: a.id, subjectId: a.subjectId, childIds: a.childIds, unitType: a.unitType, totalUnits: a.totalUnits, start: a.startDate, end: a.endDate }],
+      { calendar: { weekStart: "mon", schoolDays: [1, 2, 3, 4, 5] }, asOf: DEMO_ME.today });
+    fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: DEMO_ME.today, from: "x", to: "y", plans });
+    fakeApi.on("GET /api/children", 200, SAMPLE_CHILDREN);
+    fakeApi.on("GET /api/subjects", 200, SAMPLE_SUBJECTS);
+    fakeApi.on("GET /api/assignments", 200, [a]);
+    fakeApi.on("GET /api/blocked-ranges", 200, []);
+    fakeApi.on("GET /api/events", 200, []);
+    const user = userEvent.setup();
+    renderAt("/timeline");
+    await screen.findByRole("img", { name: "Year timeline" });
+    await user.click(screen.getByRole("button", { name: "Edit zoom views" }));
+    const form = await screen.findByRole("form", { name: "Zoom views" });
+    expect(within(form).getAllByText("Not in this year's dates")).toHaveLength(2);
   });
 });
