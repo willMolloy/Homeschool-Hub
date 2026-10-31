@@ -1,12 +1,12 @@
 /**
  * "Make an adjustment" for a current or coming week (S6-03): that child's assignments with the amount planned this
- * week, a stepper on each, and, once an amount moved, the question of what happens to the end date. Save sends one
- * PUT /api/week-overrides per changed row (S6-02); a row taken "Back to plan" sends the DELETE. A past week keeps
- * the check-in sheet (ChildAdjustment). The default is to keep the end date, as in the check-in.
+ * week, a stepper on each, and, once an amount moved, the question of what happens to the end date. Save sends ONE
+ * PUT /api/week-overrides/batch with every changed row and every row taken "Back to plan" (S7b-01), so it is one change
+ * and one Undo. A past week keeps the check-in sheet (ChildAdjustment). The default is to keep the end date, as in the check-in.
  */
 import { useState } from "react";
 import type { OverrideMode } from "@hh/engine";
-import { ApiError, apiDelete, apiPut } from "../../api/client";
+import { ApiError, apiPut } from "../../api/client";
 import type { Assignment, PlanResponse } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { UNIT_LABELS, unitNumber } from "../../components/unitLabels";
@@ -61,17 +61,15 @@ export function WeekAdjustment({ childId, weekStart, weekEnd, current, onSaved }
   const save = async () => {
     setBusy(true);
     setError(null);
-    let sent = 0;
     try {
-      for (const c of changes) {
-        if (c.kind === "remove") await apiDelete(`/api/week-overrides/${c.overrideId}`);
-        else await apiPut("/api/week-overrides", { assignmentId: c.row.assignmentId, childId, weekStart, plannedUnits: c.units, mode });
-        sent += 1;
-      }
+      await apiPut("/api/week-overrides/batch", {
+        weekStart,
+        set: changes.flatMap((c) => (c.kind === "set" ? [{ assignmentId: c.row.assignmentId, childId, plannedUnits: c.units, mode }] : [])),
+        remove: changes.flatMap((c) => (c.kind === "remove" ? [c.overrideId] : [])),
+      });
       invalidate();
       onSaved();
     } catch (e) {
-      if (sent > 0) invalidate();
       setError(e instanceof ApiError && e.status === 400 ? e.message.replace(/^[a-zA-Z.\d]+: /, "") : "Couldn't save that. Please try again.");
       setBusy(false);
     }

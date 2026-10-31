@@ -170,6 +170,64 @@ describe.skipIf(!hasDb)("/api/undo (S6-06, integration)", () => {
     expect((await undoEntry()).label).toBe("Removed the adjustment to Treasure Island for every child, week of Nov 2");
   });
 
+  it("S7b-01: a batch save is one change and one undo puts every row back (set, replaced and removed)", async () => {
+    const mk = async (title: string) => (await req("POST", "/api/assignments", {
+      subjectId: subject, title, unitType: "pages", totalUnits: 100, weightPerUnit: 2, startDate: "2026-10-26", endDate: "2026-11-27", childIds: kids,
+    })).json().id as string;
+    const b2 = await mk("Second");
+    const b3 = await mk("Third");
+    const batch = (body: object) => app.inject({ method: "PUT", url: "/api/week-overrides/batch", cookies: a.cookies, payload: body });
+    const rowsNow = async () => (await req("GET", `/api/week-overrides?weekStart=${NEXT}`)).json().overrides;
+    // Before: one row to be replaced (id) and one to be removed (b3).
+    const replaced = (await put(override({ plannedUnits: 30 }))).json();
+    const removed = (await put(override({ assignmentId: b3, plannedUnits: 5 }))).json();
+    const before = await rowsNow();
+    const planBefore = await plan();
+
+    const res = await batch({
+      weekStart: NEXT,
+      set: [override({ plannedUnits: 12, weekStart: undefined }), override({ assignmentId: b2, plannedUnits: 7, weekStart: undefined })],
+      remove: [removed.id],
+    });
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.json().overrides).toHaveLength(2);
+    const rows = await rowsNow();
+    expect(rows.map((r: { assignmentId: string; plannedUnits: number }) => [r.assignmentId, r.plannedUnits]).sort()).toEqual([[id, 12], [b2, 7]].sort());
+    expect(rows.find((r: { id: string }) => r.id === replaced.id).plannedUnits).toBe(12);
+    // One entry, naming the count, the child and the week.
+    expect((await undoEntry()).label).toBe("Adjusted 3 assignments for Ada, week of Nov 2");
+
+    expect((await req("POST", "/api/undo")).statusCode).toBe(200);
+    expect(await rowsNow()).toEqual(before);
+    expect(await plan()).toEqual(planBefore);
+    expect((await req("POST", "/api/undo")).statusCode).toBe(404);
+  });
+
+  it("S7b-01: a batch is all or nothing, validates like the single endpoints and labels one row like them", async () => {
+    const batch = (body: object) => app.inject({ method: "PUT", url: "/api/week-overrides/batch", cookies: a.cookies, payload: body });
+    const count = async () => (await req("GET", `/api/week-overrides?weekStart=${NEXT}`)).json().overrides.length;
+    const ok = { assignmentId: id, childId: kids[0], plannedUnits: 10, mode: "keepEndDate" };
+    // The second row is over the total: nothing saved, no undo entry.
+    const bad = await batch({ weekStart: NEXT, set: [ok, { ...ok, assignmentId: id, childId: kids[1], plannedUnits: 999 }], remove: [] });
+    expect(bad.statusCode).toBe(400);
+    expect(await count()).toBe(0);
+    expect(await undoEntry()).toBeNull();
+    // A removal of an unknown row is a 404 and the sets before it roll back.
+    expect((await batch({ weekStart: NEXT, set: [ok], remove: ["00000000-0000-4000-8000-000000000000"] })).statusCode).toBe(404);
+    expect(await count()).toBe(0);
+    // Nothing to change, a misaligned week and a duplicate row are refused.
+    expect((await batch({ weekStart: NEXT, set: [], remove: [] })).statusCode).toBe(400);
+    expect((await batch({ weekStart: "2026-11-03", set: [ok], remove: [] })).statusCode).toBe(400);
+    expect((await batch({ weekStart: NEXT, set: [ok, ok], remove: [] })).statusCode).toBe(400);
+    // One row reads like the single endpoint; two children read "several children".
+    expect((await batch({ weekStart: NEXT, set: [ok], remove: [] })).statusCode).toBe(200);
+    expect((await undoEntry()).label).toBe("Adjusted Treasure Island for Ada, week of Nov 2");
+    expect((await batch({ weekStart: NEXT, set: [ok, { ...ok, childId: kids[1] }], remove: [] })).statusCode).toBe(200);
+    expect((await undoEntry()).label).toBe("Adjusted 2 assignments for several children, week of Nov 2");
+    // Another family's request cannot touch these rows.
+    expect((await app.inject({ method: "PUT", url: "/api/week-overrides/batch", cookies: b.cookies, payload: { weekStart: NEXT, set: [ok], remove: [] } })).statusCode).toBe(400);
+  });
+
   it("only the last change is kept: a new change replaces the entry", async () => {
     await req("PATCH", `/api/assignments/${id}`, { title: "First" });
     await req("POST", "/api/blocked-ranges", { label: "Trip", kind: "vacation", startDate: "2026-11-09", endDate: "2026-11-09", childIds: [] });

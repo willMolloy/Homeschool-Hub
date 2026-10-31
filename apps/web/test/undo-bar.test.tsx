@@ -32,7 +32,7 @@ describe("onPlanChange (the requests that can be undone)", () => {
 
   it.each([
     ["PATCH", "/api/assignments/a1"], ["POST", "/api/assignments/a1/reset"], ["POST", "/api/blocked-ranges"], ["POST", "/api/blocked-ranges/bulk"],
-    ["PATCH", "/api/blocked-ranges/b1"], ["DELETE", "/api/blocked-ranges/b1"], ["PUT", "/api/week-overrides"], ["DELETE", "/api/week-overrides/o1"],
+    ["PATCH", "/api/blocked-ranges/b1"], ["DELETE", "/api/blocked-ranges/b1"], ["PUT", "/api/week-overrides"], ["PUT", "/api/week-overrides/batch"], ["DELETE", "/api/week-overrides/o1"],
   ])("%s %s is announced once", async (method, path) => {
     expect(await fire(method, path, method === "DELETE" ? 204 : 200)).toBe(1);
   });

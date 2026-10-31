@@ -60,6 +60,7 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "PATCH /api/blocked-ranges/:id": BLOCKED,
   "PUT /api/check-ins/:id": ["status", "items"],
   "PUT /api/week-overrides": ["assignmentId", "childId", "weekStart", "plannedUnits", "mode"],
+  "PUT /api/week-overrides/batch": ["weekStart", "set", "remove"],
 };
 
 /** S2b-25: last week as GET /api/check-ins returns it with nothing planned, so the card stays hidden by default. */

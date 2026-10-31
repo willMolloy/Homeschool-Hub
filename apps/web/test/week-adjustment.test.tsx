@@ -24,7 +24,9 @@ const MATH = plan("math", "c1", { unitType: "lessons", totalUnits: 120, doneUnit
   days: [{ date: "2026-10-28", capacity: 1, schoolDay: true, units: 4, thickness: 4, kind: "planned", position: 14 }] } as Partial<ChildPlan>);
 const VIOLIN = plan("violin", "c2", { unitType: "minutes", totalUnits: 3000, remainingUnits: 2000 });
 
+/** S7b-01: a save is one PUT to the batch endpoint, with the rows to set and the ids to remove. */
 const puts = () => fakeApi.calls.filter((c) => c.method === "PUT");
+const batchBody = () => puts()[0]!.body as { weekStart: string; set: Record<string, unknown>[]; remove: string[] };
 const deletes = () => fakeApi.calls.filter((c) => c.method === "DELETE");
 const planGets = () => fakeApi.calls.filter((c) => c.method === "GET" && c.path.startsWith("/api/plan")).length;
 const row = (id: string, childId: string | null, over: object = {}) => ({
@@ -44,8 +46,7 @@ function stub(overrides: object[] = []) {
     { id: "violin", subjectId: "lit", title: "Violin" },
   ]);
   fakeApi.on("GET /api/week-overrides", 200, { overrides });
-  fakeApi.on("PUT /api/week-overrides", (body) => [200, { id: "new", updatedAt: "2026-10-28T15:00:00.000Z", ...(body as object) }]);
-  fakeApi.on("DELETE /api/week-overrides/o1", 204);
+  fakeApi.on("PUT /api/week-overrides/batch", (body) => [200, { overrides: (body as { set: object[] }).set.map((r) => ({ id: "new", updatedAt: "2026-10-28T15:00:00.000Z", ...r })) }]);
 }
 
 async function openSheet(path = "/", name = "Frank") {
@@ -73,7 +74,7 @@ describe("This Week adjustment (current week)", () => {
     expect(within(sheet).getByRole("button", { name: "Save" })).toBeDisabled();
   });
 
-  it("4 to 1 lessons keeps the end date by default, sends one PUT, reloads the plan and closes", async () => {
+  it("4 to 1 lessons keeps the end date by default, sends one batch PUT, reloads the plan and closes", async () => {
     stub();
     const sheet = await openSheet();
     const before = planGets();
@@ -84,7 +85,7 @@ describe("This Week adjustment (current week)", () => {
     await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(puts()).toHaveLength(1);
-    expect(puts()[0]).toMatchObject({ path: "/api/week-overrides", body: { assignmentId: "math", childId: "c1", weekStart: "2026-10-26", plannedUnits: 1, mode: "keepEndDate" } });
+    expect(puts()[0]).toMatchObject({ path: "/api/week-overrides/batch", body: { weekStart: "2026-10-26", remove: [], set: [{ assignmentId: "math", childId: "c1", plannedUnits: 1, mode: "keepEndDate" }] } });
     await waitFor(() => expect(planGets()).toBeGreaterThan(before));
     expect(fakeApi.bodyKeyViolations).toEqual([]);
   });
@@ -96,7 +97,7 @@ describe("This Week adjustment (current week)", () => {
     await userEvent.click(within(sheet).getByRole("button", { name: "Move the end date" }));
     await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
-    expect(puts()[0]!.body).toMatchObject({ assignmentId: "ti", plannedUnits: 21, mode: "pushEndDate" });
+    expect(batchBody().set).toMatchObject([{ assignmentId: "ti", plannedUnits: 21, mode: "pushEndDate" }]);
   });
 
   it("stepping back to where it started sends nothing; only changed rows are sent", async () => {
@@ -109,10 +110,11 @@ describe("This Week adjustment (current week)", () => {
     await userEvent.click(within(stepper(sheet, "Math 5")).getByRole("button", { name: "One more" }));
     await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
-    expect(puts()[0]!.body).toMatchObject({ assignmentId: "math", plannedUnits: 5 });
+    expect(batchBody().set).toMatchObject([{ assignmentId: "math", plannedUnits: 5 }]);
+    expect(batchBody().remove).toEqual([]);
   });
 
-  it("an adjustment already saved can be taken Back to plan, which sends the DELETE and no PUT", async () => {
+  it("an adjustment already saved can be taken Back to plan, which goes in the batch's remove list (no DELETE)", async () => {
     stub([row("o1", "c1")]);
     const sheet = await openSheet();
     await userEvent.click(within(sheet).getByRole("button", { name: "Back to plan for Treasure Island" }));
@@ -120,9 +122,9 @@ describe("This Week adjustment (current week)", () => {
     expect(within(sheet).queryByRole("group", { name: "Amount this week for Treasure Island" })).toBeNull();
     expect(within(sheet).queryByRole("group", { name: "What about the end date?" })).toBeNull();
     await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(deletes()).toHaveLength(1));
-    expect(deletes()[0]!.path).toBe("/api/week-overrides/o1");
-    expect(puts()).toEqual([]);
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    expect(batchBody()).toEqual({ weekStart: "2026-10-26", set: [], remove: ["o1"] });
+    expect(deletes()).toEqual([]);
   });
 
   it("Back to plan can be undone before saving; another child's or a whole-family adjustment offers no Back to plan", async () => {
@@ -134,9 +136,21 @@ describe("This Week adjustment (current week)", () => {
     expect(within(sheet).queryByRole("button", { name: /Back to plan for Math 5/ })).toBeNull();
   });
 
+  it("S7b-01: a row set and a row taken back are one request, so one Undo", async () => {
+    stub([row("o1", "c1")]);
+    const sheet = await openSheet();
+    await userEvent.click(within(sheet).getByRole("button", { name: "Back to plan for Treasure Island" }));
+    await userEvent.click(within(stepper(sheet, "Math 5")).getByRole("button", { name: "One less" }));
+    await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    expect(fakeApi.calls.filter((c) => c.method !== "GET" && c.path.startsWith("/api/week-overrides"))).toHaveLength(1);
+    expect(batchBody().set.map((r) => r.assignmentId).sort()).toEqual(["math"]);
+    expect(batchBody().remove).toEqual(["o1"]);
+  });
+
   it("a refused save shows the message and keeps the sheet open", async () => {
     stub();
-    fakeApi.on("PUT /api/week-overrides", 400, { error: "invalid_request", message: "plannedUnits: more than the assignment's total (270)." });
+    fakeApi.on("PUT /api/week-overrides/batch", 400, { error: "invalid_request", message: "plannedUnits: more than the assignment's total (270)." });
     const sheet = await openSheet();
     await userEvent.click(within(stepper(sheet, "Math 5")).getByRole("button", { name: "One more" }));
     await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
@@ -158,7 +172,7 @@ describe("This Week adjustment (other weeks)", () => {
     await userEvent.click(within(stepper(sheet, "Treasure Island", "that week")).getByRole("button", { name: "One less" }));
     await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
-    expect(puts()[0]!.body).toMatchObject({ weekStart: "2026-11-02", plannedUnits: 19 });
+    expect(batchBody()).toMatchObject({ weekStart: "2026-11-02", set: [{ plannedUnits: 19 }] });
   });
 
   it("S6b-12: a coming week's rows say 'That week', the current week's say 'This week'; each amount shows once", async () => {

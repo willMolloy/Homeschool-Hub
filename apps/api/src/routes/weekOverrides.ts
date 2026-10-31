@@ -4,15 +4,15 @@
  * is the edit order the plan reads (S6-01, C1: the most recent edit wins). Finished weeks are check-ins, not adjustments.
  */
 import { OVERRIDE_MODES, humanList, weekStartOf, type OverrideMode } from "@hh/engine";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { query, withReadSnapshot, withTransaction, type Queryable } from "../db";
+import { query, withReadSnapshot, withTransaction, type Queryable, type Tx } from "../db";
 import { HttpError } from "../http/errors";
 import { short as shortDate } from "../http/checkInDates";
 import { familyWeekStart } from "../http/familyWeek";
 import { hasAtMostDecimals, LocalDate } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
-import { recordUndo, type WeekOverrideState } from "../services/undoService";
+import { recordUndo, type UndoStep, type WeekOverrideState } from "../services/undoService";
 
 const Id = (label: string) => z.string(`${label} must be an id.`).regex(UUID_RE, `${label} must be a UUID.`).transform((s) => s.toLowerCase());
 const PlannedUnits = z.number("plannedUnits must be a number.")
@@ -27,6 +27,12 @@ const PutBody = z.strictObject({
   mode: z.enum(OVERRIDE_MODES, `mode must be ${humanList(OVERRIDE_MODES)}.`),
 });
 const ListQuery = z.strictObject({ weekStart: LocalDate });
+/** S7b-01: one save of the week sheet: the rows to set and the ids to remove, all for one week. */
+const BatchBody = z.strictObject({
+  weekStart: LocalDate,
+  set: z.array(PutBody.omit({ weekStart: true }), "set must be a list.").max(100, "set can have at most 100 rows."),
+  remove: z.array(Id("remove id"), "remove must be a list.").max(100, "remove can have at most 100 ids."),
+}).refine((b) => b.set.length + b.remove.length > 0, "Nothing to change.");
 
 interface Row {
   id: string; assignment_id: string; child_id: string | null; week_start: string;
@@ -57,6 +63,12 @@ async function adjustmentLabel(db: Queryable, familyId: string, verb: string, ti
   const [c] = childId === null ? [] : await query<{ name: string }>(db, "SELECT name FROM child WHERE id = $1 AND family_id = $2", [childId, familyId]);
   return `${verb} ${title} for ${childId === null ? "every child" : c?.name ?? "a child"}, week of ${shortDate(weekStart)}`;
 }
+/** S7b-01: the batch's label, "Adjusted 3 assignments for Frank, week of Nov 2" (several children read "for several children"). */
+async function batchLabel(db: Queryable, familyId: string, count: number, children: Set<string | null>, weekStart: string): Promise<string> {
+  const who = children.size === 1 ? [...children][0]! : null;
+  const label = await adjustmentLabel(db, familyId, "Adjusted", `${count} assignments`, who, weekStart);
+  return children.size > 1 ? label.replace("for every child", "for several children") : label;
+}
 
 const notFound = () => new HttpError(404, "not_found", "No such week adjustment.");
 
@@ -75,31 +87,77 @@ async function checkTarget(db: Queryable, familyId: string, b: z.infer<typeof Pu
   return a.title;
 }
 
+/** The week must start on the family's week start day and not be finished. */
+async function checkWeek(tx: Tx, req: FastifyRequest, week: string): Promise<void> {
+  const { today, weekStart } = await familyWeekStart(tx, req);
+  if (weekStartOf(week, weekStart) !== week)
+    throw new HttpError(400, "invalid_request", `weekStart: must be the first day of a week (a ${WEEKDAY_NAME[weekStart]}).`);
+  if (week < weekStartOf(today, weekStart))
+    throw new HttpError(400, "invalid_request", "weekStart: a finished week is changed with its check-in, not an adjustment.");
+}
+
+/** Set one adjustment (insert or replace); returns the row, its assignment's title and the step that undoes it (S6-06). */
+async function setOverride(tx: Tx, familyId: string, b: z.infer<typeof PutBody>): Promise<{ row: Row; title: string; step: UndoStep }> {
+  const title = await checkTarget(tx, familyId, b);
+  const [prev] = await query<Row>(tx,
+    `SELECT ${COLUMNS} FROM week_override WHERE family_id = $1 AND assignment_id = $2 AND child_id IS NOT DISTINCT FROM $3 AND week_start = $4 FOR UPDATE`,
+    [familyId, b.assignmentId, b.childId, b.weekStart]);
+  // clock_timestamp(), not now(): the edit order must not tie with another edit in the same transaction.
+  const [r] = await query<Row>(tx,
+    `INSERT INTO week_override (family_id, assignment_id, child_id, week_start, planned_units, mode)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (assignment_id, COALESCE(child_id, '00000000-0000-0000-0000-000000000000'::uuid), week_start)
+     DO UPDATE SET planned_units = EXCLUDED.planned_units, mode = EXCLUDED.mode, updated_at = clock_timestamp()
+     RETURNING ${COLUMNS}`, [familyId, b.assignmentId, b.childId, b.weekStart, b.plannedUnits, b.mode]);
+  // S6-06: undo puts the earlier amount back, or removes the adjustment if it is new.
+  return { row: r!, title, step: { op: "weekOverride", id: r!.id, set: prev ? stateOf(prev) : null } };
+}
+
 export async function weekOverridesRoutes(app: FastifyInstance): Promise<void> {
   app.put("/api/week-overrides", async (req) => {
     const b = parseBody(PutBody, req.body);
     const row = await withTransaction(app.db, async (tx) => {
-      const { today, weekStart } = await familyWeekStart(tx, req);
-      if (weekStartOf(b.weekStart, weekStart) !== b.weekStart)
-        throw new HttpError(400, "invalid_request", `weekStart: must be the first day of a week (a ${WEEKDAY_NAME[weekStart]}).`);
-      if (b.weekStart < weekStartOf(today, weekStart))
-        throw new HttpError(400, "invalid_request", "weekStart: a finished week is changed with its check-in, not an adjustment.");
-      const title = await checkTarget(tx, req.familyId, b);
-      const [prev] = await query<Row>(tx,
-        `SELECT ${COLUMNS} FROM week_override WHERE family_id = $1 AND assignment_id = $2 AND child_id IS NOT DISTINCT FROM $3 AND week_start = $4 FOR UPDATE`,
-        [req.familyId, b.assignmentId, b.childId, b.weekStart]);
-      // clock_timestamp(), not now(): the edit order must not tie with another edit in the same transaction.
-      const [r] = await query<Row>(tx,
-        `INSERT INTO week_override (family_id, assignment_id, child_id, week_start, planned_units, mode)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (assignment_id, COALESCE(child_id, '00000000-0000-0000-0000-000000000000'::uuid), week_start)
-         DO UPDATE SET planned_units = EXCLUDED.planned_units, mode = EXCLUDED.mode, updated_at = clock_timestamp()
-         RETURNING ${COLUMNS}`, [req.familyId, b.assignmentId, b.childId, b.weekStart, b.plannedUnits, b.mode]);
-      // S6-06: undo puts the earlier amount back, or removes the adjustment if it is new.
-      await recordUndo(tx, req.familyId, await adjustmentLabel(tx, req.familyId, "Adjusted", title, b.childId, b.weekStart), [{ op: "weekOverride", id: r!.id, set: prev ? stateOf(prev) : null }]);
-      return r!;
+      await checkWeek(tx, req, b.weekStart);
+      const { row: r, title, step } = await setOverride(tx, req.familyId, b);
+      await recordUndo(tx, req.familyId, await adjustmentLabel(tx, req.familyId, "Adjusted", title, b.childId, b.weekStart), [step]);
+      return r;
     });
     return toJson(row);
+  });
+
+  /**
+   * S7b-01: one save of the week sheet. Every row is set or removed in one transaction (all or nothing) with ONE undo entry
+   * whose steps put every row back as it was, so Undo reverts the whole save. The single-row endpoints are unchanged.
+   */
+  app.put("/api/week-overrides/batch", async (req) => {
+    const b = parseBody(BatchBody, req.body);
+    const keys = b.set.map((r) => `${r.assignmentId}|${r.childId}`);
+    if (new Set(keys).size !== keys.length) throw new HttpError(400, "invalid_request", "set: an assignment and child can appear only once.");
+    if (new Set(b.remove).size !== b.remove.length) throw new HttpError(400, "invalid_request", "remove: an id can appear only once.");
+    const rows = await withTransaction(app.db, async (tx) => {
+      await checkWeek(tx, req, b.weekStart);
+      const steps: UndoStep[] = [];
+      const titles: string[] = [];
+      const children = new Set<string | null>();
+      const saved: Row[] = [];
+      for (const item of b.set) {
+        const { row, title, step } = await setOverride(tx, req.familyId, { ...item, weekStart: b.weekStart });
+        steps.push(step); titles.push(title); children.add(item.childId); saved.push(row);
+      }
+      for (const id of b.remove) {
+        const [cur] = await query<Row>(tx, `SELECT ${COLUMNS} FROM week_override WHERE id = $1 AND family_id = $2 AND week_start = $3 FOR UPDATE`, [id, req.familyId, b.weekStart]);
+        if (!cur) throw notFound();
+        const [a] = await query<{ title: string }>(tx, "SELECT title FROM assignment WHERE id = $1 AND family_id = $2", [cur.assignment_id, req.familyId]);
+        await query(tx, "DELETE FROM week_override WHERE id = $1 AND family_id = $2", [cur.id, req.familyId]);
+        steps.push({ op: "weekOverride", id: cur.id, set: stateOf(cur) }); titles.push(a?.title ?? "an assignment"); children.add(cur.child_id);
+      }
+      const only = steps.length === 1;
+      await recordUndo(tx, req.familyId,
+        only ? await adjustmentLabel(tx, req.familyId, b.remove.length ? "Removed the adjustment to" : "Adjusted", titles[0]!, [...children][0]!, b.weekStart)
+          : await batchLabel(tx, req.familyId, steps.length, children, b.weekStart), steps);
+      return saved;
+    });
+    return { overrides: rows.map(toJson) };
   });
 
   app.get("/api/week-overrides", async (req) => {

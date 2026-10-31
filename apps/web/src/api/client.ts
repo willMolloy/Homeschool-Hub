@@ -31,7 +31,7 @@ const PLAN_CHANGES: readonly (readonly [string, RegExp])[] = [
   ["POST", /^\/api\/blocked-ranges(\/bulk)?$/],
   ["PATCH", /^\/api\/blocked-ranges\/[^/]+$/],
   ["DELETE", /^\/api\/blocked-ranges\/[^/]+$/],
-  ["PUT", /^\/api\/week-overrides$/],
+  ["PUT", /^\/api\/week-overrides(\/batch)?$/], // S7b-01: the batch is one undo entry too
   ["DELETE", /^\/api\/week-overrides\/[^/]+$/],
 ];
 const planChangeListeners = new Set<() => void>();
