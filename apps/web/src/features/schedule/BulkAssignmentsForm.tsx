@@ -48,12 +48,18 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
 
   const setRow = (key: number, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
+  const newSubject = useRef<(() => Promise<string | null | undefined>) | null>(null);
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (saving) return;
     setFormError(null);
+    // S7-16: a subject name typed under "New subject…" is created first and used; if that fails nothing is saved.
+    const made = await newSubject.current?.();
+    if (made === null) return;
+    const sid = made ?? subjectId;
     const errs: Errors = {};
-    if (!subjectId) errs.subject = "Pick a subject.";
+    if (!sid) errs.subject = "Pick a subject.";
     if (childIds.length === 0) errs.children = "Pick at least one child.";
     const d = dateRangeError(startDate, endDate, LIMITS.days);
     if (d) errs.dates = d;
@@ -78,7 +84,7 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
 
     setSaving(true);
     try {
-      const body = { assignments: items.map((i) => ({ subjectId, ...i, unitType, weightPerUnit: null, startDate, endDate, childIds, weekdays: dayChoice.value })) };
+      const body = { assignments: items.map((i) => ({ subjectId: sid, ...i, unitType, weightPerUnit: null, startDate, endDate, childIds, weekdays: dayChoice.value })) };
       onSaved(await apiPost<Assignment[]>("/api/assignments/bulk", body));
     } catch (err) {
       // The server counts only the rows sent; name them by the row numbers on screen.
@@ -94,7 +100,7 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
       {formError ? <p className="form-error" role="alert">{formError}</p> : null}
       <div className="field">
         <label htmlFor={ids.subject}>Subject</label>
-        <SubjectSelect id={ids.subject} value={subjectId} onChange={setSubjectId} l={l} options={activeSubjects} invalidProps={errors.subject ? { "aria-invalid": true } : {}} />
+        <SubjectSelect id={ids.subject} value={subjectId} onChange={setSubjectId} l={l} options={activeSubjects} invalidProps={errors.subject ? { "aria-invalid": true } : {}} resolveRef={newSubject} />
         {errors.subject ? <p className="field-error" role="alert">{errors.subject}</p> : null}
       </div>
       <ChildPicker options={l.children} value={childIds} onChange={setChildIds} error={errors.children} />

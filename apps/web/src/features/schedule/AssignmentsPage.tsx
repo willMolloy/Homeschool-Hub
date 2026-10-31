@@ -5,7 +5,7 @@
  * S6b-08: the subject dropdown also offers common subjects and "New subject…" (SubjectSelect).
  * S7-01 / S7-02: "Copy to a new year" and "Copy to another child" (CopyPanels). S3a-04: "Add several" enters a subject's books in one form. S3a-06: "Import CSV" does it from a file.
  */
-import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { UNIT_TYPES, minutesPerDayFromWeight, weightFromMinutesPerDay, weightPerUnitOf } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
 import type { Assignment, Subject, UnitType } from "../../api/types";
@@ -147,12 +147,19 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     dayChoice.change(days);
   }
 
+  const newSubject = useRef<(() => Promise<string | null | undefined>) | null>(null);
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (saving || awaitingSuggestion) return;
     setFormError(null);
+    // S7-16: a subject name typed under "New subject…" is created first and used; if that fails nothing is saved.
+    const made = await newSubject.current?.();
+    if (made === null) return;
+    const sid = made ?? subjectId;
+    const markedNow = marked && sid === subjectId; // a default marked for the old subject isn't the new one's
     const errs: Errors = {};
-    if (!subjectId) errs.subject = "Pick a subject.";
+    if (!sid) errs.subject = "Pick a subject.";
     const t = title.trim();
     if (!t) errs.title = "Title is required.";
     else if (t.length > LIMITS.title) errs.title = `Title must be ${LIMITS.title} characters or fewer.`;
@@ -174,11 +181,11 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     if (Object.keys(errs).length > 0 || typeof total === "string") return;
 
     // S4b-05: a marked default is the subject's first, then the assignment follows it (null).
-    const full = { subjectId, title: t, unitType, totalUnits: total, weightPerUnit: wpu, startDate, endDate, childIds, weekdays: marked ? null : dayChoice.value };
+    const full = { subjectId: sid, title: t, unitType, totalUnits: total, weightPerUnit: wpu, startDate, endDate, childIds, weekdays: markedNow ? null : dayChoice.value };
     setSaving(true);
     try {
-      if (marked) {
-        const saved = await apiPatch<Subject>(`/api/subjects/${subjectId}`, { defaultWeekdays: defaultMark.days });
+      if (markedNow) {
+        const saved = await apiPatch<Subject>(`/api/subjects/${sid}`, { defaultWeekdays: defaultMark.days });
         l.subjectSaved?.(saved);
         dayChoice.follow();
         setDefaultMark(null);
@@ -198,7 +205,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       if (full.endDate !== item.endDate) patch.endDate = full.endDate;
       if (!sameSet(full.childIds, item.childIds)) patch.childIds = full.childIds;
       // S4b-04: only when a chip was tapped (or a default was set), so a title-only edit never changes the days.
-      if ((dayChoice.touched || marked) && JSON.stringify(full.weekdays) !== JSON.stringify(item.weekdays ?? null)) patch.weekdays = full.weekdays;
+      if ((dayChoice.touched || markedNow) && JSON.stringify(full.weekdays) !== JSON.stringify(item.weekdays ?? null)) patch.weekdays = full.weekdays;
       if (Object.keys(patch).length === 0) return onCancel();
       onSaved(await apiPatch<Assignment>(`/api/assignments/${item.id}`, patch));
     } catch (err) {
@@ -233,7 +240,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     <form className="card schedule-form" aria-label={item ? `Edit ${item.title}` : "Add assignment"} onSubmit={submit} noValidate>
       {shownError ? <p className="form-error" role="alert">{shownError}</p> : null}
       {field(ids.subject, "Subject", errors.subject,
-        <SubjectSelect id={ids.subject} value={subjectId} onChange={setSubjectId} l={l} options={activeSubjects} invalidProps={inv(errors.subject, ids.subject)} />)}
+        <SubjectSelect id={ids.subject} value={subjectId} onChange={setSubjectId} l={l} options={activeSubjects} invalidProps={inv(errors.subject, ids.subject)} resolveRef={newSubject} />)}
       {field(ids.title, "Title", errors.title,
         <input id={ids.title} type="text" value={title} autoComplete="off" onChange={(e) => setTitle(e.target.value)} {...inv(errors.title, ids.title)} />)}
       <ChildPicker options={l.children} value={childIds} onChange={setChildIds} error={errors.children} />

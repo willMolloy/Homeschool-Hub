@@ -119,7 +119,67 @@ describe("the subject dropdown on the Add form", () => {
     await user.type(within(form).getByLabelText("Subject name"), "Latin{Enter}");
     expect(await within(form).findByText("Couldn't add that subject. Please try again.")).toBeInTheDocument();
     expect(within(form).getByLabelText("Subject name")).toHaveValue("Latin");
-    expect(within(form).getByLabelText("Subject")).toHaveValue("");
+    // S7-16: while the name field is open the select shows "New subject…" (was: the previous choice, here none).
+    expect(within(form).getByLabelText("Subject")).toHaveDisplayValue("New subject…");
+  });
+
+  it("S7-16: the select shows New subject… while the field is open, even after another subject was chosen", async () => {
+    const { user, form } = await openAdd([MATH]);
+    await user.selectOptions(within(form).getByLabelText("Subject"), "Math");
+    await user.selectOptions(within(form).getByLabelText("Subject"), "New subject…");
+    expect(within(form).getByLabelText("Subject")).toHaveDisplayValue("New subject…");
+  });
+
+  async function fillRest(user: ReturnType<typeof userEvent.setup>, form: HTMLElement) {
+    await user.type(within(form).getByLabelText("Title"), "Backyard birds");
+    await user.type(within(form).getByLabelText("Total"), "20");
+    date(form, "Start", "2026-11-02");
+    date(form, "End", "2026-12-18");
+    // The suggestion for these inputs is fetched after a short debounce; Add waits for it.
+    await waitFor(() => expect(within(form).getByRole("button", { name: "Add" })).toBeEnabled());
+  }
+
+  it("S7-16: typing a new subject and pressing the form's Add creates it and saves the assignment under it", async () => {
+    fakeApi.on("POST /api/subjects", created(1));
+    const { user, form } = await openAdd();
+    await user.selectOptions(within(form).getByLabelText("Subject"), "New subject…");
+    await user.type(within(form).getByLabelText("Subject name"), "Nature Study");
+    await fillRest(user, form);
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(writes()).toHaveLength(2));
+    expect(writes()[0]).toMatchObject({ path: "/api/subjects", body: { name: "Nature Study" } });
+    expect(writes()[1]).toMatchObject({ path: "/api/assignments", body: { subjectId: rowId(51), title: "Backyard birds" } });
+  });
+
+  it("S7-16: when creating the typed subject fails, nothing is saved and the error shows", async () => {
+    fakeApi.on("POST /api/subjects", 500, { error: "boom", message: "x" });
+    const { user, form } = await openAdd();
+    await user.selectOptions(within(form).getByLabelText("Subject"), "New subject…");
+    await user.type(within(form).getByLabelText("Subject name"), "Nature Study");
+    await fillRest(user, form);
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    expect(await within(form).findByText("Couldn't add that subject. Please try again.")).toBeInTheDocument();
+    expect(writes().map((w) => w.path)).toEqual(["/api/subjects"]);
+  });
+
+  it("S7-16: Add several does the same", async () => {
+    withRoster([FRANK], []);
+    fakeApi.on("GET /api/assignments", 200, []);
+    fakeApi.on("POST /api/subjects", created(1));
+    fakeApi.on("POST /api/assignments/bulk", (body) => [201, (body as { assignments: object[] }).assignments.map((a, i) => ({ ...a, id: rowId(70 + i), archived: false }))]);
+    const user = userEvent.setup();
+    renderAt("/schedule/assignments");
+    await user.click(await screen.findByRole("button", { name: "Add several" }));
+    const form = screen.getByRole("form", { name: "Add several assignments" });
+    await user.selectOptions(within(form).getByLabelText("Subject"), "New subject…");
+    await user.type(within(form).getByLabelText("Subject name"), "Nature Study");
+    date(form, "Start", "2026-11-02");
+    date(form, "End", "2026-12-18");
+    await user.type(within(form).getAllByLabelText(/^Title/)[0]!, "Birds");
+    await user.type(within(form).getAllByLabelText(/^Total/)[0]!, "10");
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(2));
+    expect(writes()[1]).toMatchObject({ path: "/api/assignments/bulk", body: { assignments: [expect.objectContaining({ subjectId: rowId(51), title: "Birds" })] } });
   });
 });
 

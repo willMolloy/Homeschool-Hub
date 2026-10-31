@@ -3,8 +3,10 @@
  * have yet ("Add a common subject") and "New subject…". Picking a common subject creates it and selects it; New
  * subject… opens a name field with Add. A duplicate name selects the existing subject. Used by the Add / Edit form and
  * Add several.
+ * S7-16: while the name field is open the select shows "New subject…", and the form's own Add first creates the typed
+ * subject through `resolveRef` (see below), so a typed name is never dropped.
  */
-import { useId, useState } from "react";
+import { useEffect, useId, useState, type MutableRefObject } from "react";
 import { ApiError, apiPost } from "../../api/client";
 import type { Subject } from "../../api/types";
 import { findSubjectNamed, missingCommonSubjects } from "../roster/commonSubjects";
@@ -22,9 +24,15 @@ interface Props {
   /** The subjects to list: the active ones (plus the one being edited, even archived). */
   options: readonly Subject[];
   invalidProps?: Record<string, unknown>;
+  /**
+   * S7-16: the form fills this with a function it calls when it is saved. With text in the open name field it
+   * creates that subject (as Add does) and resolves to its id, or to null when that failed (the error is shown; the
+   * form must save nothing); with nothing typed it resolves to undefined and the form uses its own subject.
+   */
+  resolveRef?: MutableRefObject<(() => Promise<string | null | undefined>) | null>;
 }
 
-export function SubjectSelect({ id, value, onChange, l, options, invalidProps }: Props) {
+export function SubjectSelect({ id, value, onChange, l, options, invalidProps, resolveRef }: Props) {
   const nameId = useId();
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
@@ -32,10 +40,13 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps }:
   const [error, setError] = useState<string | null>(null);
   const common = missingCommonSubjects(l.subjects);
 
-  /** Creates the subject (next free palette colour) and selects it; a duplicate name selects the one that exists. */
-  async function add(raw: string) {
+  /**
+   * Creates the subject (next free palette colour) and selects it; a duplicate name selects the one that exists.
+   * Resolves to the subject's id, or null when nothing was created or selected.
+   */
+  async function add(raw: string): Promise<string | null> {
     const wanted = raw.trim();
-    if (!wanted || busy) return;
+    if (!wanted || busy) return null;
     setBusy(true);
     setError(null);
     try {
@@ -44,18 +55,27 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps }:
       onChange(created.id);
       setNaming(false);
       setName("");
+      return created.id;
     } catch (err) {
       const existing = err instanceof ApiError && err.status === 409 ? findSubjectNamed(l.subjects, wanted) : undefined;
       if (existing && !existing.archived) {
         onChange(existing.id);
         setNaming(false);
         setName("");
+        return existing.id;
       } else if (existing) setError(`${existing.name} is archived. Unarchive it under Subjects.`);
       else setError(err instanceof ApiError && err.status === 0 ? "Can't reach the server." : "Couldn't add that subject. Please try again.");
     } finally {
       setBusy(false);
     }
+    return null;
   }
+
+  useEffect(() => {
+    if (!resolveRef) return;
+    resolveRef.current = async () => (naming && name.trim() ? add(name) : undefined);
+    return () => { resolveRef.current = null; };
+  });
 
   function choose(v: string) {
     setError(null);
@@ -72,7 +92,7 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps }:
 
   return (
     <>
-      <select id={id} value={value} disabled={busy} onChange={(e) => choose(e.target.value)} {...invalidProps}>
+      <select id={id} value={naming ? NEW_VALUE : value} disabled={busy} onChange={(e) => choose(e.target.value)} {...invalidProps}>
         <option value="">Choose a subject…</option>
         {options.map((s) => (
           <option key={s.id} value={s.id}>{s.name}{s.archived ? " (archived)" : ""}</option>
