@@ -6,7 +6,8 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 |--------|--------|-------|
 | S5-01 Add the event preview endpoint | 297ffcb | `POST /api/plan/preview-event` in `routes/eventPreview.ts`; the event create schema is exported from `events.ts` and reused |
 | S5-02 Show the plan change before saving an event | d7855ed | `EventPreview.tsx` (`useEventPreview`, `EventPreviewList`); the form's checks are one `check()` shared by the preview and Save |
-| S5-03 Add year-shape helpers | (this commit) | `yearShape.ts`: `usHolidays`, `onOffBreaks`, `CALENDAR_SHAPES`; exported from `@hh/engine` |
+| S5-03 Add year-shape helpers | 3a57d34 | `yearShape.ts`: `usHolidays`, `onOffBreaks`, `CALENDAR_SHAPES`; exported from `@hh/engine` |
+| S5-04 Add the bulk-create days off endpoint | (this commit) | `POST /api/blocked-ranges/bulk` in `blockedRanges.ts`; `createOne` and `atPosition` shared with the single create |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -24,3 +25,4 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 - **S5-03 break runs.** `onOffBreaks` returns one range per run of break weeks (2 weeks off is one 14-day range, first day of the first week to last day of the last), not one per week, because a parent sees it as one break. The range is whole weeks, so it includes the weekend; the last is cut at `end`. A break that would start after `end` is dropped. `weeksOn` below 1 or `weeksOff` below 0 (or not whole) throws `EngineInputError`; `weeksOff` 0 gives none.
 - **S5-03 shapes as data.** `CALENDAR_SHAPES`: `36-weeks` (pattern null, holidays only), `sabbath` (6 on, 1 off), `three-terms` (12 on, 2 off), each with a label for the screen.
 - **S5-03 no version bump.** Only new exports and no plan number changes, as in S4-08, so `ENGINE_VERSION` stays 0.9.0.
+- **S5-04 how.** Same pattern as S3a-03: every item is parsed with the create schema and date-checked first (errors read "Day off N: ..."), then one transaction creates them in order with the single create's own `createOne` (reference check included, so one foreign child id rolls everything back). 201 returns the rows in request order. Body `{ blockedRanges: [...] }`, 1 to 100 items, strict. `kind` defaults to `vacation` per item, as in the single create. Like the single create, it has no demo-family block.

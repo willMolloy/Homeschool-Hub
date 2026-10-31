@@ -1,9 +1,9 @@
-/** /api/blocked-ranges (S2a-07): vacations and other days off. */
+/** /api/blocked-ranges (S2a-07): vacations and other days off; POST /api/blocked-ranges/bulk (S5-04). */
 import type { FastifyInstance } from "fastify";
 import { BLOCKED_KINDS, humanList } from "@hh/engine";
 import { z } from "zod";
 import { HttpError } from "../http/errors";
-import { withTransaction } from "../db";
+import { withTransaction, type Tx } from "../db";
 import { checkDateOrder, IdList, LocalDate, MAX_BLOCKED_DAYS } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
 import {
@@ -26,6 +26,32 @@ const CreateBody = z.strictObject({
   endDate: LocalDate,
   childIds: Children.optional(),
 });
+/** S5-04: the most days off one bulk request may create. */
+const MAX_BULK = 100;
+const BulkBody = z.strictObject({
+  blockedRanges: z.array(z.unknown(), "Must be a list.").min(1, "Send at least one day off.").max(MAX_BULK, `Send at most ${MAX_BULK} days off.`),
+});
+type CreateInput = z.infer<typeof CreateBody>;
+
+/** Checks references, inserts one day off and reads it back. The caller owns the transaction. */
+async function createOne(c: Tx, familyId: string, b: CreateInput) {
+  await checkRefs(c, familyId, { childIds: b.childIds ?? [] });
+  const id = await createBlockedRange(c, familyId, {
+    label: b.label ?? null, kind: b.kind ?? "vacation", startDate: b.startDate, endDate: b.endDate, childIds: b.childIds ?? [],
+  });
+  return (await getBlockedRange(c, familyId, id))!;
+}
+
+/** Re-throws a 400 with "Day off N: " in front (N is 1-based) so the parent can find the bad item. */
+async function atPosition<T>(n: number, fn: () => T | Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof HttpError) throw new HttpError(err.statusCode, err.code, `Day off ${n}: ${err.message}`);
+    throw err;
+  }
+}
+
 const PatchBody = z
   .strictObject({ label: Label.nullable().optional(), kind: Kind.optional(), startDate: LocalDate.optional(), endDate: LocalDate.optional(), childIds: Children.optional() })
   .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.");
@@ -38,14 +64,27 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
   app.post("/api/blocked-ranges", async (req, reply) => {
     const b = parseBody(CreateBody, req.body);
     checkDateOrder(b.startDate, b.endDate, MAX_BLOCKED_DAYS);
-    const row = await withTransaction(app.db, async (c) => {
-      await checkRefs(c, req.familyId, { childIds: b.childIds ?? [] });
-      const id = await createBlockedRange(c, req.familyId, {
-        label: b.label ?? null, kind: b.kind ?? "vacation", startDate: b.startDate, endDate: b.endDate, childIds: b.childIds ?? [],
-      });
-      return (await getBlockedRange(c, req.familyId, id))!;
-    });
+    const row = await withTransaction(app.db, (c) => createOne(c, req.familyId, b));
     return reply.code(201).send(toBlockedRangeJson(row));
+  });
+
+  app.post("/api/blocked-ranges/bulk", async (req, reply) => {
+    const { blockedRanges } = parseBody(BulkBody, req.body);
+    // Every item is validated before anything is written.
+    const items: CreateInput[] = [];
+    for (const [i, raw] of blockedRanges.entries()) {
+      items.push(await atPosition(i + 1, () => {
+        const b = parseBody(CreateBody, raw);
+        checkDateOrder(b.startDate, b.endDate, MAX_BLOCKED_DAYS);
+        return b;
+      }));
+    }
+    const rows = await withTransaction(app.db, async (c) => {
+      const created = [];
+      for (const [i, b] of items.entries()) created.push(await atPosition(i + 1, () => createOne(c, req.familyId, b)));
+      return created;
+    });
+    return reply.code(201).send(rows.map(toBlockedRangeJson));
   });
 
   app.patch<{ Params: { id: string } }>("/api/blocked-ranges/:id", async (req) => {
