@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, CALENDAR_SHAPES, EngineInputError, onOffBreaks, usHolidays, weekdayOf } from "../src";
+import { addDays, CALENDAR_SHAPES, EngineInputError, HOLIDAY_KEYS, HOLIDAY_LABELS, onOffBreaks, usHolidays, weekdayOf } from "../src";
 
 const byKey = (start: string, end: string) => Object.fromEntries(usHolidays(start, end).map((h) => [h.key, h]));
 
@@ -32,6 +32,11 @@ describe("usHolidays (S5-03)", () => {
     // A range that starts inside last year's winter break still sees it.
     expect(usHolidays("2027-01-01", "2027-01-01")).toEqual([{ key: "winter-break", start: "2027-01-01", end: "2027-01-01", label: "Winter break" }]);
     expect(usHolidays("2026-10-01", "2026-09-01")).toEqual([]);
+  });
+
+  it("HOLIDAY_LABELS names every key, and usHolidays uses those names", () => {
+    expect(Object.keys(HOLIDAY_LABELS).sort()).toEqual([...HOLIDAY_KEYS].sort());
+    for (const h of usHolidays("2026-08-17", "2027-06-30")) expect(h.label).toBe(HOLIDAY_LABELS[h.key]);
   });
 
   it("finds the right Mondays and Easters in other years", () => {

@@ -8,6 +8,17 @@ import type { LocalDate, WeekStart } from "./types";
 export const HOLIDAY_KEYS = ["labor-day", "thanksgiving", "winter-break", "mlk-day", "presidents-day", "good-friday", "memorial-day"] as const;
 export type HolidayKey = (typeof HOLIDAY_KEYS)[number];
 
+/** What each holiday is called, for a screen that lists them all (S5-05). */
+export const HOLIDAY_LABELS: Readonly<Record<HolidayKey, string>> = {
+  "labor-day": "Labor Day",
+  thanksgiving: "Thanksgiving",
+  "winter-break": "Winter break",
+  "mlk-day": "Martin Luther King Jr. Day",
+  "presidents-day": "Presidents' Day",
+  "good-friday": "Good Friday",
+  "memorial-day": "Memorial Day",
+};
+
 export interface Holiday {
   /** Stable, so a screen can offer a checkbox per holiday. */
   key: HolidayKey;
@@ -58,13 +69,13 @@ function easter(y: number): number {
 function holidaysOfYear(y: number): { key: HolidayKey; label: string; start: number; end: number }[] {
   const thanksgiving = nthWeekday(y, 11, 4, 4);
   return [
-    { key: "mlk-day", label: "Martin Luther King Jr. Day", start: nthWeekday(y, 1, 1, 3), end: nthWeekday(y, 1, 1, 3) },
-    { key: "presidents-day", label: "Presidents' Day", start: nthWeekday(y, 2, 1, 3), end: nthWeekday(y, 2, 1, 3) },
-    { key: "good-friday", label: "Good Friday", start: easter(y) - 2, end: easter(y) - 2 },
-    { key: "memorial-day", label: "Memorial Day", start: lastWeekday(y, 5, 1), end: lastWeekday(y, 5, 1) },
-    { key: "labor-day", label: "Labor Day", start: nthWeekday(y, 9, 1, 1), end: nthWeekday(y, 9, 1, 1) },
-    { key: "thanksgiving", label: "Thanksgiving", start: thanksgiving, end: thanksgiving + 1 },
-    { key: "winter-break", label: "Winter break", start: daysFromCivil(y, 12, 24), end: daysFromCivil(y + 1, 1, 1) },
+    { key: "mlk-day", label: HOLIDAY_LABELS["mlk-day"], start: nthWeekday(y, 1, 1, 3), end: nthWeekday(y, 1, 1, 3) },
+    { key: "presidents-day", label: HOLIDAY_LABELS["presidents-day"], start: nthWeekday(y, 2, 1, 3), end: nthWeekday(y, 2, 1, 3) },
+    { key: "good-friday", label: HOLIDAY_LABELS["good-friday"], start: easter(y) - 2, end: easter(y) - 2 },
+    { key: "memorial-day", label: HOLIDAY_LABELS["memorial-day"], start: lastWeekday(y, 5, 1), end: lastWeekday(y, 5, 1) },
+    { key: "labor-day", label: HOLIDAY_LABELS["labor-day"], start: nthWeekday(y, 9, 1, 1), end: nthWeekday(y, 9, 1, 1) },
+    { key: "thanksgiving", label: HOLIDAY_LABELS["thanksgiving"], start: thanksgiving, end: thanksgiving + 1 },
+    { key: "winter-break", label: HOLIDAY_LABELS["winter-break"], start: daysFromCivil(y, 12, 24), end: daysFromCivil(y + 1, 1, 1) },
   ];
 }
 

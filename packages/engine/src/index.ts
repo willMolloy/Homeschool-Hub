@@ -30,4 +30,4 @@ export { planChild, planAssignment, planAll, EPS, MAX_PUSH_DAYS } from "./plan";
 export { forecastFinish, heavyWeek, HEAVY_WEEK_RATIO } from "./briefing";
 export { plannedRangeForWeek } from "./checkins";
 export { aggregate, weeklySummary, mergeLane, detailForZoom, sumByDate, DAILY_ZOOM_THRESHOLD_PX, type LaneDay } from "./aggregate";
-export { usHolidays, onOffBreaks, CALENDAR_SHAPES, HOLIDAY_KEYS, type BreakRange, type CalendarShape, type Holiday, type HolidayKey } from "./yearShape";
+export { usHolidays, onOffBreaks, CALENDAR_SHAPES, HOLIDAY_KEYS, HOLIDAY_LABELS, type BreakRange, type CalendarShape, type Holiday, type HolidayKey } from "./yearShape";
