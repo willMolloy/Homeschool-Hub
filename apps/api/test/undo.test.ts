@@ -78,6 +78,14 @@ describe.skipIf(!hasDb)("/api/undo (S6-06, integration)", () => {
   it("S7b-05: moving only the end says so; both dates stay 'Moved'", async () => {
     await req("PATCH", `/api/assignments/${id}`, { endDate: "2026-12-04" });
     expect((await undoEntry()).label).toBe("Moved Treasure Island's end to Dec 4");
+    // S7b-20: a title that ends in s takes only the apostrophe.
+    await req("PATCH", `/api/assignments/${id}`, { title: "Fractions" });
+    await req("PATCH", `/api/assignments/${id}`, { endDate: "2026-11-30" });
+    expect((await undoEntry()).label).toBe("Moved Fractions' end to Nov 30");
+    await req("PATCH", `/api/assignments/${id}`, { title: "Chess club" });
+    await req("PATCH", `/api/assignments/${id}`, { endDate: "2026-12-01" });
+    expect((await undoEntry()).label).toBe("Moved Chess club's end to Dec 1");
+    await req("PATCH", `/api/assignments/${id}`, { title: "Treasure Island" });
     await req("PATCH", `/api/assignments/${id}`, { startDate: "2026-10-27", endDate: "2026-12-11" });
     expect((await undoEntry()).label).toBe("Moved Treasure Island");
   });
@@ -202,7 +210,7 @@ describe.skipIf(!hasDb)("/api/undo (S6-06, integration)", () => {
     expect(rows.map((r: { assignmentId: string; plannedUnits: number }) => [r.assignmentId, r.plannedUnits]).sort()).toEqual([[id, 12], [b2, 7]].sort());
     expect(rows.find((r: { id: string }) => r.id === replaced.id).plannedUnits).toBe(12);
     // One entry, naming the count, the child and the week.
-    expect((await undoEntry()).label).toBe("Adjusted 3 assignments for Ada, week of Nov 2");
+    expect((await undoEntry()).label).toBe("Adjusted week of Nov 2"); // S7b-20: was "Adjusted 3 assignments for Ada, week of Nov 2"
 
     expect((await req("POST", "/api/undo")).statusCode).toBe(200);
     expect(await rowsNow()).toEqual(before);
@@ -230,7 +238,7 @@ describe.skipIf(!hasDb)("/api/undo (S6-06, integration)", () => {
     expect((await batch({ weekStart: NEXT, set: [ok], remove: [] })).statusCode).toBe(200);
     expect((await undoEntry()).label).toBe("Adjusted Treasure Island for Ada, week of Nov 2");
     expect((await batch({ weekStart: NEXT, set: [ok, { ...ok, childId: kids[1] }], remove: [] })).statusCode).toBe(200);
-    expect((await undoEntry()).label).toBe("Adjusted 2 assignments for several children, week of Nov 2");
+    expect((await undoEntry()).label).toBe("Adjusted week of Nov 2"); // S7b-20: was "Adjusted 2 assignments for several children, week of Nov 2"
     // Another family's request cannot touch these rows.
     expect((await app.inject({ method: "PUT", url: "/api/week-overrides/batch", cookies: b.cookies, payload: { weekStart: NEXT, set: [ok], remove: [] } })).statusCode).toBe(400);
   });

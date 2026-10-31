@@ -1,6 +1,7 @@
 /** S6-08: the undo bar after a plan change, Undo, and Reset to original on the timeline's edit bar. */
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { addDays, ENGINE_VERSION, type LocalDate } from "@hh/engine";
 import type { Assignment } from "../src/api/types";
@@ -249,5 +250,16 @@ describe("the undo bar after other changes", () => {
     offer("Added a day off");
     await user.click(within(form).getByRole("button", { name: "Add" }));
     expect(await screen.findByText("Added a day off.")).toBeInTheDocument();
+  });
+});
+
+describe("the undo bar's label on a phone (S7b-20)", () => {
+  it("wraps to two lines before it is cut, and is no longer one line with an ellipsis", () => {
+    const css = readFileSync("src/features/undo/undo.css", "utf8");
+    const rule = css.match(/\.undo-text \{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toMatch(/-webkit-line-clamp: 2/);
+    expect(rule).not.toMatch(/white-space: nowrap/);
+    expect(rule).not.toMatch(/text-overflow: ellipsis/);
+    expect(css.match(/\.undo-bar \{[^}]*\}/)?.[0]).toMatch(/border-radius: 24px/);
   });
 });

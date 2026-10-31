@@ -63,12 +63,11 @@ async function adjustmentLabel(db: Queryable, familyId: string, verb: string, ti
   const [c] = childId === null ? [] : await query<{ name: string }>(db, "SELECT name FROM child WHERE id = $1 AND family_id = $2", [childId, familyId]);
   return `${verb} ${title} for ${childId === null ? "every child" : c?.name ?? "a child"}, week of ${shortDate(weekStart)}`;
 }
-/** S7b-01: the batch's label, "Adjusted 3 assignments for Frank, week of Nov 2" (several children read "for several children"). */
-async function batchLabel(db: Queryable, familyId: string, count: number, children: Set<string | null>, weekStart: string): Promise<string> {
-  const who = children.size === 1 ? [...children][0]! : null;
-  const label = await adjustmentLabel(db, familyId, "Adjusted", `${count} assignments`, who, weekStart);
-  return children.size > 1 ? label.replace("for every child", "for several children") : label;
-}
+/**
+ * S7b-01, S7b-20: the batch's label, "Adjusted week of Nov 2". It names the week only: the count and the child made it too long
+ * for a phone's undo bar (it read "Adjusted 3 assignments for F... Undo" at 360 px).
+ */
+const batchLabel = (weekStart: string): string => `Adjusted week of ${shortDate(weekStart)}`;
 
 const notFound = () => new HttpError(404, "not_found", "No such week adjustment.");
 
@@ -154,7 +153,7 @@ export async function weekOverridesRoutes(app: FastifyInstance): Promise<void> {
       const only = steps.length === 1;
       await recordUndo(tx, req.familyId,
         only ? await adjustmentLabel(tx, req.familyId, b.remove.length ? "Removed the adjustment to" : "Adjusted", titles[0]!, [...children][0]!, b.weekStart)
-          : await batchLabel(tx, req.familyId, steps.length, children, b.weekStart), steps);
+          : batchLabel(b.weekStart), steps);
       return saved;
     });
     return { overrides: rows.map(toJson) };

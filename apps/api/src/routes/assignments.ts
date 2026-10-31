@@ -91,11 +91,14 @@ async function atPosition<T>(n: number, fn: () => T | Promise<T>): Promise<T> {
 const notFound = () => new HttpError(404, "not_found", "No such assignment.");
 
 /** S6-06: the label of the undo entry for an edit, e.g. "Moved Treasure Island". */
+/** S7b-20: "Treasure Island's", "Fractions'" (no second s after a final s). */
+const possessive = (title: string) => (/s$/i.test(title) ? `${title}'` : `${title}'s`);
+
 function patchLabel(p: z.infer<typeof PatchBody>, title: string): string {
   if (p.archived !== undefined) return `${p.archived ? "Archived" : "Restored"} ${title}`;
   const sent = Object.entries(p).filter(([, v]) => v !== undefined).map(([k]) => k);
   // S7b-05: moving only the end (the late line's "Move end to ...") says so.
-  if (sent.length === 1 && p.endDate !== undefined) return `Moved ${title}'s end to ${shortDate(p.endDate)}`;
+  if (sent.length === 1 && p.endDate !== undefined) return `Moved ${possessive(title)} end to ${shortDate(p.endDate)}`;
   if (sent.every((k) => k === "startDate" || k === "endDate")) return `Moved ${title}`;
   if (sent.every((k) => k === "weightPerUnit")) return `Updated the time estimate for ${title}`; // S7b-02: the parent's words, not "weight"
   return `Changed ${title}`;
