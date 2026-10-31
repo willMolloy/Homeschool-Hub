@@ -74,6 +74,25 @@ describe("Save as a template (S5-07)", () => {
     expect(within(screen.getByRole("list", { name: "Days off" })).getAllByRole("listitem")).toHaveLength(YEAR.length);
   });
 
+  it("S7-08: family-wide days off before the first day are counted, beside the per-child note; one inside the year is saved as before", async () => {
+    const rows = [
+      day(1, "Summer", "vacation", "2026-08-16", "2026-08-16"), // the day before: not included
+      day(2, "Labor Day", "holiday", "2026-09-07", "2026-09-07"),
+      day(3, null, "sick", "2026-10-12", "2026-10-12", [MAGGIE.id]),
+      day(4, "Early", "vacation", "2026-08-01", "2026-08-02", [MAGGIE.id]), // one child: not counted as family-wide
+    ];
+    const { user, form } = await open("Save as a template", rows);
+    date("First day of the year", "2026-08-17", form);
+    expect(within(form).getByText("1 day off will be saved")).toBeInTheDocument();
+    expect(within(form).getByText("1 day off for one child is left out")).toBeInTheDocument();
+    expect(within(form).getByText("1 day off before Aug 17, 2026 isn't included.")).toBeInTheDocument();
+    date("First day of the year", "2026-09-08", form);
+    expect(within(form).getByText("2 days off before Sep 8, 2026 aren't included.")).toBeInTheDocument();
+    date("First day of the year", "2026-06-01", form);
+    expect(within(form).queryByText(/before Jun 1, 2026/)).toBeNull();
+    void user;
+  });
+
   it("a break longer than 60 days is stored as 60", async () => {
     const { user, form } = await open("Save as a template", [day(1, "Long", "vacation", "2026-09-01", "2026-12-31")]);
     await user.type(within(form).getByLabelText("Template name"), "Long");

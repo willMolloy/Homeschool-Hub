@@ -10,7 +10,8 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 | S7-04 Show custom and hidden zoom views on the timeline | fc1c526 | `Zoom` is a built-in or `custom:<id>`; `zoomRange` takes the custom views; `visibleZooms` builds the row; `useTimelineData` reads `zoomViews` from `GET /api/family` |
 | S7-05 Edit the zoom views | 886baea | `EditZoomViewsSheet` (`timeline/EditZoomViews.tsx`) behind a quiet Edit in `ZoomPresets`; rules in `timeline/zoomViews.ts`; `useTimelineData.setZoomViews` |
 | S7-06 The event preview skips finished assignments | 4582ef7 | `hasWorkFrom` in `routes/eventPreview.ts` |
-| S7-07 Say so when a template adds no breaks | (this commit) | `nothingToAdd` in `TemplatePanel.tsx` |
+| S7-07 Say so when a template adds no breaks | 9c8e9b7 | `nothingToAdd` in `TemplatePanel.tsx` |
+| S7-08 Say which days off a saved template left out | (this commit) | `templateBreaksFrom` also returns `before`; line in `SaveTemplatePanel.tsx` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -45,3 +46,4 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 
 - **S7-06 what counts as finished.** A row is left out when neither the before nor the after plan has any units on or after today (`days` with `date >= today` and `units > EPS`). That covers an assignment that ended earlier and one whose check-ins finished it. Both plans are checked so a row is never dropped when the draft would give it work.
 - **S7-07 the messages.** With the dates valid and nothing to add: "Nothing new to add: these breaks are already in your days off." when some were skipped as already days off, otherwise "No breaks in this range.". They replace the "0 breaks to add" heading and the "already in your days off" hint; Add breaks is disabled (no request). While the dates are invalid the button stays enabled so its error still shows.
+- **S7-08 what is counted.** Every family-wide day off that starts before the chosen first day (any age; days off for individual children are not counted, they are already in the per-child note only when inside the year). Text: "1 day off before Aug 17, 2026 isn't included." / "N days off before ... aren't included." under the per-child note. Days off that span the start are counted by their start day, as ticketed (not included).

@@ -75,9 +75,10 @@ export const TEMPLATE_YEAR_DAYS = 365;
 /**
  * S5-07: what "Save as a template" stores for the year starting on `first`: every family-wide day off that starts
  * from that day to a year later, as offsets from `first` (kind and label kept, a break over 60 days cut to 60).
- * `leftOut` counts the days off in that year that are for some children only.
+ * `leftOut` counts the days off in that year that are for some children only. S7-08: `before` counts the family-wide
+ * days off that start before `first` (not saved: a template holds offsets from the first day, never negative ones).
  */
-export function templateBreaksFrom(existing: BlockedRange[], first: string): { breaks: TemplateBreak[]; leftOut: number } {
+export function templateBreaksFrom(existing: BlockedRange[], first: string): { breaks: TemplateBreak[]; leftOut: number; before: number } {
   const inYear = existing.filter((r) => {
     const offset = diffDays(first, r.startDate);
     return offset >= 0 && offset <= TEMPLATE_YEAR_DAYS;
@@ -91,7 +92,8 @@ export function templateBreaksFrom(existing: BlockedRange[], first: string): { b
       kind: r.kind,
     }))
     .sort((a, b) => a.offsetDays - b.offsetDays || a.lengthDays - b.lengthDays);
-  return { breaks, leftOut: inYear.length - breaks.length };
+  const before = existing.filter((r) => r.childIds.length === 0 && diffDays(first, r.startDate) < 0).length;
+  return { breaks, leftOut: inYear.length - breaks.length, before };
 }
 
 /** Every holiday key, in the order a school year meets them. */

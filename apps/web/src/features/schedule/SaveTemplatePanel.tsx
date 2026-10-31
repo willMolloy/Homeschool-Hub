@@ -3,7 +3,7 @@ import { useId, useMemo, useState, type FormEvent } from "react";
 import { isValidLocalDate } from "@hh/engine";
 import { apiPost } from "../../api/client";
 import type { BlockedRange, CalendarTemplate } from "../../api/types";
-import { saveError } from "./formBits";
+import { saveError, shortDate } from "./formBits";
 import { MAX_TEMPLATE_BREAKS, templateBreaksFrom } from "./templates";
 
 /** Mirrors apps/api/src/routes/calendarTemplates.ts. */
@@ -26,7 +26,7 @@ export function SaveTemplatePanel({ existing, onSaved, onCancel }: Props) {
   const ids = { name: useId(), first: useId() };
 
   const picked = isValidLocalDate(first);
-  const { breaks, leftOut } = useMemo(() => (picked ? templateBreaksFrom(existing, first) : { breaks: [], leftOut: 0 }), [picked, existing, first]);
+  const { breaks, leftOut, before } = useMemo(() => (picked ? templateBreaksFrom(existing, first) : { breaks: [], leftOut: 0, before: 0 }), [picked, existing, first]);
   const n = name.trim();
   const problem = !n ? "Name the template."
     : n.length > NAME_MAX ? `Name must be ${NAME_MAX} characters or fewer.`
@@ -78,6 +78,7 @@ export function SaveTemplatePanel({ existing, onSaved, onCancel }: Props) {
         <div className="template-preview" aria-live="polite">
           <p className="event-preview-title">{breaks.length === 1 ? "1 day off will be saved" : `${breaks.length} days off will be saved`}</p>
           {leftOut > 0 ? <p className="hint">{leftOut === 1 ? "1 day off for one child is left out" : `${leftOut} days off for individual children are left out`}</p> : null}
+          {before > 0 ? <p className="hint">{before === 1 ? `1 day off before ${shortDate(first)} isn't included.` : `${before} days off before ${shortDate(first)} aren't included.`}</p> : null}
         </div>
       ) : null}
       <div className="btn-row">
