@@ -29,9 +29,29 @@ describe("amounts", () => {
     const r = item();
     expect(compactText(r, 5)).toBe("2 of 3 ch.");
     expect(compactText(r, 3)).toBe("Missed");
-    expect(compactText(r, 8)).toBe("5 of 3 ch.");
-    expect(compactText(item({ unitType: "minutes", plannedFrom: 600, plannedTo: 750 }), 700)).toBe("100 of 150 min");
+    expect(compactText(r, 8)).toBe("5 chapters (2 more than planned)"); // S7b-03: was "5 of 3 ch."
+    expect(compactText(item({ unitType: "minutes", plannedFrom: 600, plannedTo: 750, totalUnits: 3000 }), 700)).toBe("100 of 150 min");
     expect(compactText(item({ unitType: "lessons", plannedFrom: 12, plannedTo: 12 }), 14)).toBe("+2 lessons");
+  });
+
+  it("S7b-03: ahead, behind, on plan and finished read plainly for every unit; never 'N of M' beyond the plan", () => {
+    const lessons = item({ unitType: "lessons", plannedFrom: 12, plannedTo: 15, totalUnits: 30 });
+    const pages = item({ unitType: "pages", plannedFrom: 0, plannedTo: 20, totalUnits: 300 });
+    const chapters = item({ plannedFrom: 3, plannedTo: 5, totalUnits: 42 }); // plans 2
+    const minutes = item({ unitType: "minutes", plannedFrom: 600, plannedTo: 650, totalUnits: 3000 });
+    expect(compactText(chapters, 7)).toBe("4 chapters (2 more than planned)");
+    expect(compactText(chapters, 6)).toBe("3 chapters (1 more than planned)");
+    expect(compactText(chapters, 4)).toBe("1 of 2 ch.");
+    expect(compactText(chapters, 5)).toBe("2 of 2 ch.");
+    expect(compactText(lessons, 18)).toBe("6 lessons (3 more than planned)");
+    expect(compactText(lessons, 13)).toBe("1 of 3 lessons");
+    expect(compactText(pages, 35)).toBe("35 pages (15 more than planned)");
+    expect(compactText(pages, 5)).toBe("5 of 20 pp.");
+    expect(compactText(minutes, 700)).toBe("100 minutes (50 more than planned)");
+    expect(compactText(minutes, 620)).toBe("20 of 50 min");
+    expect(compactText(item({ unitType: "lessons", plannedFrom: 12, plannedTo: 14, totalUnits: 14 }), 14)).toBe("Finished");
+    expect(compactText(item({ unitType: "pages", plannedFrom: 280, plannedTo: 290, totalUnits: 300 }), 300)).toBe("Finished");
+    for (const [r, p] of [[chapters, 8], [lessons, 20], [pages, 90], [minutes, 800]] as const) expect(compactText(r, p)).not.toMatch(/\d+ of \d+/);
   });
 
   it("choice within the API's 0.5 tolerance", () => {
@@ -114,7 +134,7 @@ describe("CheckInRow", () => {
     await userEvent.click(within(li).getByRole("button", { expanded: false }));
     await userEvent.click(within(li).getByRole("button", { name: "More" }));
     expect(onChange).toHaveBeenLastCalledWith(7);
-    expect(li.querySelector(".checkin-row-state")).toHaveTextContent("4 of 3 ch.");
+    expect(li.querySelector(".checkin-row-state")).toHaveTextContent("4 chapters (1 more than planned)"); // S7b-03: was "4 of 3 ch."
     await userEvent.click(within(li).getByRole("button", { name: "One less" }));
     expect(within(li).getByRole("button", { name: "As planned" })).toHaveAttribute("aria-pressed", "true");
   });

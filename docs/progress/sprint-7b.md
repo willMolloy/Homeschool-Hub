@@ -5,7 +5,8 @@ Tickets: `docs/tickets/sprint-7b-fixes/`. S7b-08 (tester pass) is the tester's.
 | Ticket | Commit | Notes |
 |--------|--------|-------|
 | S7b-01 Undo a whole week adjustment at once | a0f1736 | `PUT /api/week-overrides/batch` (`routes/weekOverrides.ts`); `WeekAdjustment` saves through it |
-| S7b-02 "Update time estimate" replaces Heavier and Lighter | (this commit) | `timeline/UpdateEstimate.tsx` (sheet), `EditBar` More item, `TimelinePage`; `nudge.ts` and `setWeight` removed; API undo label |
+| S7b-02 "Update time estimate" replaces Heavier and Lighter | 624889b | `timeline/UpdateEstimate.tsx` (sheet), `EditBar` More item, `TimelinePage`; `nudge.ts` and `setWeight` removed; API undo label |
+| S7b-03 Say "ahead" plainly in the check-in | (this commit) | `compactText` in `checkin/amount.ts` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -18,3 +19,5 @@ Tickets: `docs/tickets/sprint-7b-fixes/`. S7b-08 (tester pass) is the tester's.
 - **S7b-02 the undo label.** The API's label for a weight-only edit changed from "Changed the weight of {title}" to "Updated the time estimate for {title}" (the ticket's wording; "weight" is gone from every parent-facing text). Any other PATCH containing only `weightPerUnit` (the form never sends that alone) reads the same.
 - **S7b-02 removed.** `nudgedWeight` (`timeline/nudge.ts`) and `useAssignmentEdit.setWeight` had no other user, so both are deleted with their unit tests.
 - **S7b-02 changed test expectations.** `timeline-nudge.test.tsx` (the S6-10 nudge tests: x1.25 / x0.8, compounding, limits, disabled buttons, the nudge's undo label) is replaced by `timeline-estimate.test.tsx` (menu item, preselection, custom minutes, the PATCH value, the undo label, no "weight" text). `timeline-edit-bar.test.tsx`: the More menu lists "Update time estimate" and Reset to original instead of Heavier and Lighter. `undo.test.ts`: the label expectation for a weight edit.
+- **S7b-03 the wording.** Ahead (rounded done above rounded planned) uses the full unit word: "4 chapters (2 more than planned)", "1 lesson (...)", "100 minutes (50 more than planned)". Behind keeps the compact words ("2 of 3 ch.", "20 of 50 min") because the ticket says it stays. "Finished" shows when the child's position reaches the assignment's total (it wins over ahead). Missed and "+2 lessons" (nothing planned) are unchanged.
+- **S7b-03 changed test expectations.** `checkin-row.test.tsx`: "5 of 3 ch." is now "5 chapters (2 more than planned)" and the row after More reads "4 chapters (1 more than planned)" (was "4 of 3 ch."); two fixtures got a realistic `totalUnits` so they do not read as finished. New test covers the four cases for each unit.
