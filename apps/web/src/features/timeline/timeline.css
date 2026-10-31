@@ -102,6 +102,14 @@
   .tl-edit-dates input { flex: 1 1 0; min-width: 0; width: 100%; font-size: 0.8125rem; padding: 0 2px; }
 }
 
+/* S7-15: under 360 px the two dates don't fit side by side (the End picker ran 11 px past the edge at 320), so they
+   stack, Start over End, each field filling the row; the bar is one 44 px row taller there. */
+@media (max-width: 359px) {
+  .tl-edit-dates { flex-direction: column; align-items: stretch; gap: 4px; }
+  .tl-edit-dates label { display: grid; grid-template-columns: 2.75em minmax(0, 1fr); align-items: center; flex: none; }
+  .tl-edit-dates input { width: 100%; }
+}
+
 /* T-07c: the child filter, one quiet row of chips like the zoom presets. */
 .tl-children { margin-bottom: 4px; overflow-x: auto; scrollbar-width: none; }
 .tl-children button { flex: 0 0 auto; }
