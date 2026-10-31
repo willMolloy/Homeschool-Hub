@@ -1,6 +1,6 @@
 # Sprint 6 — Steering: adjust a week, undo and reset, and effort in time
 
-> **Status: proposed, not started** (2026-10-31). Written from decisions C1–C3 (ROADMAP.md, decided by Will on 2026-10-30). **Approval to build:** _none yet_ (Will or DeeDee, recorded here). Starts after Sprint 5.
+> **Status: approved** (2026-10-31). Written from decisions C1–C3 (ROADMAP.md, decided by Will on 2026-10-30). **Approval to build:** Will approved Sprint 6 in the working session on 2026-10-31 ("You can start"), after reviewing each ticket and replacing S6-04. DeeDee has not reviewed it yet.
 
 **Source:** ROADMAP.md core checklist, "Steering" and "Effort", and decisions:
 - **C1:** when a week is adjusted more than once, the most recent edit wins.
