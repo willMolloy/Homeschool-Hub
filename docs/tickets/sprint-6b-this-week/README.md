@@ -9,6 +9,7 @@
 - **Last week:** the same bars, each with **Completed** (a check) or **Update status**, which opens a small pop-up: got ahead or fell behind, "Got to page ___", then keep the end date or move the end date. One "Everything was completed" button covers the usual case.
 - **Edit bar (Will, 2026-10-31):** Start and End date pickers and Copy only; Heavier, Lighter and Reset to original behind a small "More"; the week-step buttons go.
 - **Bar sizes (Will, 2026-10-31):** bars get a soft cap (normal up to a typical day, then growing slowly to a maximum); the assignment form gently flags an unrealistic daily pace.
+- **New families and the timeline (Will, 2026-10-31):** the subject dropdown offers common subjects and "New subject…"; an empty timeline still shows the calendar; bars sit closer together (close, never touching).
 - Calm: no chips, sliders or steppers inline; no helper text; 44 px targets; 360 px.
 
 Each ticket uses the usual format. Build in order, one commit per ticket, each with `bash scripts/check.sh` green. Progress goes in `docs/progress/sprint-6b.md`. The full visual refresh (new design system, dark mode) still comes in Sprint 8; this sprint uses today's tokens.
@@ -21,4 +22,7 @@ Each ticket uses the usual format. Build in order, one commit per ticket, each w
 | 4 | [S6b-05 — A simpler timeline edit bar](S6b-05-a-simpler-edit-bar.md) | none | S |
 | 5 | [S6b-06 — Soft-cap very thick bars on the timeline](S6b-06-soft-cap-very-thick-bars.md) | none | S |
 | 6 | [S6b-07 — A gentle pace check on the assignment form](S6b-07-a-gentle-pace-check-on-the-assignment-form.md) | none | XS |
-| 7 | [S6b-04 — Tester pass: This Week, the edit bar and bar sizes](S6b-04-tester-pass.md) | S6b-01 to S6b-03, S6b-05 to S6b-07 | S |
+| 7 | [S6b-08 — Add a subject from the assignment form, with common presets](S6b-08-add-a-subject-from-the-assignment-form.md) | none | S |
+| 8 | [S6b-09 — Show an empty calendar when nothing is planned](S6b-09-show-an-empty-calendar.md) | none | S |
+| 9 | [S6b-10 — Tighter spacing between bars](S6b-10-tighter-spacing-between-bars.md) | S6b-06 | XS |
+| 10 | [S6b-04 — Tester pass: This Week, the edit bar, the timeline and new families](S6b-04-tester-pass.md) | S6b-01 to S6b-03, S6b-05 to S6b-10 | S |
