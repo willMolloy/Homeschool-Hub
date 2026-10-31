@@ -110,3 +110,75 @@ describe("pace over the days the plan really has (S7b-10)", () => {
     expect((paces()[0]!.body as { drafts: unknown[] }).drafts).toHaveLength(3);
   });
 });
+
+describe("a minutes preset is always the parent's choice (S7b-14, F-11)", () => {
+  it("tapping '30 min a day' when the learned suggestion already shows as that preset saves exactly 30 minutes' weight", async () => {
+    stubPace(() => ({ [FRANK.id]: 60 }));
+    withRoster();
+    fakeApi.on("GET /api/assignments", 200, []);
+    // Frank's learned weight 3.25 is 32.5 min a day at 5 pages a day, which the form shows as the "30" preset.
+    fakeApi.on("GET /api/weights/suggestion", 200, { unitType: "pages", weightPerUnit: 3.25, source: "child", children: [{ childId: FRANK.id, name: "Frank", usual: 3.25 }] });
+    fakeApi.on("POST /api/assignments", (body) => [201, { ...(body as object), id: rowId(9), archived: false }]);
+    const user = userEvent.setup();
+    renderAt("/schedule/assignments");
+    await user.click(await screen.findByRole("button", { name: "Add assignment" }));
+    const form = screen.getByRole("form", { name: "Add assignment" });
+    await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+    await user.type(within(form).getByLabelText("Title"), "Math");
+    await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
+    await user.type(within(form).getByLabelText("Total"), "300");
+    await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
+    fireEvent.change(within(form).getByLabelText("Start"), { target: { value: "2026-11-02" } });
+    fireEvent.change(within(form).getByLabelText("End"), { target: { value: "2027-01-29" } });
+    await within(form).findByText("About 5 pages a day");
+    await within(form).findByText(/Frank usually does about 33 min a day\./);
+    expect(effort(form, "30 min a day")).toBeChecked(); // the suggestion's nearest preset is already showing
+    await user.click(effort(form, "30 min a day"));
+    await waitFor(() => expect(within(form).getByRole("button", { name: "Add" })).toBeEnabled());
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect((writes()[0]!.body as { weightPerUnit: number }).weightPerUnit).toBe(3);
+  });
+});
+
+describe("a learned suggestion that is far too big isn't offered (S7b-14, F-11)", () => {
+  async function openOneDay(subjectDefaultWeight: number | null) {
+    stubPace(() => ({ [FRANK.id]: 1 }));
+    withRoster();
+    fakeApi.on("GET /api/assignments", 200, []);
+    fakeApi.on("GET /api/weights/suggestion", 200, {
+      unitType: "pages", weightPerUnit: 3.25, source: "child", builtInDefault: 0.5,
+      subjectDefault: subjectDefaultWeight === null ? null : { unitType: "pages", weightPerUnit: subjectDefaultWeight },
+      learned: true, children: [{ childId: FRANK.id, name: "Frank", usual: 3.25, choices: 3 }],
+    });
+    fakeApi.on("POST /api/assignments", (body) => [201, { ...(body as object), id: rowId(9), archived: false }]);
+    const user = userEvent.setup();
+    renderAt("/schedule/assignments");
+    await user.click(await screen.findByRole("button", { name: "Add assignment" }));
+    const form = screen.getByRole("form", { name: "Add assignment" });
+    await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+    await user.type(within(form).getByLabelText("Title"), "One-day read");
+    await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
+    await user.type(within(form).getByLabelText("Total"), "300");
+    await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
+    fireEvent.change(within(form).getByLabelText("Start"), { target: { value: "2026-11-02" } });
+    fireEvent.change(within(form).getByLabelText("End"), { target: { value: "2026-11-02" } });
+    await within(form).findByText("About 300 pages a day");
+    return { user, form };
+  }
+
+  it("1,950 min a day is set aside: the built-in stands in, and the weight saved follows the default (null), not 3.25", async () => {
+    const { user, form } = await openOneDay(null);
+    await waitFor(() => expect(within(form).getByText(/^Usually about \d+ min a day\.$/)).toBeInTheDocument());
+    expect(within(form).queryByText(/Frank usually does/)).toBeNull();
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect((writes()[0]!.body as { weightPerUnit: number | null }).weightPerUnit).toBeNull();
+  });
+
+  it("with a subject usual for pages, that stands in and says so", async () => {
+    const { form } = await openOneDay(1);
+    expect(await within(form).findByText(/^Reading usually takes about 2 min a page/)).toBeInTheDocument();
+    expect(within(form).queryByText(/Frank usually does/)).toBeNull();
+  });
+});

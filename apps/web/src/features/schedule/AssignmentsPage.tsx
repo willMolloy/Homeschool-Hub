@@ -5,11 +5,12 @@
  * S6b-08: the subject dropdown also offers common subjects and "New subject…" (SubjectSelect).
  * S7-01 / S7-02: "Copy to a new year" and "Copy to another child" (CopyPanels). S3a-04: "Add several" enters a subject's books in one form. S3a-06: "Import CSV" does it from a file.
  */
-import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { UNIT_TYPES, minutesPerDayFromWeight, weightFromMinutesPerDay, weightPerUnitOf } from "@hh/engine";
-import { apiPatch, apiPost } from "../../api/client";
-import type { Assignment, Subject, UnitType } from "../../api/types";
-import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet, WeekdayPicker } from "./formBits";
+import { apiPatch, apiPost, onPlanChange } from "../../api/client";
+import { useApi } from "../../api/useApi";
+import type { Assignment, PlanResponse, Subject, UnitType, WeightSuggestion } from "../../api/types";
+import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet, shortDate, WeekdayPicker } from "./formBits";
 import { useWeekdayChoice } from "./useWeekdayChoice";
 import { WithLookups, type Lookups } from "./lookups";
 import { LIMITS } from "./assignmentLimits";
@@ -30,6 +31,17 @@ import { useMe } from "../../auth/AuthProvider";
 
 export { LIMITS };
 
+/** S7b-14 (F-11): the most minutes a day a learned suggestion may come to before it is set aside. */
+export const MAX_SUGGESTED_MINUTES_A_DAY = 240;
+
+/** `s`, unless it was learned from the children and comes to more than 240 min a day at `pace`: then the subject's usual (or the built-in). */
+export function capSuggestion(s: WeightSuggestion | null, pace: number | null): WeightSuggestion | null {
+  if (!s || pace === null || (s.source !== "child" && s.source !== "children")) return s;
+  if (minutesPerDayFromWeight(s.weightPerUnit, pace) <= MAX_SUGGESTED_MINUTES_A_DAY) return s;
+  const fallback = weightPerUnitOf({ unitType: s.unitType, weightPerUnit: null }, s.subjectDefault);
+  return { ...s, weightPerUnit: fallback.weight, source: fallback.source === "subject" ? "subject" : "builtin", children: s.children.map((c) => ({ ...c, usual: null })) };
+}
+
 /** A day has this many minutes: the most a custom answer may be. */
 const MAX_MINUTES_A_DAY = 1440;
 
@@ -37,7 +49,25 @@ const units = (n: number, t: UnitType) => `${n.toLocaleString("en-US")} ${n === 
 
 const byStart = (a: Assignment, b: Assignment) => a.startDate.localeCompare(b.startDate) || a.title.localeCompare(b.title);
 
+/**
+ * S7b-14 (F-13): the day each assignment's plan really ends, when that is later than its stored end (a week adjustment that
+ * pushes the end back). The plan's `end` doesn't depend on the days asked for, so one day's request is enough. Without an
+ * answer (or a plan that ends on time) nothing is said.
+ */
+function usePlanEnds(): ReadonlyMap<string, string> {
+  const { today } = useMe();
+  const plan = useApi<PlanResponse>(`/api/plan?from=${today}&to=${today}`);
+  const { reload } = plan;
+  useEffect(() => onPlanChange(reload), [reload]);
+  return useMemo(() => {
+    const ends = new Map<string, string>();
+    for (const p of plan.data?.plans ?? []) if (p.end > (ends.get(p.assignmentId) ?? "")) ends.set(p.assignmentId, p.end);
+    return ends;
+  }, [plan.data]);
+}
+
 export function AssignmentsPage() {
+  const planEnds = usePlanEnds();
   return (
     <WithLookups title="Assignments">
       {(l) => (
@@ -51,7 +81,7 @@ export function AssignmentsPage() {
           sort={byStart}
           confirmText="It drops out of the plan. Logged work stays, and you can unarchive it later."
           copyOf={(a) => copyOfAssignment(a, l)}
-          renderCard={(a) => <AssignmentCard a={a} l={l} />}
+          renderCard={(a) => <AssignmentCard a={a} l={l} planEnd={planEnds.get(a.id)} />}
           renderForm={(p) => <AssignmentForm {...p} l={l} />}
           renderBulkForm={(p) => <BulkAssignmentsForm {...p} l={l} />}
           renderImportForm={(p) => <ImportAssignmentsForm {...p} l={l} />}
@@ -65,7 +95,7 @@ export function AssignmentsPage() {
   );
 }
 
-function AssignmentCard({ a, l }: { a: Assignment; l: Lookups }) {
+function AssignmentCard({ a, l, planEnd }: { a: Assignment; l: Lookups; planEnd?: string }) {
   // S6b-13: effort as minutes a day at the assignment's own pace (its days, else the subject's, else every school day).
   const { schoolDays } = useMe();
   // S7b-10: over the days the plan really has (breaks, days off, skips); until that answers, the weekdays in the dates.
@@ -80,7 +110,7 @@ function AssignmentCard({ a, l }: { a: Assignment; l: Lookups }) {
       <span className="card-line">
         {units(a.totalUnits, a.unitType)}{effort ? ` · ${effort}` : ""}
       </span>
-      <span className="card-line">{dateRange(a.startDate, a.endDate)}</span>
+      <span className="card-line">{dateRange(a.startDate, a.endDate)}{planEnd && planEnd > a.endDate ? ` · plan ends ${shortDate(planEnd)}` : ""}</span>
     </span>
   );
 }
@@ -112,7 +142,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   const [saving, setSaving] = useState(false);
   const ids = { subject: useId(), title: useId(), unit: useId(), total: useId(), effort: useId(), start: useId(), end: useId(), err: useId() };
 
-  const { suggestion, pending } = useWeightSuggestion(unitType, childIds, subjectId, suggesting);
+  const { suggestion: learned, pending } = useWeightSuggestion(unitType, childIds, subjectId, suggesting);
   const subjectUsual = subjectId ? l.subjectDefault(subjectId) : null;
   const usualApplies = subjectUsual !== null && subjectUsual.unitType === unitType;
   const usualNow = usual && usualApplies;
@@ -238,6 +268,9 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     const fewest = real.perChild.find((c) => c.capacityDays === real.capacityDays)!;
     return `${l.childName(fewest.childId)} has the fewest school days here, so this counts ${l.childName(fewest.childId)}'s.`;
   })();
+  // S7b-14 (F-11): a learned suggestion that would be more than 240 min a day here is not offered (a 1-day book once said
+  // "Frank usually does about 1950 min a day"); the subject's usual, else the built-in, stands in.
+  const suggestion = capSuggestion(learned, pace);
   const baseWeight = usualNow
     ? weightPerUnitOf({ unitType, weightPerUnit: null }, subjectUsual).weight
     : suggesting

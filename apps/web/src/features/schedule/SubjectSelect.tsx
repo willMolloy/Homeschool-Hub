@@ -5,6 +5,9 @@
  * Add several.
  * S7-16: while the name field is open the select shows "New subject…", and the form's own Add first creates the typed
  * subject through `resolveRef` (see below), so a typed name is never dropped.
+ * S7b-14 (F-12): choosing a common subject, or Add under New subject…, creates nothing yet: the name is kept as the
+ * form's pending subject ("Nature Study (new)") and is created when the assignment is saved, so Cancel leaves no
+ * orphan subject behind. An existing name just selects that subject.
  */
 import { useEffect, useId, useState, type MutableRefObject } from "react";
 import { ApiError, apiPost } from "../../api/client";
@@ -15,6 +18,7 @@ import type { Lookups } from "./lookups";
 
 const NEW_VALUE = "__new__";
 const COMMON_PREFIX = "common:";
+const PENDING_VALUE = "__pending__";
 
 interface Props {
   id: string;
@@ -36,6 +40,8 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
   const nameId = useId();
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
+  /** S7b-14: a subject chosen by name that doesn't exist yet; created when the form is saved. */
+  const [pending, setPending] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const common = missingCommonSubjects(l.subjects);
@@ -55,6 +61,7 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
       onChange(created.id);
       setNaming(false);
       setName("");
+      setPending(null);
       return created.id;
     } catch (err) {
       const existing = err instanceof ApiError && err.status === 409 ? findSubjectNamed(l.subjects, wanted) : undefined;
@@ -62,6 +69,7 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
         onChange(existing.id);
         setNaming(false);
         setName("");
+        setPending(null);
         return existing.id;
       } else if (existing) setError(`${existing.name} is archived. Unarchive it under Subjects.`);
       else setError(err instanceof ApiError && err.status === 0 ? "Can't reach the server." : "Couldn't add that subject. Please try again.");
@@ -73,27 +81,53 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
 
   useEffect(() => {
     if (!resolveRef) return;
-    resolveRef.current = async () => (naming && name.trim() ? add(name) : undefined);
+    // Saving the form creates the typed name, else the pending one (S7b-14); nothing of either: the form uses its own subject.
+    resolveRef.current = async () => (naming && name.trim() ? add(name) : pending ? add(pending) : undefined);
     return () => { resolveRef.current = null; };
   });
+
+  /** S7b-14: keep `raw` as the pending subject without creating it; a name the family already has selects that subject instead. */
+  function keep(raw: string) {
+    const wanted = raw.trim();
+    if (!wanted || busy) return;
+    setError(null);
+    const existing = findSubjectNamed(l.subjects, wanted);
+    if (existing && existing.archived) {
+      setError(`${existing.name} is archived. Unarchive it under Subjects.`);
+      return;
+    }
+    setNaming(false);
+    setName("");
+    if (existing) {
+      setPending(null);
+      onChange(existing.id);
+    } else {
+      setPending(wanted);
+      onChange("");
+    }
+  }
 
   function choose(v: string) {
     setError(null);
     if (v === NEW_VALUE) {
+      setPending(null);
       setNaming(true);
-    } else if (v.startsWith(COMMON_PREFIX)) {
+    } else if (v === PENDING_VALUE) {
       setNaming(false);
-      void add(v.slice(COMMON_PREFIX.length));
+    } else if (v.startsWith(COMMON_PREFIX)) {
+      keep(v.slice(COMMON_PREFIX.length));
     } else {
       setNaming(false);
+      setPending(null);
       onChange(v);
     }
   }
 
   return (
     <>
-      <select id={id} value={naming ? NEW_VALUE : value} disabled={busy} onChange={(e) => choose(e.target.value)} {...invalidProps}>
+      <select id={id} value={naming ? NEW_VALUE : pending ? PENDING_VALUE : value} disabled={busy} onChange={(e) => choose(e.target.value)} {...invalidProps}>
         <option value="">Choose a subject…</option>
+        {pending ? <option value={PENDING_VALUE}>{pending} (new)</option> : null}
         {options.map((s) => (
           <option key={s.id} value={s.id}>{s.name}{s.archived ? " (archived)" : ""}</option>
         ))}
@@ -114,10 +148,10 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
               // Enter adds the subject; it must not save the assignment form around it.
               if (e.key === "Enter") {
                 e.preventDefault();
-                void add(name);
+                keep(name);
               }
             }} />
-          <button className="btn btn-secondary" type="button" aria-label="Add subject" disabled={busy || !name.trim()} onClick={() => void add(name)}>Add</button>
+          <button className="btn btn-secondary" type="button" aria-label="Add subject" disabled={busy || !name.trim()} onClick={() => keep(name)}>Add</button>
         </div>
       ) : null}
       {error ? <p className="field-error" role="alert">{error}</p> : null}

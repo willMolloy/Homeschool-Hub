@@ -1,10 +1,16 @@
-/** S6b-08: common subjects and "New subject…" in the assignment forms' subject dropdown; chips on the empty Subjects screen. */
+/**
+ * S6b-08: common subjects and "New subject…" in the assignment forms' subject dropdown; chips on the empty Subjects screen.
+ * S7b-14 (F-12): choosing a common subject or adding a typed name creates nothing until the assignment is saved.
+ */
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { COMMON_SUBJECTS, findSubjectNamed, missingCommonSubjects } from "../src/features/roster/commonSubjects";
 import { fakeApi } from "./helpers/fake-api";
+import type { Subject } from "../src/api/types";
 import { FRANK, MATH, rowId, withRoster, writes } from "./helpers/schedule-fixtures";
+
+const OLD_SUBJECT: Subject = { id: rowId(40), name: "Latin", color: null, sortOrder: 5, archived: true, defaultWeight: null, defaultWeekdays: null };
 import { renderAt } from "./render";
 
 const created = (n: number) => (body: unknown): [number, unknown] => [201, { id: rowId(50 + n), sortOrder: n, archived: false, defaultWeight: null, defaultWeekdays: null, ...(body as object) }];
@@ -49,15 +55,12 @@ describe("the subject dropdown on the Add form", () => {
     expect(names.at(-1)).toBe("New subject…");
   });
 
-  it("choosing Math posts the subject, selects it, and the assignment saves under it", async () => {
+  it("choosing Math creates nothing yet; the assignment's Add creates the subject first and saves under it (S7b-14)", async () => {
     fakeApi.on("POST /api/subjects", created(1));
     const { user, form } = await openAdd();
     await user.selectOptions(within(form).getByLabelText("Subject"), "Math");
-    await waitFor(() => expect(within(form).getByLabelText("Subject")).toHaveValue(rowId(51)));
-    expect(writes()[0]).toMatchObject({ method: "POST", path: "/api/subjects", body: { name: "Math", color: "#2f6fb0" } });
-    // Math is now the family's own subject, no longer a "common" offer.
-    expect(optionsOf(within(form).getByLabelText("Subject"))).toContain("Math");
-    expect(optionsOf(within(form).getByLabelText("Subject")).filter((n) => n === "Math")).toHaveLength(1);
+    expect(within(form).getByLabelText("Subject")).toHaveDisplayValue("Math (new)");
+    expect(writes()).toEqual([]); // Cancel here would leave nothing behind
 
     await user.type(within(form).getByLabelText("Title"), "Saxon");
     // Frank is the only child, so he is already picked.
@@ -65,62 +68,81 @@ describe("the subject dropdown on the Add form", () => {
     date(form, "Start", "2026-11-02");
     date(form, "End", "2026-12-18");
     await waitFor(() => expect(within(form).getByRole("button", { name: "Add" })).toBeEnabled());
+    expect(writes()).toEqual([]);
     await user.click(within(form).getByRole("button", { name: "Add" }));
     await waitFor(() => expect(writes()).toHaveLength(2));
+    expect(writes()[0]).toMatchObject({ method: "POST", path: "/api/subjects", body: { name: "Math", color: "#2f6fb0" } });
     expect(writes()[1]).toMatchObject({ path: "/api/assignments", body: { subjectId: rowId(51), title: "Saxon" } });
+  });
+
+  it("Cancel after choosing a common subject leaves no subject behind (S7b-14)", async () => {
+    fakeApi.on("POST /api/subjects", created(1));
+    const { user, form } = await openAdd();
+    await user.selectOptions(within(form).getByLabelText("Subject"), "Science");
+    await user.click(within(form).getByRole("button", { name: "Cancel" }));
+    expect(writes()).toEqual([]);
+  });
+
+  it("choosing another subject drops the pending one", async () => {
+    const { user, form } = await openAdd([MATH]);
+    await user.selectOptions(within(form).getByLabelText("Subject"), "Science");
+    expect(within(form).getByLabelText("Subject")).toHaveDisplayValue("Science (new)");
+    await user.selectOptions(within(form).getByLabelText("Subject"), MATH.id);
+    expect(within(form).getByLabelText("Subject")).toHaveDisplayValue("Math");
+    expect(within(within(form).getByLabelText("Subject")).queryByRole("option", { name: "Science (new)" })).toBeNull();
   });
 
   it("the next subject takes the next free palette colour", async () => {
     fakeApi.on("POST /api/subjects", created(1));
     const { user, form } = await openAdd([MATH]);
     await user.selectOptions(within(form).getByLabelText("Subject"), "Reading");
-    await waitFor(() => expect(writes()).toHaveLength(1));
+    await fillRest(user, form);
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(writes().length).toBeGreaterThan(0));
     // Math uses blue, so the next one is brick.
     expect(writes()[0]!.body).toEqual({ name: "Reading", color: "#b0482f" });
   });
 
-  it("New subject… shows a name field; Add posts and selects it; Enter does not save the assignment", async () => {
+  it("New subject… shows a name field; Add keeps the name as the pending subject (nothing posted); Enter does not save the assignment", async () => {
     fakeApi.on("POST /api/subjects", created(1));
     const { user, form } = await openAdd();
     await user.selectOptions(within(form).getByLabelText("Subject"), "New subject…");
     const name = within(form).getByLabelText("Subject name");
     await user.type(name, "Nature Study{Enter}");
-    await waitFor(() => expect(within(form).getByLabelText("Subject")).toHaveValue(rowId(51)));
-    expect(writes()).toHaveLength(1);
-    expect(writes()[0]).toMatchObject({ path: "/api/subjects", body: { name: "Nature Study" } });
+    await waitFor(() => expect(within(form).getByLabelText("Subject")).toHaveDisplayValue("Nature Study (new)"));
+    expect(writes()).toEqual([]);
     expect(within(form).queryByLabelText("Subject name")).toBeNull();
-    expect(within(within(form).getByLabelText("Subject")).getByRole("option", { name: "Nature Study" })).toBeInTheDocument();
   });
 
   it("New subject… with the Add button, and Add waits for a name", async () => {
-    fakeApi.on("POST /api/subjects", created(1));
     const { user, form } = await openAdd();
     await user.selectOptions(within(form).getByLabelText("Subject"), "New subject…");
     const add = within(form).getByRole("button", { name: "Add subject" });
     expect(add).toBeDisabled();
     await user.type(within(form).getByLabelText("Subject name"), "Latin");
     await user.click(add);
-    await waitFor(() => expect(within(form).getByLabelText("Subject")).toHaveValue(rowId(51)));
+    await waitFor(() => expect(within(form).getByLabelText("Subject")).toHaveDisplayValue("Latin (new)"));
+    expect(writes()).toEqual([]);
   });
 
-  it("a 409 selects the subject that already exists (any case)", async () => {
-    fakeApi.on("POST /api/subjects", 409, { error: "duplicate_name", message: "You already have a subject with that name." });
+  it("a name the family already has (any case) selects that subject, with nothing posted", async () => {
     const { user, form } = await openAdd([MATH]);
     await user.selectOptions(within(form).getByLabelText("Subject"), "New subject…");
     await user.type(within(form).getByLabelText("Subject name"), "math{Enter}");
     await waitFor(() => expect(within(form).getByLabelText("Subject")).toHaveValue(MATH.id));
     expect(within(form).queryByLabelText("Subject name")).toBeNull();
+    expect(writes()).toEqual([]);
   });
 
-  it("any other failure says so and keeps the name field", async () => {
-    fakeApi.on("POST /api/subjects", 500, { error: "boom", message: "x" });
-    const { user, form } = await openAdd();
+  it("the name of an archived subject says so and keeps the name field", async () => {
+    const { user, form } = await openAdd([OLD_SUBJECT]);
     await user.selectOptions(within(form).getByLabelText("Subject"), "New subject…");
     await user.type(within(form).getByLabelText("Subject name"), "Latin{Enter}");
-    expect(await within(form).findByText("Couldn't add that subject. Please try again.")).toBeInTheDocument();
+    expect(await within(form).findByText("Latin is archived. Unarchive it under Subjects.")).toBeInTheDocument();
     expect(within(form).getByLabelText("Subject name")).toHaveValue("Latin");
-    // S7-16: while the name field is open the select shows "New subject…" (was: the previous choice, here none).
+    // S7-16: while the name field is open the select shows "New subject…".
     expect(within(form).getByLabelText("Subject")).toHaveDisplayValue("New subject…");
+    expect(writes()).toEqual([]);
   });
 
   it("S7-16: the select shows New subject… while the field is open, even after another subject was chosen", async () => {
@@ -195,8 +217,8 @@ describe("Add several", () => {
     const select = within(form).getByLabelText("Subject");
     expect(optionsOf(select)).toEqual(["Choose a subject…", ...COMMON_SUBJECTS, "New subject…"]);
     await user.selectOptions(select, "Science");
-    await waitFor(() => expect(within(form).getByLabelText("Subject")).toHaveValue(rowId(51)));
-    expect(writes()[0]).toMatchObject({ path: "/api/subjects", body: { name: "Science" } });
+    expect(within(form).getByLabelText("Subject")).toHaveDisplayValue("Science (new)");
+    expect(writes()).toEqual([]); // S7b-14: created when the batch is saved
   });
 });
 

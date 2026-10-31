@@ -6,6 +6,8 @@ export const LOG_LEVELS = ["fatal", "error", "warn", "info", "debug", "trace", "
 
 const schema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  /** S7b-14: the address the API listens on. Default 127.0.0.1 (this machine only); the hosting step sets HOST (for example 0.0.0.0) where it should be reachable. */
+  HOST: z.string({ message: "must be a host name or address like 127.0.0.1" }).trim().min(1, { message: "must not be empty" }).default("127.0.0.1"),
   DATABASE_URL: z.string({ error: (i) => (i.input === undefined ? "is required" : "must be a string") }).url({ message: "must be a URL like postgres://user:pass@host:5432/db" }),
   SESSION_SECRET: z.string({ error: (i) => (i.input === undefined ? "is required" : "must be a string") }).min(32, { message: "must be at least 32 characters (try: openssl rand -hex 32)" }),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
