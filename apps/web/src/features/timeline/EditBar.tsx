@@ -1,9 +1,10 @@
 /**
  * T-07e: the edit bar for one selected assignment, fixed to the bottom of the viewport (above the tab bar on
  * phones). Not modal: the page scrolls and zooms behind it. It only exists while something is selected
- * (DeeDee's T-02b rule). Esc or × clears the selection.
+ * (DeeDee's T-02b rule). Esc or × clears the selection. S6-10: Heavier and Lighter nudge the weight about 25%.
  */
 import { forwardRef, useEffect, useState } from "react";
+import type { Nudge } from "./nudge";
 import { canEndEarlier, datesError, moveWeeks, shiftEnd, type DateSpan, type Selection } from "./select";
 
 export interface EditBarProps {
@@ -15,6 +16,9 @@ export interface EditBarProps {
   onSave: (dates: DateSpan) => void;
   /** S3a-02: opens the Add assignment sheet prefilled from this assignment. */
   onCopy: () => void;
+  /** S6-10: "Heavier" / "Lighter"; a direction is disabled when the weight is already at its limit. */
+  onNudge: (direction: Nudge) => void;
+  canNudge: Record<Nudge, boolean>;
   /** S6-08: asks to put the assignment back to how it was created (the page confirms first). */
   onReset: () => void;
   onClose: () => void;
@@ -22,7 +26,7 @@ export interface EditBarProps {
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, original, busy, error, onSave, onCopy, onReset, onClose }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, original, busy, error, onSave, onCopy, onNudge, canNudge, onReset, onClose }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -74,6 +78,8 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
           {canEndEarlier(s.startDate, s.endDate) && step("End a week earlier", { startDate: s.startDate, endDate: shiftEnd(s.endDate, -1) })}
           {step("End a week later", { startDate: s.startDate, endDate: shiftEnd(s.endDate, 1) })}
           <button type="button" className="btn btn-secondary" disabled={busy} onClick={onCopy}>Copy</button>
+          <button type="button" className="btn btn-secondary" disabled={busy || !canNudge.heavier} onClick={() => onNudge("heavier")}>Heavier</button>
+          <button type="button" className="btn btn-secondary" disabled={busy || !canNudge.lighter} onClick={() => onNudge("lighter")}>Lighter</button>
           <button type="button" className="btn btn-secondary" disabled={busy} onClick={onReset}>Reset to original</button>
         </div>
       </div>
