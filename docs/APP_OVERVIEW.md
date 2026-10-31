@@ -24,6 +24,9 @@ The planned business model is freemium: Free covers one child, and the Family pl
 
 ## Design principles
 
+**Where we're heading:** [DESIGN_DIRECTION.md](DESIGN_DIRECTION.md) distils Will's reviews of 2026-10-31 (one home and two jobs, one way to do each thing, the parent's words never the engine's numbers, no dead ends, a modern calm look) and sets the screen tests every ticket must pass.
+
+
 - Very simple and calm, never overwhelming. Show only what's essential: no extra helper text, badges or borders.
 - Progressive disclosure with sensible defaults. Controls appear only when they're relevant; for example, the edit controls exist only once a bar is selected.
 - A pastel, colour-blind-safe default palette, based on Okabe–Ito (T-01b). The "vivid" palette is opt-in.

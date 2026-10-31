@@ -1,11 +1,13 @@
 # S6b-04 — Tester pass: This Week
 
 **Source:** HOW_WE_WORK.md, "Tester"  
-**Depends on:** S6b-01 to S6b-03, S6b-05 to S6b-10  
+**Depends on:** S6b-01, S6b-05 to S6b-10 (the held S6b-02, S6b-03 and S6b-11 get their own pass)  
 **Size:** S
 
 ## Goal
 The tester verifies Sprint 6b and writes `docs/reviews/sprint-6b-verification.md`, with before-and-after screenshots of This Week at 360 and 1280 px.
+
+Also apply the screen tests in `docs/DESIGN_DIRECTION.md` (five seconds, one job, no duplicates, parent's words, empty state, phone first) to every screen these tickets touch.
 
 ## Steps
 1. Gate with labelled counts; screenshots in `docs/progress/screens/sprint-6b/`.
