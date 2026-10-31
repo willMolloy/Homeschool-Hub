@@ -1,6 +1,6 @@
 /** T-03: the timeline layout (features/timeline/layout.ts, rows.ts, hit.ts, xscale.ts, zoom.ts, paths.ts). */
 import { describe, expect, it } from "vitest";
-import { PX_PER_THICKNESS } from "../src/features/plan/scale";
+import { MAX_BAR_PX, PX_PER_THICKNESS, SOFT_CAP_KNEE_PX, softCapPx, thicknessToPx } from "../src/features/plan/scale";
 import { buildDayGrid } from "../src/features/timeline/grid";
 import { MIN_TAP_PX, hitTest, tapBox } from "../src/features/timeline/hit";
 import {
@@ -218,5 +218,48 @@ describe("zoom ranges and the rest of the layout", () => {
     const l = layoutTimeline(empty, { zoom: "year", width: 360 });
     expect(l.bands.every((b) => b.d === "")).toBe(true);
     expect(l.todayX).toBeNull();
+  });
+});
+
+describe("the soft cap on bar height (S6b-06)", () => {
+  it("is unchanged up to the knee, strictly increasing above it, and never above the maximum", () => {
+    for (const px of [1, 10, 28, SOFT_CAP_KNEE_PX]) expect(softCapPx(px)).toBe(px);
+    let last = SOFT_CAP_KNEE_PX;
+    for (const px of [57, 70, 100, 150, 280, 500, 840, 2000]) {
+      const v = softCapPx(px);
+      expect(v).toBeGreaterThan(last);
+      expect(v).toBeLessThanOrEqual(MAX_BAR_PX);
+      last = v;
+    }
+    expect(softCapPx(1e9)).toBe(MAX_BAR_PX);
+    expect(softCapPx(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+
+  it("draws nothing for non-finite, zero or negative input", () => {
+    for (const bad of [Number.NaN, -3, 0, Number.NEGATIVE_INFINITY]) {
+      expect(softCapPx(bad)).toBe(0);
+      expect(thicknessToPx(bad)).toBe(0);
+    }
+  });
+
+  it("a typical day (20 points) is unchanged; 300 pages a day (840 px raw) is under 96; 100 a day is taller than 60", () => {
+    expect(thicknessToPx(20)).toBe(20 * PX_PER_THICKNESS);
+    expect(bandHeight(20, PX_PER_THICKNESS)).toBe(20 * PX_PER_THICKNESS);
+    expect(bandHeight(300, PX_PER_THICKNESS)).toBeLessThanOrEqual(MAX_BAR_PX);
+    expect(bandHeight(100, PX_PER_THICKNESS)).toBeGreaterThan(bandHeight(60, PX_PER_THICKNESS));
+    expect(bandHeight(0.1, PX_PER_THICKNESS)).toBe(MIN_BAND_PX);
+  });
+
+  it("a row with a huge bar is capped, at every zoom, and ordinary rows are as before", () => {
+    const m = synth([["huge", 0, 20, 300], ["normal", 22, 25, 10]]);
+    for (const zoom of ZOOMS) {
+      const l = layoutTimeline(m, { zoom, width: 1280 });
+      const rows = rowsOf(l, "math:frank");
+      expect(rows.length).toBeGreaterThan(0);
+      for (const r of rows) expect(r.height).toBeLessThanOrEqual(MAX_BAR_PX);
+      for (const b of l.bands) for (const y of ys(b.d)) expect(Math.abs(y - b.cy)).toBeLessThanOrEqual(MAX_BAR_PX / 2 + 1e-3);
+    }
+    const one = layoutTimeline(synth([["normal", 0, 20, 10]]), { zoom: "year", width: 1280 });
+    expect(rowsOf(one, "math:frank")[0]!.height).toBe(10 * PX_PER_THICKNESS);
   });
 });

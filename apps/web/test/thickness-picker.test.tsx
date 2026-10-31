@@ -5,7 +5,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { UNIT_TYPES, type UnitType } from "@hh/engine";
 import { ThicknessPicker } from "../src/components/ThicknessPicker";
-import { MAX_BAR_PX, PX_PER_THICKNESS, thicknessToPx } from "../src/features/plan/scale";
+import { MAX_BAR_PX, PX_PER_THICKNESS, softCapPx, thicknessToPx } from "../src/features/plan/scale";
 
 /** A controlled host, like a real form. */
 function Host({ unitType = "lessons" as UnitType, initial = null as number | null, spy = (_: number | null) => {} }) {
@@ -102,16 +102,16 @@ describe("ThicknessPicker", () => {
     expect(height("preview-bar")).toBe(15 * PX_PER_THICKNESS);
     expect(height("reference-bar")).toBe(20 * PX_PER_THICKNESS);
     await userEvent.setup().click(screen.getByRole("radio", { name: /^Very heavy/ }));
-    expect(height("preview-bar")).toBe(30 * PX_PER_THICKNESS);
+    expect(height("preview-bar")).toBe(softCapPx(30 * PX_PER_THICKNESS)); // S6b-06: 84 px raw is above the knee, so softly capped
     expect(screen.getByRole("img", { name: "1 lesson a day: thickness 30" })).toBeInTheDocument();
-    expect(thicknessToPx(100_000)).toBe(MAX_BAR_PX);
+    expect(thicknessToPx(100_000)).toBe(MAX_BAR_PX); // S6b-06: the soft cap approaches the maximum
     expect(thicknessToPx(-5)).toBe(0);
     expect(thicknessToPx(Number.NaN)).toBe(0);
   });
 
   it("a 100-per-page custom weight is clamped to the max bar", () => {
     render(<Host unitType="pages" initial={100} />);
-    expect(height("preview-bar")).toBe(MAX_BAR_PX);
+    expect(height("preview-bar")).toBe(MAX_BAR_PX); // S6b-06: the cap is now 96 px and soft, but this is far above it
   });
 
   it("caption: '1 lesson a day ≈ 30 min of work' at Normal; null uses the built-in", async () => {

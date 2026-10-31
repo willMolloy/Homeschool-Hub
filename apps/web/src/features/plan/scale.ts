@@ -5,11 +5,29 @@
  * one constant to tune.
  */
 export const PX_PER_THICKNESS = 2.8;
-/** The widest bar drawn, so a huge weight can't overflow its card. */
-export const MAX_BAR_PX = 100;
+/**
+ * S6b-06: the soft cap on bar height, the two numbers to tune. Up to the knee (a typical day, 20 points at
+ * `PX_PER_THICKNESS`) a bar is drawn at its true height; above it the height grows ever more slowly and
+ * approaches, but never passes, `MAX_BAR_PX`. Heavier days still look heavier; 300 pages a day no longer
+ * fills the screen.
+ */
+export const SOFT_CAP_KNEE_PX = 56;
+/** The tallest bar drawn (S6b-06: was 100, only the picker preview used it; now every bar). */
+export const MAX_BAR_PX = 96;
 
-/** Thickness → pixels, clamped to [0, MAX_BAR_PX]. Non-finite or negative input draws nothing. */
+/**
+ * S6b-06: pixels as scaled (thickness × px per point) → pixels drawn. Unchanged up to `SOFT_CAP_KNEE_PX`, then
+ * knee + (max - knee) × (1 - e^(-(raw - knee) / (max - knee))): strictly increasing, never above `MAX_BAR_PX`.
+ * Non-finite or non-positive input draws nothing.
+ */
+export function softCapPx(rawPx: number): number {
+  if (!Number.isFinite(rawPx) || rawPx <= 0) return 0;
+  if (rawPx <= SOFT_CAP_KNEE_PX) return rawPx;
+  const room = MAX_BAR_PX - SOFT_CAP_KNEE_PX;
+  return Math.min(MAX_BAR_PX, SOFT_CAP_KNEE_PX + room * (1 - Math.exp(-(rawPx - SOFT_CAP_KNEE_PX) / room)));
+}
+
+/** Thickness → pixels, soft-capped (see `softCapPx`). Non-finite or negative input draws nothing. */
 export function thicknessToPx(thickness: number): number {
-  if (!Number.isFinite(thickness) || thickness <= 0) return 0;
-  return Math.min(MAX_BAR_PX, thickness * PX_PER_THICKNESS);
+  return softCapPx(thickness * PX_PER_THICKNESS);
 }

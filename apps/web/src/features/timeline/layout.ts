@@ -12,7 +12,7 @@
  * - Horizontal room: labels sit above their rows, not in a column, so the plot spans the width.
  */
 import { weekdayOf } from "@hh/engine";
-import { PX_PER_THICKNESS } from "../plan/scale";
+import { PX_PER_THICKNESS, softCapPx } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
 import { estimateTextWidth, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
@@ -202,8 +202,11 @@ export function totalsPxPerPoint(totals: { daily: readonly number[]; weekly: rea
   return peak > 0 ? maxPx / peak : 0;
 }
 
-/** Drawn height of one value: nothing at zero, otherwise at least the 2 px floor. */
-export const bandHeight = (value: number, pxPerPoint: number): number => (value > 0 ? Math.max(value * pxPerPoint, MIN_BAND_PX) : 0);
+/**
+ * Drawn height of one value: nothing at zero, otherwise at least the 2 px floor. S6b-06: soft-capped, so no bar
+ * passes `MAX_BAR_PX` and a heavier day still looks heavier (the All subjects strip stays under the knee).
+ */
+export const bandHeight = (value: number, pxPerPoint: number): number => (value > 0 ? Math.max(softCapPx(value * pxPerPoint), MIN_BAND_PX) : 0);
 
 /** A row's height: its thickest drawn point anywhere on the grid, daily or weekly, so it never moves between zooms. */
 function rowHeight(assignments: readonly TimelineAssignment[], pxPerPoint: number): number {
@@ -238,7 +241,7 @@ export function smoothColumns(series: readonly number[], xs: XScale, cy: number,
   let held = 0;
   for (let i = xs.first; i <= xs.last; i++) {
     if (!xs.isColumn(i)) continue;
-    const raw = (series[i] ?? 0) * pxPerPoint;
+    const raw = softCapPx((series[i] ?? 0) * pxPerPoint);
     // Even heights keep both edges on whole pixels; a change under the dead band keeps the height held.
     if (raw <= 0) held = 0;
     else if (held === 0 || Math.abs(raw - held) >= SMOOTH_DEADBAND_PX) held = Math.max(MIN_BAND_PX, 2 * Math.round(raw / 2));
