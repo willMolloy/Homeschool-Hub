@@ -10,7 +10,7 @@ The Year timeline uses the Soft Paper look in both themes without changing how i
 ## Steps
 1. Bars use the subject fills (S8-01) with rounded ends and a 1 px strong outline at 40% opacity; the All subjects strip uses ink at low opacity.
 2. Today is a dotted fern line, not red; axis labels in Nunito Sans secondary; lane names in ink.
-3. The edit bar becomes a bottom sheet in the Soft Paper style (Start, End, Copy, More), keeping S6b-05's behaviour.
+3. The edit bar becomes a bottom sheet in the Soft Paper style (Start, End, Copy, More), keeping S6b-05's behaviour. Dragging stays off (S7-20); no drag handles.
 4. Dark mode: the dark fills and strong tones; check outside names and the soft cap still read.
 
 ## Done when
