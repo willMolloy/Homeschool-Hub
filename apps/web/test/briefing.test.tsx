@@ -1,9 +1,10 @@
 /** S4-09: the weekly briefing on This Week (briefingLines.ts, Briefing.tsx). */
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { addDays, ENGINE_VERSION, forecastFinish, planAll, type Assignment as EngineAssignment, type ChildPlan, type ProgressCheckIn } from "@hh/engine";
 import { briefingRanges, mergePlans } from "../src/features/plan/Briefing";
+import { shortDate } from "../src/features/schedule/formBits";
 import { buildBriefing, weeksLate } from "../src/features/plan/briefingLines";
 import { EMPTY_WEEK, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
@@ -296,5 +297,78 @@ describe("Weekly briefing on This Week (S4-09)", () => {
     renderAt("/");
     await briefingFetched();
     expect(fakeApi.calls.filter((c) => c.path.startsWith("/api/plan?from=2026-09-07"))).toHaveLength(1);
+  });
+});
+
+describe("A late line offers one next step (S7b-05)", () => {
+  beforeEach(() => { window.localStorage.clear(); });
+  const slow = slowPlan();
+  const finish = forecastFinish(slow, slow.checkInWeeks.map((weekStart) => ({ assignmentId: "ti", childId: "c1", weekStart, position: 0, mode: null })), CALENDAR)!;
+  const moveName = `Move end to ${shortDate(finish)}`;
+  const keepName = `Keep ${shortDate("2026-12-18")}`;
+  const lateText = /^Treasure Island will finish about \d+ weeks? late at this pace\.$/;
+  const wontText = "Treasure Island won't finish this school year at this pace.";
+
+  it("the pure line carries the forecast to move to and the end to keep", () => {
+    const line = buildBriefing({ plans: [slow], children: CHILDREN, titleOf: (id) => titles.get(id) ?? id, weekStart: "2026-10-26", calendar: CALENDAR })[0]!.lines[0]!;
+    expect(line.action).toEqual({ assignmentId: "ti", childId: "c1", end: "2026-12-18", moveTo: finish, signature: finish });
+  });
+
+  it("Move PATCHes the end date to the forecast, the line goes once the plan is on time, and the label is the undo bar's", async () => {
+    stub([slow]);
+    fakeApi.on("PATCH /api/assignments/ti", () => {
+      stub([onPacePlan()]);
+      return [200, { ...ASSIGNMENTS[0], endDate: finish }];
+    });
+    fakeApi.on("GET /api/undo", 200, null);
+    renderAt("/");
+    await screen.findByText(lateText);
+    await userEvent.click(screen.getByRole("button", { name: moveName }));
+    await waitFor(() => expect(fakeApi.calls.filter((c) => c.method === "PATCH")).toHaveLength(1));
+    expect(fakeApi.calls.find((c) => c.method === "PATCH")).toMatchObject({ path: "/api/assignments/ti", body: { endDate: finish } });
+    await waitFor(() => expect(screen.queryByText(lateText)).toBeNull());
+  });
+
+  it("a refused move says so and keeps the line", async () => {
+    stub([slow]);
+    fakeApi.on("PATCH /api/assignments/ti", 400, { error: "invalid_request", message: "Nope." });
+    renderAt("/");
+    await screen.findByText(lateText);
+    await userEvent.click(screen.getByRole("button", { name: moveName }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Nope.");
+    expect(screen.getByText(lateText)).toBeInTheDocument();
+  });
+
+  it("Keep hides the line on this device until the forecast changes", async () => {
+    stub([slow]);
+    const { unmount } = renderAt("/");
+    await screen.findByText(lateText);
+    await userEvent.click(screen.getByRole("button", { name: keepName }));
+    expect(screen.queryByText(lateText)).toBeNull();
+    expect(JSON.parse(window.localStorage.getItem("hh.briefing.kept")!)).toEqual({ "ti:c1": finish });
+    unmount();
+    // Remembered after a reload.
+    renderAt("/");
+    await briefingFetched();
+    expect(screen.queryByText(lateText)).toBeNull();
+    expect(region()).toBeNull();
+    // A different forecast brings the line back.
+    window.localStorage.setItem("hh.briefing.kept", JSON.stringify({ "ti:c1": "2030-01-01" }));
+    stub([slow]);
+    const again = renderAt("/");
+    expect(await screen.findAllByText(lateText)).not.toHaveLength(0);
+    again.unmount();
+  });
+
+  it("a pace so slow there is no forecast date offers Keep only", async () => {
+    const verySlow = planAll([{ id: "ti", subjectId: "lit", childIds: ["c1"], unitType: "pages", totalUnits: 100, start: "2026-09-07", end: "2026-12-18" }], {
+      calendar: CALENDAR, asOf: TODAY,
+      checkIns: [["2026-09-14", 0.1], ["2026-09-21", 0.2]].map(([weekStart, position]) => ({ assignmentId: "ti", childId: "c1", weekStart: weekStart as string, position: position as number, mode: "keepEndDate" as const })),
+    })[0]!;
+    stub([verySlow]);
+    renderAt("/");
+    await screen.findByText(wontText);
+    expect(screen.getByRole("button", { name: keepName })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Move end to/ })).toBeNull();
   });
 });

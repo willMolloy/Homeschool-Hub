@@ -51,4 +51,8 @@
 .briefing-lines { margin: 2px 0 0; padding: 0; list-style: none; overflow-wrap: anywhere; }
 .briefing-line { margin: 0 0 8px; overflow-wrap: anywhere; }
 .briefing-line a { display: inline-block; min-height: 44px; line-height: 44px; }
+.briefing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 4px; }
+.briefing-actions .btn { min-height: 44px; }
+.briefing-error { color: var(--danger, #b00020); }
+.briefing-lines li { margin-bottom: 8px; }
 .briefing-more { min-height: 44px; padding: 0; border: 0; background: none; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }

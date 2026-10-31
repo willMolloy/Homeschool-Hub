@@ -5,9 +5,23 @@
 import { EPS, forecastOutcome, heavyWeek, HEAVY_WEEK_RATIO, noRecentProgress, toDayNumber, type ChildPlan, type FamilyCalendar, type LocalDate, type ProgressCheckIn } from "@hh/engine";
 import { shortDate } from "../schedule/formBits";
 
+/**
+ * S7b-05: what a "will finish late" line offers: move the end date to the forecast, or keep it. `moveTo` is null when
+ * there is no date to move to (a pace so slow the forecast gives up). `signature` names the forecast the line was
+ * made from, so a "Keep" lasts until the forecast changes.
+ */
+export interface LateAction {
+  assignmentId: string;
+  childId: string;
+  end: LocalDate;
+  moveTo: LocalDate | null;
+  signature: string;
+}
+
 export interface BriefingLine {
   key: string;
   text: string;
+  action?: LateAction;
 }
 
 export interface ChildBriefing {
@@ -66,12 +80,13 @@ export function buildBriefing(input: BriefingInput): ChildBriefing[] {
       const forecast = forecastOutcome(p, appliedCheckIns(p), calendar);
       const wontFinish = `${title} won't finish this school year at this pace.`;
       // S7-10: a pace so slow the forecast gives up (past its limit) is the same plain line as a very late one.
+      const action = (moveTo: LocalDate | null, signature: string): LateAction => ({ assignmentId: p.assignmentId, childId: p.childId, end: p.end, moveTo, signature });
       if (forecast && "beyondLimit" in forecast) {
-        late.push({ key: `late-${p.assignmentId}`, text: wontFinish });
+        late.push({ key: `late-${p.assignmentId}`, text: wontFinish, action: action(null, "beyond") });
       } else if (forecast && forecast.finish > p.end) {
         const n = weeksLate(p.end, forecast.finish);
         const text = n > VERY_LATE_WEEKS ? wontFinish : `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late at this pace.`;
-        late.push({ key: `late-${p.assignmentId}`, text });
+        late.push({ key: `late-${p.assignmentId}`, text, action: action(forecast.finish, forecast.finish) });
       }
     }
     const heavy: BriefingLine[] = [];

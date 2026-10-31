@@ -75,6 +75,13 @@ describe.skipIf(!hasDb)("/api/undo (S6-06, integration)", () => {
     expect((await req("POST", "/api/undo")).statusCode).toBe(404);
   });
 
+  it("S7b-05: moving only the end says so; both dates stay 'Moved'", async () => {
+    await req("PATCH", `/api/assignments/${id}`, { endDate: "2026-12-04" });
+    expect((await undoEntry()).label).toBe("Moved Treasure Island's end to Dec 4");
+    await req("PATCH", `/api/assignments/${id}`, { startDate: "2026-10-27", endDate: "2026-12-11" });
+    expect((await undoEntry()).label).toBe("Moved Treasure Island");
+  });
+
   it("other edits are labelled: changed, archived, restored, the weight", async () => {
     await req("PATCH", `/api/assignments/${id}`, { title: "Treasure Isle", totalUnits: 120 });
     expect((await undoEntry()).label).toBe("Changed Treasure Isle");

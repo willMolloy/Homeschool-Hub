@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { withTransaction, type Tx } from "../db";
 import { checkUnitChange } from "../http/assignmentWeight";
-import { checkDatesKeepLatestCheckIn } from "../http/checkInDates";
+import { checkDatesKeepLatestCheckIn, short as shortDate } from "../http/checkInDates";
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, Title, TotalUnits, UnitTypeField, WeightPerUnit, Weekdays } from "../http/scheduleLimits";
 import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
@@ -85,6 +85,8 @@ const notFound = () => new HttpError(404, "not_found", "No such assignment.");
 function patchLabel(p: z.infer<typeof PatchBody>, title: string): string {
   if (p.archived !== undefined) return `${p.archived ? "Archived" : "Restored"} ${title}`;
   const sent = Object.entries(p).filter(([, v]) => v !== undefined).map(([k]) => k);
+  // S7b-05: moving only the end (the late line's "Move end to ...") says so.
+  if (sent.length === 1 && p.endDate !== undefined) return `Moved ${title}'s end to ${shortDate(p.endDate)}`;
   if (sent.every((k) => k === "startDate" || k === "endDate")) return `Moved ${title}`;
   if (sent.every((k) => k === "weightPerUnit")) return `Updated the time estimate for ${title}`; // S7b-02: the parent's words, not "weight"
   return `Changed ${title}`;
