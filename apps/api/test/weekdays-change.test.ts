@@ -29,6 +29,16 @@ describe("weekdaysChange", () => {
     expect(weekdaysChange({ ...base, before: [5], after: null, stored: { weekdaysFrom: "2026-10-26", previousWeekdays: null } })).toEqual({ weekdaysFrom: null, previousWeekdays: null });
     expect(weekdaysChange({ ...base, before: [5], after: [2], stored: { ...stored, weekdaysFrom: "2026-10-19" } })).toEqual({ weekdaysFrom: "2026-10-26", previousWeekdays: [5] });
   });
+  it("S7-11: following (null) and an explicit list of the family's school days are the same days, both ways", () => {
+    const school = [1, 2, 3, 4, 5];
+    expect(weekdaysChange({ ...base, before: null, after: [5, 4, 3, 2, 1], schoolDays: school })).toBeNull();
+    expect(weekdaysChange({ ...base, before: school, after: null, schoolDays: school })).toBeNull();
+    // A real change still stores its history, and without schoolDays null stays "unknown".
+    expect(weekdaysChange({ ...base, before: null, after: [1, 2, 3], schoolDays: school })).toEqual({ weekdaysFrom: "2026-10-26", previousWeekdays: null });
+    expect(weekdaysChange({ ...base, before: null, after: school })).toEqual({ weekdaysFrom: "2026-10-26", previousWeekdays: null });
+    // Going back to the days the past was planned on (null, i.e. the school days) clears this week's record.
+    expect(weekdaysChange({ ...base, before: [1, 2, 3], after: school, schoolDays: school, stored: { weekdaysFrom: "2026-10-26", previousWeekdays: null } })).toEqual({ weekdaysFrom: null, previousWeekdays: null });
+  });
   it("effective days: own, else subject, else null", () => {
     expect(effectiveWeekdays([5], [2])).toEqual([5]);
     expect(effectiveWeekdays(null, [2])).toEqual([2]);

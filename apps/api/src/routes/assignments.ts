@@ -147,7 +147,7 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
         const before = effectiveWeekdays(cur.weekdays, await subjectDefaultWeekdays(c, req.familyId, cur.subject_id));
         const after = effectiveWeekdays(p.weekdays === undefined ? cur.weekdays : p.weekdays, await subjectDefaultWeekdays(c, req.familyId, subjectId));
         const week = await familyWeekStart(c, req);
-        history = weekdaysChange({ startDate: p.startDate ?? cur.start_date, today: week.today, weekStart: week.weekStart, before, after, stored: { weekdaysFrom: cur.weekdays_from, previousWeekdays: cur.previous_weekdays } }) ?? undefined;
+        history = weekdaysChange({ startDate: p.startDate ?? cur.start_date, today: week.today, weekStart: week.weekStart, before, after, schoolDays: week.schoolDays, stored: { weekdaysFrom: cur.weekdays_from, previousWeekdays: cur.previous_weekdays } }) ?? undefined;
       }
       await updateAssignment(c, req.familyId, cur.id, { ...p, history });
       // A new weight (or the same number under a new unit type) is a choice for every child left on the assignment.
