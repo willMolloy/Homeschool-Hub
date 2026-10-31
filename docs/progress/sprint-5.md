@@ -11,8 +11,8 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 | S5-05 Apply a calendar template from Days off | 5bbab6f | `TemplatePanel.tsx` and `templates.ts`; `ScheduleList` gets a `panels` prop; engine gains `HOLIDAY_LABELS` |
 | S5-06 Store saved calendar templates | 49053f9 | `db/012_calendar_template.sql`; `routes/calendarTemplates.ts` and `repos/calendarTemplateRepo.ts` |
 | S5-07 Save this year as a template, and reuse it | 5ea02a0 | `SaveTemplatePanel.tsx`; `TemplatePanel.tsx` lists saved templates; `templateBreaksFrom` and `shiftedBreaks` in `templates.ts` |
-| S5-08 A compact edit bar on phones | (this commit) | CSS only (`timeline.css`, up to 480 px); test for the control order in `timeline-edit-bar.test.tsx` |
-| S5-09 44 px tap targets on every core screen | (this commit) | `scripts/smoke/scenarios/tap-targets.mjs` (documented in `scripts/README.md`); four small CSS fixes |
+| S5-08 A compact edit bar on phones | d033652 | CSS only (`timeline.css`, up to 480 px); test for the control order in `timeline-edit-bar.test.tsx` |
+| S5-09 44 px tap targets on every core screen | 6d70d6d | `scripts/smoke/scenarios/tap-targets.mjs` (documented in `scripts/README.md`); four small CSS fixes |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -59,4 +59,4 @@ Tickets: `docs/tickets/sprint-5-preview-templates-phone/`.
 
 ## Gate counts (end of pass 1)
 
-Engine 373, API 879, web 713, db 102 tests, all green; migration `012_calendar_template.sql` is the only new one.
+Engine 373, API 879, web 713 (714 after S5-08), db 102 tests, all green; migration `012_calendar_template.sql` is the only new one.
