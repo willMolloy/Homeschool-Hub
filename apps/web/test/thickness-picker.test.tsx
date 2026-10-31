@@ -22,7 +22,7 @@ const EXPECTED: Record<UnitType, number[]> = {
 };
 
 describe("ThicknessPicker", () => {
-  it("S2c-03: onValidityChange reports an invalid Custom entry, and the caption asks for a weight", async () => {
+  it("S2c-03: onValidityChange reports an invalid Custom entry, and the caption asks for the minutes (S6b-13)", async () => {
     const valid = vi.fn();
     function V() {
       const [v, setV] = useState<number | null>(20);
@@ -31,21 +31,21 @@ describe("ThicknessPicker", () => {
     render(<V />);
     const user = userEvent.setup();
     expect(valid.mock.calls).toEqual([[true]]);
-    const custom = screen.getByLabelText("Custom weight");
+    const custom = screen.getByLabelText(/^Custom minutes/);
     await user.clear(custom);
     expect(valid).toHaveBeenLastCalledWith(false);
-    expect(screen.getByText("Enter a weight to see the preview")).toBeInTheDocument();
-    await user.type(custom, "1.234");
+    expect(screen.getByText("Enter the minutes to see the preview")).toBeInTheDocument();
+    await user.type(custom, "0");
     expect(valid).toHaveBeenLastCalledWith(false);
     await user.clear(custom);
     await user.type(custom, "12");
     expect(valid).toHaveBeenLastCalledWith(true);
-    expect(screen.queryByText("Enter a weight to see the preview")).not.toBeInTheDocument();
+    expect(screen.queryByText("Enter the minutes to see the preview")).not.toBeInTheDocument();
     await user.clear(custom);
     await user.click(screen.getByRole("radio", { name: "None" }));
     expect(valid).toHaveBeenLastCalledWith(true);
-    // Only changes are reported (typing "1.234" passes through the valid "1" on the way).
-    expect(valid.mock.calls.map((c) => c[0])).toEqual([true, false, true, false, true, false, true]);
+    // Only changes are reported ("0" stays invalid, so typing it adds nothing).
+    expect(valid.mock.calls.map((c) => c[0])).toEqual([true, false, true, false, true]);
   });
 
   it.each(UNIT_TYPES)("each preset emits built-in × multiplier for %s", async (unit) => {
@@ -68,33 +68,36 @@ describe("ThicknessPicker", () => {
   it("a non-preset stored value opens Custom with that number", () => {
     render(<Host initial={18} />);
     expect(screen.getByRole("radio", { name: "Custom…" })).toBeChecked();
-    expect(screen.getByLabelText("Custom weight")).toHaveValue(18);
+    // 18 per lesson is 36 minutes for 1 lesson a day (S6b-13: the parent sees minutes).
+    expect(screen.getByLabelText("Custom minutes for 1 lesson a day")).toHaveValue(36);
   });
 
-  it.each([["0"], ["101"], ["1.234"], ["-1"]])("Custom rejects %s without emitting", async (raw) => {
+  it.each([["0"], ["1441"], ["-1"]])("Custom rejects %s without emitting", async (raw) => {
     const spy = vi.fn();
     render(<Host spy={spy} />);
     const user = userEvent.setup();
     await user.click(screen.getByRole("radio", { name: "Custom…" }));
     spy.mockClear();
-    const input = screen.getByLabelText("Custom weight");
+    const input = screen.getByLabelText(/^Custom minutes/);
     await user.clear(input);
     await user.type(input, raw);
-    expect(screen.getByRole("alert")).toHaveTextContent(/Weight (must be more than 0 and at most 100|can have at most 2 decimal places)/);
+    expect(screen.getByRole("alert")).toHaveTextContent(/Minutes must be more than 0 and at most 1,440/);
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(spy.mock.calls.map((c) => c[0]).filter((v) => v === Number(raw))).toEqual([]);
   });
 
-  it("Custom accepts 12.25", async () => {
+  it("Custom takes minutes for a typical day: 15 minutes for 1 lesson a day is 7.5 a lesson; 20 for 20 pages is 0.5", async () => {
     const spy = vi.fn();
     render(<Host spy={spy} />);
     const user = userEvent.setup();
     await user.click(screen.getByRole("radio", { name: "Custom…" }));
-    const input = screen.getByLabelText("Custom weight");
+    const input = screen.getByLabelText(/^Custom minutes/);
     await user.clear(input);
-    await user.type(input, "12.25");
-    expect(spy).toHaveBeenLastCalledWith(12.25);
+    await user.type(input, "15");
+    expect(spy).toHaveBeenLastCalledWith(7.5);
     expect(screen.queryByRole("alert")).toBeNull();
+    // S6b-13: the picker never shows a weight.
+    expect(document.body.textContent).not.toMatch(/weight/i);
   });
 
   it("preview follows the value, the reference stays at 20 pages, and both clamp", async () => {
@@ -103,7 +106,7 @@ describe("ThicknessPicker", () => {
     expect(height("reference-bar")).toBe(20 * PX_PER_THICKNESS);
     await userEvent.setup().click(screen.getByRole("radio", { name: /^Very heavy/ }));
     expect(height("preview-bar")).toBe(softCapPx(30 * PX_PER_THICKNESS)); // S6b-06: 84 px raw is above the knee, so softly capped
-    expect(screen.getByRole("img", { name: "1 lesson a day: thickness 30" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "1 lesson a day: about 60 min" })).toBeInTheDocument();
     expect(thicknessToPx(100_000)).toBe(MAX_BAR_PX); // S6b-06: the soft cap approaches the maximum
     expect(thicknessToPx(-5)).toBe(0);
     expect(thicknessToPx(Number.NaN)).toBe(0);
@@ -129,11 +132,11 @@ describe("ThicknessPicker", () => {
     expect(screen.getByText("30 minutes a day ≈ 30 min of work")).toBeInTheDocument();
   });
 
-  it("each preset label has a space between its name and value (\"Light 7.5\")", () => {
+  it("each preset label has a space between its name and its minutes (\"Light 15 min\"; S6b-13)", () => {
     render(<Host unitType="lessons" />);
     const group = screen.getByRole("group", { name: "Bar width" });
-    expect(within(group).getByRole("radio", { name: "Light 7.5" })).toBeInTheDocument();
-    expect(within(group).getByRole("radio", { name: "Very heavy 30" }).closest("label")).toHaveTextContent(/^Very heavy 30$/);
+    expect(within(group).getByRole("radio", { name: "Light 15 min" })).toBeInTheDocument();
+    expect(within(group).getByRole("radio", { name: "Very heavy 60 min" }).closest("label")).toHaveTextContent(/^Very heavy 60 min$/);
   });
 
   it("keyboard: arrow keys move through the presets and emit", async () => {

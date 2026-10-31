@@ -33,7 +33,7 @@ async function setup(rows = [SAXON, NOVEL], subjects?: Subject[]) {
 }
 const cards = () => within(screen.getByRole("list", { name: "Assignments" })).getAllByRole("listitem");
 const date = (label: string, value: string, scope: HTMLElement) => fireEvent.change(within(scope).getByLabelText(label), { target: { value } });
-/** S6-09: the radio for a preset ("30 minutes") or "Custom" in the form's effort question. */
+/** S6-09: the radio for a preset ("30 min a day") or "Custom" in the form's effort question. */
 const effort = (form: HTMLElement, name: string) => within(within(form).getByRole("group", { name: "About how long will that take?" })).getByRole("radio", { name });
 /** S6-09: the weight a pick of `minutes` a day comes to for `total` units between the dates, Monday to Friday. */
 const weightFor = (minutes: number, total: number, start: string, end: string) =>
@@ -47,10 +47,10 @@ describe("Assignments screen", () => {
     const [first, second] = cards();
     expect(first).toHaveTextContent("Charlotte's Web");
     expect(first).toHaveTextContent("Reading · Maggie");
-    expect(first).toHaveTextContent("184 pages · weight 1.4");
+    expect(first).toHaveTextContent("184 pages · about 11 min a day");
     expect(second).toHaveTextContent("Saxon 5/4");
     expect(second).toHaveTextContent("Math · Frank, Maggie");
-    expect(second).toHaveTextContent("20 lessons · weight ~15 (default)");
+    expect(second).toHaveTextContent("20 lessons · about 32 min a day");
     expect(second).toHaveTextContent("Nov 2, 2026 – Nov 26, 2026");
   });
 
@@ -86,9 +86,9 @@ describe("Assignments screen", () => {
     date("Start", "2026-11-02", form);
     date("End", "2026-12-04", form);
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
-    // S6-09: 45.5 pages over 25 school days is 1.82 a day; "30 minutes" a day is 30 / 1.82 / 2 = 8.24 a page.
+    // S6-09: 45.5 pages over 25 school days is 1.82 a day; "30 min a day" a day is 30 / 1.82 / 2 = 8.24 a page.
     expect(within(form).getByText("About 1.8 pages a day")).toBeInTheDocument();
-    await user.click(effort(form, "30 minutes"));
+    await user.click(effort(form, "30 min a day"));
     await user.click(within(form).getByRole("button", { name: "Add" }));
     expect(writes()).toEqual([{
       method: "POST", path: "/api/assignments",
@@ -109,7 +109,7 @@ describe("Assignments screen", () => {
     date("Start", "2026-11-02", form);
     date("End", "2026-11-02", form);
     // S6-09: the hint names the suggestion and what it comes to in minutes (12 lessons in one day).
-    expect(await within(form).findByText("Using the default weight for lessons (15). That's about 360 min a day.")).toBeInTheDocument();
+    expect(await within(form).findByText("Usually about 360 min a day.")).toBeInTheDocument();
     expect(within(form).getByRole("radio", { name: "Custom" })).toBeChecked();
     await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
     await addReady(form);
@@ -130,9 +130,9 @@ describe("Assignments screen", () => {
     await user.type(within(form).getByLabelText("Total"), "600");
     date("Start", "2026-11-02", form);
     date("End", "2026-11-26", form);
-    expect(await within(form).findByText("Using the default weight for minutes (0.5). That's about 32 min a day.")).toBeInTheDocument();
-    expect(effort(form, "30 minutes")).toBeChecked();
-    await user.click(effort(form, "45 minutes"));
+    expect(await within(form).findByText("Usually about 32 min a day.")).toBeInTheDocument();
+    expect(effort(form, "30 min a day")).toBeChecked();
+    await user.click(effort(form, "45 min a day"));
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
     await user.click(within(form).getByRole("button", { name: "Add" }));
     expect(writes()[0]!.body).toMatchObject({ unitType: "minutes", weightPerUnit: weightFor(45, 600, "2026-11-02", "2026-11-26") });
@@ -158,17 +158,17 @@ describe("Assignments screen", () => {
     expect(writes()).toEqual([]);
   });
 
-  it("card variants: own weight, the subject's default, the built-in", async () => {
+  it("card variants (S6b-13: minutes a day, never a weight): own weight, the subject's default, the built-in", async () => {
     const plain: Assignment = { ...NOVEL, id: rowId(4), title: "Plain pages", weightPerUnit: null, subjectId: MATH.id };
     const fromSubject: Assignment = { ...NOVEL, id: rowId(5), title: "Subject pages", weightPerUnit: null };
     const otherUnit: Assignment = { ...SAXON, id: rowId(6), title: "Reading lessons", subjectId: READING.id };
     await setup([NOVEL, plain, fromSubject, otherUnit], [MATH, { ...READING, defaultWeight: { unitType: "pages", weightPerUnit: 2 } }, LATIN]);
     const text = (title: string) => screen.getByRole("button", { name: new RegExp(title) }).textContent;
-    expect(text("Charlotte's Web")).toContain("184 pages · weight 1.4");
-    expect(text("Subject pages")).toContain("184 pages · weight ~2 (subject)");
-    expect(text("Plain pages")).toContain("184 pages · weight ~1 (default)");
+    expect(text("Charlotte's Web")).toContain("184 pages · about 11 min a day");
+    expect(text("Subject pages")).toContain("184 pages · about 16 min a day");
+    expect(text("Plain pages")).toContain("184 pages · about 8 min a day");
     // Reading's default is for pages, so a Reading lessons assignment uses the built-in (D23).
-    expect(text("Reading lessons")).toContain("20 lessons · weight ~15 (default)");
+    expect(text("Reading lessons")).toContain("20 lessons · about 32 min a day");
   });
 
   it("edit PATCHes only changed fields and replaces children", async () => {
@@ -178,13 +178,13 @@ describe("Assignments screen", () => {
     expect(within(form).getByLabelText("Title")).toHaveValue("Saxon 5/4");
     expect(within(form).getByLabelText("Total")).toHaveValue(20);
     // S6-09: no weight of its own, so the built-in 15 a lesson: 20 lessons over 19 days is about 32 min a day.
-    expect(effort(form, "30 minutes")).toBeChecked();
+    expect(effort(form, "30 min a day")).toBeChecked();
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
     await user.clear(within(form).getByLabelText("Total"));
     await user.type(within(form).getByLabelText("Total"), "25");
     await user.click(within(form).getByRole("button", { name: "Save" }));
     expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${SAXON.id}`, body: { totalUnits: 25, childIds: [MAGGIE.id] } }]);
-    expect(await screen.findByText("25 lessons · weight ~15 (default)")).toBeInTheDocument();
+    expect(await screen.findByText("25 lessons · about 39 min a day")).toBeInTheDocument();
   });
 
   it("no change sends nothing, and an edit that leaves the effort alone never sends a weight", async () => {
@@ -205,14 +205,14 @@ describe("Assignments screen", () => {
     const user = await setup();
     await user.click(screen.getByRole("button", { name: /Charlotte's Web/ }));
     const form = screen.getByRole("form", { name: "Edit Charlotte's Web" });
-    // Weight 1.4 over 47 school days (3.9 pages a day) is about 11 minutes a day, closest to "15 minutes".
-    expect(effort(form, "15 minutes")).toBeChecked();
+    // Weight 1.4 over 47 school days (3.9 pages a day) is about 11 minutes a day, closest to "15 min a day".
+    expect(effort(form, "15 min a day")).toBeChecked();
     expect(within(form).getByText("That's about 11 min a day now.")).toBeInTheDocument();
-    await user.click(effort(form, "60 minutes"));
+    await user.click(effort(form, "60 min a day"));
     await user.click(within(form).getByRole("button", { name: "Save" }));
     const w = weightFor(60, 184, "2026-10-15", "2026-12-18");
     expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { weightPerUnit: w } }]);
-    expect(await screen.findByText(`184 pages · weight ${w}`)).toBeInTheDocument();
+    expect(await screen.findByText("184 pages · about 60 min a day")).toBeInTheDocument();
   });
 
   it("a unit change goes back to the new unit's suggestion and sends both fields (D7)", async () => {
@@ -220,7 +220,7 @@ describe("Assignments screen", () => {
     await user.click(screen.getByRole("button", { name: /Charlotte's Web/ }));
     const form = screen.getByRole("form", { name: "Edit Charlotte's Web" });
     await user.selectOptions(within(form).getByLabelText("Unit"), "minutes");
-    expect(await within(form).findByText(/^Using the default weight for minutes \(0\.5\)\./)).toBeInTheDocument();
+    expect(await within(form).findByText(/^Usually about /)).toBeInTheDocument();
     await user.click(within(form).getByRole("button", { name: "Save" }));
     expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "minutes", weightPerUnit: null } }]);
   });
@@ -230,8 +230,8 @@ describe("Assignments screen", () => {
     await user.click(screen.getByRole("button", { name: /Charlotte's Web/ }));
     const form = screen.getByRole("form", { name: "Edit Charlotte's Web" });
     await user.selectOptions(within(form).getByLabelText("Unit"), "chapters");
-    expect(await within(form).findByText(/^Using the default weight for chapters \(10\)\./)).toBeInTheDocument();
-    await user.click(effort(form, "45 minutes"));
+    expect(await within(form).findByText(/^Usually about /)).toBeInTheDocument();
+    await user.click(effort(form, "45 min a day"));
     await user.click(within(form).getByRole("button", { name: "Save" }));
     expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "chapters", weightPerUnit: weightFor(45, 184, "2026-10-15", "2026-12-18") } }]);
   });
@@ -346,7 +346,7 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
     await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
     await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
-    expect(await within(form).findByText(/^Using Maggie's usual weight for pages \(1\.4\)\. That's about 1 min a day\.$/)).toBeInTheDocument();
+    expect(await within(form).findByText(/^Maggie usually does about 1 min a day\.$/)).toBeInTheDocument();
     expect(suggestionCalls().at(-1)?.path).toBe(`/api/weights/suggestion?unitType=pages&childIds=${MAGGIE.id}&subjectId=${READING.id}`);
     expect((await add(user, form)).weightPerUnit).toBe(1.4);
   });
@@ -355,9 +355,9 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     const { user, form } = await openAdd();
     await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
     await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
-    await within(form).findByText(/^Using Maggie's usual weight for pages \(1\.4\)\./);
+    await within(form).findByText(/^Maggie usually does about /);
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
-    expect(await within(form).findByText(/^Using Maggie's usual weight \(1\.4\)\. Frank has no history yet\./)).toBeInTheDocument();
+    expect(await within(form).findByText(/^Maggie usually does about \d+ min a day\. Frank has no history yet\./)).toBeInTheDocument();
     const ids = [FRANK.id, MAGGIE.id].sort().join(",");
     expect(suggestionCalls().at(-1)?.path).toContain(`childIds=${encodeURIComponent(ids)}`);
   });
@@ -367,16 +367,16 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
     await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
     await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
-    await within(form).findByText(/^Using Maggie's usual weight for pages/);
-    await user.click(effort(form, "30 minutes"));
+    await within(form).findByText(/^Maggie usually does about /);
+    await user.click(effort(form, "30 min a day"));
     expect(within(form).getByText("The suggestion is about 1 min a day.")).toBeInTheDocument();
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
     await waitFor(() => expect(suggestionCalls().at(-1)?.path).toContain(FRANK.id));
     await new Promise((r) => setTimeout(r, 300));
-    expect(effort(form, "30 minutes")).toBeChecked();
+    expect(effort(form, "30 min a day")).toBeChecked();
     await user.click(within(form).getByRole("button", { name: /^Use about \d+ min$/ }));
-    expect(effort(form, "30 minutes")).not.toBeChecked();
-    expect(within(form).getByText(/^Using Maggie's usual weight \(1\.4\)\. Frank has no history yet\./)).toBeInTheDocument();
+    expect(effort(form, "30 min a day")).not.toBeChecked();
+    expect(within(form).getByText(/^Maggie usually does about \d+ min a day\. Frank has no history yet\./)).toBeInTheDocument();
     expect((await add(user, form)).weightPerUnit).toBe(1.4);
   });
 
@@ -384,9 +384,9 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     const { user, form } = await openAdd();
     await user.selectOptions(within(form).getByLabelText("Subject"), MATH.id);
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
-    // 20 a lesson over 19 days (10 lessons) is about 21 minutes a day, closest to "15 minutes".
-    expect(await within(form).findByText("Using the Math default (20 per lesson). That's about 21 min a day.")).toBeInTheDocument();
-    expect(effort(form, "15 minutes")).toBeChecked();
+    // 20 a lesson over 19 days (10 lessons) is about 21 minutes a day, closest to "15 min a day".
+    expect(await within(form).findByText("Usually about 21 min a day.")).toBeInTheDocument();
+    expect(effort(form, "15 min a day")).toBeChecked();
     expect((await add(user, form)).weightPerUnit).toBeNull();
   });
 
@@ -394,8 +394,8 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     const { user, form } = await openAdd();
     await user.selectOptions(within(form).getByLabelText("Subject"), MATH.id);
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
-    await within(form).findByText(/^Using the Math default \(20 per lesson\)\./);
-    await user.click(effort(form, "15 minutes"));
+    await within(form).findByText(/^Usually about /);
+    await user.click(effort(form, "15 min a day"));
     expect((await add(user, form)).weightPerUnit).toBe(weightFor(15, 10, "2026-11-02", "2026-11-26"));
   });
 
@@ -403,7 +403,7 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     const { user, form } = await openAdd();
     await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
-    expect(await within(form).findByText(/^Using the default weight for lessons \(15\)\./)).toBeInTheDocument();
+    expect(await within(form).findByText(/^Usually about /)).toBeInTheDocument();
     expect((await add(user, form)).weightPerUnit).toBeNull();
   });
 
@@ -413,7 +413,7 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
     await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
     await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
-    expect(await within(form).findByText(/^Using the default weight for pages \(1\)\./)).toBeInTheDocument();
+    expect(await within(form).findByText(/^Usually about /)).toBeInTheDocument();
     expect((await add(user, form)).weightPerUnit).toBeNull();
   });
 
@@ -422,13 +422,13 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     fakeApi.on("GET /api/weights/suggestion", suggestions);
     await user.click(screen.getByRole("button", { name: /Saxon 5\/4/ }));
     const form = screen.getByRole("form", { name: "Edit Saxon 5/4" });
-    // The Math default of 20 a lesson is about 42 minutes a day over 19 days: closest to "45 minutes".
-    expect(effort(form, "45 minutes")).toBeChecked();
+    // The Math default of 20 a lesson is about 42 minutes a day over 19 days: closest to "45 min a day".
+    expect(effort(form, "45 min a day")).toBeChecked();
     expect(within(form).getByText("That's about 42 min a day now.")).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 300));
     expect(suggestionCalls()).toEqual([]);
     await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
-    expect(await within(form).findByText(/^Using Maggie's usual weight \(1\.4\)\. Frank has no history yet\./)).toBeInTheDocument();
+    expect(await within(form).findByText(/^Maggie usually does about \d+ min a day\. Frank has no history yet\./)).toBeInTheDocument();
     expect(suggestionCalls()).toHaveLength(1);
   });
 
@@ -453,7 +453,7 @@ describe("Assignment weight suggestion (S2b-11)", () => {
       await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
       await user.selectOptions(within(form).getByLabelText("Unit"), "pages");
       await user.click(within(form).getByRole("checkbox", { name: "Maggie" }));
-      await within(form).findByText(/^Using Maggie's usual weight for pages \(1\.4\)\./);
+      await within(form).findByText(/^Maggie usually does about /);
       await addReady(form);
       // Swap Maggie for Frank (no history): her 1.4 is still on show while his answer loads.
       fireEvent.click(within(form).getByRole("checkbox", { name: "Maggie" }));
@@ -461,7 +461,7 @@ describe("Assignment weight suggestion (S2b-11)", () => {
       expect(addButton(form)).toBeDisabled();
       fireEvent.click(addButton(form));
       expect(writes()).toEqual([]);
-      expect(await within(form).findByText(/^Using the default weight for pages \(1\)\./)).toBeInTheDocument();
+      expect(await within(form).findByText(/^Usually about /)).toBeInTheDocument();
       expect((await add(user, form)).weightPerUnit).toBeNull();
     });
 
@@ -471,7 +471,7 @@ describe("Assignment weight suggestion (S2b-11)", () => {
       await addReady(form);
       fireEvent.click(within(form).getByRole("checkbox", { name: "Maggie" }));
       expect(addButton(form)).toBeDisabled();
-      fireEvent.click(effort(form, "30 minutes"));
+      fireEvent.click(effort(form, "30 min a day"));
       expect(addButton(form)).toBeEnabled();
       await user.click(addButton(form));
       await waitFor(() => expect(writes()).toHaveLength(1));

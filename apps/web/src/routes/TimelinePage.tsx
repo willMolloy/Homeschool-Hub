@@ -207,7 +207,7 @@ export function TimelinePage() {
       {resetting && (
         <ConfirmDialog title={`Put ${resetting.title} back to how you created it?`} confirmLabel="Reset" busy={edit.busy} error={resetError}
           onConfirm={() => void confirmReset()} onCancel={() => setResetting(null)}>
-          <p>Its dates, weight and days go back, and its week adjustments are removed. You can undo this right after.</p>
+          <p>Its dates, effort and days go back, and its week adjustments are removed. You can undo this right after.</p>
         </ConfirmDialog>
       )}
       <AddAssignmentSheet open={adding} lookups={lookups} initial={copying} onSaved={added} onClose={closeAdd} />

@@ -23,7 +23,8 @@ import { SubjectSelect } from "./SubjectSelect";
 import { EffortField } from "./EffortField";
 import { paceLooksHigh, paceNoteText, unitsPerDay } from "./effort";
 import type { EffortPick } from "./effort";
-import { weightCardText } from "./weightText";
+import { effortCardText } from "./weightText";
+import { useMe } from "../../auth/AuthProvider";
 
 export { LIMITS };
 
@@ -59,12 +60,16 @@ export function AssignmentsPage() {
 }
 
 function AssignmentCard({ a, l }: { a: Assignment; l: Lookups }) {
+  // S6b-13: effort as minutes a day at the assignment's own pace (its days, else the subject's, else every school day).
+  const { schoolDays } = useMe();
+  const perDay = unitsPerDay(a.totalUnits, a.startDate, a.endDate, a.weekdays ?? l.subjectWeekdays(a.subjectId) ?? schoolDays);
+  const effort = effortCardText(a, l.subjectDefault(a.subjectId), perDay);
   return (
     <span className="card-body">
       <span className="card-title">{a.title}</span>
       <span className="card-line">{l.subjectName(a.subjectId)} · {a.childIds.map(l.childName).join(", ")}</span>
       <span className="card-line">
-        {units(a.totalUnits, a.unitType)} · {weightCardText(a, l.subjectDefault(a.subjectId))}
+        {units(a.totalUnits, a.unitType)}{effort ? ` · ${effort}` : ""}
       </span>
       <span className="card-line">{dateRange(a.startDate, a.endDate)}</span>
     </span>
@@ -82,7 +87,9 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   const [unitType, setUnitType] = useState<UnitType>(start?.unitType ?? "lessons");
   const [totalUnits, setTotalUnits] = useState(start ? String(start.totalUnits) : "");
   // S6-09: what the parent picked for "about how long"; null = untouched (the suggestion, or what is stored, stands).
-  const [pick, setPick] = useState<EffortPick | null>(null);
+  const [pick, setPickState] = useState<EffortPick | null>(null);
+  // S6b-13: "Use the subject's usual" was chosen: the assignment follows the subject again (saves null).
+  const [usual, setUsual] = useState(false);
   // S2b-11: adding (or changing the unit) follows the suggestion until the parent picks; editing or copying shows what's stored.
   const [suggesting, setSuggesting] = useState(!start);
   const [startDate, setStartDate] = useState(start?.startDate ?? "");
@@ -97,7 +104,15 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   const ids = { subject: useId(), title: useId(), unit: useId(), total: useId(), effort: useId(), start: useId(), end: useId(), err: useId() };
 
   const { suggestion, pending } = useWeightSuggestion(unitType, childIds, subjectId, suggesting);
-  const followsSuggestion = suggesting && pick === null;
+  const subjectUsual = subjectId ? l.subjectDefault(subjectId) : null;
+  const usualApplies = subjectUsual !== null && subjectUsual.unitType === unitType;
+  const usualNow = usual && usualApplies;
+  const followsSuggestion = suggesting && pick === null && !usualNow;
+  /** A parent's own answer wins over "the subject's usual". */
+  const setPick = (p: EffortPick | null) => {
+    setPickState(p);
+    if (p !== null) setUsual(false);
+  };
   // S2c-04: an untouched suggestion is only saved once it's the answer for the current inputs; a pick can always save.
   const awaitingSuggestion = followsSuggestion && pending;
 
@@ -105,6 +120,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   function changeUnit(u: UnitType) {
     setUnitType(u);
     setPick(null);
+    setUsual(false);
     setSuggesting(true);
   }
 
@@ -139,7 +155,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     if (typeof total === "string") errs.totalUnits = total;
     // S6-09: untouched keeps what the form followed (the suggestion, or the stored weight; null follows the subject default, D21);
     // a pick becomes a weight per unit at this pace.
-    let wpu: number | null = followsSuggestion ? suggestedValue() : suggesting ? null : start?.weightPerUnit ?? null;
+    let wpu: number | null = usualNow ? null : followsSuggestion ? suggestedValue() : suggesting ? null : start?.weightPerUnit ?? null;
     if (pick) {
       const minutes = pick.kind === "preset" ? pick.minutes : parsePositive(pick.text, "Minutes", MAX_MINUTES_A_DAY);
       if (typeof minutes === "string") errs.effort = minutes;
@@ -190,9 +206,11 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   // S6-09: the weight the form stands on (the suggestion, or what's stored resolved like the engine does) as minutes a day.
   const totalNumber = Number(totalUnits);
   const pace = totalUnits.trim() ? unitsPerDay(totalNumber, startDate, endDate, dayChoice.shown) : null;
-  const baseWeight = suggesting
-    ? suggestion?.weightPerUnit ?? null
-    : weightPerUnitOf({ unitType, weightPerUnit: start?.weightPerUnit ?? null }, subjectId ? l.subjectDefault(subjectId) : null).weight;
+  const baseWeight = usualNow
+    ? weightPerUnitOf({ unitType, weightPerUnit: null }, subjectUsual).weight
+    : suggesting
+      ? suggestion?.weightPerUnit ?? null
+      : weightPerUnitOf({ unitType, weightPerUnit: start?.weightPerUnit ?? null }, subjectId ? l.subjectDefault(subjectId) : null).weight;
   const baseMinutes = baseWeight !== null && pace !== null ? minutesPerDayFromWeight(baseWeight, pace) : null;
   const pickedMinutes = pick === null ? null : pick.kind === "preset" ? pick.minutes : Number(pick.text.trim() || NaN);
   const shownError = formError ?? externalError;
@@ -247,7 +265,13 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       {/* S6b-07: one quiet line for a pace that looks like a typo; it never blocks Save. */}
       {pace !== null && paceLooksHigh(pace, unitType) ? <p className="hint pace-note" role="note">{paceNoteText(pace, unitType)}</p> : null}
       <EffortField id={ids.effort} unitType={unitType} pace={pace} pick={pick} onPick={setPick} baseMinutes={baseMinutes}
-        suggestion={suggesting ? suggestion : null} subjectName={l.subjectName(subjectId)}
+        suggestion={suggesting && !usualNow ? suggestion : null} subjectName={l.subjectName(subjectId)}
+        usual={{
+          active: usualNow,
+          // Own effort is a pick, or what is stored when editing; while following a subject-sourced suggestion the existing "Use about" covers it.
+          offer: usualApplies && !usualNow && (pick !== null ? suggestion?.source !== "subject" || !suggesting : !suggesting && start?.weightPerUnit != null),
+          onUse: () => { setPickState(null); setUsual(true); },
+        }}
         chosenMinutes={pickedMinutes !== null && Number.isFinite(pickedMinutes) && pickedMinutes > 0 ? pickedMinutes : null} error={errors.effort} />
       <div className="btn-row">
         <button className="btn" type="submit" disabled={saving || awaitingSuggestion} aria-busy={awaitingSuggestion || undefined}>{saving ? "Saving…" : item ? "Save" : "Add"}</button>

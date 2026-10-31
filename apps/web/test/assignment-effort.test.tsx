@@ -80,8 +80,8 @@ describe("the effort question on the Add form", () => {
     await fill(user, form);
     expect(within(form).getByText("About 5 pages a day")).toBeInTheDocument();
     expect(within(group(form)).getAllByRole("radio").map((r) => r.closest("label")!.textContent))
-      .toEqual(["15 minutes", "30 minutes", "45 minutes", "60 minutes", "Custom"]);
-    await user.click(radio(form, "30 minutes"));
+      .toEqual(["15 min a day", "30 min a day", "45 min a day", "60 min a day", "Custom"]);
+    await user.click(radio(form, "30 min a day"));
     expect((await submit(user, form)).weightPerUnit).toBe(3);
   });
 
@@ -106,8 +106,8 @@ describe("the effort question on the Add form", () => {
     const { user, form } = await openAdd();
     await fill(user, form);
     // Pages weigh 1 by default: 5 pages a day is 10 minutes, closest to 15.
-    expect(await within(form).findByText("Using the default weight for pages (1). That's about 10 min a day.")).toBeInTheDocument();
-    expect(radio(form, "15 minutes")).toBeChecked();
+    expect(await within(form).findByText("Usually about 10 min a day.")).toBeInTheDocument();
+    expect(radio(form, "15 min a day")).toBeChecked();
     expect((await submit(user, form)).weightPerUnit).toBeNull();
   });
 
@@ -120,7 +120,7 @@ describe("the effort question on the Add form", () => {
   it("no body key other than the usual ones is sent", async () => {
     const { user, form } = await openAdd();
     await fill(user, form);
-    await user.click(radio(form, "45 minutes"));
+    await user.click(radio(form, "45 min a day"));
     const body = await submit(user, form);
     expect(Object.keys(body).sort()).toEqual(["childIds", "endDate", "startDate", "subjectId", "title", "totalUnits", "unitType", "weekdays", "weightPerUnit"]);
     expect(body.weightPerUnit).toBe(4.5);
@@ -145,13 +145,13 @@ describe("editing shows the minutes", () => {
 
   it("weight 3 at 5 pages a day is exactly 30 minutes", async () => {
     const { form } = await openEdit(book(3));
-    expect(radio(form, "30 minutes")).toBeChecked();
+    expect(radio(form, "30 min a day")).toBeChecked();
     expect(within(form).getByText("That's about 30 min a day now.")).toBeInTheDocument();
   });
 
   it("a weight between presets shows the nearest, with its minutes", async () => {
     const { form } = await openEdit(book(1.4));
-    expect(radio(form, "15 minutes")).toBeChecked();
+    expect(radio(form, "15 min a day")).toBeChecked();
     expect(within(form).getByText("That's about 14 min a day now.")).toBeInTheDocument();
   });
 
@@ -170,14 +170,14 @@ describe("editing shows the minutes", () => {
 
   it("picking another preset sends just the new weight", async () => {
     const { user, form } = await openEdit(book(3));
-    await user.click(radio(form, "60 minutes"));
+    await user.click(radio(form, "60 min a day"));
     await user.click(within(form).getByRole("button", { name: "Save" }));
     expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${rowId(1)}`, body: { weightPerUnit: 6 } }]);
   });
 
   it("an unchanged pick of the same minutes sends nothing new when the weight is the same", async () => {
     const { user, form } = await openEdit(book(3));
-    await user.click(radio(form, "30 minutes"));
+    await user.click(radio(form, "30 min a day"));
     await user.click(within(form).getByRole("button", { name: "Save" }));
     expect(writes()).toEqual([]);
   });

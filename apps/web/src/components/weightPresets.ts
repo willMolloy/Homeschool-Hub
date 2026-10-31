@@ -1,5 +1,5 @@
 /** Thickness-picker presets and the bits of arithmetic behind its preview (S2b-34, D22). Pure. */
-import { DEFAULT_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT, MINUTES_PER_WEIGHT_POINT, roundWeight, type UnitType } from "@hh/engine";
+import { DEFAULT_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, MINUTES_PER_WEIGHT_POINT, roundWeight, type UnitType } from "@hh/engine";
 
 export type PresetKey = "none" | "light" | "normal" | "heavy" | "veryHeavy" | "custom";
 
@@ -46,4 +46,26 @@ export function parseCustomWeight(raw: string): number | string {
   if (v <= 0 || v > MAX_WEIGHT_PER_UNIT) return `Weight must be more than 0 and at most ${MAX_WEIGHT_PER_UNIT}.`;
   if (Math.abs(v * 100 - Math.round(v * 100)) > 1e-6) return "Weight can have at most 2 decimal places.";
   return v;
+}
+
+/** S6b-13: the minutes a typical day (TYPICAL_DAY) takes at this weight (null = the built-in); the parent sees minutes, never the weight. */
+export const typicalDayMinutes = (unitType: UnitType, value: number | null): number =>
+  Math.round(TYPICAL_DAY[unitType].units * (value ?? DEFAULT_WEIGHT_PER_UNIT[unitType]) * MINUTES_PER_WEIGHT_POINT);
+
+/** A day has this many minutes: the most a custom answer may be. */
+const MAX_TYPICAL_MINUTES = 1440;
+
+/**
+ * S6b-13: parse the Custom field, minutes on a typical day, into the weight per unit it stands for (two decimals, as
+ * stored). Message on failure.
+ */
+export function parseCustomMinutes(raw: string, unitType: UnitType): number | string {
+  const t = raw.trim();
+  if (!t) return "Enter the minutes.";
+  const m = Number(t);
+  if (!Number.isFinite(m)) return "Minutes must be a number.";
+  if (m <= 0 || m > MAX_TYPICAL_MINUTES) return `Minutes must be more than 0 and at most ${MAX_TYPICAL_MINUTES.toLocaleString("en-US")}.`;
+  const weight = roundWeight(m / (TYPICAL_DAY[unitType].units * MINUTES_PER_WEIGHT_POINT));
+  if (weight < MIN_WEIGHT_PER_UNIT || weight > MAX_WEIGHT_PER_UNIT) return "That is too far from a typical day. Try another number of minutes.";
+  return weight;
 }

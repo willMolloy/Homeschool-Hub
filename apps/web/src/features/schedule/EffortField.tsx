@@ -1,12 +1,13 @@
 /**
  * S6-09: "About how long will that take?" on the assignment form. The pace ("About 5 pages a day") comes first, then
- * 15, 30, 45 and 60 minutes and Custom. Untouched, the option closest to what the form would save shows chosen,
- * with the number of minutes in the hint; the parent never sees a weight.
+ * "15 min a day", 30, 45 and 60 and Custom. Untouched, the option closest to what the form would save shows chosen,
+ * with the number of minutes in the hint; the parent never sees a weight (S6b-13: nor does the hint name one, and
+ * "Use the subject's usual" takes an own effort back to the subject's).
  */
 import type { ReactNode } from "react";
 import type { UnitType, WeightSuggestion } from "../../api/types";
+import { usuallyText } from "./WeightHint";
 import { optionFor, paceText, PRESET_MINUTES, wholeMinutes, type EffortPick } from "./effort";
-import { suggestionText } from "./WeightHint";
 
 interface Props {
   /** A prefix for the ids and the radio group's name. */
@@ -24,10 +25,12 @@ interface Props {
   subjectName: string;
   /** The minutes a day the pick comes to; null when it isn't a usable number. */
   chosenMinutes: number | null;
+  /** S6b-13: "Use the subject's usual": `active` once chosen, `offer` while the assignment has its own effort and the subject has a usual. */
+  usual?: { active: boolean; offer: boolean; onUse: () => void };
   error?: string;
 }
 
-export function EffortField({ id, unitType, pace, pick, onPick, baseMinutes, suggestion, subjectName, chosenMinutes, error }: Props) {
+export function EffortField({ id, unitType, pace, pick, onPick, baseMinutes, suggestion, subjectName, chosenMinutes, usual, error }: Props) {
   const legend = "About how long will that take?";
   if (pace === null) {
     return (
@@ -46,9 +49,10 @@ export function EffortField({ id, unitType, pace, pick, onPick, baseMinutes, sug
   let hint: ReactNode = null;
   if (baseNow !== null) {
     if (!pick) {
-      hint = suggestion
-        ? `${suggestionText(suggestion, subjectName)} That's about ${baseNow} min a day.`
-        : `That's about ${baseNow} min a day now.`;
+      // S6b-13: minutes, never the weight the suggestion came from.
+      hint = usual?.active
+        ? `That's ${subjectName}'s usual: about ${baseNow} min a day.`
+        : suggestion ? usuallyText(suggestion, baseNow) : `That's about ${baseNow} min a day now.`;
     } else if (suggestion && chosenMinutes !== null && wholeMinutes(chosenMinutes) !== baseNow) {
       hint = (
         <>
@@ -58,6 +62,9 @@ export function EffortField({ id, unitType, pace, pick, onPick, baseMinutes, sug
       );
     }
   }
+  const useUsual = usual?.offer ? (
+    <button type="button" className="btn-link effort-usual" onClick={usual.onUse}>Use the subject's usual</button>
+  ) : null;
   const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-err` : null].filter(Boolean).join(" ") || undefined;
   return (
     <fieldset className="effort" aria-describedby={describedBy} aria-invalid={error ? true : undefined}>
@@ -69,7 +76,7 @@ export function EffortField({ id, unitType, pace, pick, onPick, baseMinutes, sug
             {/* onClick too: tapping the option that is already showing chosen is still the parent's answer. */}
             <input type="radio" name={id} checked={selected === m}
               onChange={() => onPick({ kind: "preset", minutes: m })} onClick={() => onPick({ kind: "preset", minutes: m })} />
-            <span>{m} minutes</span>
+            <span>{m} min a day</span>
           </label>
         ))}
         <label className="effort-chip">
@@ -85,6 +92,7 @@ export function EffortField({ id, unitType, pace, pick, onPick, baseMinutes, sug
         </label>
       ) : null}
       {hint ? <p id={`${id}-hint`} className="hint">{hint}</p> : null}
+      {useUsual}
       {error ? <p id={`${id}-err`} className="field-error" role="alert">{error}</p> : null}
     </fieldset>
   );

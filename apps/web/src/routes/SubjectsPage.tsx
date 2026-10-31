@@ -1,5 +1,5 @@
 import type { Subject } from "../api/types";
-import { perUnitText } from "../components/unitLabels";
+import { typicalDayMinutes } from "../components/weightPresets";
 import { COMMON_SUBJECTS } from "../features/roster/commonSubjects";
 import { RosterPage, type RosterExtension } from "../features/roster/RosterPage";
 import { weekdayRanges } from "../features/schedule/formBits";
@@ -13,7 +13,7 @@ const subjectExtension: RosterExtension<Subject, SubjectValues> = {
     <>
       {item.defaultWeekdays ? <span className="tag tag-weight" title="Usual days">{weekdayRanges(item.defaultWeekdays)}</span> : null}
       {item.defaultWeight ? (
-        <span className="tag tag-weight" title="Default bar width">{perUnitText(item.defaultWeight.weightPerUnit, item.defaultWeight.unitType)}</span>
+        <span className="tag tag-weight" title="Usual effort">about {typicalDayMinutes(item.defaultWeight.unitType, item.defaultWeight.weightPerUnit)} min a day</span>
       ) : null}
     </>
   ),

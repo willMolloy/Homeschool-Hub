@@ -18,6 +18,20 @@ function learnedSplit(s: WeightSuggestion) {
   };
 }
 
+/**
+ * S6b-13: the hint the assignment form shows for an untouched suggestion, in minutes a day (`minutes`, whole) and never a
+ * weight: "Usually about 30 min a day.", or who it was learned from: "Margaret usually does about 12 min a day."
+ */
+export function usuallyText(s: WeightSuggestion, minutes: number): string {
+  const about = `about ${minutes} min a day`;
+  if (s.source === "child" || s.source === "children") {
+    const { withHistory, without } = learnedSplit(s);
+    const said = `${joinNames(withHistory)} usually ${withHistory.length === 1 ? "does" : "do"} ${about}.`;
+    return without.length === 0 ? said : `${said} ${joinNames(without)} ${without.length === 1 ? "has" : "have"} no history yet.`;
+  }
+  return `Usually ${about}.`;
+}
+
 /** The hint for an untouched field showing the suggestion. */
 export function suggestionText(s: WeightSuggestion, subjectName: string): string {
   const w = formatWeight(s.weightPerUnit);

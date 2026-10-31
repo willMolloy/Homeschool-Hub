@@ -54,7 +54,7 @@ describe("Subject default bar width", () => {
     expect(within(form).getByLabelText("Usually measured in")).toHaveValue("lessons");
     await user.click(within(form).getByRole("radio", { name: /^Heavy/ }));
     await user.click(within(form).getByRole("button", { name: "Add" }));
-    expect(await screen.findByRole("button", { name: /Latin/ })).toHaveTextContent("22.5 / lesson");
+    expect(await screen.findByRole("button", { name: /Latin/ })).toHaveTextContent("about 45 min a day");
     expect(lastBody()).toMatchObject({ name: "Latin", defaultWeight: { unitType: "lessons", weightPerUnit: 22.5 } });
     expect(fakeApi.bodyKeyViolations).toEqual([]);
   });
@@ -80,13 +80,13 @@ describe("Subject default bar width", () => {
     expect(within(form).getByRole("radio", { name: /^Very heavy/ })).toBeChecked();
     await user.selectOptions(within(form).getByLabelText("Usually measured in"), "minutes");
     expect(within(form).getByRole("radio", { name: "None" })).toBeChecked();
-    // The presets now read in the new unit (minutes: 0.5 built-in → Heavy 0.75).
-    expect(within(form).getByRole("radio", { name: /^Heavy/ }).closest("label")).toHaveTextContent("0.75");
+    // The presets now read in the new unit (minutes: 0.5 built-in → Heavy 0.75 → 45 min for a 30-minute day; S6b-13).
+    expect(within(form).getByRole("radio", { name: /^Heavy/ }).closest("label")).toHaveTextContent("45 min");
   });
 
   it("the list shows a chip only on subjects with a default", async () => {
     await setup();
-    expect(screen.getByRole("button", { name: /Math/ })).toHaveTextContent("20 / lesson");
+    expect(screen.getByRole("button", { name: /Math/ })).toHaveTextContent("about 40 min a day");
     expect(screen.getByRole("button", { name: "Reading" }).querySelector(".tag-weight")).toBeNull();
   });
 
@@ -98,7 +98,7 @@ describe("Subject default bar width", () => {
     expect(within(form).getByLabelText("Usually measured in")).toHaveValue("lessons");
     // 20 per lesson isn't a preset (15 / 22.5 / 30 / 7.5), so it shows as Custom.
     expect(within(form).getByRole("radio", { name: "Custom…" })).toBeChecked();
-    expect(within(form).getByLabelText("Custom weight")).toHaveValue(20);
+    expect(within(form).getByLabelText(/^Custom minutes/)).toHaveValue(40); // S6b-13: 20 per lesson is 40 minutes for 1 lesson a day
     await user.click(within(form).getByRole("radio", { name: "None" }));
     await user.click(within(form).getByRole("button", { name: "Save" }));
     await screen.findByRole("button", { name: "Math" });
@@ -111,20 +111,20 @@ describe("Subject default bar width", () => {
       const user = await setup();
       await user.click(screen.getByRole("button", { name: /Math/ }));
       const form = screen.getByRole("form", { name: "Edit Math" });
-      return { user, form, custom: within(form).getByLabelText("Custom weight"), save: within(form).getByRole("button", { name: "Save" }) };
+      return { user, form, custom: within(form).getByLabelText(/^Custom minutes/), save: within(form).getByRole("button", { name: "Save" }) };
     };
 
     it("cleared Custom: Save is disabled, Enter sends nothing, the error stays", async () => {
       const { user, form, custom, save } = await openMath();
       await user.clear(custom);
-      expect(within(form).getByRole("alert")).toHaveTextContent("Enter a weight.");
+      expect(within(form).getByRole("alert")).toHaveTextContent("Enter the minutes.");
       expect(save).toBeDisabled();
       await user.type(within(form).getByLabelText("Name"), "{Enter}");
       expect(writes()).toEqual([]);
-      expect(within(form).getByText("Enter a weight to see the preview")).toBeInTheDocument();
+      expect(within(form).getByText("Enter the minutes to see the preview")).toBeInTheDocument();
     });
 
-    it("a valid weight again enables Save and sends it", async () => {
+    it("a valid number of minutes again enables Save and sends the weight it stands for (12 minutes for 1 lesson a day is 6)", async () => {
       const { user, custom, save } = await openMath();
       await user.clear(custom);
       await user.type(custom, "0");
@@ -134,7 +134,7 @@ describe("Subject default bar width", () => {
       expect(save).toBeEnabled();
       await user.click(save);
       await screen.findByRole("button", { name: /Math/ });
-      expect(lastBody()).toEqual({ defaultWeight: { unitType: "lessons", weightPerUnit: 12 } });
+      expect(lastBody()).toEqual({ defaultWeight: { unitType: "lessons", weightPerUnit: 6 } });
     });
 
     it("choosing a preset after an invalid entry enables Save", async () => {
@@ -171,7 +171,7 @@ describe("Subject default bar width", () => {
     const form = screen.getByRole("form", { name: "Edit Math" });
     await user.click(within(form).getByRole("radio", { name: /^Light/ }));
     await user.click(within(form).getByRole("button", { name: "Save" }));
-    expect(await screen.findByRole("button", { name: /Math/ })).toHaveTextContent("7.5 / lesson");
+    expect(await screen.findByRole("button", { name: /Math/ })).toHaveTextContent("about 15 min a day");
     expect(lastBody()).toEqual({ defaultWeight: { unitType: "lessons", weightPerUnit: 7.5 } });
   });
 
