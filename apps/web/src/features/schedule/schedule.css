@@ -86,12 +86,14 @@
 .choice-indent {
   padding-left: 30px;
 }
+/* S4b-06: chips are at least 44 px wide; when they don't fit (6-7 days at 360 px) the row wraps. */
 .day-picker-days {
   display: grid;
-  grid-template-columns: repeat(var(--day-count, 7), minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
   gap: 4px;
 }
 .day-chip {
+  min-width: 44px;
   position: relative;
   display: flex;
   align-items: center;

@@ -8,7 +8,8 @@ Tickets: `docs/tickets/sprint-4b-fixes/`. Report: `docs/reviews/sprint-4-verific
 | S4b-02 A second weekday change in a week keeps the original days | 1dc91e1 | `weekdaysChange` takes the stored record (`stored`); `recordSubjectWeekdaysChange` does the same in SQL; `AssignmentRow` carries `weekdays_from`/`previous_weekdays` |
 | S4b-03 The briefing reports no recent progress, and caps very late forecasts | 24ae007 | `noRecentProgress` and `VERY_LATE_WEEKS` in `briefingLines.ts` |
 | S4b-04 Editing other fields never changes an assignment's days | e357d81 | `useWeekdayChoice` reports `touched`; the edit sends `weekdays` only after a chip tap |
-| S4b-05 "Set as default" applies when the form is saved | (this commit) | The button marks the choice in `AssignmentForm`; Save patches the subject, then saves with `weekdays: null` |
+| S4b-05 "Set as default" applies when the form is saved | e678a74 | The button marks the choice in `AssignmentForm`; Save patches the subject, then saves with `weekdays: null` |
+| S4b-06 Day chips stay 44 px wide for 6- and 7-day weeks | (this commit) | `.day-picker-days` is an auto-fit grid of `minmax(44px, 1fr)`; `.day-chip` has `min-width: 44px` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -23,3 +24,5 @@ Tickets: `docs/tickets/sprint-4b-fixes/`. Report: `docs/reviews/sprint-4-verific
 - **S4b-05 the mark.** Kept in the form as the subject and days it was made for. It is shown as "Will be the default for {subject}." with an Undo button. Tapping a day chip or choosing another subject withdraws it (the days it was made for no longer match what is shown); Cancel discards it with the form. The days stored on the subject are the ones chosen when the button was pressed (every school day stores null, as before).
 - **S4b-05 Save.** PATCH the subject, then `l.subjectSaved` (lookups follow), then the assignment with `weekdays: null` (on edit it is sent whenever the stored value isn't null, even without a chip tap). If the subject PATCH fails the error shows in the form and nothing else is saved; if it succeeded but the assignment save fails, the subject stays changed, the mark is cleared and the chips follow the new default, so a retry saves null.
 - **S4b-05 changed tests.** "Set as default patches the subject, then the assignment saves null" and "choosing every school day ... offers to clear it" in `assignment-weekdays.test.tsx` expected the PATCH on the button; they now expect it on Save (and no request before).
+- **S4b-06 how.** One CSS rule for every use of `.day-chip`: the picker grid is `repeat(auto-fit, minmax(44px, 1fr))`, so it wraps to a second line when 44 px chips don't fit, and the missed-day sheet (already a wrapping flex row) gets the same `min-width`. The `--day-count` variable is gone. The Events day picker uses the same component, so it is fixed too.
+- **S4b-06 not checked.** jsdom has no layout, so the widths were not measured in a browser; the tester pass should measure 5, 6 and 7 days at 360 px.

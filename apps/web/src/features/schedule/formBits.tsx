@@ -1,5 +1,5 @@
 /** Small pieces shared by the schedule forms (S2a-13..16). */
-import { useId, type CSSProperties } from "react";
+import { useId } from "react";
 import type { Child } from "../../api/types";
 import { ApiError } from "../../api/client";
 
@@ -74,7 +74,7 @@ export function WeekdayPicker({ legend, value, onChange, error, offer }: Weekday
   return (
     <fieldset className="day-picker" aria-describedby={error ? errId : undefined} aria-invalid={error ? true : undefined}>
       <legend>{legend}</legend>
-      <div className="day-picker-days" style={offer ? ({ "--day-count": shown.length } as CSSProperties) : undefined}>
+      <div className="day-picker-days">
         {shown.map((d) => (
           <label key={d.value} className="day-chip">
             <input
