@@ -307,4 +307,21 @@ DO $$ BEGIN
   RAISE NOTICE 'ok   an undo entry is deleted with its family';
 END $$;
 
+-- S7-03: zoom views (014_zoom_views)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c3', 'Zoom family');
+DO $$ BEGIN
+  IF (SELECT zoom_views FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c3') <> '{"hidden":[],"custom":[]}'::jsonb THEN RAISE EXCEPTION 'FAIL a family should start with no hidden or custom zoom views'; END IF;
+  RAISE NOTICE 'ok   a family starts with no hidden or custom zoom views (014)';
+END $$;
+UPDATE family SET zoom_views = '{"hidden":["fall"],"custom":[{"id":"70000000-0000-4000-8000-000000000001","name":"Term 1","start":"2026-08-17","end":"2026-11-06"}]}'
+  WHERE id = 'f0000000-0000-0000-0000-0000000000c3';
+DO $$ BEGIN RAISE NOTICE 'ok   family.zoom_views accepts hidden and custom views (014)'; END $$;
+SELECT pg_temp.expect_error($$UPDATE family SET zoom_views = '[]' WHERE id = 'f0000000-0000-0000-0000-0000000000c3'$$,
+  '23514', 'zoom_views must be an object');
+SELECT pg_temp.expect_error($$UPDATE family SET zoom_views = '{"hidden":[]}' WHERE id = 'f0000000-0000-0000-0000-0000000000c3'$$,
+  '23514', 'zoom_views needs both lists');
+SELECT pg_temp.expect_error($$UPDATE family SET zoom_views = NULL WHERE id = 'f0000000-0000-0000-0000-0000000000c3'$$,
+  '23502', 'zoom_views can''t be NULL');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c3';
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

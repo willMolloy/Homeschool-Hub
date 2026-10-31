@@ -6,7 +6,7 @@ import { timeZoneOptions, WEEK_START_LOCKED_HINT } from "../src/features/schedul
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
-const SETTINGS: FamilySettings = { name: "Demo family", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false };
+const SETTINGS: FamilySettings = { name: "Demo family", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false, zoomViews: { hidden: [], custom: [] } };
 
 async function open(settings: FamilySettings = SETTINGS) {
   fakeApi.on("GET /api/family", 200, settings);

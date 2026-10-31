@@ -5,7 +5,8 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 | Ticket | Commit | Notes |
 |--------|--------|-------|
 | S7-01 Copy a year's plan into a new year | 394470e | `CopyToNewYearPanel` (`schedule/CopyPanels.tsx`) in the Assignments `panels` slot; `copyPlan.ts` holds `shiftedCopy`, `copyCandidates` and the chunked bulk save |
-| S7-02 Copy assignments to another child | (this commit) | `CopyToChildPanel` (same file) reuses `CopyList`, `shiftedCopy` and `saveInChunks` |
+| S7-02 Copy assignments to another child | a7c95aa | `CopyToChildPanel` (same file) reuses `CopyList`, `shiftedCopy` and `saveInChunks` |
+| S7-03 Store a family's zoom views | (this commit) | Migration `014_zoom_views` (`family.zoom_views`); `http/zoomViews.ts` validates; `GET`/`PATCH /api/family` carry `zoomViews` |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -18,3 +19,6 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 - **S7-02 the shift.** The new start date is where the earliest *ticked* assignment starts; the others keep their gaps from it (so unticking the first changes the base). With no date, dates are unchanged. The preview line under each title shows the new dates as the date is typed.
 - **S7-02 shared assignments.** An assignment Frank shares with Maggie is listed under "Frank, Maggie" and copied for the target child alone. Copying to a child who already has the same work makes a second assignment (not checked for or blocked: the parent ticks what they want).
 - **S7-02 same rules as S7-01.** Assignments with an archived subject or no active child are not offered; chunks of 50; a failed chunk keeps the earlier ones and a retry sends only the rest. Titles are unchanged (no " (copy)").
+- **S7-03 migration number.** 014 (`db/014_zoom_views.sql`); `db/test/validate.sql`, `db/README.md` and `db/test/zoom-views-migration.test.ts` are in step. The database checks only the shape (an object with `hidden` and `custom` lists, never NULL; the default is `{"hidden":[],"custom":[]}`); the API checks the contents, as 012 does for templates.
+- **S7-03 rules the API enforces.** `hidden` holds only fall, spring, month, each once (Year is not hideable); `custom` has at most 5 views, each `{ id (uuid), name (trimmed, 1 to 30), start, end }` with real dates (2000 to 2100), start on or before end, at most 400 days (exactly 400 is fine); ids are unique; shown total (1 for Year + built-ins not hidden + custom) at most 6. Unknown keys anywhere are refused. The order of `custom` is kept (S7-05 reorders it). The total message says how many would show ("You can show up to 6 views; this shows 8.").
+- **S7-03 changed test expectations.** `GET /api/family` now also returns `zoomViews`, so four exact `toEqual` bodies (`family.test.ts` three, `tester2.schedule.test.ts` one) and the web fixture `SETTINGS` in `settings-form.test.tsx` gain `zoomViews: { hidden: [], custom: [] }`; the fake API's allowed keys for `PATCH /api/family` gain `zoomViews`. Nothing else changed.

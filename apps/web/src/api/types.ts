@@ -23,10 +23,26 @@ export interface Me {
   demo: boolean;
 }
 
+/** S7-03: one of the family's own timeline zoom views; start and end are YYYY-MM-DD, inclusive. */
+export interface CustomZoomView {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+}
+
+/** S7-03: the built-in zoom views the family hides (never Year) and its own views, in the order shown. */
+export interface ZoomViews {
+  hidden: ("fall" | "spring" | "month")[];
+  custom: CustomZoomView[];
+}
+
 /** GET/PATCH /api/family */
 export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */
   weekStartLocked: boolean;
+  /** S7-03 */
+  zoomViews: ZoomViews;
 };
 /** The PATCH /api/family body: any of the editable fields. */
 export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">>;
