@@ -19,7 +19,7 @@ export interface RosterFormProps {
   extra?: ReactNode;
   /** An error from an action outside the form (e.g. Unarchive). */
   externalError?: string | null;
-  /** Extra fields rendered after Color (e.g. the subject's default bar width). */
+  /** Extra fields rendered after Color (e.g. the subject's usual effort). */
   children?: ReactNode;
   /** S2c-03: an extra field is invalid, so Save is disabled and submitting does nothing. */
   blocked?: boolean;

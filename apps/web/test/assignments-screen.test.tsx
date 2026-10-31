@@ -385,7 +385,8 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     await user.selectOptions(within(form).getByLabelText("Subject"), MATH.id);
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
     // 20 a lesson over 19 days (10 lessons) is about 21 minutes a day, closest to "15 min a day".
-    expect(await within(form).findByText("Usually about 21 min a day.")).toBeInTheDocument();
+    // S7-17: the subject's usual is said per unit, then at this pace.
+    expect(await within(form).findByText("Math usually takes about 40 min a lesson (about 21 min a day here).")).toBeInTheDocument();
     expect(effort(form, "15 min a day")).toBeChecked();
     expect((await add(user, form)).weightPerUnit).toBeNull();
   });
@@ -394,7 +395,7 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     const { user, form } = await openAdd();
     await user.selectOptions(within(form).getByLabelText("Subject"), MATH.id);
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
-    await within(form).findByText(/^Usually about /);
+    await within(form).findByText(/^Math usually takes about /);
     await user.click(effort(form, "15 min a day"));
     expect((await add(user, form)).weightPerUnit).toBe(weightFor(15, 10, "2026-11-02", "2026-11-26"));
   });

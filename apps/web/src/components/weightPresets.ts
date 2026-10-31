@@ -1,5 +1,7 @@
 /** Thickness-picker presets and the bits of arithmetic behind its preview (S2b-34, D22). Pure. */
 import { DEFAULT_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, MINUTES_PER_WEIGHT_POINT, roundWeight, type UnitType } from "@hh/engine";
+import { usualEffortText } from "./effortWords";
+import { UNIT_LABELS } from "./unitLabels";
 
 export type PresetKey = "none" | "light" | "normal" | "heavy" | "veryHeavy" | "custom";
 
@@ -29,12 +31,10 @@ export const TYPICAL_DAY: Readonly<Record<UnitType, { units: number; text: strin
 /** The faint reference bar: 20 pages at normal weight. */
 export const REFERENCE_THICKNESS = TYPICAL_DAY.pages.units * DEFAULT_WEIGHT_PER_UNIT.pages;
 
-/** "1 lesson a day ≈ 30 min of work" (null = the built-in). */
+/** S7-17: "About 30 min a lesson. The bar shows 1 lesson a day." (null = the built-in). */
 export function previewCaption(unitType: UnitType, value: number | null): string {
-  const day = TYPICAL_DAY[unitType];
-  const weight = value ?? DEFAULT_WEIGHT_PER_UNIT[unitType];
-  const minutes = Math.round(day.units * weight * MINUTES_PER_WEIGHT_POINT);
-  return `${day.text} a day ≈ ${minutes.toLocaleString("en-US")} min of work`;
+  const about = usualEffortText(unitType, value);
+  return `${about[0]!.toUpperCase()}${about.slice(1)}. The bar shows ${TYPICAL_DAY[unitType].text} a day.`;
 }
 
 /** Parse the Custom field: a number more than 0, at most the engine max, two decimals. Message on failure. */
@@ -52,20 +52,20 @@ export function parseCustomWeight(raw: string): number | string {
 export const typicalDayMinutes = (unitType: UnitType, value: number | null): number =>
   Math.round(TYPICAL_DAY[unitType].units * (value ?? DEFAULT_WEIGHT_PER_UNIT[unitType]) * MINUTES_PER_WEIGHT_POINT);
 
-/** A day has this many minutes: the most a custom answer may be. */
-const MAX_TYPICAL_MINUTES = 1440;
+/** The most minutes one unit may take: the engine's largest weight. */
+const MAX_UNIT_MINUTES = MAX_WEIGHT_PER_UNIT * MINUTES_PER_WEIGHT_POINT;
 
 /**
- * S6b-13: parse the Custom field, minutes on a typical day, into the weight per unit it stands for (two decimals, as
- * stored). Message on failure.
+ * S6b-13, S7-17: parse the Custom field, the minutes one unit takes (a page, a lesson), into the weight per unit it
+ * stands for (two decimals, as stored). Message on failure.
  */
 export function parseCustomMinutes(raw: string, unitType: UnitType): number | string {
   const t = raw.trim();
   if (!t) return "Enter the minutes.";
   const m = Number(t);
   if (!Number.isFinite(m)) return "Minutes must be a number.";
-  if (m <= 0 || m > MAX_TYPICAL_MINUTES) return `Minutes must be more than 0 and at most ${MAX_TYPICAL_MINUTES.toLocaleString("en-US")}.`;
-  const weight = roundWeight(m / (TYPICAL_DAY[unitType].units * MINUTES_PER_WEIGHT_POINT));
-  if (weight < MIN_WEIGHT_PER_UNIT || weight > MAX_WEIGHT_PER_UNIT) return "That is too far from a typical day. Try another number of minutes.";
+  if (m <= 0 || m > MAX_UNIT_MINUTES) return `Minutes must be more than 0 and at most ${MAX_UNIT_MINUTES.toLocaleString("en-US")}.`;
+  const weight = roundWeight(m / MINUTES_PER_WEIGHT_POINT);
+  if (weight < MIN_WEIGHT_PER_UNIT || weight > MAX_WEIGHT_PER_UNIT) return `That is too far from usual for a ${UNIT_LABELS[unitType].one}. Try another number of minutes.`;
   return weight;
 }

@@ -1,5 +1,5 @@
 /**
- * The subject form's optional "Default bar width" (S2b-35, D21): a unit plus the thickness picker.
+ * The subject form's optional "Usual effort" (S2b-35, D21; S7-17: was "Default bar width"): a unit plus the thickness picker.
  * Changing the unit resets the picker to None, since a weight per lesson isn't a weight per minute.
  */
 import { useId, useState, type ReactNode } from "react";
@@ -39,7 +39,7 @@ export function DefaultWeightSection({ value, onChange, note, error, onValidityC
   const [startOpen] = useState(value.weightPerUnit != null);
   return (
     <details className="default-weight" open={startOpen || undefined}>
-      <summary>Default bar width (optional)</summary>
+      <summary>Usual effort (optional)</summary>
       <p className="hint">
         For subjects where pages don't tell the story, like math lessons or practice minutes. New assignments in this subject start here.
       </p>
@@ -55,7 +55,7 @@ export function DefaultWeightSection({ value, onChange, note, error, onValidityC
         unitType={value.unitType}
         value={value.weightPerUnit}
         onChange={(w) => onChange({ ...value, weightPerUnit: w })}
-        legend="Default bar width"
+        legend="Usual effort"
         onValidityChange={onValidityChange}
       />
       {note}

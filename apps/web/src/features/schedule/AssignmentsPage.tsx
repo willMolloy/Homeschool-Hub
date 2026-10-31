@@ -283,6 +283,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
           // Own effort is a pick, or what is stored when editing; while following a subject-sourced suggestion the existing "Use about" covers it.
           offer: usualApplies && !usualNow && (pick !== null ? suggestion?.source !== "subject" || !suggesting : !suggesting && start?.weightPerUnit != null),
           onUse: () => { setPickState(null); setUsual(true); },
+          weight: subjectUsual?.weightPerUnit ?? null,
         }}
         chosenMinutes={pickedMinutes !== null && Number.isFinite(pickedMinutes) && pickedMinutes > 0 ? pickedMinutes : null} error={errors.effort} />
       <div className="btn-row">

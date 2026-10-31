@@ -69,7 +69,7 @@ export interface Subject {
   color: string | null;
   sortOrder: number;
   archived: boolean;
-  /** S2b-31: the subject's default bar width for one unit type, or null. */
+  /** S2b-31: the subject's usual effort for one unit type, or null. */
   defaultWeight: SubjectDefaultWeight | null;
   /** S4-03: the days (0 = Sunday … 6 = Saturday, sorted) new work in this subject runs on, or null = every school day. */
   defaultWeekdays: number[] | null;

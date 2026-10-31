@@ -1,5 +1,6 @@
 /** Where the assignment form's weight came from (S2b-11). The text functions are pure; the component only adds the Use button. */
 import type { WeightSuggestion } from "../../api/types";
+import { subjectUsualHint } from "../../components/effortWords";
 import { UNIT_LABELS } from "../../components/unitLabels";
 import { formatWeight, weightHint } from "./weightText";
 
@@ -22,8 +23,10 @@ function learnedSplit(s: WeightSuggestion) {
  * S6b-13: the hint the assignment form shows for an untouched suggestion, in minutes a day (`minutes`, whole) and never a
  * weight: "Usually about 30 min a day.", or who it was learned from: "Margaret usually does about 12 min a day."
  */
-export function usuallyText(s: WeightSuggestion, minutes: number): string {
+export function usuallyText(s: WeightSuggestion, minutes: number, subjectName?: string): string {
   const about = `about ${minutes} min a day`;
+  // S7-17: the subject's own usual says what it is per unit, then what that comes to here.
+  if (s.source === "subject" && subjectName) return subjectUsualHint(subjectName, s.unitType, s.weightPerUnit, minutes);
   if (s.source === "child" || s.source === "children") {
     const { withHistory, without } = learnedSplit(s);
     const said = `${joinNames(withHistory)} usually ${withHistory.length === 1 ? "does" : "do"} ${about}.`;

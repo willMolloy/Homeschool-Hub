@@ -6,6 +6,7 @@
  */
 import type { ReactNode } from "react";
 import type { UnitType, WeightSuggestion } from "../../api/types";
+import { subjectUsualHint } from "../../components/effortWords";
 import { usuallyText } from "./WeightHint";
 import { optionFor, paceText, PRESET_MINUTES, wholeMinutes, type EffortPick } from "./effort";
 
@@ -26,7 +27,7 @@ interface Props {
   /** The minutes a day the pick comes to; null when it isn't a usable number. */
   chosenMinutes: number | null;
   /** S6b-13: "Use the subject's usual": `active` once chosen, `offer` while the assignment has its own effort and the subject has a usual. */
-  usual?: { active: boolean; offer: boolean; onUse: () => void };
+  usual?: { active: boolean; offer: boolean; onUse: () => void; /** The subject's weight per unit, for the hint (S7-17). */ weight: number | null };
   error?: string;
 }
 
@@ -50,9 +51,10 @@ export function EffortField({ id, unitType, pace, pick, onPick, baseMinutes, sug
   if (baseNow !== null) {
     if (!pick) {
       // S6b-13: minutes, never the weight the suggestion came from.
-      hint = usual?.active
-        ? `That's ${subjectName}'s usual: about ${baseNow} min a day.`
-        : suggestion ? usuallyText(suggestion, baseNow) : `That's about ${baseNow} min a day now.`;
+      // S7-17: a subject's usual is said per unit and at this pace: "Math usually takes about 30 min a lesson (about 32 min a day here)."
+      hint = usual?.active && usual.weight !== null
+        ? subjectUsualHint(subjectName, unitType, usual.weight, baseNow)
+        : suggestion ? usuallyText(suggestion, baseNow, subjectName) : `That's about ${baseNow} min a day now.`;
     } else if (suggestion && chosenMinutes !== null && wholeMinutes(chosenMinutes) !== baseNow) {
       hint = (
         <>

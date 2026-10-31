@@ -7,6 +7,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { Assignment, Subject } from "../src/api/types";
+import { presetChipDetail, subjectUsualHint, usualEffortText } from "../src/components/effortWords";
 import { parseCustomMinutes, typicalDayMinutes } from "../src/components/weightPresets";
 import { effortCardText } from "../src/features/schedule/weightText";
 import { usuallyText } from "../src/features/schedule/WeightHint";
@@ -23,12 +24,13 @@ describe("helpers", () => {
   });
   it("parseCustomMinutes: minutes in, the weight they stand for out; bad input is a message", () => {
     expect(parseCustomMinutes("15", "lessons")).toBe(7.5);
-    expect(parseCustomMinutes("40", "pages")).toBe(1);
+    expect(parseCustomMinutes("40", "pages")).toBe(20); // S7-17: minutes one unit takes
+    expect(parseCustomMinutes("1", "pages")).toBe(0.5);
     expect(parseCustomMinutes("", "pages")).toBe("Enter the minutes.");
     expect(parseCustomMinutes("x", "pages")).toBe("Minutes must be a number.");
     expect(parseCustomMinutes("0", "pages")).toMatch(/^Minutes must be more than 0/);
-    expect(parseCustomMinutes("1441", "pages")).toMatch(/at most 1,440/);
-    expect(parseCustomMinutes("0.1", "pages")).toMatch(/too far from a typical day/);
+    expect(parseCustomMinutes("201", "pages")).toMatch(/at most 200/);
+    expect(parseCustomMinutes("0.001", "pages")).toMatch(/too far from usual for a page/);
   });
   it("effortCardText: minutes a day at the pace, nothing without one", () => {
     const a = { unitType: "pages" as const, weightPerUnit: 1.4 };
@@ -37,10 +39,20 @@ describe("helpers", () => {
     expect(effortCardText({ unitType: "lessons", weightPerUnit: null }, { unitType: "lessons", weightPerUnit: 20 }, 1)).toBe("about 40 min a day");
     expect(effortCardText(a, null, null)).toBeNull();
   });
+  it("S7-17: the usual-effort texts, one helper for every screen", () => {
+    expect(usualEffortText("pages", 1)).toBe("about 2 min a page");
+    expect(usualEffortText("lessons", 15)).toBe("about 30 min a lesson");
+    expect(usualEffortText("pages", 0.75)).toBe("about 1.5 min a page");
+    expect(usualEffortText("chapters", null)).toBe("about 20 min a chapter");
+    expect(usualEffortText("minutes", null)).toBe("about 1 min a minute");
+    expect(presetChipDetail("lessons", 7.5)).toBe("· 15 min a lesson");
+    expect(subjectUsualHint("Math", "lessons", 15, 32)).toBe("Math usually takes about 30 min a lesson (about 32 min a day here).");
+  });
   it("usuallyText never names a weight", () => {
     const base = { unitType: "pages" as const, weightPerUnit: 1, source: "builtin" as const, builtInDefault: 1, subjectDefault: null, learned: true, children: [] };
     expect(usuallyText(base, 30)).toBe("Usually about 30 min a day.");
-    expect(usuallyText({ ...base, source: "subject" }, 30)).toBe("Usually about 30 min a day.");
+    expect(usuallyText({ ...base, source: "subject" }, 30)).toBe("Usually about 30 min a day."); // no subject name given
+    expect(usuallyText({ ...base, source: "subject", weightPerUnit: 15, unitType: "lessons" }, 32, "Math")).toBe("Math usually takes about 30 min a lesson (about 32 min a day here).");
     const kid = (name: string, usual: number | null) => ({ childId: name, name, usual, choices: 1 });
     expect(usuallyText({ ...base, source: "child", children: [kid("Maggie", 1.4)] }, 12)).toBe("Maggie usually does about 12 min a day.");
     expect(usuallyText({ ...base, source: "children", children: [kid("Maggie", 1.4), kid("Frank", 2), kid("Ada", null)] }, 12))
@@ -73,7 +85,7 @@ describe("Use the subject's usual", () => {
     // 10 a lesson over 19 school days: 20/19 lessons a day is about 21 min a day.
     expect(within(form).getByText("That's about 21 min a day now.")).toBeInTheDocument();
     await user.click(usualButton(form)!);
-    expect(within(form).getByText("That's Math's usual: about 42 min a day.")).toBeInTheDocument();
+    expect(within(form).getByText("Math usually takes about 40 min a lesson (about 42 min a day here).")).toBeInTheDocument();
     expect(usualButton(form)).toBeNull();
     expect(within(form).getByRole("radio", { name: "45 min a day" })).toBeChecked();
     await user.click(within(form).getByRole("button", { name: "Save" }));
@@ -131,7 +143,7 @@ describe("Use the subject's usual", () => {
   it("an own pick on the Add form can go back to the subject's usual, which is sent as null", async () => {
     const { user, form } = await openAddWith("builtin");
     await user.click(usualButton(form)!);
-    expect(within(form).getByText("That's Math's usual: about 42 min a day.")).toBeInTheDocument();
+    expect(within(form).getByText("Math usually takes about 40 min a lesson (about 42 min a day here).")).toBeInTheDocument();
     await user.click(within(form).getByRole("button", { name: "Add" }));
     await waitFor(() => expect(writes()).toHaveLength(1));
     expect(writes()[0]!.body).toMatchObject({ subjectId: MATH.id, weightPerUnit: null });
@@ -158,18 +170,37 @@ describe("no weights on screen", () => {
     expect(add.textContent).not.toMatch(/weight/i);
   });
 
-  it("the Subjects list and form say minutes for a typical day and never 'weight'", async () => {
+  it("the Subjects list and form say minutes a unit and never 'weight'", async () => {
     withRoster(undefined, [MATH_USUAL, READING]);
     fakeApi.on("PATCH /api/subjects/" + MATH.id, patchMerging(MATH_USUAL));
     const user = userEvent.setup();
     renderAt("/subjects");
     const row = await screen.findByRole("button", { name: /Math/ });
-    expect(row).toHaveTextContent("about 40 min a day");
+    expect(row).toHaveTextContent("about 40 min a lesson");
     await user.click(row);
     const form = screen.getByRole("form", { name: "Edit Math" });
     expect(within(form).getByRole("radio", { name: "Custom…" })).toBeChecked();
-    expect(within(form).getByLabelText("Custom minutes for 1 lesson a day")).toHaveValue(40);
+    expect(within(form).getByLabelText("Custom minutes a lesson")).toHaveValue(40);
     // The server's own error text is not the screen's wording, so check the screen itself.
     expect(screen.getByRole("main").textContent ?? document.body.textContent).not.toMatch(/weight/i);
+  });
+});
+
+describe("S7-17: the same figure on the Subjects list and the subject form", () => {
+  it("the list chip and the form's chosen chip and Custom field agree for a lessons default and a pages default", async () => {
+    const READING_PAGES: Subject = { ...READING, defaultWeight: { unitType: "pages", weightPerUnit: 0.75 } };
+    withRoster(undefined, [MATH_USUAL, READING_PAGES]);
+    const user = userEvent.setup();
+    renderAt("/subjects");
+    const math = await screen.findByRole("button", { name: /Math/ });
+    const reading = screen.getByRole("button", { name: /Reading/ });
+    expect(math).toHaveTextContent("about 40 min a lesson");
+    expect(reading).toHaveTextContent("about 1.5 min a page");
+    await user.click(math);
+    expect(within(screen.getByRole("form", { name: "Edit Math" })).getByLabelText("Custom minutes a lesson")).toHaveValue(40);
+    await user.click(within(screen.getByRole("form", { name: "Edit Math" })).getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: /Reading/ }));
+    expect(within(screen.getByRole("form", { name: "Edit Reading" })).getByLabelText("Custom minutes a page")).toHaveValue(1.5);
+    expect(document.body.textContent).not.toMatch(/bar width/i);
   });
 });
