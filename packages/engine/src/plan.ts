@@ -7,7 +7,7 @@ import { replanFrom } from "./reanchor";
 import { validWeekdays, weekdaysOf } from "./weekdays";
 import { weightPerUnitOf } from "./weights";
 import { ENGINE_VERSION } from "./version";
-import type { Assignment, ChildPlan, DayKind, DayLoad, PlanContext, PlanWarning, SubjectWeight } from "./types";
+import type { Assignment, ChildPlan, DayKind, DayLoad, LocalDate, PlanContext, PlanWarning, SubjectWeight } from "./types";
 
 export { EPS, MAX_PUSH_DAYS } from "./placement";
 
@@ -85,11 +85,13 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   let done = 0;
   let finishedEarly = false;
   let checkInWeeks: string[] = [];
+  let adjustedWeeks: LocalDate[] = [];
   if (E < S) {
     warn("invalid-range");
     p = { planned: new Map(), kinds: new Map(), baseRate: 0, rate: 0, endDay: E, unplaced: total, noCapacity: total > EPS, mode: null };
   } else {
     const overrides = prepareOverrides(a, childId, ctx.overrides, ctx.calendar, warn);
+    adjustedWeeks = overrides.map((o) => fromDayNumber(o.w0)).sort();
     p = placeSegment({ from: S, end: E, pushLimit: E + MAX_PUSH_DAYS, remaining: total, overrides, first: true }, c, warn);
     // Re-anchoring events: a missed day that has work (keep the plan before it, put 0 on it, replan the rest, S4-00)
     // and a change of weekdays (keep the plan before it, replan the rest on the new days, S4-01b). Check-ins are
@@ -156,6 +158,9 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     complete: total <= EPS || (checkInWeeks.length > 0 && remaining <= EPS),
     finishedEarly,
     checkInWeeks,
+    adjustedWeeks,
+    weekdaysFrom: changesDays ? fromDayNumber(from!) : null,
+    previousWeekdays: changesDays ? previous : null,
     days,
     warnings,
   };

@@ -2,7 +2,7 @@
  * S4-09: the weekly briefing's lines, as pure functions of plans the API already made. Per child, in this order:
  * will finish late (or no recent progress), plan problems, a heavy week. The check-in nudge is one line for the family (see Briefing.tsx).
  */
-import { EPS, forecastOutcome, fromDayNumber, heavyWeek, HEAVY_WEEK_RATIO, toDayNumber, weekStartOfDayNumber, type ChildPlan, type FamilyCalendar, type LocalDate, type ProgressCheckIn } from "@hh/engine";
+import { EPS, forecastOutcome, heavyWeek, HEAVY_WEEK_RATIO, noRecentProgress, toDayNumber, type ChildPlan, type FamilyCalendar, type LocalDate, type ProgressCheckIn } from "@hh/engine";
 import { shortDate } from "../schedule/formBits";
 
 export interface BriefingLine {
@@ -33,24 +33,8 @@ const appliedCheckIns = (p: ChildPlan): ProgressCheckIn[] =>
 /** S4b-03: a forecast more than this many weeks late is reported plainly, not as a week count. */
 export const VERY_LATE_WEEKS = 26;
 
-/**
- * S4b-03: at least 2 applied check-in weeks and no progress from the start of the first to the end of the last (the same
- * span `forecastFinish` measures, which gives no forecast for it).
- */
-export function noRecentProgress(p: ChildPlan, calendar: FamilyCalendar): boolean {
-  const weeks = p.checkInWeeks.map((w) => toDayNumber(fromDayNumber(weekStartOfDayNumber(toDayNumber(w), calendar.weekStart)))).sort((a, b) => a - b);
-  if (new Set(weeks).size < 2 || p.remainingUnits <= EPS || p.days.length === 0) return false;
-  const first = weeks[0]!;
-  const last = weeks[weeks.length - 1]! + 6;
-  let before = 0;
-  let atEnd = 0;
-  for (const d of p.days) {
-    const n = toDayNumber(d.date);
-    if (n < first) before = d.position;
-    if (n <= last) atEnd = d.position;
-  }
-  return atEnd - before <= EPS;
-}
+/** S4b-03 / S7b-04: the engine decides (adjusted weeks and weekday changes are handled there). */
+export { noRecentProgress };
 
 export function weeksLate(end: LocalDate, forecast: LocalDate): number {
   return Math.max(1, Math.round((toDayNumber(forecast) - toDayNumber(end)) / 7));

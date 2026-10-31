@@ -66,6 +66,15 @@ describe("briefing lines (pure)", () => {
     expect(buildBriefing(input([{ ...slowPlan(), checkInWeeks: ["2026-09-14"] }]))).toEqual([]);
   });
 
+  it("S7b-04: a deliberately adjusted check-in week is not the child's pace, so it doesn't make a late or no-progress line", () => {
+    // The same slow check-ins, but the parent had adjusted both weeks: nothing is measured, so no line.
+    expect(buildBriefing(input([{ ...slowPlan(), adjustedWeeks: ["2026-09-14", "2026-09-21"] }]))).toEqual([]);
+    // One adjusted week leaves fewer than two weeks: still nothing.
+    expect(buildBriefing(input([{ ...slowPlan(), adjustedWeeks: ["2026-09-21"] }]))).toEqual([]);
+    // An adjustment in some other week changes nothing.
+    expect(buildBriefing(input([{ ...slowPlan(), adjustedWeeks: ["2026-11-02"] }]))[0]!.lines).toHaveLength(1);
+  });
+
   it("S4b-03: zero progress over two check-in weeks is a no-progress line; one check-in shows nothing", () => {
     const base = planAll([{ id: "ti", subjectId: "lit", childIds: ["c1"], unitType: "pages", totalUnits: 100, start: "2026-09-07", end: "2026-12-18" }], { calendar: CALENDAR, asOf: TODAY })[0]!;
     const before = base.days.find((d) => d.date === "2026-09-11")!.position;

@@ -1,6 +1,6 @@
 /** S4-08: forecastFinish and heavyWeek. */
 import { describe, expect, it } from "vitest";
-import { addDays, forecastFinish, forecastOutcome, heavyWeek, HEAVY_WEEK_RATIO, planChild, type ChildPlan, type PlanContext, type ProgressCheckIn } from "../src";
+import { addDays, forecastFinish, forecastOutcome, heavyWeek, noRecentProgress, HEAVY_WEEK_RATIO, planChild, type ChildPlan, type PlanContext, type ProgressCheckIn } from "../src";
 import { book, MON_FRI } from "./helpers";
 
 // 200 pages, Mon 7 Sep to Fri 30 Oct: 40 school days, 5 a day, 25 a week.
@@ -70,6 +70,67 @@ describe("forecastFinish (S4-08)", () => {
     const empty = run([ci("2026-09-07", 1), ci("2026-09-14", 2)], book({ totalUnits: 200, end: "2026-10-30", weekdays: [0, 6] }));
     expect(forecast(empty)).toBeNull();
     expect(forecastFinish(empty.plan, undefined, MON_FRI)).toBeNull();
+  });
+});
+
+const toDay = (d: string) => Date.parse(`${d}T00:00:00Z`) / 86_400_000;
+describe("forecast and deliberate changes (S7b-04)", () => {
+  const ov = (weekStart: string, plannedUnits: number) => ({ assignmentId: "a1", childId: "frank", weekStart, plannedUnits, mode: "keepEndDate" as const });
+  // Three check-in weeks, a steady 3 a day (15 a week); the second week was deliberately lightened by the parent.
+  const three = [ci("2026-09-07", 15), ci("2026-09-14", 20), ci("2026-09-21", 35)];
+
+  it("a deliberately lightened week doesn't count as the child's pace", () => {
+    const plain = run(three);
+    const adjusted = run(three, a, { overrides: [ov("2026-09-14", 5)] });
+    expect(adjusted.plan.adjustedWeeks).toEqual(["2026-09-14"]);
+    expect(plain.plan.adjustedWeeks).toEqual([]);
+    // Weeks 1 and 3 are 15 pages each: 3 a day, so the same date as the 15-a-week case; counting week 2 (5 pages) would be later.
+    expect(forecast(adjusted)! < forecast(plain)!).toBe(true);
+    // Only the unadjusted weeks are measured: with week 2 left out the pace is exactly 15 a week.
+    const steady = run([ci("2026-09-07", 15), ci("2026-09-14", 22), ci("2026-09-21", 37)], a, { overrides: [ov("2026-09-14", 7)] });
+    // 15 pages a week = 3 a day; 163 left from Mon Sep 28 is 54.33 school days: the 55th.
+    const school = [...Array(400).keys()].map((i) => addDays("2026-09-28", i)).filter((d) => { const w = new Date(`${d}T00:00:00Z`).getUTCDay(); return w >= 1 && w <= 5; });
+    expect(forecast(steady)).toBe(school[54]);
+  });
+
+  it("an adjustment that leaves fewer than 2 check-in weeks gives no forecast, and no 'no progress' claim", () => {
+    const r = run([ci("2026-09-07", 15), ci("2026-09-14", 15)], a, { overrides: [ov("2026-09-14", 0)] });
+    expect(forecast(r)).toBeNull();
+    expect(noRecentProgress(r.plan, MON_FRI)).toBe(false);
+    const stuck = run([ci("2026-09-07", 0), ci("2026-09-14", 0)]);
+    expect(noRecentProgress(stuck.plan, MON_FRI)).toBe(true);
+  });
+
+  it("an adjustment for another assignment or child doesn't exclude the week", () => {
+    const other = run(three, a, { overrides: [{ ...ov("2026-09-14", 5), assignmentId: "zz" }, { ...ov("2026-09-14", 5), childId: "margaret" }] });
+    expect(forecast(other)).toBe(forecast(run(three)));
+  });
+
+  it("a weekday change on its own doesn't move the forecast", () => {
+    // Behind at 3 a day for two weeks (Mon-Fri); then Math drops Friday from Mon Sep 28 with no new check-in.
+    const checkIns = [ci("2026-09-07", 15), ci("2026-09-14", 30)];
+    const same = run(checkIns);
+    const changed = run(checkIns, book({ totalUnits: 200, end: "2026-10-30", weekdays: [1, 2, 3, 4], weekdaysFrom: "2026-09-28", previousWeekdays: null }));
+    expect(changed.plan.weekdaysFrom).toBe("2026-09-28");
+    // Pace is carried over as a weekly one (3 a day x 5 days = 3.75 a day x 4 days): the finish stays within a few days of the same
+    // week (the days it lands on differ), where measuring per day on 4-day weeks would push it out by about three weeks.
+    const gap = Math.abs(toDay(forecast(changed)!) - toDay(forecast(same)!));
+    expect(gap).toBeLessThanOrEqual(3);
+  });
+
+  it("with 2 or more check-in weeks after the change the pace is measured on the new days", () => {
+    // Mon-Fri to Mon-Thu from Sep 14; weeks 2 and 3 are after it: 8 a week = 2 a day on 4 days.
+    const asg = book({ totalUnits: 200, end: "2026-10-30", weekdays: [1, 2, 3, 4], weekdaysFrom: "2026-09-14", previousWeekdays: null });
+    const r = run([ci("2026-09-07", 15), ci("2026-09-14", 23), ci("2026-09-21", 31)], asg);
+    const f = forecast(r)!;
+    // 169 left from Sep 28 at 2 a day on Mon-Thu: 85 days, 21.25 weeks of 4 days: the 85th Mon-Thu day.
+    const days = [...Array(400).keys()].map((i) => addDays("2026-09-28", i)).filter((d) => { const w = new Date(`${d}T00:00:00Z`).getUTCDay(); return w >= 1 && w <= 4; });
+    expect(f).toBe(days[84]);
+  });
+
+  it("is still pure and never NaN with adjusted weeks everywhere", () => {
+    const r = run(three, a, { overrides: [ov("2026-09-07", 1), ov("2026-09-14", 1), ov("2026-09-21", 1)] });
+    expect(forecastOutcome(r.plan, r.checkIns, MON_FRI)).toBeNull();
   });
 });
 

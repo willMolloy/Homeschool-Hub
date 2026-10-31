@@ -33,7 +33,7 @@ const plan = (assignmentId: string, childId: string, subjectId: string): ChildPl
   engineVersion: ENGINE_VERSION, assignmentId, childId, subjectId, unitType: "pages", weightPerUnit: 1,
   weightSource: "assignment", weekdays: null, weekdaysSource: "default", totalUnits: 100, doneUnits: 0, remainingUnits: 100, baseRate: 10, rate: 10,
   plannedEnd: "2026-12-01", end: "2026-12-01", mode: null, unplacedUnits: 0, noCapacity: false, complete: false,
-  checkInWeeks: [], warnings: [],
+  checkInWeeks: [], adjustedWeeks: [], weekdaysFrom: null, previousWeekdays: null, warnings: [],
   days: ["2026-10-26", "2026-10-27"].map((date) => ({ date, capacity: 1, schoolDay: true, units: 10, thickness: 10, kind: "planned" as const, position: 10 })),
 });
 
