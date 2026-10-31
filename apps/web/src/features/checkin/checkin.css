@@ -20,11 +20,13 @@
 .checkin-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .checkin-row { border-radius: 10px; background: var(--checkin-row-tint, color-mix(in srgb, currentColor 4%, transparent)); }
 .checkin-row-head { display: flex; align-items: center; }
-.checkin-row-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 12px;
+.checkin-row-toggle { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; min-height: 48px; padding: 6px 12px;
   border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-.checkin-row-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* S7b-15: the title keeps room to read (9rem); a long state ("4 chapters (1 more than planned)") wraps onto its own line instead of squeezing it. */
+.checkin-row-title { flex: 1 1 9rem; min-width: min(9rem, 100%); overflow-wrap: anywhere; }
 .checkin-row-plan { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
 .checkin-row-state { min-width: 1.5em; text-align: right; color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+.checkin-row-state[data-long] { flex: 1 1 100%; text-align: left; white-space: normal; }
 .checkin-row.is-changed .checkin-row-state { color: inherit; font-weight: 600; }
 .checkin-undo { min-height: 44px; min-width: 44px; padding: 0 12px 0 4px; border: 0; background: none; font: inherit;
   font-size: 0.9rem; color: var(--muted); cursor: pointer; }

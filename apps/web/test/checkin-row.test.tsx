@@ -1,7 +1,7 @@
 /** T-09: one check-in row as amounts within the week, and the shared CheckInRow. */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -147,5 +147,20 @@ describe("CheckInRow", () => {
     }
     expect(css).toMatch(/\.checkin-stepper button \{[^}]*width: 44px; height: 44px/);
     expect(css).toMatch(/\.checkin-card \{[^}]*max-width: 560px; margin: 0 auto/);
+  });
+
+  it("S7b-15: only the long states are marked to wrap", () => {
+    const ahead = setup({}, 7).li.querySelector(".checkin-row-state")!;
+    expect(ahead).toHaveTextContent("4 chapters (1 more than planned)");
+    expect(ahead).toHaveAttribute("data-long");
+    cleanup();
+    expect(setup({}, 5).li.querySelector(".checkin-row-state")).not.toHaveAttribute("data-long");
+  });
+
+  it("S7b-15: a long 'ahead' state sits on its own line under the title, which keeps its room (CSS and a marker on the row)", () => {
+    const css = readFileSync(resolve(__dirname, "../src/features/checkin/checkin.css"), "utf8");
+    expect(css.match(/\.checkin-row-toggle \{[^}]*\}/)?.[0]).toMatch(/flex-wrap: wrap/);
+    expect(css.match(/\.checkin-row-title \{[^}]*\}/)?.[0]).toMatch(/flex: 1 1 9rem/);
+    expect(css.match(/\.checkin-row-state\[data-long\] \{[^}]*\}/)?.[0]).toMatch(/flex: 1 1 100%/);
   });
 });

@@ -53,7 +53,7 @@ export function CheckInRow({ item, position, onChange, onRemove, disabled, error
           onClick={() => setOpen((o) => !o)}>
           <span className="checkin-row-title">{item.title}</span>
           <span className="checkin-row-plan">{unplanned ? "Not planned" : shortRangeText(item.unitType, item.plannedFrom, item.plannedTo)}</span>
-          <span className="checkin-row-state">
+          <span className="checkin-row-state" data-long={changed && compactText(item, position).length > 14 ? "" : undefined}>
             {changed ? compactText(item, position) : <><span aria-hidden="true">✓</span><span className="checkin-sr-only">As planned</span></>}
           </span>
         </button>
