@@ -105,7 +105,7 @@ describe("the edit bar", () => {
     expect(within(bar()!).queryByRole("button", { name: "Reset" })).toBeNull();
   });
 
-  it("More opens Heavier, Lighter and Reset to original; Esc closes the menu first, then the bar; a tap outside closes it", async () => {
+  it("More opens Update time estimate and Reset to original; Esc closes the menu first, then the bar; a tap outside closes it", async () => {
     stub();
     const user = userEvent.setup();
     const svg = await open();
@@ -113,16 +113,16 @@ describe("the edit bar", () => {
     const panel = await sheet();
     const more = within(panel).getByRole("button", { name: "More" });
     expect(more).toHaveAttribute("aria-expanded", "false");
-    expect(within(panel).queryByRole("button", { name: "Heavier" })).toBeNull();
+    expect(within(panel).queryByRole("button", { name: "Update time estimate" })).toBeNull();
     await user.click(more);
     expect(more).toHaveAttribute("aria-expanded", "true");
-    expect(within(panel).getAllByRole("button").map((b) => b.textContent)).toEqual(expect.arrayContaining(["Heavier", "Lighter", "Reset to original"]));
+    expect(within(panel).getAllByRole("button").map((b) => b.textContent)).toEqual(expect.arrayContaining(["Update time estimate", "Reset to original"]));
     await user.keyboard("{Escape}");
-    expect(within(panel).queryByRole("button", { name: "Heavier" })).toBeNull();
+    expect(within(panel).queryByRole("button", { name: "Update time estimate" })).toBeNull();
     expect(bar()).not.toBeNull();
     await user.click(more);
     await user.click(document.body);
-    expect(within(panel).queryByRole("button", { name: "Heavier" })).toBeNull();
+    expect(within(panel).queryByRole("button", { name: "Update time estimate" })).toBeNull();
     await user.click(more);
     await user.keyboard("{Escape}{Escape}");
     await waitFor(() => expect(bar()).toBeNull());

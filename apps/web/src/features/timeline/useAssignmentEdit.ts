@@ -1,4 +1,4 @@
-/** T-07e: saving an assignment's dates from the edit bar. S6-08: reset to original. S6-10: weight nudges. S6b-05: the session's date-only Reset (and its kept first dates) is gone. */
+/** T-07e: saving an assignment's dates from the edit bar. S6-08: reset to original. S6-10 weight nudges went with S7b-02 (the Update time estimate sheet saves its own PATCH). S6b-05: the session's date-only Reset (and its kept first dates) is gone. */
 import { useState } from "react";
 import { ApiError, apiPatch, apiPost } from "../../api/client";
 import type { Assignment } from "../../api/types";
@@ -22,18 +22,6 @@ export function useAssignmentEdit(applyAssignment: (a: Assignment) => void) {
       setBusy(false);
     }
   };
-  /** S6-10: a weight nudge from the edit bar: PATCH just the weight. */
-  const setWeight = async (id: string, weightPerUnit: number) => {
-    setBusy(true);
-    setError(null);
-    try {
-      applyAssignment(await apiPatch<Assignment>(`/api/assignments/${id}`, { weightPerUnit }));
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't save. Try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
   /** S6-08: back to how it was created. Resolves to null on success or the message to show. */
   const reset = async (id: string): Promise<string | null> => {
     setBusy(true);
@@ -48,5 +36,5 @@ export function useAssignmentEdit(applyAssignment: (a: Assignment) => void) {
       setBusy(false);
     }
   };
-  return { busy, error, save, setWeight, reset, clearError: () => setError(null) };
+  return { busy, error, save, reset, clearError: () => setError(null) };
 }

@@ -9,13 +9,12 @@
  * T-10: "+ Add assignment" in the header opens the assignment form; the new bar appears at once, briefly highlighted.
  * S3a-02: the edit bar's Copy opens that form prefilled from the selected assignment.
  * S6-08: its "Reset to original" asks first, then puts the assignment back to how it was created.
- * S6-10: its Heavier and Lighter nudge the weight about 25% (which also teaches the next suggestion, S2b-07).
+ * S7b-02: its More holds "Update time estimate" (minutes a day, which also teaches the next suggestion, S2b-07).
  * S7-04: the zoom row also holds the family's own views and leaves out the built-ins it hid.
  * S7-05: its quiet Edit opens the sheet where a family hides built-ins and manages its own views.
  * S6b-09: with nothing planned the calendar (months, today, days off, events) still draws, with one quiet line under it.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { weightPerUnitOf, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT } from "@hh/engine";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import type { Assignment, ZoomViews } from "../api/types";
 import { AddAssignmentButton, AddAssignmentSheet } from "../features/timeline/AddAssignment";
@@ -24,7 +23,9 @@ import { makeLookups } from "../features/schedule/lookups";
 import type { Draft } from "../features/schedule/ScheduleList";
 import { afterAdd } from "../features/timeline/afterAdd";
 import { EditBar } from "../features/timeline/EditBar";
-import { nudgedWeight, type Nudge } from "../features/timeline/nudge";
+import { UpdateEstimateSheet } from "../features/timeline/UpdateEstimate";
+import { unitsPerDay } from "../features/schedule/effort";
+import { useMe } from "../auth/AuthProvider";
 import { useAssignmentEdit } from "../features/timeline/useAssignmentEdit";
 import { useKeepAbove } from "../features/timeline/useKeepAbove";
 import { BAR_DRAG_ENABLED, grabSelected, previewModel } from "../features/timeline/drag";
@@ -115,14 +116,12 @@ export function TimelinePage() {
     document.documentElement.style.setProperty("--edit-bar-height", `${barHeight}px`);
     return () => { document.documentElement.style.removeProperty("--edit-bar-height"); };
   }, [barHeight]);
-  // S6-10: the weight now in effect (its own, else the subject's default, else the built-in), the base of a nudge.
-  const selected = selection ? assignments.find((a) => a.id === selection.assignmentId) : undefined;
-  const effectiveWeight = selected
-    ? weightPerUnitOf(selected, subjects.find((s) => s.id === selected.subjectId)?.defaultWeight ?? null).weight : null;
-  const canNudge = { heavier: effectiveWeight !== null && effectiveWeight < MAX_WEIGHT_PER_UNIT, lighter: effectiveWeight !== null && effectiveWeight > MIN_WEIGHT_PER_UNIT };
-  const nudge = (direction: Nudge) => {
-    if (selected && effectiveWeight !== null) void edit.setWeight(selected.id, nudgedWeight(effectiveWeight, direction));
-  };
+  // S7b-02: "Update time estimate" opens a sheet for the selected assignment, at its own pace (its days, else the subject's, else every school day).
+  const { schoolDays } = useMe();
+  const [estimating, setEstimating] = useState<string | null>(null);
+  const estimated = assignments.find((a) => a.id === estimating);
+  const estimatedSubject = estimated ? subjects.find((s) => s.id === estimated.subjectId) : undefined;
+  const estimatedPace = estimated ? unitsPerDay(estimated.totalUnits, estimated.startDate, estimated.endDate, estimated.weekdays ?? estimatedSubject?.defaultWeekdays ?? schoolDays) : null;
   const [resetting, setResetting] = useState<{ id: string; title: string } | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
   const confirmReset = async () => {
@@ -205,7 +204,7 @@ export function TimelinePage() {
               <>
                 <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />
                 <EditBar ref={keep.ref} selection={selection}
-                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onNudge={nudge} canNudge={canNudge}
+                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
               </>
             )}
@@ -218,6 +217,9 @@ export function TimelinePage() {
           <p>Its dates, effort and days go back, and its week adjustments are removed. You can undo this right after.</p>
         </ConfirmDialog>
       )}
+      <UpdateEstimateSheet assignment={estimated} subject={estimatedSubject} pace={estimatedPace}
+        childNames={estimated ? estimated.childIds.map((id) => children.find((c) => c.id === id)?.name ?? "").filter(Boolean) : []}
+        onSaved={(saved) => { applyAssignment(saved); setEstimating(null); }} onClose={() => setEstimating(null)} />
       <EditZoomViewsSheet open={editingViews} views={zoomViews} onClose={() => setEditingViews(false)}
         onSaved={(saved) => { setZoomViews(saved); setEditingViews(false); }} />
       <AddAssignmentSheet open={adding} lookups={lookups} initial={copying} onSaved={added} onClose={closeAdd} />

@@ -79,7 +79,7 @@ describe.skipIf(!hasDb)("/api/undo (S6-06, integration)", () => {
     await req("PATCH", `/api/assignments/${id}`, { title: "Treasure Isle", totalUnits: 120 });
     expect((await undoEntry()).label).toBe("Changed Treasure Isle");
     await req("PATCH", `/api/assignments/${id}`, { weightPerUnit: 2.5 });
-    expect((await undoEntry()).label).toBe("Changed the weight of Treasure Isle");
+    expect((await undoEntry()).label).toBe("Updated the time estimate for Treasure Isle");
     await req("PATCH", `/api/assignments/${id}`, { archived: true });
     expect((await undoEntry()).label).toBe("Archived Treasure Isle");
     expect(await assignment()).toBeUndefined(); // the list hides archived ones

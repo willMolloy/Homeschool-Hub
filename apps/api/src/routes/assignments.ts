@@ -86,7 +86,7 @@ function patchLabel(p: z.infer<typeof PatchBody>, title: string): string {
   if (p.archived !== undefined) return `${p.archived ? "Archived" : "Restored"} ${title}`;
   const sent = Object.entries(p).filter(([, v]) => v !== undefined).map(([k]) => k);
   if (sent.every((k) => k === "startDate" || k === "endDate")) return `Moved ${title}`;
-  if (sent.every((k) => k === "weightPerUnit")) return `Changed the weight of ${title}`;
+  if (sent.every((k) => k === "weightPerUnit")) return `Updated the time estimate for ${title}`; // S7b-02: the parent's words, not "weight"
   return `Changed ${title}`;
 }
 

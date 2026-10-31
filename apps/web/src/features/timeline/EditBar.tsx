@@ -1,13 +1,12 @@
 /**
  * T-07e: the edit bar for one selected assignment, fixed to the bottom of the viewport (above the tab bar on
  * phones). Not modal: the page scrolls and zooms behind it. It only exists while something is selected
- * (DeeDee's T-02b rule). Esc or × clears the selection. S6-10: Heavier and Lighter nudge the weight about 25%.
- * S6b-05: only Start, End, Copy and a quiet "More" show; More holds Heavier, Lighter and Reset to original. The
+ * (DeeDee's T-02b rule). Esc or × clears the selection. S7b-02: More holds "Update time estimate" (it replaced the S6-10 Heavier and Lighter nudges).
+ * S6b-05: only Start, End, Copy and a quiet "More" show; More holds Update time estimate and Reset to original. The
  * week-step buttons and the session's date-only Reset are gone (date pickers, dragging, Undo and Reset to original
  * cover them).
  */
 import { forwardRef, useEffect, useRef, useState } from "react";
-import type { Nudge } from "./nudge";
 import { datesError, type DateSpan, type Selection } from "./select";
 
 export interface EditBarProps {
@@ -17,9 +16,8 @@ export interface EditBarProps {
   onSave: (dates: DateSpan) => void;
   /** S3a-02: opens the Add assignment sheet prefilled from this assignment. */
   onCopy: () => void;
-  /** S6-10: "Heavier" / "Lighter"; a direction is disabled when the weight is already at its limit. */
-  onNudge: (direction: Nudge) => void;
-  canNudge: Record<Nudge, boolean>;
+  /** S7b-02: opens the sheet where the parent says how long a day of this really takes. */
+  onUpdateEstimate: () => void;
   /** S6-08: asks to put the assignment back to how it was created (the page confirms first). */
   onReset: () => void;
   onClose: () => void;
@@ -27,7 +25,7 @@ export interface EditBarProps {
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onNudge, canNudge, onReset, onClose }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onReset, onClose }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
   const [more, setMore] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -87,8 +85,7 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
             <button type="button" className="btn btn-secondary tl-more-btn" aria-expanded={more} aria-controls="tl-more-menu" onClick={() => setMore((m) => !m)}>More</button>
             {more && (
               <div id="tl-more-menu" className="tl-more-menu" role="group" aria-label="More">
-                <button type="button" disabled={busy || !canNudge.heavier} onClick={() => onNudge("heavier")}>Heavier</button>
-                <button type="button" disabled={busy || !canNudge.lighter} onClick={() => onNudge("lighter")}>Lighter</button>
+                <button type="button" disabled={busy} onClick={() => { setMore(false); onUpdateEstimate(); }}>Update time estimate</button>
                 <button type="button" disabled={busy} onClick={() => { setMore(false); onReset(); }}>Reset to original</button>
               </div>
             )}
