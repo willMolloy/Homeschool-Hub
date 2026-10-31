@@ -125,7 +125,7 @@ describe("ThicknessPicker", () => {
 
   it("a 100-per-page custom weight is clamped to the max bar", () => {
     render(<Host unitType="pages" initial={100} />);
-    expect(height("preview-bar")).toBe(MAX_BAR_PX); // S6b-06: the cap is now 96 px and soft, but this is far above it
+    expect(height("preview-bar")).toBe(MAX_BAR_PX); // S6b-06, S7-18: the cap is soft and tops out at MAX_BAR_PX; this is far above it
   });
 
   it("caption (S7-17): 'About 30 min a lesson. The bar shows 1 lesson a day.' at Normal; null uses the built-in", async () => {

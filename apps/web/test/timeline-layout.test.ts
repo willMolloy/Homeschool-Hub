@@ -235,6 +235,24 @@ describe("the soft cap on bar height (S6b-06)", () => {
     expect(softCapPx(Number.POSITIVE_INFINITY)).toBe(0);
   });
 
+  it("S7-18: at normal effort 20 pages a day is 56 px; 60 < 100 < 300 pages a day by at least 6 px each; a 1,000-page typo stops at the maximum", () => {
+    const pagesADay = (n: number) => thicknessToPx(n); // pages weigh 1 point each
+    expect(pagesADay(20)).toBe(56);
+    expect(pagesADay(100) - pagesADay(60)).toBeGreaterThanOrEqual(6);
+    expect(pagesADay(300) - pagesADay(100)).toBeGreaterThanOrEqual(6);
+    expect(pagesADay(300)).toBeLessThan(MAX_BAR_PX);
+    expect(pagesADay(1000)).toBeLessThanOrEqual(MAX_BAR_PX);
+    expect(MAX_BAR_PX).toBe(112);
+    // Monotonic over a fine sweep, and never above the maximum.
+    let last = 0;
+    for (let px = 1; px <= 5000; px += 1) {
+      const v = softCapPx(px);
+      expect(v).toBeGreaterThanOrEqual(last);
+      expect(v).toBeLessThanOrEqual(MAX_BAR_PX);
+      last = v;
+    }
+  });
+
   it("draws nothing for non-finite, zero or negative input", () => {
     for (const bad of [Number.NaN, -3, 0, Number.NEGATIVE_INFINITY]) {
       expect(softCapPx(bad)).toBe(0);
@@ -242,7 +260,7 @@ describe("the soft cap on bar height (S6b-06)", () => {
     }
   });
 
-  it("a typical day (20 points) is unchanged; 300 pages a day (840 px raw) is under 96; 100 a day is taller than 60", () => {
+  it("a typical day (20 points) is unchanged; 300 pages a day (840 px raw) is under the maximum; 100 a day is taller than 60", () => {
     expect(thicknessToPx(20)).toBe(20 * PX_PER_THICKNESS);
     expect(bandHeight(20, PX_PER_THICKNESS)).toBe(20 * PX_PER_THICKNESS);
     expect(bandHeight(300, PX_PER_THICKNESS)).toBeLessThanOrEqual(MAX_BAR_PX);
