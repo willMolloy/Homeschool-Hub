@@ -1,11 +1,10 @@
-/** T-07e: saving an assignment's dates from the edit bar, with the first dates kept for Reset. S6-08: reset to original. S6-10: weight nudges. */
+/** T-07e: saving an assignment's dates from the edit bar. S6-08: reset to original. S6-10: weight nudges. S6b-05: the session's date-only Reset (and its kept first dates) is gone. */
 import { useState } from "react";
 import { ApiError, apiPatch, apiPost } from "../../api/client";
 import type { Assignment } from "../../api/types";
 import { changedDates, type DateSpan } from "./select";
 
 export function useAssignmentEdit(applyAssignment: (a: Assignment) => void) {
-  const [originals, setOriginals] = useState<Record<string, DateSpan>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,13 +15,6 @@ export function useAssignmentEdit(applyAssignment: (a: Assignment) => void) {
     setError(null);
     try {
       const saved = await apiPatch<Assignment>(`/api/assignments/${id}`, patch);
-      setOriginals((o) => {
-        const first = o[id] ?? before;
-        const rest = { ...o };
-        if (!changedDates(first, saved)) delete rest[id];
-        else rest[id] = first;
-        return rest;
-      });
       applyAssignment(saved);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Couldn't save. Try again.");
@@ -48,11 +40,6 @@ export function useAssignmentEdit(applyAssignment: (a: Assignment) => void) {
     setError(null);
     try {
       const { assignment } = await apiPost<{ assignment: Assignment }>(`/api/assignments/${id}/reset`);
-      setOriginals((o) => {
-        const rest = { ...o };
-        delete rest[id];
-        return rest;
-      });
       applyAssignment(assignment);
       return null;
     } catch (e) {
@@ -61,5 +48,5 @@ export function useAssignmentEdit(applyAssignment: (a: Assignment) => void) {
       setBusy(false);
     }
   };
-  return { originals, busy, error, save, setWeight, reset, clearError: () => setError(null) };
+  return { busy, error, save, setWeight, reset, clearError: () => setError(null) };
 }

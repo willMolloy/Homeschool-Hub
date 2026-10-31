@@ -2,7 +2,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { ENGINE_VERSION } from "@hh/engine";
+import { addDays, ENGINE_VERSION, type LocalDate } from "@hh/engine";
 import type { Assignment } from "../src/api/types";
 import { onPlanChange } from "../src/api/client";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
@@ -69,6 +69,8 @@ describe("the undo bar after a timeline edit", () => {
     return screen.findByRole("region", { name: /^Edit / });
   }
   const planGets = () => calls("GET", "/api/plan").length;
+  /** A move through the End date picker (S6b-05 removed the week-step buttons). */
+  const move = (edit: HTMLElement) => fireEvent.change(within(edit).getByLabelText("End"), { target: { value: addDays(SELECTED.endDate as LocalDate, 7) } });
 
   it("no bar until something changes", async () => {
     stubTimeline();
@@ -82,7 +84,7 @@ describe("the undo bar after a timeline edit", () => {
     const edit = await selectBar();
     offer("Moved Treasure Island");
     fakeApi.on("POST /api/undo", 200, { label: "Moved Treasure Island" });
-    await user.click(within(edit).getByRole("button", { name: "Move forward a week" }));
+    move(edit);
     expect(await screen.findByText("Moved Treasure Island.")).toBeInTheDocument();
     expect(calls("PATCH", "/api/assignments/ti")).toHaveLength(1);
     const before = planGets();
@@ -100,7 +102,7 @@ describe("the undo bar after a timeline edit", () => {
     const edit = await selectBar();
     offer("Moved Treasure Island");
     fakeApi.on("POST /api/undo", 200, { label: "x" });
-    await user.click(within(edit).getByRole("button", { name: "Move forward a week" }));
+    move(edit);
     const undo = await screen.findByRole("button", { name: "Undo" });
     undo.focus();
     expect(undo).toHaveFocus();
@@ -114,7 +116,7 @@ describe("the undo bar after a timeline edit", () => {
     const edit = await selectBar();
     offer("Moved Treasure Island");
     fakeApi.on("POST /api/undo", 409, { error: "cannot_undo", message: "That change can't be undone any more." });
-    await user.click(within(edit).getByRole("button", { name: "Move forward a week" }));
+    move(edit);
     await user.click(await screen.findByRole("button", { name: "Undo" }));
     expect(await screen.findByText("That change can't be undone any more.")).toBeInTheDocument();
     expect(bar()).toBeNull();
@@ -126,7 +128,7 @@ describe("the undo bar after a timeline edit", () => {
     const edit = await selectBar();
     offer("Moved Treasure Island");
     fakeApi.on("POST /api/undo", 500, { error: "internal_error" });
-    await user.click(within(edit).getByRole("button", { name: "Move forward a week" }));
+    move(edit);
     await user.click(await screen.findByRole("button", { name: "Undo" }));
     expect(await screen.findByText("Couldn't undo. Try again.")).toBeInTheDocument();
     expect(bar()).toBeEnabled();
@@ -137,7 +139,7 @@ describe("the undo bar after a timeline edit", () => {
     const user = userEvent.setup();
     const edit = await selectBar();
     offer("Moved Treasure Island");
-    await user.click(within(edit).getByRole("button", { name: "Move forward a week" }));
+    move(edit);
     await screen.findByText("Moved Treasure Island.");
     await user.click(screen.getByRole("link", { name: "Kids" }));
     await waitFor(() => expect(screen.queryByText("Moved Treasure Island.")).toBeNull());
@@ -148,6 +150,7 @@ describe("the undo bar after a timeline edit", () => {
       stubTimeline();
       const user = userEvent.setup();
       const edit = await selectBar();
+      await user.click(within(edit).getByRole("button", { name: "More" }));
       await user.click(within(edit).getByRole("button", { name: "Reset to original" }));
       const dialog = await screen.findByRole("dialog");
       expect(within(dialog).getByRole("heading", { name: "Put Treasure Island back to how you created it?" })).toBeInTheDocument();
@@ -163,6 +166,7 @@ describe("the undo bar after a timeline edit", () => {
       fakeApi.on("POST /api/assignments/ti/reset", 200, { assignment: { ...SELECTED, endDate: "2026-11-20" }, kept: [] });
       offer("Reset Treasure Island");
       const before = planGets();
+      await user.click(within(edit).getByRole("button", { name: "More" }));
       await user.click(within(edit).getByRole("button", { name: "Reset to original" }));
       await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Reset" }));
       expect(await screen.findByText("Reset Treasure Island.")).toBeInTheDocument();
@@ -181,6 +185,7 @@ describe("the undo bar after a timeline edit", () => {
       const user = userEvent.setup();
       const edit = await selectBar();
       fakeApi.on("POST /api/assignments/ti/reset", 409, { error: "no_original", message: "This assignment has no saved original to go back to." });
+      await user.click(within(edit).getByRole("button", { name: "More" }));
       await user.click(within(edit).getByRole("button", { name: "Reset to original" }));
       const dialog = await screen.findByRole("dialog");
       await user.click(within(dialog).getByRole("button", { name: "Reset" }));

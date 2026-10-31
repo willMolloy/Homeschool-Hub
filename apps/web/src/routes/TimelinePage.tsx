@@ -191,7 +191,7 @@ export function TimelinePage() {
             {selection && (
               <>
                 <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />
-                <EditBar ref={keep.ref} selection={selection} original={edit.originals[selection.assignmentId] ?? null}
+                <EditBar ref={keep.ref} selection={selection}
                   busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onNudge={nudge} canNudge={canNudge}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
               </>

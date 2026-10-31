@@ -31,7 +31,10 @@ async function selectTi() {
   const band = svg.querySelector('path.tl-band[data-assignment="ti"]')!;
   const [x, y] = band.getAttribute("d")!.slice(1).split(/[ ,LCQVHZ]+/).filter(Boolean).map(Number);
   fireEvent.click(svg, { clientX: x! + 1, clientY: y! + 1 });
-  return screen.findByRole("region", { name: /^Edit / });
+  const edit = await screen.findByRole("region", { name: /^Edit / });
+  // S6b-05: Heavier and Lighter live behind More (the menu stays open between nudges).
+  await userEvent.click(within(edit).getByRole("button", { name: "More" }));
+  return edit;
 }
 
 describe("nudgedWeight", () => {

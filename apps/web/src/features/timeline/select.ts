@@ -1,23 +1,11 @@
 /**
- * T-07/T-07e: what the edit bar needs about the selected assignment, and the week steps. Pure.
+ * T-07/T-07e: what the edit bar needs about the selected assignment. Pure. S6b-05: the week-step helpers
+ * (`shiftEnd`, `canEndEarlier`, `moveWeeks`) went with their buttons.
  */
-import { addDays, type LocalDate } from "@hh/engine";
 import type { Assignment } from "../../api/types";
 import type { TimelineModel } from "./model";
 
-/** One step of the adjust buttons. */
-export const WEEK_DAYS = 7;
-
-/** The end moved by whole weeks (negative = earlier). */
-export const shiftEnd = (end: string, weeks: number): string => addDays(end as LocalDate, weeks * WEEK_DAYS);
-
-/** Ending a week earlier must not put the end before the start (ISO dates compare as strings). */
-export const canEndEarlier = (start: string, end: string): boolean => shiftEnd(end, -1) >= start;
-
 export interface DateSpan { startDate: string; endDate: string }
-
-/** T-07e: the whole assignment moved by whole weeks (negative = back). */
-export const moveWeeks = (s: DateSpan, weeks: number): DateSpan => ({ startDate: shiftEnd(s.startDate, weeks), endDate: shiftEnd(s.endDate, weeks) });
 
 /** T-07e: only the fields that differ from `from`, or null when nothing changed. */
 export function changedDates(from: DateSpan, to: DateSpan): Partial<DateSpan> | null {

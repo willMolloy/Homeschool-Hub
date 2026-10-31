@@ -2,15 +2,16 @@
  * T-07e: the edit bar for one selected assignment, fixed to the bottom of the viewport (above the tab bar on
  * phones). Not modal: the page scrolls and zooms behind it. It only exists while something is selected
  * (DeeDee's T-02b rule). Esc or × clears the selection. S6-10: Heavier and Lighter nudge the weight about 25%.
+ * S6b-05: only Start, End, Copy and a quiet "More" show; More holds Heavier, Lighter and Reset to original. The
+ * week-step buttons and the session's date-only Reset are gone (date pickers, dragging, Undo and Reset to original
+ * cover them).
  */
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import type { Nudge } from "./nudge";
-import { canEndEarlier, datesError, moveWeeks, shiftEnd, type DateSpan, type Selection } from "./select";
+import { datesError, type DateSpan, type Selection } from "./select";
 
 export interface EditBarProps {
   selection: Selection;
-  /** The dates before the first change in this visit; null when unchanged (no Reset). */
-  original: DateSpan | null;
   busy: boolean;
   error: string | null;
   onSave: (dates: DateSpan) => void;
@@ -26,13 +27,28 @@ export interface EditBarProps {
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, original, busy, error, onSave, onCopy, onNudge, canNudge, onReset, onClose }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onNudge, canNudge, onReset, onClose }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
+  const [more, setMore] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  // Esc closes the open menu first, then the bar; a tap outside the menu closes it.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (more) setMore(false);
+      else onClose();
+    };
+    const onDown = (e: PointerEvent) => {
+      if (more && !moreRef.current?.contains(e.target as Node)) setMore(false);
+    };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [onClose, more]);
+  useEffect(() => setMore(false), [s.assignmentId]);
   useEffect(() => setInvalid(null), [s.assignmentId, s.startDate, s.endDate]);
   // T-08b: the fields follow the selection live (a drag updates them as it goes); a pick shows at once.
   // A typed date shows until the selection changes (a save lands, a drag moves it, another bar is picked).
@@ -49,11 +65,7 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
     setTyped({ for: shown, dates: { ...draft, [field]: e.target.value } });
     if (ISO.test(e.target.value)) save({ startDate: s.startDate, endDate: s.endDate, [field]: e.target.value });
   };
-  const changed = original !== null && (original.startDate !== s.startDate || original.endDate !== s.endDate);
   const message = invalid ?? error;
-  const step = (label: string, next: DateSpan) => (
-    <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => save(next)}>{label}</button>
-  );
 
   return (
     <section ref={ref} className="tl-edit" aria-label={`Edit ${s.title}`}>
@@ -65,22 +77,22 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
         <button type="button" className="tl-edit-close" aria-label="Close" onClick={onClose}>×</button>
       </div>
       <div className="tl-edit-body">
-        <div className="tl-edit-moves">
-          {step("Move back a week", moveWeeks(s, -1))}
-          {step("Move forward a week", moveWeeks(s, 1))}
-        </div>
         <div className="tl-edit-dates">
           <label>Start <input type="date" value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
           <label>End <input type="date" value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
-          {changed && original && step("Reset", original)}
         </div>
         <div className="tl-edit-ends">
-          {canEndEarlier(s.startDate, s.endDate) && step("End a week earlier", { startDate: s.startDate, endDate: shiftEnd(s.endDate, -1) })}
-          {step("End a week later", { startDate: s.startDate, endDate: shiftEnd(s.endDate, 1) })}
           <button type="button" className="btn btn-secondary" disabled={busy} onClick={onCopy}>Copy</button>
-          <button type="button" className="btn btn-secondary" disabled={busy || !canNudge.heavier} onClick={() => onNudge("heavier")}>Heavier</button>
-          <button type="button" className="btn btn-secondary" disabled={busy || !canNudge.lighter} onClick={() => onNudge("lighter")}>Lighter</button>
-          <button type="button" className="btn btn-secondary" disabled={busy} onClick={onReset}>Reset to original</button>
+          <div className="tl-more" ref={moreRef}>
+            <button type="button" className="btn btn-secondary tl-more-btn" aria-expanded={more} aria-controls="tl-more-menu" onClick={() => setMore((m) => !m)}>More</button>
+            {more && (
+              <div id="tl-more-menu" className="tl-more-menu" role="group" aria-label="More">
+                <button type="button" disabled={busy || !canNudge.heavier} onClick={() => onNudge("heavier")}>Heavier</button>
+                <button type="button" disabled={busy || !canNudge.lighter} onClick={() => onNudge("lighter")}>Lighter</button>
+                <button type="button" disabled={busy} onClick={() => { setMore(false); onReset(); }}>Reset to original</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {message && <p className="tl-edit-error" role="alert">{message}</p>}
