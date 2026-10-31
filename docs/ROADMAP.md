@@ -27,7 +27,7 @@ DeeDee and Will co-own the product. DeeDee approves what gets built. This plan w
 | 4 | **Friends beta** | From about March 2027 | The tester has verified the timeline sprint and the read-only share link is in; then 3–6 invited families, ideally the Charlotte Mason friends; the go-public signals are measured at week 6 |
 | 5 | **Decide on going public** | After the friends beta | The go-public signals below are met, or we decide what to change |
 
-**The dates are targets, not promises.** At 6–8 hours a week the core is doable by mid-December, but it holds assignment weekdays, the weekly briefing, the effort rework, undo, week adjust, the event preview and fast setup. The additions of 2026-10-30 (assignment weekdays, the briefing and forecasts, "Missed a day?", book lookup, calendar templates, rollover and separate parent logins) add about 8–10 days of work. If it slips, defer book lookup and calendar templates first; after that, phase 3 moves rather than cutting the rest of the core.
+**The dates are targets, not promises.** At 6–8 hours a week the core is doable by mid-December, but it holds assignment weekdays, the weekly briefing, the effort rework, undo, week adjust, the event preview and fast setup. The additions of 2026-10-30 (assignment weekdays, the briefing and forecasts, "Missed a day?", book lookup, calendar templates, rollover and separate parent logins) add about 8–10 days of work. If it slips, defer the Sprint 7 polish fixes (S7-06 to S7-12) first; after that, phase 3 moves rather than cutting the rest of the core.
 
 **Beta demos before January.** From the end of November, show finished core pieces to DeeDee and, if she chooses, a friend or two. These are short guided demos on the demo family, not real use, run locally or over screen share until phase 2. They catch confusion early without asking anyone to rely on the app.
 
@@ -80,11 +80,12 @@ Sprint 3a (`tickets/sprint-3a-setup/`) builds the first three.
 - [ ] **Bulk-add** several assignments in one go.
 - [ ] **Copy an assignment**, including to another child (for example a younger sibling).
 - [ ] **CSV import** of assignments.
-- [ ] **Book lookup by title.** Type a title and pick the book; its title and page count fill in (Open Library's free API). ISBN barcode scanning comes later.
+- [x] ~~**Book lookup by title.**~~ **Dropped by Will on 2026-10-31:** editions differ in page count, and a wrong prefilled total would quietly mislead parents.
 - [ ] **Calendar templates for the year's shape** (terms and breaks; the weekly shape is the weekday chips). Set up in one step, with a preview of the breaks it adds; everything stays editable under Days off.
   - **Built in:** 36 weeks, a Sabbath schedule (6 weeks on, 1 off), three terms of 12 weeks, plus US holidays offered as days off.
   - **Build your own:** a simple pattern ("__ weeks on, __ weeks off", start and end dates, which holidays to skip), or "Save this year as a template" from breaks set up by hand, reused at rollover.
   - Sharing a template with friends or a co-op comes later.
+- [ ] **Custom zoom views** (Sprint 7). A quiet Edit at the end of the zoom row: hide Fall, Spring or This month, and add, rename, delete and reorder the family's own views (for example terms), up to 6 including Year.
 - [ ] **Year rollover and sibling reuse.** Start next year from this one, or copy a plan to a younger child, with the dates shifted.
 
 ### Accounts
@@ -127,7 +128,6 @@ Each follows the module rules above. In order:
 2. **Daily checklist**, for families who want it: a Today list per child with one-tap done. A tick confirms what the plan already assumes. Never required.
 3. **Later, as the hub grows:**
    - **"Smooth this month":** the app suggests moving a bar out of an overloaded week, accepted with one tap. It waits until the briefing shows where overload actually happens.
-   - **ISBN barcode scanning** for book lookup.
    - **Co-op groups:** a co-op shares class schedules that appear in each member family's plan. Wait until a co-op asks; the share link and separate parent logins cover the first needs.
    - Quick capture (photos and voice notes for a portfolio), one-way calendar export (ICS), library due dates, and a curriculum budget with ESA receipts.
    - Curriculum templates (tied to curriculum partnerships), print, and the rest of the hub list in `spec/SPEC.md` ("Hub features").
