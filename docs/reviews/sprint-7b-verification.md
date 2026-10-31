@@ -188,3 +188,27 @@ Holiday-matched breaks pass as described in N3; the demo family's week-long Than
 - The downloadable CSV template (the web tests check its two rows).
 - Copy to a new year across the leap day and on a family with archived children or subjects (S7 checked those; S7b-11 did not change them).
 - A brand-new family's first screens (nothing in Sprint 7b changed them).
+
+## Re-test (S7b-21, after S7b-15 to S7b-20, head a6dfc25)
+
+Re-run in Chromium at 360 and 390 px (mobile, touch) on a fresh scratch database (`hh_s7b_dev`, dropped afterwards), API and Vite on 127.0.0.1 only, the same families as before (demo copy, Dora, Eve with an injected clock for N5). No source or test files were changed. Screenshots (not in the repo): `/tmp/claude-0/-home-user-Homeschool-Hub/7a240ed6-3fb3-5430-b251-2b10ddef71fc/scratchpad/s7b/shots/r-*.png`.
+
+**Result: N1 to N8 all PASS. No new High or Medium findings. Gate ALL GREEN.**
+
+- `bash scripts/check.sh`: **ALL GREEN**. Counts, labelled from the gate's log: **976 api** (67 files), **953 web** (74 files), **120 db** (18 files), **420 engine** (29 files), and 420 engine in each of the 7 `test:tz` zones.
+- `tap-targets` at `TAP_WIDTH=360`: "No undersized controls on the listed screens."
+- `ENGINE_VERSION` reads 0.12.0 from `/api/health` and `/api/plan`.
+
+| # | Result | Evidence |
+|---|---|---|
+| N1 ahead row layout | **PASS** | History spine, Math 5, The Hobbit and Piano practice after More, at 360 and 390: document width equals the viewport (360 and 390, was 420 to 465), the title is 161 to 247 px wide and one line high (23 px, was 10 to 14 px and 93 to 278 px high). The long state ("4 chapters (1 more than planned)") sits on its own line under the title (`r-n1-360.png`). |
+| N2 wrong preset preselected | **PASS** | Black Beauty's sheet says "about 30 min a day (about 15 pages a day)" and the chosen chip is "30 min a day" at 200 ms and at 2.5 s, at 360 and 390. Save is disabled until something changes (`r-n2-360.png`). |
+| N3 week-long breaks | **PASS** | Template saved from 2026-08-31, applied at 2027-08-16 on the demo family: Labor Day Sep 6, Thanksgiving break Nov 22-26 (Thanksgiving is Nov 25), Christmas break Dec 20 - Jan 1 (around Dec 24 - Jan 1), Spring break Feb 28 - Mar 3, 2028 (Monday to Friday). The Thanksgiving week and the Dec 21 - Jan 1 break both land around the same holidays; each week-long break starts on a Monday. All four were added for real (`r-n3-360.png`). |
+| N4 last-week adjustment | **PASS** | History spine, last week (May 10, 2027) set to 2 and to 0, keep the end date: weeks up to and including this one (Oct 26) are identical to the plan before; the first changed week is Nov 2 (the first week after today); end unchanged, nothing unplaced. The extended case: a one-week-left assignment (Oct 26 - Nov 6) with its last week set to 0 moves its end to Nov 13 with the warning `keep-end-extended`, and Plan says "Extend test will finish about 1 week late." with "Move end to Nov 13, 2026" and "Keep Nov 6, 2026" (`r-n4-late-360.png`). |
+| N5 late line vanishes | **PASS** | With an injected clock, Eve's adjusted assignment (week of Sep 21 set to 0) reads "about 3 weeks late, Move end to Feb 16, 2027". After changing its days to Mon-Thu and to Mon, Wed the line and the date are unchanged; back to the default, unchanged. (The unadjusted control reads 7 weeks late this time because its flat week counts against it, as intended.) |
+| N6 date nudged | **PASS** | Dora's Reading list: "about 11 weeks late, Move end to Apr 13, 2027" at baseline and, with no new check-in, after Mon-Thu, Mon-Wed-Fri, Mon-Fri and Tue-Thu, and after resetting: the same line and date every time (was 10 weeks, Apr 12). |
+| N7 undo label cut off | **PASS** | A three-row week adjustment at 360 and 390 reads "Adjusted week of Nov 2." on one line (bar 48 px high, nothing clipped); the API label is "Adjusted week of Nov 2" (`r-n7-360.png`). |
+| N8 "Fractions's" | **PASS (checked by the gate only)** | I did not re-drive the end-move in the browser; the API test for the possessive ("Moved Fractions' end to ...") is in the gate's 976 api tests. N5's Move/Keep flow was not re-run either. N9 was an observation and was not re-tested. |
+
+### New observations (Low, cosmetic, not blocking)
+- R1: in an open ahead row at 360 px the segmented control's "As planned" wraps onto two lines ("As / planned"), and a collapsed row now shows its tick under the title instead of at the right (`r-n1-360.png`). Both readable.
