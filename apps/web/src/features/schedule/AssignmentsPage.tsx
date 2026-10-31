@@ -174,7 +174,8 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       if (full.startDate !== item.startDate) patch.startDate = full.startDate;
       if (full.endDate !== item.endDate) patch.endDate = full.endDate;
       if (!sameSet(full.childIds, item.childIds)) patch.childIds = full.childIds;
-      if (JSON.stringify(full.weekdays) !== JSON.stringify(item.weekdays ?? null)) patch.weekdays = full.weekdays;
+      // S4b-04: only when a chip was tapped, so a title-only edit never changes the days.
+      if (dayChoice.touched && JSON.stringify(full.weekdays) !== JSON.stringify(item.weekdays ?? null)) patch.weekdays = full.weekdays;
       if (Object.keys(patch).length === 0) return onCancel();
       onSaved(await apiPatch<Assignment>(`/api/assignments/${item.id}`, patch));
     } catch (err) {

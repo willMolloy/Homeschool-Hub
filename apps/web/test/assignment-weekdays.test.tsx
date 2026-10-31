@@ -157,6 +157,50 @@ describe("Days chips on the assignment form (S4-07)", () => {
   });
 });
 
+describe("Editing other fields never changes the days (S4b-04)", () => {
+  // Its own days equal the subject's default (Friday), so saving it as null would silently make it follow the subject.
+  const OWN_FRIDAY: Assignment = { ...SAXON, id: rowId(3), title: "Own Friday", weekdays: [5] };
+
+  async function openEdit() {
+    const { user, form } = await openAdd([FRIDAY_ONLY, READING], [OWN_FRIDAY]);
+    await user.click(within(form).getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: /Own Friday/ }));
+    return { user, edit: screen.getByRole("form", { name: "Edit Own Friday" }) };
+  }
+
+  it("a title-only edit sends no weekdays", async () => {
+    const { user, edit } = await openEdit();
+    await user.clear(within(edit).getByLabelText("Title"));
+    await user.type(within(edit).getByLabelText("Title"), "Renamed");
+    await user.click(within(edit).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0]!.body).toEqual({ title: "Renamed" });
+  });
+
+  it("tapping a chip still sends the list, or null when it matches the inherited days", async () => {
+    const { user, edit } = await openEdit();
+    await user.click(chip(edit, "Monday"));
+    await user.click(within(edit).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0]!.body).toEqual({ weekdays: [1, 5] });
+  });
+
+  it("tapping to the subject's own days sends null", async () => {
+    withRoster([FRANK], [FRIDAY_ONLY, READING]);
+    const own: Assignment = { ...OWN_FRIDAY, weekdays: [1, 5] };
+    fakeApi.on("GET /api/assignments", 200, [own]);
+    fakeApi.on(`PATCH /api/assignments/${own.id}`, patchMerging(own));
+    const user = userEvent.setup();
+    renderAt("/schedule/assignments");
+    await user.click(await screen.findByRole("button", { name: /Own Friday/ }));
+    const edit = screen.getByRole("form", { name: "Edit Own Friday" });
+    await user.click(chip(edit, "Monday"));
+    await user.click(within(edit).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0]!.body).toEqual({ weekdays: null });
+  });
+});
+
 describe("Days chips on Add several (S4-07)", () => {
   it("prefills from the subject and sends the shared days on every row", async () => {
     withRoster([FRANK], [MON_TO_FRI, READING]);

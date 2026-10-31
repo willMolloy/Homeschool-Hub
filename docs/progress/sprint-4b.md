@@ -6,7 +6,8 @@ Tickets: `docs/tickets/sprint-4b-fixes/`. Report: `docs/reviews/sprint-4-verific
 |--------|--------|-------|
 | S4b-01 The briefing plans from the earliest live start | 0e48d1b | `briefingRanges` and `mergePlans` in `Briefing.tsx`; one request, or two when the shown week lies past the first range |
 | S4b-02 A second weekday change in a week keeps the original days | 1dc91e1 | `weekdaysChange` takes the stored record (`stored`); `recordSubjectWeekdaysChange` does the same in SQL; `AssignmentRow` carries `weekdays_from`/`previous_weekdays` |
-| S4b-03 The briefing reports no recent progress, and caps very late forecasts | (this commit) | `noRecentProgress` and `VERY_LATE_WEEKS` in `briefingLines.ts` |
+| S4b-03 The briefing reports no recent progress, and caps very late forecasts | 24ae007 | `noRecentProgress` and `VERY_LATE_WEEKS` in `briefingLines.ts` |
+| S4b-04 Editing other fields never changes an assignment's days | (this commit) | `useWeekdayChoice` reports `touched`; the edit sends `weekdays` only after a chip tap |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -17,3 +18,4 @@ Tickets: `docs/tickets/sprint-4b-fixes/`. Report: `docs/reviews/sprint-4-verific
 - **S4b-02 changed expectations.** Three S4-01b/S4-03/S4-04 test lines said "a later change overwrites both". They now expect the first change's days to stay (assignment: `null` instead of `[5]`; subject: `[1, 3]` instead of `[5]`), because that is what the ticket changes.
 - **S4b-03 no progress.** Measured as `forecastFinish` measures it: the plan's position from the start of the first applied check-in week to the end of the last, with at least 2 distinct applied weeks and work left. It is done in `briefingLines.ts` (no engine change, version unchanged). So a child who stopped after a first week with progress is still not flagged (the report's smaller note); this is the ticket's wording ("no progress across them"). `{n}` is the number of applied check-in weeks (not necessarily consecutive).
 - **S4b-03 very late.** More than 26 weeks late (27 or more after rounding) gives the plain wording; exactly 26 keeps the count. One line per assignment, in the late slot, before plan problems.
+- **S4b-04 what counts as a tap.** A tap on a day chip (a tap that would remove the last day does nothing and doesn't count). After a tap the S4-07 rule is unchanged: equal to the inherited days sends null, so tapping Monday off and on again on an assignment with its own days equal to the subject's sends null (the parent did touch the chips). Adding is unchanged. "Set as default" also counts as touching (the assignment then follows the subject).
