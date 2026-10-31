@@ -37,6 +37,13 @@ export const AXIS_HEIGHT_PX = 20;
 /** A month label is shown only when its slot is at least this wide. T-05c: on phones, labels also keep this far apart. */
 export const MIN_TICK_LABEL_PX = 24;
 export const PHONE_MIN_TICK_LABEL_PX = 48;
+/**
+ * S7-19: how far a week's day label must be from a month label, in px of axis. A month label ("Dec", 11 px text) starts
+ * 3 px right of its tick and is about 23 px wide, so a day label just after it needs `MONTH_LABEL_CLEAR_PX`; one just
+ * before it ("30" is about 12 px wide, 3 px right of its tick) needs `DAY_LABEL_CLEAR_PX`.
+ */
+export const MONTH_LABEL_CLEAR_PX = 28;
+export const DAY_LABEL_CLEAR_PX = 16;
 /** Layout widths under this are phones (matches the app's 640 px breakpoint). */
 export const PHONE_WIDTH_PX = 640;
 /** One strip row per recurring event, above the lanes. */
@@ -186,6 +193,8 @@ export interface TimelineLayout {
   ticks: Tick[];
   /** Centre of today's column, or its boundary on a day off; null when today isn't shown. */
   todayX: number | null;
+  /** S7-19: where the Today line starts: the top of the first lane's bars (below its name), else just under the axis. */
+  todayTop: number;
   /** The total-load strip, with its "Total" label row above it (labelY). */
   totals: { labelY: number; y: number; height: number; cy: number; d: string };
   /** Top and bottom of the lane area (breaks span it). */
@@ -310,6 +319,12 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
       ticks.push({ index: i, x: xs.start(i), kind: "week", label });
     }
     ticks.sort((a, b) => a.x - b.x || a.index - b.index);
+    // S7-19: a day label that would touch a month label is dropped (its tick line stays).
+    const labelled = ticks.filter((t) => t.kind === "month" && t.label);
+    for (const t of ticks) {
+      if (t.kind !== "week" || !t.label) continue;
+      if (labelled.some((m) => (t.x >= m.x ? t.x - m.x < MONTH_LABEL_CLEAR_PX : m.x - t.x < DAY_LABEL_CLEAR_PX))) t.label = null;
+    }
   }
 
   // Event strips, one row each, under the axis. T-05c: only with daily detail; zoomed out they are noise.
@@ -455,6 +470,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     events,
     ticks,
     todayX,
+    todayTop: labels[0] ? labels[0].y + LABEL_ROW_PX : AXIS_HEIGHT_PX - 4,
     totals,
     lanesTop,
     lanesBottom,

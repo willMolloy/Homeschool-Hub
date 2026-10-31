@@ -4,7 +4,7 @@ import { MAX_BAR_PX, PX_PER_THICKNESS, SOFT_CAP_KNEE_PX, softCapPx, thicknessToP
 import { buildDayGrid } from "../src/features/timeline/grid";
 import { MIN_TAP_PX, hitTest, tapBox } from "../src/features/timeline/hit";
 import {
-  LABEL_ROW_PX, LANE_GAP_PX, MIN_BAND_PX, SIDE_PAD_PX, SUBJECT_GAP_PX, bandHeight, layoutTimeline, type TimelineLayout,
+  AXIS_HEIGHT_PX, DAY_LABEL_CLEAR_PX, LABEL_ROW_PX, LANE_GAP_PX, MONTH_LABEL_CLEAR_PX, MIN_BAND_PX, SIDE_PAD_PX, SUBJECT_GAP_PX, bandHeight, layoutTimeline, type TimelineLayout,
 } from "../src/features/timeline/layout";
 import { buildTimelineModel, type TimelineAssignment, type TimelineModel } from "../src/features/timeline/model";
 import { drawnExtent, packRows } from "../src/features/timeline/rows";
@@ -218,6 +218,44 @@ describe("zoom ranges and the rest of the layout", () => {
     const l = layoutTimeline(empty, { zoom: "year", width: 360 });
     expect(l.bands.every((b) => b.d === "")).toBe(true);
     expect(l.todayX).toBeNull();
+  });
+});
+
+describe("axis labels and the Today line (S7-19)", () => {
+  const cases = (["2026-09", "2026-10", "2026-11", "2026-12", "2027-01", "2027-02"] as const).flatMap((m) =>
+    (["month", "fall", "spring", "year"] as const).flatMap((zoom) => WIDTHS.map((width) => ({ m, zoom, width }))));
+
+  it("a day label never touches a month label, on any range or width", () => {
+    for (const c of cases) {
+      const l = layoutTimeline(sample, { zoom: c.zoom, width: c.width, month: c.m });
+      const months = l.ticks.filter((t) => t.kind === "month" && t.label);
+      for (const w of l.ticks.filter((t) => t.kind === "week" && t.label)) {
+        for (const mo of months) {
+          const gap = w.x >= mo.x ? w.x - mo.x : mo.x - w.x;
+          expect(gap, `${c.zoom} ${c.m} ${c.width}: ${w.label} vs ${mo.label}`).toBeGreaterThanOrEqual(w.x >= mo.x ? MONTH_LABEL_CLEAR_PX : DAY_LABEL_CLEAR_PX);
+        }
+      }
+    }
+  });
+
+  it("a day label is dropped (its tick stays) when it would touch a month label", () => {
+    // A week line within a month label's width of a labelled month start loses its number but keeps its line.
+    const dropped = cases.flatMap((c) => {
+      const l = layoutTimeline(sample, { zoom: c.zoom, width: c.width, month: c.m });
+      const months = l.ticks.filter((t) => t.kind === "month" && t.label);
+      return l.ticks.filter((t) => t.kind === "week" && !t.label && months.some((mo) => Math.abs(t.x - mo.x) < MONTH_LABEL_CLEAR_PX));
+    });
+    expect(dropped.length).toBeGreaterThan(0);
+  });
+
+  it("the Today line starts below the first lane's name row, and at the axis with no lanes", () => {
+    const l = layoutTimeline(sample, { zoom: "year", width: 1280 });
+    expect(l.todayX).not.toBeNull();
+    expect(l.todayTop).toBe(l.labels[0]!.y + LABEL_ROW_PX);
+    expect(l.todayTop).toBeGreaterThan(l.labels[0]!.y);
+    const empty = layoutTimeline({ ...sample, lanes: [] }, { zoom: "year", width: 1280 });
+    expect(empty.labels).toHaveLength(0);
+    expect(empty.todayTop).toBeLessThan(AXIS_HEIGHT_PX);
   });
 });
 

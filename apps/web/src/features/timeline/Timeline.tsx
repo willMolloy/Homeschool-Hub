@@ -89,13 +89,6 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         ) : null))}
       </g>
 
-      <g className="tl-labels">
-        {layout.rows.length > 0 && <text className="tl-lane-label" x={layout.plot.x} y={layout.totals.labelY + LABEL_BASELINE}>{TOTALS_LABEL}</text>}
-        {layout.labels.map((l) => (
-          <text key={l.laneKey} className="tl-lane-label" x={l.x} y={l.y + LABEL_BASELINE}>{l.text}</text>
-        ))}
-      </g>
-
       <g className="tl-bands">
         {layout.totals.d ? <path className="tl-totals" d={layout.totals.d} /> : null}
         {layout.bands.flatMap((b) => b.connectors.map((c, k) => (
@@ -134,11 +127,19 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
 
       {layout.todayX === null ? null : (
         <g className="tl-today" data-today>
-          <line x1={layout.todayX} x2={layout.todayX} y1={AXIS_HEIGHT_PX - 4} y2={bottom + 4} />
+          <line x1={layout.todayX} x2={layout.todayX} y1={layout.todayTop} y2={bottom + 4} />
           <rect x={pillX} y={bottom + 4} width={PILL_W} height={PILL_H} rx={PILL_H / 2} />
           <text x={pillX + PILL_W / 2} y={bottom + 4 + PILL_H - 5} textAnchor="middle">Today</text>
         </g>
       )}
+
+      {/* S7-19: lane names are drawn last, with a page-coloured halo, so the Today line never runs through them. */}
+      <g className="tl-labels">
+        {layout.rows.length > 0 && <text className="tl-lane-label" x={layout.plot.x} y={layout.totals.labelY + LABEL_BASELINE}>{TOTALS_LABEL}</text>}
+        {layout.labels.map((l) => (
+          <text key={l.laneKey} className="tl-lane-label" x={l.x} y={l.y + LABEL_BASELINE}>{l.text}</text>
+        ))}
+      </g>
     </svg>
   );
 }

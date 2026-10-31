@@ -37,7 +37,7 @@
 .tl-tick-month { stroke: var(--tl-grid); stroke-width: 1; }
 .tl-tick-week { stroke: var(--tl-grid); stroke-width: 1; stroke-opacity: 0.5; }
 .tl-axis-label { font-size: 11px; fill: var(--tl-muted-foreground); }
-.tl-lane-label { font-size: 12px; fill: var(--tl-foreground); }
+.tl-lane-label { font-size: 12px; fill: var(--tl-foreground); paint-order: stroke; stroke: var(--tl-background); stroke-width: 3px; stroke-linejoin: round; } /* S7-19: halo */
 .tl-band { fill-opacity: var(--tl-bar-opacity); }
 .tl-name { font-size: 11px; font-weight: 500; }
 /* T-11d: a thin piece's name, in the lane above its row: page text, small and calm. */
