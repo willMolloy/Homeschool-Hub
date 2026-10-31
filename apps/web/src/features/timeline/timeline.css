@@ -2,7 +2,11 @@
 .timeline-page-header { margin-bottom: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .timeline-page-header h1 { margin: 0; }
 /* T-05: zoom presets. Plain text buttons; the chosen one is bold on a soft fill. No borders. */
-.tl-zoom { display: flex; gap: 4px; max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
+.tl-zoom-row { display: flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; }
+.tl-zoom { display: flex; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+/* S7-05: Edit is quiet: muted text, no fill, still a 44 px target. */
+.tl-zoom-edit { flex: none; font: inherit; font-size: 0.9rem; color: var(--muted); background: transparent; border: 0; border-radius: 999px; padding: 0 12px; min-width: 44px; min-height: 44px; cursor: pointer; }
+.tl-zoom-edit:hover { text-decoration: underline; }
 /* T-05c: ‹ month › under the presets, only with This month. */
 .tl-month-nav { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
 .tl-month-nav button { font: inherit; font-size: 20px; color: inherit; background: transparent; border: 0; border-radius: 999px; min-width: 44px; min-height: 44px; cursor: pointer; }
@@ -11,7 +15,8 @@
 .tl-zoom button[aria-pressed="true"] { font-weight: 600; background: var(--line); }
 /* T-05c: phones get the presets as one compact row under the title. */
 @media (max-width: 639px) {
-  .timeline-page-header .tl-zoom { flex: 1 0 100%; justify-content: space-between; }
+  .timeline-page-header .tl-zoom-row { flex: 1 0 100%; }
+  .tl-zoom { flex: 1 1 auto; justify-content: space-between; }
   .tl-zoom button { padding: 0 10px; }
 }
 /* T-05: crossfade between zooms (keep in step with FADE_MS in useZoomFade.ts). */
@@ -115,3 +120,7 @@
 @media (max-width: 639px) {
   .timeline-page-header h1 + .tl-add-btn { margin-right: 0; margin-left: auto; }
 }
+/* S7-05: the zoom views sheet */
+.zoom-edit-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.zoom-edit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
+.zoom-edit-view { margin: 0 0 14px; padding-top: 12px; border-top: 1px solid var(--line); }

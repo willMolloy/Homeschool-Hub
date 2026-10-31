@@ -10,6 +10,7 @@
  * S6-08: its "Reset to original" asks first, then puts the assignment back to how it was created.
  * S6-10: its Heavier and Lighter nudge the weight about 25% (which also teaches the next suggestion, S2b-07).
  * S7-04: the zoom row also holds the family's own views and leaves out the built-ins it hid.
+ * S7-05: its quiet Edit opens the sheet where a family hides built-ins and manages its own views.
  * S6b-09: with nothing planned the calendar (months, today, days off, events) still draws, with one quiet line under it.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -41,6 +42,7 @@ import { useZoomFade } from "../features/timeline/useZoomFade";
 import { defaultMonth, gridMonths, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
+import { EditZoomViewsSheet } from "../features/timeline/EditZoomViews";
 import { ChildFilter } from "../features/timeline/ChildFilter";
 import { filterChildren, forChild, shownChild } from "../features/timeline/childView";
 import { useChildParam } from "../features/timeline/useChildParam";
@@ -56,7 +58,7 @@ const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: Layou
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
 export function TimelinePage() {
-  const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects, zoomViews } = useTimelineData();
+  const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects, zoomViews, setZoomViews } = useTimelineData();
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
   const [childParam, setChild] = useChildParam();
   const childId = shownChild(childParam, childList);
@@ -130,6 +132,8 @@ export function TimelinePage() {
   };
   // T-10: adding an assignment. The new bar flashes once it is drawn, with the filter and month moved to show it.
   const [adding, setAdding] = useState(false);
+  // S7-05: the zoom views editor.
+  const [editingViews, setEditingViews] = useState(false);
   const [copying, setCopying] = useState<Draft<Assignment> | null>(null);
   const lookups = useMemo(() => makeLookups(children, subjects, applySubject), [children, subjects, applySubject]);
   const [flashId, setFlashId] = useState<string | null>(null);
@@ -166,7 +170,7 @@ export function TimelinePage() {
       <header className="timeline-page-header">
         <h1>Timeline</h1>
         {!failed && !loading && model && <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />}
-        {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews)} />}
+        {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews)} onEdit={() => setEditingViews(true)} />}
       </header>
       {ready && <ChildFilter childList={childList} value={childId} onChange={setChild} />}
       {(ready || calendar) && shownZoom === "month" && month && <MonthNav months={months} value={month} onChange={setMonth} />}
@@ -213,6 +217,8 @@ export function TimelinePage() {
           <p>Its dates, effort and days go back, and its week adjustments are removed. You can undo this right after.</p>
         </ConfirmDialog>
       )}
+      <EditZoomViewsSheet open={editingViews} views={zoomViews} onClose={() => setEditingViews(false)}
+        onSaved={(saved) => { setZoomViews(saved); setEditingViews(false); }} />
       <AddAssignmentSheet open={adding} lookups={lookups} initial={copying} onSaved={added} onClose={closeAdd} />
     </>
   );
