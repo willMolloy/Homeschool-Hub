@@ -8,6 +8,7 @@
 - **This week:** bars per child, plus the week's events. Tapping a bar opens the week adjustment (S6-03) for that assignment.
 - **Last week:** the same bars, each with **Completed** (a check) or **Update status**, which opens a small pop-up: got ahead or fell behind, "Got to page ___", then keep the end date or move the end date. One "Everything was completed" button covers the usual case.
 - **Edit bar (Will, 2026-10-31):** Start and End date pickers and Copy only; Heavier, Lighter and Reset to original behind a small "More"; the week-step buttons go.
+- **Bar sizes (Will, 2026-10-31):** bars get a soft cap (normal up to a typical day, then growing slowly to a maximum); the assignment form gently flags an unrealistic daily pace.
 - Calm: no chips, sliders or steppers inline; no helper text; 44 px targets; 360 px.
 
 Each ticket uses the usual format. Build in order, one commit per ticket, each with `bash scripts/check.sh` green. Progress goes in `docs/progress/sprint-6b.md`. The full visual refresh (new design system, dark mode) still comes in Sprint 8; this sprint uses today's tokens.
@@ -18,4 +19,6 @@ Each ticket uses the usual format. Build in order, one commit per ticket, each w
 | 2 | [S6b-02 — Show this week as pastel bars per child](S6b-02-show-this-week-as-pastel-bars.md) | S6b-01 | M |
 | 3 | [S6b-03 — Check in last week with Completed or Update status](S6b-03-check-in-with-completed-or-update-status.md) | S6b-02 | M |
 | 4 | [S6b-05 — A simpler timeline edit bar](S6b-05-a-simpler-edit-bar.md) | none | S |
-| 5 | [S6b-04 — Tester pass: This Week and the edit bar](S6b-04-tester-pass.md) | S6b-01 to S6b-03, S6b-05 | S |
+| 5 | [S6b-06 — Soft-cap very thick bars on the timeline](S6b-06-soft-cap-very-thick-bars.md) | none | S |
+| 6 | [S6b-07 — A gentle pace check on the assignment form](S6b-07-a-gentle-pace-check-on-the-assignment-form.md) | none | XS |
+| 7 | [S6b-04 — Tester pass: This Week, the edit bar and bar sizes](S6b-04-tester-pass.md) | S6b-01 to S6b-03, S6b-05 to S6b-07 | S |
