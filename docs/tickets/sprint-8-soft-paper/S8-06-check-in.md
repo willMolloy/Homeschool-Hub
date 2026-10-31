@@ -14,6 +14,7 @@
 4. Remove the old card's chips, slider and stepper rows (T-09) and their tests, replaced by tests for the new flow.
 
 ## Done when
+- At 360 px no check-in label wraps mid-control ("As planned" stays on one line) and a collapsed row keeps its tick beside the title (S7b tester R1, Low).
 - One tap on "Yes, all done" checks in the week; "Fell behind, got to p. 138, move to 11 Nov" saves pushEndDate and the end date moves.
 
 ## Tests
