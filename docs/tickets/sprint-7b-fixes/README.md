@@ -14,4 +14,5 @@ Each ticket uses the usual format. Build in order, one commit per ticket, each w
 | 4 | [S7b-04 — The finish forecast ignores deliberate changes](S7b-04-forecast-ignores-deliberate-changes.md) | CM #6 | none | S |
 | 5 | [S7b-05 — A late line offers one next step](S7b-05-a-late-line-offers-a-next-step.md) | CM #3 (part), #6 | S7b-04 | S |
 | 6 | [S7b-06 — Add several: optional dates per row](S7b-06-add-several-dates-per-row.md) | CM #7 | none | S |
-| 7 | S7b-07 — Tester pass (written once the Sprint 7 tester's findings are in) | — | all | S |
+| 7 | [S7b-07 — Small fixes from the Sprint 7 tester](S7b-07-small-fixes-from-the-sprint-7-tester.md) | 7-tester F1, F3–F5, F7 | none | S |
+| 8 | [S7b-08 — Tester pass](S7b-08-tester-pass.md) | — | S7b-01 to S7b-07 | S |

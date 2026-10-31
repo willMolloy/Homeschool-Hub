@@ -21,7 +21,7 @@ Tickets: `docs/tickets/sprint-7-setup-polish/`. Pass A covers S7-01 to S7-05 (ro
 | S7-18 Heavier days stay visibly heavier under the bar cap | 85313cc | `softCapPx` in `plan/scale.ts` is logarithmic |
 | S7-19 Timeline labels don't collide | 72c6fff | `layout.ts` (`MONTH_LABEL_CLEAR_PX`, `DAY_LABEL_CLEAR_PX`, `todayTop`); `Timeline.tsx`; `timeline.css` |
 | S7-20 Turn bar dragging off for now | f5658a6 | `BAR_DRAG_ENABLED` (false) in `timeline/drag.ts`; `TimelinePage`, `Timeline` (`grips`) |
-| S7-21 Calm bars at Year, Fall and Spring zoom | (this commit) | `calmSeries`, `limitSlope` in `timeline/smooth.ts`; `smoothColumns` and `cleanOf` in `timeline/layout.ts` |
+| S7-21 Calm bars at Year, Fall and Spring zoom | 6a6d9da | `calmSeries`, `limitSlope` in `timeline/smooth.ts`; `smoothColumns` and `cleanOf` in `timeline/layout.ts` |
 
 ## Decisions (conservative calls on ambiguous points)
 
