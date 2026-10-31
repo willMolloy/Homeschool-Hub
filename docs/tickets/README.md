@@ -179,3 +179,7 @@ See [sprint-4b-fixes/README.md](sprint-4b-fixes/README.md) (S4b-01 to S4b-07).
 ## Sprint 5: event preview, calendar templates and the phone pass
 
 See [sprint-5-preview-templates-phone/README.md](sprint-5-preview-templates-phone/README.md) (S5-01 to S5-10).
+
+## Sprint 6: steering — adjust a week, undo and reset, effort in time (proposed)
+
+See [sprint-6-steering/README.md](sprint-6-steering/README.md) (S6-01 to S6-11).
