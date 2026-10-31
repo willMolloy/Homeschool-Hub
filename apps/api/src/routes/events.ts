@@ -53,7 +53,8 @@ const SubjectRules = z.unknown().transform((v, ctx) => {
 // [] = the whole family.
 const Children = IdList(20);
 
-const CreateBody = z.strictObject({
+/** The create body; the preview route (S5-01) validates a draft with the very same schema. */
+export const CreateBody = z.strictObject({
   name: Name,
   weekdays: Weekdays,
   startDate: LocalDate.nullable().optional(),
@@ -78,10 +79,10 @@ const PatchBody = z
   })
   .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.");
 
-const notFound = () => new HttpError(404, "not_found", "No such event.");
+export const notFound = () => new HttpError(404, "not_found", "No such event.");
 
 /** Open-ended events have no length limit; only the order is checked. */
-const checkOrder = (start: string | null | undefined, end: string | null | undefined) => {
+export const checkOrder = (start: string | null | undefined, end: string | null | undefined) => {
   if (start && end) checkDateOrder(start, end, Number.POSITIVE_INFINITY);
 };
 
