@@ -11,7 +11,8 @@ export const UNIT_TYPES = list("pages", "chapters", "lessons", "minutes");
 /** What a recurring event does to a subject on its day. */
 export const SUBJECT_RULES = list("skip", "lighter", "normal");
 export const OVERRIDE_MODES = list("keepEndDate", "pushEndDate");
-export const BLOCKED_KINDS = list("vacation", "holiday", "sick", "other");
+/** `missed` (S4-00): a past day the family did not do; its work carries forward instead of being re-spread over earlier days. */
+export const BLOCKED_KINDS = list("vacation", "holiday", "sick", "other", "missed");
 /** What the family did with a past week's "How did last week go?" card (S2b-21). */
 export const WEEK_REVIEW_STATUSES = list("reviewed", "skipped");
 

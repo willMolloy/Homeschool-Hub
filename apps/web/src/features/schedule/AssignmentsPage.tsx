@@ -6,8 +6,9 @@
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, UNIT_TYPES, weightPerUnitOf } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
-import type { Assignment, UnitType } from "../../api/types";
-import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet } from "./formBits";
+import type { Assignment, Subject, UnitType } from "../../api/types";
+import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet, WeekdayPicker } from "./formBits";
+import { useWeekdayChoice } from "./useWeekdayChoice";
 import { WithLookups, type Lookups } from "./lookups";
 import { LIMITS } from "./assignmentLimits";
 import { ImportAssignmentsForm } from "./ImportAssignmentsForm";
@@ -80,6 +81,8 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   const [endDate, setEndDate] = useState(start?.endDate ?? "");
   const activeChildren = l.children.filter((c) => !c.archived);
   const [childIds, setChildIds] = useState<string[]>(start?.childIds ?? (activeChildren.length === 1 ? [activeChildren[0]!.id] : []));
+  // S4-07: the chips start from the assignment's own days, else the subject's default, else every school day.
+  const dayChoice = useWeekdayChoice(l, subjectId, start?.weekdays ?? null);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -114,6 +117,17 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   const suggestedValue = (): number | null =>
     suggestion && (suggestion.source === "child" || suggestion.source === "children") ? suggestion.weightPerUnit : null;
 
+  /**
+   * S4b-05: "Set as default" only marks the choice; the subject is patched when the form is saved (Cancel discards it).
+   * The mark belongs to the subject and days it was made for: another subject or another chip tap withdraws it.
+   */
+  const [defaultMark, setDefaultMark] = useState<{ subjectId: string; days: number[] | null } | null>(null);
+  const marked = defaultMark !== null && defaultMark.subjectId === subjectId;
+  function changeDays(days: number[]) {
+    setDefaultMark(null);
+    dayChoice.change(days);
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (saving || awaitingSuggestion) return;
@@ -139,9 +153,16 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     if (errs.weight) setMore(true);
     if (Object.keys(errs).length > 0 || typeof total === "string") return;
 
-    const full = { subjectId, title: t, unitType, totalUnits: total, weightPerUnit: wpu, startDate, endDate, childIds };
+    // S4b-05: a marked default is the subject's first, then the assignment follows it (null).
+    const full = { subjectId, title: t, unitType, totalUnits: total, weightPerUnit: wpu, startDate, endDate, childIds, weekdays: marked ? null : dayChoice.value };
     setSaving(true);
     try {
+      if (marked) {
+        const saved = await apiPatch<Subject>(`/api/subjects/${subjectId}`, { defaultWeekdays: defaultMark.days });
+        l.subjectSaved?.(saved);
+        dayChoice.follow();
+        setDefaultMark(null);
+      }
       if (!item) {
         onSaved(await apiPost<Assignment>("/api/assignments", full));
         return;
@@ -156,6 +177,8 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       if (full.startDate !== item.startDate) patch.startDate = full.startDate;
       if (full.endDate !== item.endDate) patch.endDate = full.endDate;
       if (!sameSet(full.childIds, item.childIds)) patch.childIds = full.childIds;
+      // S4b-04: only when a chip was tapped (or a default was set), so a title-only edit never changes the days.
+      if ((dayChoice.touched || marked) && JSON.stringify(full.weekdays) !== JSON.stringify(item.weekdays ?? null)) patch.weekdays = full.weekdays;
       if (Object.keys(patch).length === 0) return onCancel();
       onSaved(await apiPatch<Assignment>(`/api/assignments/${item.id}`, patch));
     } catch (err) {
@@ -204,6 +227,19 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
         {field(ids.end, "End", errors.dates,
           <input id={ids.end} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} {...inv(errors.dates, ids.end)} />)}
       </div>
+      <WeekdayPicker legend="Days" offer={dayChoice.offer} value={dayChoice.shown} onChange={changeDays} />
+      {marked ? (
+        <div className="field">
+          <p className="hint">Will be the default for {l.subjectName(subjectId)}.</p>
+          <button className="btn btn-secondary" type="button" disabled={saving} onClick={() => setDefaultMark(null)}>Undo</button>
+        </div>
+      ) : dayChoice.differs && subjectId ? (
+        <div className="field">
+          <button className="btn btn-secondary" type="button" disabled={saving} onClick={() => setDefaultMark({ subjectId, days: dayChoice.defaultValue })}>
+            Set as default for {l.subjectName(subjectId)}
+          </button>
+        </div>
+      ) : null}
       <div className="field-row">
         {field(ids.unit, "Unit", undefined,
           <select id={ids.unit} value={unitType} onChange={(e) => changeUnit(e.target.value as UnitType)}>

@@ -63,6 +63,16 @@ describe.skipIf(!hasDb)("/api/blocked-ranges (integration)", () => {
     await req("DELETE", `/api/blocked-ranges/${r2.id}`);
   });
 
+  it("a missed day round-trips (S4-00) and an unknown kind is still rejected", async () => {
+    const r = await req("POST", "/api/blocked-ranges", { kind: "missed", startDate: "2027-03-23", endDate: "2027-03-23", childIds: [kids[0]] });
+    expect(r.statusCode).toBe(201);
+    expect(r.json()).toMatchObject({ kind: "missed", startDate: "2027-03-23", childIds: [kids[0]] });
+    expect((await req("GET", "/api/blocked-ranges")).json()).toContainEqual(r.json());
+    expect((await req("PATCH", `/api/blocked-ranges/${r.json().id}`, { kind: "sick" })).json().kind).toBe("sick");
+    expect((await req("POST", "/api/blocked-ranges", { kind: "later", startDate: "2027-03-23", endDate: "2027-03-23" })).statusCode).toBe(400);
+    await req("DELETE", `/api/blocked-ranges/${r.json().id}`);
+  });
+
   it("a vacation shows up as blocked days in /api/plan", async () => {
     const asg = (await req("POST", "/api/assignments", {
       subjectId: subject, title: "Math", unitType: "lessons", totalUnits: 10, startDate: "2026-11-02", endDate: "2026-11-13", childIds: [kids[0]],

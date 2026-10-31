@@ -24,7 +24,7 @@ function stubSample() {
 
 const NEW: Assignment = {
   id: "new1", subjectId: "hist", title: "Ancient Egypt", unitType: "lessons", totalUnits: 10, weightPerUnit: null,
-  startDate: "2026-11-02", endDate: "2026-12-18", childIds: ["margaret"], archived: false,
+  startDate: "2026-11-02", endDate: "2026-12-18", childIds: ["margaret"], archived: false, weekdays: null,
 };
 
 /** The API answers the POST with NEW, and the next plan fetch includes it. */
@@ -102,8 +102,9 @@ describe("adding an assignment from the timeline", () => {
     const { sheet } = await openForm();
     expect(sheet).toHaveAttribute("data-sheet", "side");
     // Essentials first, in order; the weight waits behind "More".
-    const labels = [...sheet.querySelectorAll("label, legend, summary")].map((e) => e.textContent!.trim()).filter((t) => !["Frank", "Margaret"].includes(t));
-    expect(labels.slice(0, 7)).toEqual(["Subject", "Title", "Children", "Start", "End", "Unit", "Total"]);
+    const labels = [...sheet.querySelectorAll("label, legend, summary")].map((e) => e.textContent!.trim()).filter((t) => !["Frank", "Margaret", "Mon", "Tue", "Wed", "Thu", "Fri"].includes(t));
+    // S4-07: the Days chips sit right under the dates.
+    expect(labels.slice(0, 8)).toEqual(["Subject", "Title", "Children", "Start", "End", "Days", "Unit", "Total"]);
     const more = within(sheet).getByText("More").closest("details")!;
     expect(more.open).toBe(false);
     expect(within(more).getByLabelText(/^Weight per/)).toBeInTheDocument();

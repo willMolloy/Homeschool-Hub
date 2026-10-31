@@ -1,5 +1,6 @@
 import type { BlockedKind, OverrideMode, SubjectRule, UnitType, WeekReviewStatus, WeekStart } from "./enums";
 import type { WeightSource } from "./weights";
+import type { WeekdaysSource } from "./weekdays";
 export type { BlockedKind, OverrideMode, SubjectRule, UnitType, WeekReviewStatus, WeekStart };
 
 /** A local calendar date, "YYYY-MM-DD". Never a timestamp. */
@@ -28,6 +29,14 @@ export interface Assignment {
   end: LocalDate;
   /** Relative effort per unit. null = subject default, then built-in (S2b-01). */
   weightPerUnit?: number | null;
+  /** The days this assignment is worked on. null/missing = no own choice: the subject's default, then every school day (S4-01). */
+  weekdays?: Weekday[] | null;
+  /**
+   * S4-01b: the weekdays changed from this day on (a week's first day). Days before it use `previousWeekdays`
+   * (null = every school day); the plan before it is kept and only what is left is replanned. Ignored unless it is after `start`.
+   */
+  weekdaysFrom?: LocalDate | null;
+  previousWeekdays?: Weekday[] | null;
 }
 
 /**
@@ -57,7 +66,10 @@ export interface BlockedPeriod {
   end: LocalDate;
   /** null/undefined/empty = whole family. */
   childIds?: string[] | null;
-  /** Informational only; the engine treats every kind the same. Stored values are a BlockedKind. */
+  /**
+   * Stored values are a BlockedKind. Every kind is zero capacity, except a `missed` day on or before asOf, which
+   * also keeps the plan before it as it was and carries its work forward (S4-00).
+   */
   kind?: BlockedKind | (string & {});
 }
 
@@ -105,6 +117,8 @@ export interface PlanContext {
   checkIns?: ProgressCheckIn[];
   /** Subject defaults: used for assignments with no weight of their own and the same unit type. */
   subjectWeights?: SubjectWeight[];
+  /** Subject default weekdays: used for assignments with no weekdays of their own (S4-01). */
+  subjectWeekdays?: { subjectId: string; weekdays: Weekday[] }[];
 }
 
 /** assumed = before asOf, presumed done as planned (S2b-18). */
@@ -157,6 +171,9 @@ export interface ChildPlan {
   weightPerUnit: number;
   /** Where weightPerUnit came from ("default" = the built-in, shown as estimated). */
   weightSource: WeightSource;
+  /** The days the work is placed on (null = every school day) and where that came from (S4-01). */
+  weekdays: Weekday[] | null;
+  weekdaysSource: WeekdaysSource;
   totalUnits: number;
   /** Position at the last check-in (0 without one); assumed days don't count as done. */
   doneUnits: number;

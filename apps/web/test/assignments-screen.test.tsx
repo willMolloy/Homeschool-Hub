@@ -8,15 +8,15 @@ import { renderAt } from "./render";
 
 const SAXON: Assignment = {
   id: rowId(1), subjectId: MATH.id, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: null,
-  startDate: "2026-11-02", endDate: "2026-11-26", childIds: [FRANK.id, MAGGIE.id], archived: false,
+  startDate: "2026-11-02", endDate: "2026-11-26", childIds: [FRANK.id, MAGGIE.id], archived: false, weekdays: null,
 };
 const NOVEL: Assignment = {
   id: rowId(2), subjectId: READING.id, title: "Charlotte's Web", unitType: "pages", totalUnits: 184, weightPerUnit: 1.4,
-  startDate: "2026-10-15", endDate: "2026-12-18", childIds: [MAGGIE.id], archived: false,
+  startDate: "2026-10-15", endDate: "2026-12-18", childIds: [MAGGIE.id], archived: false, weekdays: null,
 };
 const OLD: Assignment = {
   id: rowId(3), subjectId: LATIN.id, title: "Latin primer", unitType: "chapters", totalUnits: 10, weightPerUnit: 20,
-  startDate: "2026-01-05", endDate: "2026-05-29", childIds: [OLD_KID.id], archived: true,
+  startDate: "2026-01-05", endDate: "2026-05-29", childIds: [OLD_KID.id], archived: true, weekdays: null,
 };
 
 async function setup(rows = [SAXON, NOVEL], subjects?: Subject[]) {
@@ -86,7 +86,7 @@ describe("Assignments screen", () => {
     await user.click(within(form).getByRole("button", { name: "Add" }));
     expect(writes()).toEqual([{
       method: "POST", path: "/api/assignments",
-      body: { subjectId: MATH.id, title: "Fractions", unitType: "pages", totalUnits: 45.5, weightPerUnit: 1.4, startDate: "2026-11-02", endDate: "2026-12-04", childIds: [FRANK.id] },
+      body: { subjectId: MATH.id, title: "Fractions", unitType: "pages", totalUnits: 45.5, weightPerUnit: 1.4, startDate: "2026-11-02", endDate: "2026-12-04", childIds: [FRANK.id], weekdays: null },
     }]);
     expect(await screen.findByText("Fractions")).toBeInTheDocument();
     expect(screen.queryByRole("form")).toBeNull();

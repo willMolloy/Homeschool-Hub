@@ -44,6 +44,30 @@ INSERT INTO blocked_range (id, family_id, label, start_date, end_date) VALUES
   ('b0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', 'Christmas', '2026-12-21', '2027-01-01');
 INSERT INTO week_override (family_id, assignment_id, child_id, week_start, planned_units, mode) VALUES
   ('f0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', NULL, '2026-10-26', 60, 'pushEndDate');
+SELECT pg_temp.expect_error($$INSERT INTO blocked_range (family_id, kind, start_date, end_date) VALUES ('f0000000-0000-0000-0000-000000000001','later','2026-10-28','2026-10-28')$$,
+  '23514', 'blocked_range kind must be a known kind');
+INSERT INTO blocked_range (family_id, kind, start_date, end_date) VALUES ('f0000000-0000-0000-0000-000000000001', 'missed', '2026-10-28', '2026-10-28');
+DO $$ BEGIN RAISE NOTICE 'ok   blocked_range accepts kind missed (009)'; END $$;
+
+-- S4-02: weekdays are NULL, or 1-7 distinct days in 0-6 with no NULLs
+UPDATE assignment SET weekdays = '{5}' WHERE id = 'a0000000-0000-0000-0000-000000000001';
+UPDATE subject SET default_weekdays = '{2,4}' WHERE id = '50000000-0000-0000-0000-000000000001';
+DO $$ BEGIN
+  IF (SELECT count(*) FROM assignment WHERE weekdays IS NULL) <> 1 THEN RAISE EXCEPTION 'FAIL weekdays should default to NULL'; END IF;
+  RAISE NOTICE 'ok   weekdays default NULL and accept a valid list (010)';
+END $$;
+SELECT pg_temp.expect_error($$UPDATE assignment SET weekdays = '{7}' WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, '23514', 'assignment weekdays reject 7');
+SELECT pg_temp.expect_error($$UPDATE assignment SET weekdays = '{}' WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, '23514', 'assignment weekdays reject an empty array');
+SELECT pg_temp.expect_error($$UPDATE assignment SET weekdays = '{1,1}' WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, '23514', 'assignment weekdays reject duplicates');
+SELECT pg_temp.expect_error($$UPDATE assignment SET weekdays = '{1,NULL}' WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, '23514', 'assignment weekdays reject a NULL element');
+SELECT pg_temp.expect_error($$UPDATE subject SET default_weekdays = '{-1}' WHERE id = '50000000-0000-0000-0000-000000000001'$$, '23514', 'subject default_weekdays reject -1');
+SELECT pg_temp.expect_error($$UPDATE subject SET default_weekdays = '{3,3}' WHERE id = '50000000-0000-0000-0000-000000000001'$$, '23514', 'subject default_weekdays reject duplicates');
+
+-- S4-01b: weekdays_from / previous_weekdays
+UPDATE assignment SET weekdays_from = '2026-10-26', previous_weekdays = '{1,2,3}' WHERE id = 'a0000000-0000-0000-0000-000000000001';
+DO $$ BEGIN RAISE NOTICE 'ok   weekdays_from with previous_weekdays accepted (011)'; END $$;
+SELECT pg_temp.expect_error($$UPDATE assignment SET previous_weekdays = '{9}' WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, '23514', 'previous_weekdays reject 9');
+SELECT pg_temp.expect_error($$UPDATE assignment SET weekdays_from = NULL WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, '23514', 'previous_weekdays need weekdays_from');
 
 -- 1. checkoff: one per (assignment, date, child)
 INSERT INTO log_entry (id, family_id, assignment_id, log_date, kind) VALUES

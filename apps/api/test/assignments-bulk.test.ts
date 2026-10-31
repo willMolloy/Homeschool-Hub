@@ -42,7 +42,7 @@ describe.skipIf(!hasDb)("POST /api/assignments/bulk (integration)", () => {
     expect(res.statusCode).toBe(201);
     const j = res.json();
     expect(j.map((x: { title: string }) => x.title)).toEqual(["One", "Two", "Three"]);
-    expect(j[1]).toEqual({ id: expect.any(String), subjectId: subject, title: "Two", unitType: "lessons", totalUnits: 20, weightPerUnit: null,
+    expect(j[1]).toEqual({ id: expect.any(String), subjectId: subject, title: "Two", unitType: "lessons", totalUnits: 20, weightPerUnit: null, weekdays: null,
       startDate: "2026-11-02", endDate: "2026-11-27", childIds: kids, archived: false });
     expect(await count()).toBe(before + 3);
     const list = (await req("GET", "/api/assignments")).json().map((x: { id: string }) => x.id);

@@ -8,7 +8,7 @@ import { renderAt } from "./render";
 
 const SAXON: Assignment = {
   id: rowId(1), subjectId: MATH.id, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: null,
-  startDate: "2026-11-02", endDate: "2026-11-26", childIds: [FRANK.id], archived: false,
+  startDate: "2026-11-02", endDate: "2026-11-26", childIds: [FRANK.id], archived: false, weekdays: null,
 };
 
 async function setup() {
@@ -51,7 +51,7 @@ describe("Add several assignments (S3a-04)", () => {
     await fillRow(user, form, 3, "Little House", "300");
     await user.click(within(form).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(writes()).toHaveLength(1));
-    const shared = { subjectId: READING.id, unitType: "pages", weightPerUnit: null, startDate: "2026-11-02", endDate: "2026-12-18", childIds: [FRANK.id] };
+    const shared = { subjectId: READING.id, unitType: "pages", weightPerUnit: null, startDate: "2026-11-02", endDate: "2026-12-18", childIds: [FRANK.id], weekdays: null };
     expect(writes()).toEqual([{
       method: "POST", path: "/api/assignments/bulk",
       body: { assignments: [{ ...shared, title: "Charlotte's Web", totalUnits: 184 }, { ...shared, title: "Little House", totalUnits: 300 }] },

@@ -1,6 +1,6 @@
 # Sprint 5 — Event preview, calendar templates and the phone pass
 
-> **Status: proposed, not started** (2026-10-30). Contents chosen by Will on 2026-10-30. **Approval to build:** _none yet_ (Will or DeeDee, recorded here). Starts after Sprint 4.
+> **Status: approved, not started** (2026-10-30). Contents chosen by Will on 2026-10-30. **Approval to build:** Will approved Sprint 4 and Sprint 5 in the working session on 2026-10-30, after PR #1 was merged ("Can we proceed with sprint 4 and 5"). Starts after Sprint 4 and its tester pass.
 
 **Source:** ROADMAP.md core checklist: "Preview before saving an event" (Steering), "Calendar templates for the year's shape" (Fast setup), "Phone finishing pass" (The map).
 

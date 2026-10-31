@@ -8,7 +8,7 @@ import { renderAt } from "./render";
 
 const SAXON: Assignment = {
   id: rowId(1), subjectId: MATH.id, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: null,
-  startDate: "2026-11-02", endDate: "2026-11-26", childIds: [FRANK.id], archived: false,
+  startDate: "2026-11-02", endDate: "2026-11-26", childIds: [FRANK.id], archived: false, weekdays: null,
 };
 const HEADER = "subject,title,children,unit,total,start,end";
 const VALID = `${HEADER}\nMath,Fractions,Frank,lessons,30,2026-11-02,2026-12-18\nReading,"Charlotte's Web, part 1",Frank;Maggie,pages,184,11/2/2026,12/18/2026\n`;
@@ -51,6 +51,17 @@ describe("Import assignments from a CSV (S3a-06)", () => {
     expect(await screen.findByText("Fractions")).toBeInTheDocument();
     expect(screen.getByText("Charlotte's Web, part 1")).toBeInTheDocument();
     expect(screen.queryByRole("form")).toBeNull();
+  });
+
+  it("imported rows carry no days of their own, so they follow the subject (S4-07)", async () => {
+    const { user, form } = await setup();
+    fakeApi.on("POST /api/assignments/bulk", (body) => [201, (body as { assignments: object[] }).assignments.map((a, i) => ({ ...a, id: rowId(10 + i), archived: false }))]);
+    paste(form, VALID);
+    await within(form).findByText("2 assignments");
+    await user.click(within(form).getByRole("button", { name: "Import" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    const rows = (writes()[0]!.body as { assignments: { weekdays?: number[] | null }[] }).assignments;
+    expect(rows.map((r) => r.weekdays ?? null)).toEqual([null, null]);
   });
 
   it("a chosen file is read like pasted text", async () => {

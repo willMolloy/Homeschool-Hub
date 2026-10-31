@@ -10,11 +10,11 @@ import { renderAt } from "./render";
 
 const SAXON: Assignment = {
   id: rowId(1), subjectId: MATH.id, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: null,
-  startDate: "2026-11-02", endDate: "2026-11-26", childIds: [FRANK.id, MAGGIE.id], archived: false,
+  startDate: "2026-11-02", endDate: "2026-11-26", childIds: [FRANK.id, MAGGIE.id], archived: false, weekdays: null,
 };
 const NOVEL: Assignment = {
   id: rowId(2), subjectId: READING.id, title: "Charlotte's Web", unitType: "pages", totalUnits: 184, weightPerUnit: 1.4,
-  startDate: "2026-10-15", endDate: "2026-12-18", childIds: [MAGGIE.id], archived: false,
+  startDate: "2026-10-15", endDate: "2026-12-18", childIds: [MAGGIE.id], archived: false, weekdays: null,
 };
 
 async function setup(rows = [SAXON, NOVEL]) {
@@ -63,7 +63,7 @@ describe("Copy an assignment (S3a-01)", () => {
     await waitFor(() => expect(writes()).toHaveLength(1));
     expect(writes()).toEqual([{
       method: "POST", path: "/api/assignments",
-      body: { subjectId: READING.id, title: "Charlotte's Web (copy)", unitType: "pages", totalUnits: 184, weightPerUnit: 1.4, startDate: "2026-10-15", endDate: "2026-12-18", childIds: [FRANK.id] },
+      body: { subjectId: READING.id, title: "Charlotte's Web (copy)", unitType: "pages", totalUnits: 184, weightPerUnit: 1.4, startDate: "2026-10-15", endDate: "2026-12-18", childIds: [FRANK.id], weekdays: null },
     }]);
     expect(await screen.findByText("Charlotte's Web (copy)")).toBeInTheDocument();
     expect(screen.getByText("Charlotte's Web")).toBeInTheDocument();

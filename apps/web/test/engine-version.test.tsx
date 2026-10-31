@@ -11,7 +11,7 @@ describe("Engine version", () => {
     renderAt("/kids?debug=1");
     const footer = await screen.findByRole("contentinfo");
     expect(footer).toHaveTextContent(`Engine ${ENGINE_VERSION}`);
-    expect(ENGINE_VERSION).toBe("0.6.0");
+    expect(ENGINE_VERSION).toBe("0.9.0");
   });
 
   it("parents get an empty footer (T-03b)", async () => {

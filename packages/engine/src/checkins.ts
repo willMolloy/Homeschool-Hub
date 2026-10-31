@@ -31,6 +31,16 @@ function prepareCheckIns(a: Assignment, childId: string, checkIns: ProgressCheck
   return [...byWeek.values()].sort((x, y) => x.w0 - y.w0);
 }
 
+/** Last day of the latest week this child has a check-in for on the assignment (-Infinity without one). */
+export function lastCheckInWeekEnd(a: Assignment, childId: string, checkIns: ProgressCheckIn[] | undefined, calendar: FamilyCalendar): number {
+  let last = -Infinity;
+  for (const ci of checkIns ?? []) {
+    if (ci.assignmentId !== a.id || ci.childId !== childId) continue;
+    last = Math.max(last, weekStartOfDayNumber(toDayNumber(ci.weekStart), calendar.weekStart) + 6);
+  }
+  return last;
+}
+
 const sumPlanned = (planned: Map<number, number>, from: number, to: number): number => {
   let s = 0;
   for (const [d, v] of planned) if (d >= from && d <= to) s += v;

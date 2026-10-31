@@ -55,6 +55,8 @@ export interface Subject {
   archived: boolean;
   /** S2b-31: the subject's default bar width for one unit type, or null. */
   defaultWeight: SubjectDefaultWeight | null;
+  /** S4-03: the days (0 = Sunday … 6 = Saturday, sorted) new work in this subject runs on, or null = every school day. */
+  defaultWeekdays: number[] | null;
 }
 
 /** GET /api/health */
@@ -98,6 +100,8 @@ export interface Assignment {
   endDate: string;
   childIds: string[];
   archived: boolean;
+  /** S4-04: the assignment's own days (0 = Sunday … 6 = Saturday, sorted), or null = follow the subject's default. */
+  weekdays: number[] | null;
 }
 
 /** GET/POST/PATCH/DELETE /api/blocked-ranges (S2a-07) */

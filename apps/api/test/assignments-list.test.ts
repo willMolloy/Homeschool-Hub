@@ -34,7 +34,7 @@ describe.skipIf(!hasDb)("GET /api/assignments (integration)", () => {
     expect(rows).toHaveLength(14);
     const childIds = new Set(Object.values(fam.ids.child));
     for (const a of rows) {
-      expect(Object.keys(a).sort()).toEqual(["archived", "childIds", "endDate", "id", "startDate", "subjectId", "title", "unitType", "totalUnits", "weightPerUnit"].sort());
+      expect(Object.keys(a).sort()).toEqual(["archived", "childIds", "endDate", "id", "startDate", "subjectId", "title", "unitType", "totalUnits", "weightPerUnit", "weekdays"].sort());
       expect(typeof a.totalUnits).toBe("number");
       expect(a.weightPerUnit === null || typeof a.weightPerUnit === "number").toBe(true);
       expect(a.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);

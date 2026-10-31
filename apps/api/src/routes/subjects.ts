@@ -1,14 +1,17 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { withTransaction } from "../db";
+import { withTransaction, type Tx } from "../db";
 import { HttpError } from "../http/errors";
 import { isUniqueViolation } from "../http/pgErrors";
-import { DefaultWeight } from "../http/scheduleLimits";
+import { DefaultWeight, Weekdays } from "../http/scheduleLimits";
 import { Color, Name, SortOrder, UUID_RE, parseBody, parseListQuery } from "../http/validate";
-import { SUBJECT_NAME_INDEX, createSubject, listSubjects, toSubjectJson, updateSubject } from "../repos/subjectRepo";
+import { familyWeekStart } from "../http/familyWeek";
+import { recordSubjectWeekdaysChange } from "../repos/assignmentRepo";
+import { SUBJECT_NAME_INDEX, createSubject, listSubjects, lockSubjectWeekdays, toSubjectJson, updateSubject } from "../repos/subjectRepo";
+import { sameWeekdays } from "../services/weekdaysChange";
 
 // Unknown keys (e.g. family_id) are dropped: ownership always comes from the session.
-const CreateBody = z.strictObject({ name: Name, color: Color.optional(), defaultWeight: DefaultWeight.nullable().optional() });
+const CreateBody = z.strictObject({ name: Name, color: Color.optional(), defaultWeight: DefaultWeight.nullable().optional(), defaultWeekdays: Weekdays.nullable().optional() });
 const PatchBody = z
   .strictObject({
     name: Name.optional(),
@@ -16,8 +19,9 @@ const PatchBody = z
     sortOrder: SortOrder.optional(),
     archived: z.boolean().optional(),
     defaultWeight: DefaultWeight.nullable().optional(),
+    defaultWeekdays: Weekdays.nullable().optional(),
   })
-  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, color, sortOrder, archived, defaultWeight.");
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, color, sortOrder, archived, defaultWeight, defaultWeekdays.");
 
 const notFound = () => new HttpError(404, "not_found", "No such subject.");
 
@@ -27,6 +31,13 @@ function duplicateNameOr(err: unknown): never {
     throw new HttpError(409, "duplicate_name", "You already have a subject with that name.");
   }
   throw err;
+}
+
+/** S4-01b: after a default-weekdays change, started assignments that follow the default keep their plan up to this week. */
+async function recordWeekdaysHistory(tx: Tx, req: FastifyRequest, subjectId: string, before: number[] | null, after: number[] | null): Promise<void> {
+  if (sameWeekdays(before, after)) return;
+  const { weekdaysFrom } = await familyWeekStart(tx, req);
+  await recordSubjectWeekdaysChange(tx, req.familyId, subjectId, { weekdaysFrom, previousWeekdays: before, after });
 }
 
 export async function subjectsRoutes(app: FastifyInstance): Promise<void> {
@@ -46,7 +57,15 @@ export async function subjectsRoutes(app: FastifyInstance): Promise<void> {
     if (!UUID_RE.test(req.params.id)) throw notFound();
     const patch = parseBody(PatchBody, req.body);
     // A rename onto an active name, or unarchiving into a clash, hits the unique index → 409.
-    const row = await updateSubject(app.db, req.familyId, req.params.id, patch).catch(duplicateNameOr);
+    const row = patch.defaultWeekdays === undefined
+      ? await updateSubject(app.db, req.familyId, req.params.id, patch).catch(duplicateNameOr)
+      : await withTransaction(app.db, async (tx) => {
+        const before = await lockSubjectWeekdays(tx, req.familyId, req.params.id);
+        if (before === undefined) return null;
+        const updated = await updateSubject(tx, req.familyId, req.params.id, patch);
+        await recordWeekdaysHistory(tx, req, req.params.id, before, patch.defaultWeekdays ?? null);
+        return updated;
+      }).catch(duplicateNameOr);
     if (!row) throw notFound();
     return toSubjectJson(row);
   });

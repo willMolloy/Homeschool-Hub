@@ -227,8 +227,8 @@ describe("Black Beauty after Thanksgiving in Frank's Fall view (T-11b)", () => {
     const model = buildTimelineModel(sampleInput({
       today: "2026-10-30", plans,
       assignments: f.assignments.map((a) => ({ id: a.id, subjectId: a.subjectId, title: (a as { title?: string }).title ?? a.id, unitType: a.unitType,
-        totalUnits: a.totalUnits, weightPerUnit: a.weightPerUnit ?? null, startDate: a.start, endDate: a.end, childIds: [...a.childIds], archived: false })),
-      subjects: f.subjects.map((s, i) => ({ id: s.key, name: s.name, color: null, sortOrder: i, archived: false, defaultWeight: null })),
+        totalUnits: a.totalUnits, weightPerUnit: a.weightPerUnit ?? null, startDate: a.start, endDate: a.end, childIds: [...a.childIds], archived: false, weekdays: null })),
+      subjects: f.subjects.map((s, i) => ({ id: s.key, name: s.name, color: null, sortOrder: i, archived: false, defaultWeight: null, defaultWeekdays: null })),
       blocked: f.blocked.map((b) => ({ id: b.id, label: b.label, kind: (b.kind ?? "vacation") as BlockedRange["kind"], startDate: b.start, endDate: b.end, childIds: [...(b.childIds ?? [])] })),
       events: [],
     }));

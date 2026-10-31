@@ -129,7 +129,7 @@ export function LastWeekCard(props: LastWeekCardProps) {
   }
 
   return (
-    <section className="card checkin-card" aria-label="How did last week go?">
+    <section id="last-week-checkin" className="card checkin-card" aria-label="How did last week go?">
       <h2 id={titleId} className="checkin-title">Last week · {weekRangeText(week.weekStart, week.weekEnd)}</h2>
       {kids.length > 1 && (
         <div className="checkin-kids" role="group" aria-label="Child">

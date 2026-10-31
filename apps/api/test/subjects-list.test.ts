@@ -40,13 +40,13 @@ describe.skipIf(!hasDb)("GET /api/subjects (integration)", () => {
     expect(ra.statusCode).toBe(200);
     expect(ra.json().map((c: { name: string }) => c.name)).not.toContain("Other");
     const rb = await list(b.cookies);
-    expect(rb.json()).toEqual([{ id: ids.Other, name: "Other", color: null, sortOrder: 0, archived: false, defaultWeight: null }]);
+    expect(rb.json()).toEqual([{ id: ids.Other, name: "Other", color: null, sortOrder: 0, archived: false, defaultWeight: null, defaultWeekdays: null }]);
   });
 
   it("sorted by sort_order then name (case-insensitive); JSON shape", async () => {
     const res = (await list(a.cookies)).json();
     expect(res.map((c: { name: string }) => c.name)).toEqual(["Zed", "amy", "Bob"]);
-    expect(res[2]).toEqual({ id: ids.Bob, name: "Bob", color: "#2f6fb0", sortOrder: 2, archived: false, defaultWeight: null });
+    expect(res[2]).toEqual({ id: ids.Bob, name: "Bob", color: "#2f6fb0", sortOrder: 2, archived: false, defaultWeight: null, defaultWeekdays: null });
   });
 
   it("archived excluded by default, included with ?includeArchived=true", async () => {

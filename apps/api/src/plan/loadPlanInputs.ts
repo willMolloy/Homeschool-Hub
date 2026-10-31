@@ -4,7 +4,8 @@
  * They run one after another on ONE connection inside a read-only REPEATABLE READ snapshot, so a
  * request never holds more than one pool connection and never sees half of a concurrent edit.
  * Archived children, subjects, assignments and events are left out of planning. Subject default weights (S2b-33)
- * are read for every subject, archived ones included, and only matter for assignments that are planned.
+ * are read for every subject, archived ones included, and only matter for assignments that are planned; so are subject
+ * default weekdays (S4-05), and an assignment's own weekdays with the date and days of its last change (S4-01b).
  * `asOf` is not set here: the route decides it.
  * Check-ins (S2b-22) follow the overrides' rule: only for planned assignments and active children.
  * The log tables are never read: they feed hours and exports only (S2b-18/19).
@@ -25,6 +26,7 @@ export interface PlanInputs {
     blocked: BlockedPeriod[];
     overrides: WeekOverride[];
     subjectWeights: SubjectWeight[];
+    subjectWeekdays: { subjectId: string; weekdays: Weekday[] }[];
     checkIns: ProgressCheckIn[];
   };
 }
@@ -34,6 +36,9 @@ export class FamilyNotFoundError extends Error {
     super(`family ${familyId} not found`);
   }
 }
+
+/** Stored weekdays sorted ascending, or null. */
+const sortedDays = (d: number[] | null): Weekday[] | null => (d ? ([...d].sort((x, y) => x - y) as Weekday[]) : null);
 
 /** Group `[key, value]` rows into key → values. */
 function groupBy<R>(rows: R[], key: (r: R) => string, value: (r: R) => string): Map<string, string[]> {
@@ -63,14 +68,15 @@ export async function readPlanInputs(db: Queryable, familyId: string): Promise<P
   };
 
   const children = await query<{ id: string }>(db, "SELECT id FROM child WHERE family_id = $1 AND archived_at IS NULL", [familyId]);
-  const subjects = await query<{ id: string; archived: boolean; default_weight_unit: UnitType | null; default_weight: number | null }>(db,
-    `SELECT id, archived_at IS NOT NULL AS archived, default_weight_unit, default_weight
+  const subjects = await query<{ id: string; archived: boolean; default_weight_unit: UnitType | null; default_weight: number | null; default_weekdays: number[] | null }>(db,
+    `SELECT id, archived_at IS NOT NULL AS archived, default_weight_unit, default_weight, default_weekdays
        FROM subject WHERE family_id = $1 ORDER BY id`, [familyId]);
   const assignmentRows = await query<{
     id: string; subject_id: string; title: string; unit_type: UnitType; total_units: number;
     start_date: string; end_date: string; weight_per_unit: number | null;
+    weekdays: number[] | null; weekdays_from: string | null; previous_weekdays: number[] | null;
   }>(db,
-    `SELECT id, subject_id, title, unit_type, total_units, start_date, end_date, weight_per_unit
+    `SELECT id, subject_id, title, unit_type, total_units, start_date, end_date, weight_per_unit, weekdays, weekdays_from, previous_weekdays
        FROM assignment WHERE family_id = $1 AND archived_at IS NULL ORDER BY start_date, id`, [familyId]);
   const assignmentChildren = await query<{ assignment_id: string; child_id: string }>(db,
     "SELECT assignment_id, child_id FROM assignment_child WHERE family_id = $1 ORDER BY child_id", [familyId]);
@@ -115,6 +121,9 @@ export async function readPlanInputs(db: Queryable, familyId: string): Promise<P
       start: a.start_date,
       end: a.end_date,
       weightPerUnit: a.weight_per_unit == null ? null : Number(a.weight_per_unit),
+      weekdays: sortedDays(a.weekdays),
+      weekdaysFrom: a.weekdays_from,
+      previousWeekdays: sortedDays(a.previous_weekdays),
     });
   }
   const planned = new Set(assignments.map((a) => a.id));
@@ -173,5 +182,9 @@ export async function readPlanInputs(db: Queryable, familyId: string): Promise<P
     .filter((s) => s.default_weight_unit != null && s.default_weight != null)
     .map((s) => ({ subjectId: s.id, unitType: s.default_weight_unit!, weightPerUnit: Number(s.default_weight) }));
 
-  return { timeZone: family.time_zone, calendar, assignments, ctx: { calendar, events, blocked, overrides, subjectWeights, checkIns } };
+  const subjectWeekdays = subjects
+    .filter((s) => s.default_weekdays != null)
+    .map((s) => ({ subjectId: s.id, weekdays: sortedDays(s.default_weekdays)! }));
+
+  return { timeZone: family.time_zone, calendar, assignments, ctx: { calendar, events, blocked, overrides, subjectWeights, subjectWeekdays, checkIns } };
 }

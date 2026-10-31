@@ -38,7 +38,7 @@ export const DEMO_ME: Me = {
 };
 
 const ROSTER_PATCH = ["name", "color", "sortOrder", "archived"];
-const ASSIGNMENT = ["subjectId", "title", "unitType", "totalUnits", "weightPerUnit", "startDate", "endDate", "childIds"];
+const ASSIGNMENT = ["subjectId", "title", "unitType", "totalUnits", "weightPerUnit", "startDate", "endDate", "childIds", "weekdays"];
 const EVENT = ["name", "weekdays", "startDate", "endDate", "capacityFraction", "defaultRule", "subjectRules", "childIds"];
 const BLOCKED = ["label", "kind", "startDate", "endDate", "childIds"];
 /** The keys each API body schema accepts (apps/api/src/routes/*, all z.strictObject). `:id` = one path segment. */
@@ -47,8 +47,8 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone"],
   "POST /api/children": ["name", "color"],
   "PATCH /api/children/:id": ROSTER_PATCH,
-  "POST /api/subjects": ["name", "color", "defaultWeight"],
-  "PATCH /api/subjects/:id": [...ROSTER_PATCH, "defaultWeight"],
+  "POST /api/subjects": ["name", "color", "defaultWeight", "defaultWeekdays"],
+  "PATCH /api/subjects/:id": [...ROSTER_PATCH, "defaultWeight", "defaultWeekdays"],
   "POST /api/assignments": ASSIGNMENT,
   "PATCH /api/assignments/:id": [...ASSIGNMENT, "archived"],
   "POST /api/events": EVENT,
