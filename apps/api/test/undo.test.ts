@@ -142,7 +142,7 @@ describe.skipIf(!hasDb)("/api/undo (S6-06, integration)", () => {
   it("a week adjustment set, replaced and removed can each be undone", async () => {
     const before = await plan();
     const first = (await put(override())).json();
-    expect(await undoEntry()).toMatchObject({ label: "Adjusted Treasure Island" });
+    expect(await undoEntry()).toMatchObject({ label: "Adjusted Treasure Island for Ada, week of Nov 2" });
     expect(await plan()).not.toEqual(before);
     await req("POST", "/api/undo");
     expect((await req("GET", `/api/week-overrides?weekStart=${NEXT}`)).json()).toEqual({ overrides: [] });
@@ -155,10 +155,19 @@ describe.skipIf(!hasDb)("/api/undo (S6-06, integration)", () => {
     expect((await req("GET", `/api/week-overrides?weekStart=${NEXT}`)).json()).toEqual({ overrides: [one] });
 
     expect((await req("DELETE", `/api/week-overrides/${one.id}`)).statusCode).toBe(204);
-    expect(await undoEntry()).toMatchObject({ label: "Removed an adjustment to Treasure Island" });
+    expect(await undoEntry()).toMatchObject({ label: "Removed the adjustment to Treasure Island for Ada, week of Nov 2" });
     await req("POST", "/api/undo");
     expect((await req("GET", `/api/week-overrides?weekStart=${NEXT}`)).json()).toEqual({ overrides: [one] });
     void first;
+  });
+
+  it("S6b-14: the label names the child and the week; every child when the adjustment is for all", async () => {
+    await put(override({ childId: kids[1], weekStart: "2026-11-09" }));
+    expect((await undoEntry()).label).toBe("Adjusted Treasure Island for Ben, week of Nov 9");
+    const all = (await put(override({ childId: null }))).json();
+    expect((await undoEntry()).label).toBe("Adjusted Treasure Island for every child, week of Nov 2");
+    await req("DELETE", `/api/week-overrides/${all.id}`);
+    expect((await undoEntry()).label).toBe("Removed the adjustment to Treasure Island for every child, week of Nov 2");
   });
 
   it("only the last change is kept: a new change replaces the entry", async () => {

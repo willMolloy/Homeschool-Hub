@@ -102,7 +102,7 @@ describe("Plan debug view", () => {
     expect(screen.getByText(/Effort \(units × weight\) per day/)).toBeInTheDocument();
   });
 
-  it("S6b-01 (was T-03b): parents see no table and none of the debug extras — no heading, Plan as of, markers, legend or engine footer; the warnings list stays without codes", async () => {
+  it("S6b-01 (was T-03b): parents see no table and none of the debug extras — no heading, Plan as of, markers, legend or engine footer; S6b-14: and no warnings list", async () => {
     setup();
     renderAt("/?week=2026-10-28&asOf=2026-10-19");
     await screen.findByRole("button", { name: "Make an adjustment for Frank" });
@@ -113,7 +113,9 @@ describe("Plan debug view", () => {
     expect(screen.queryAllByLabelText("built-in weight")).toHaveLength(0);
     expect(screen.queryByRole("list", { name: "Markers" })).toBeNull();
     expect(screen.queryByText(/Engine/)).toBeNull();
-    expect(screen.getByRole("list", { name: "Warnings for Margaret" })).toHaveTextContent("Math: the end date has passed with work left");
+    // S6b-14: the engine's warnings are developer text; Margaret's past-end warning shows only with the debug flag.
+    expect(screen.queryByRole("list", { name: "Warnings for Margaret" })).toBeNull();
+    expect(screen.queryByText(/end date has passed/)).toBeNull();
     expect(screen.queryByText("past-end")).toBeNull();
     // The child's name is visible to assistive tech now that no table caption carries it.
     expect(screen.getByText("Frank")).not.toHaveAttribute("aria-hidden");
@@ -163,12 +165,30 @@ describe("Plan debug view", () => {
     expect(screen.queryByRole("list", { name: "Markers" })).not.toBeInTheDocument();
   });
 
-  it("lists plan warnings under the child's table", async () => {
+  it("lists plan warnings under the child's table (debug only, S6b-14)", async () => {
     setup();
     renderAt("/?week=2026-10-28&debug=1");
     const list = await screen.findByRole("list", { name: "Warnings for Margaret" });
     expect(list).toHaveTextContent("Math: the end date has passed with work left past-end");
     expect(screen.queryByRole("list", { name: "Warnings for Frank" })).not.toBeInTheDocument();
+  });
+
+  it("S6b-14: the duplicate-adjustment warning shows no engine text to a parent, and shows only with the debug flag", async () => {
+    setup();
+    fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: [plan({ assignmentId: "ti", warnings: ["override-duplicate-week"], days: days([10, 10, 10, 10, 10]) })] });
+    renderAt("/?week=2026-10-28");
+    await screen.findByRole("button", { name: "Make an adjustment for Frank" });
+    expect(screen.queryByText(/two overrides/)).toBeNull();
+    expect(screen.queryByText(/override-duplicate-week/)).toBeNull();
+    expect(screen.queryByRole("list", { name: "Warnings for Frank" })).toBeNull();
+    expect(document.querySelector(".plan-debug-warnings")).toBeNull();
+  });
+
+  it("S6b-14: with ?debug=1 the same warning is listed, with its code", async () => {
+    setup();
+    fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: [plan({ assignmentId: "ti", warnings: ["override-duplicate-week"], days: days([10, 10, 10, 10, 10]) })] });
+    renderAt("/?week=2026-10-28&debug=1");
+    expect(await screen.findByRole("list", { name: "Warnings for Frank" })).toHaveTextContent("two overrides for the same week override-duplicate-week");
   });
 
   describe("default week (no ?week)", () => {

@@ -8,6 +8,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { query, withReadSnapshot, withTransaction, type Queryable } from "../db";
 import { HttpError } from "../http/errors";
+import { short as shortDate } from "../http/checkInDates";
 import { familyWeekStart } from "../http/familyWeek";
 import { hasAtMostDecimals, LocalDate } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
@@ -48,6 +49,15 @@ const toJson = (r: Row) => ({
 });
 
 const WEEKDAY_NAME = { mon: "Monday", sun: "Sunday" } as const;
+/**
+ * S6b-14: the undo bar says which child and week: "Adjusted Math 5 for Frank, week of Nov 2" (the undo bar adds the full stop). A null child is every
+ * child on the assignment.
+ */
+async function adjustmentLabel(db: Queryable, familyId: string, verb: string, title: string, childId: string | null, weekStart: string): Promise<string> {
+  const [c] = childId === null ? [] : await query<{ name: string }>(db, "SELECT name FROM child WHERE id = $1 AND family_id = $2", [childId, familyId]);
+  return `${verb} ${title} for ${childId === null ? "every child" : c?.name ?? "a child"}, week of ${shortDate(weekStart)}`;
+}
+
 const notFound = () => new HttpError(404, "not_found", "No such week adjustment.");
 
 /** The assignment must be this family's and not archived, the child active and on it, and the amount within its total. Returns its title. */
@@ -86,7 +96,7 @@ export async function weekOverridesRoutes(app: FastifyInstance): Promise<void> {
          DO UPDATE SET planned_units = EXCLUDED.planned_units, mode = EXCLUDED.mode, updated_at = clock_timestamp()
          RETURNING ${COLUMNS}`, [req.familyId, b.assignmentId, b.childId, b.weekStart, b.plannedUnits, b.mode]);
       // S6-06: undo puts the earlier amount back, or removes the adjustment if it is new.
-      await recordUndo(tx, req.familyId, `Adjusted ${title}`, [{ op: "weekOverride", id: r!.id, set: prev ? stateOf(prev) : null }]);
+      await recordUndo(tx, req.familyId, await adjustmentLabel(tx, req.familyId, "Adjusted", title, b.childId, b.weekStart), [{ op: "weekOverride", id: r!.id, set: prev ? stateOf(prev) : null }]);
       return r!;
     });
     return toJson(row);
@@ -111,7 +121,8 @@ export async function weekOverridesRoutes(app: FastifyInstance): Promise<void> {
       if (!cur) throw notFound();
       const [a] = await query<{ title: string }>(tx, "SELECT title FROM assignment WHERE id = $1 AND family_id = $2", [cur.assignment_id, req.familyId]);
       await query(tx, "DELETE FROM week_override WHERE id = $1 AND family_id = $2", [cur.id, req.familyId]);
-      await recordUndo(tx, req.familyId, `Removed an adjustment to ${a?.title ?? "an assignment"}`, [{ op: "weekOverride", id: cur.id, set: stateOf(cur) }]);
+      const label = await adjustmentLabel(tx, req.familyId, "Removed the adjustment to", a?.title ?? "an assignment", cur.child_id, cur.week_start);
+      await recordUndo(tx, req.familyId, label, [{ op: "weekOverride", id: cur.id, set: stateOf(cur) }]);
     });
     return reply.code(204).send();
   });

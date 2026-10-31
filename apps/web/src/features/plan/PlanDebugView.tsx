@@ -1,7 +1,8 @@
 /**
  * The week's plan table (S1-36), until the timeline lands. S6b-01: the table itself shows only with `debug` (it
  * is the engine's thickness numbers, meaningless to parents); without it each child keeps their name, the
- * "Make an adjustment" entry and any warnings, until S6b-02 replaces them with bars. T-03b: the week comes in as a prop (the page's
+ * "Make an adjustment" entry, until S6b-02 replaces them with bars. S6b-14: the engine's warnings ("two overrides for the
+ * same week") are developer text and show only with `debug`; the briefing says plan problems in plain words. T-03b: the week comes in as a prop (the page's
  * switcher owns it), each child's table can carry an action (the page's "Make an adjustment"), and everything a
  * parent doesn't need (heading, note, "Plan as of", markers and legend, warning codes, engine footer) shows only
  * with `debug`.
@@ -170,7 +171,7 @@ export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDeb
                   </tfoot>
                 </table>
               </div>}
-              {t.warnings.length > 0 ? (
+              {debug && t.warnings.length > 0 ? (
                 <ul className="plan-debug-warnings" aria-label={`Warnings for ${childName(t.childId)}`}>
                   {t.warnings.map((w, i) => (
                     <li key={i}>{subjectName(w.subjectId)}: {WARNING_TEXT[w.warning] ?? w.warning}{debug && <> <code>{w.warning}</code></>}</li>
