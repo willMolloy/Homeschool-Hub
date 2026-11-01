@@ -49,3 +49,20 @@
 .by-hours { font-variant-numeric: tabular-nums; font-size: 0.9rem; }
 .records-wording { margin: 18px 0 0; color: var(--tl-muted-foreground); font-size: 0.8125rem; }
 .records-lead .btn-link { min-height: 44px; }
+
+/* S9-11: export sheet and the printable summary (one page per child). */
+.export-form fieldset { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+.export-form legend { font-weight: 700; font-size: 0.95rem; margin: 0 0 6px; padding: 0; }
+.print-summary { display: none; }
+@media print {
+  @page { margin: 18mm; }
+  body.printing > *:not(.print-summary) { display: none !important; }
+  body.printing .print-summary { display: block; color: #000; background: #fff; font-family: var(--tl-font); }
+  .print-page { break-after: page; page-break-after: always; }
+  .print-page:last-child { break-after: auto; page-break-after: auto; }
+  .print-page h1 { font-size: 22pt; margin: 0 0 4pt; }
+  .print-page table { width: 100%; border-collapse: collapse; margin: 12pt 0; }
+  .print-page th, .print-page td { text-align: left; padding: 4pt 6pt; border-bottom: 0.5pt solid #999; font-weight: 400; vertical-align: top; }
+  .print-page th { font-weight: 700; width: 38%; }
+  .print-wording { margin-top: 18pt; font-size: 9pt; }
+}

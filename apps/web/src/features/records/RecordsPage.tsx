@@ -15,6 +15,7 @@ import { DateField } from "../../ui/DateField";
 import { EmptyState } from "../../ui/EmptyState";
 import { ChildSwitch } from "../week/ChildSwitch";
 import { ALL, useChildChoice } from "../week/useChildChoice";
+import { ExportSheet } from "./ExportSheet";
 import { LogEntryForm } from "./LogEntryForm";
 import { LogSetupForm } from "./LogSetupForm";
 import { dayWords, summaryOf } from "./entryText";
@@ -35,6 +36,7 @@ export function RecordsPage() {
   const [changing, setChanging] = useState(false);
   const [rangeKey, setRangeKey] = useState("year");
   const [custom, setCustom] = useState({ start: "", end: "" });
+  const [exporting, setExporting] = useState(false);
   const [logging, setLogging] = useState<RecordEntry | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const setup = family.data?.logSetup ?? null;
@@ -44,7 +46,7 @@ export function RecordsPage() {
   const picked = options.find((o) => o.key === rangeKey) ?? options.find((o) => o.key === "year");
   const range = rangeKey === "dates" ? (custom.start && custom.end && custom.end >= custom.start ? custom : null) : picked ? { start: picked.start, end: picked.end } : null;
   const childId = choice === null || choice === ALL ? null : choice;
-  const totalsPath = range ? `/api/records/totals?from=${range.start}&to=${range.end}${childId ? `&childId=${childId}` : ""}` : "/api/records/totals?from=1900-01-01&to=1900-01-01";
+  const totalsPath = range ? `/api/records/totals?from=${range.start}&to=${range.end}${childId ? `&childId=${childId}` : ""}` : "/api/records/totals";
   const totals = useApi<RecordTotals>(totalsPath);
 
   const failed = family.error || subjects.error || children.error || entries.error || totals.error || assignments.error;
@@ -79,7 +81,7 @@ export function RecordsPage() {
         <EmptyState text="Nothing logged yet." action={<Button onClick={() => setLogging("new")}>Log</Button>} />
       ) : (
         <>
-          <div className="records-actions"><Button onClick={() => setLogging("new")}>Log</Button></div>
+          <div className="records-actions"><Button onClick={() => setLogging("new")}>Log</Button><Button variant="secondary" onClick={() => setExporting(true)}>Export</Button></div>
           <ChildSwitch kids={kids} value={choice} onChange={setChoice} />
           <div className="range-chips" role="group" aria-label="Range">
             {options.map((o) => <Chip key={o.key} selected={rangeKey === o.key || (rangeKey !== "dates" && !options.some((x) => x.key === rangeKey) && o.key === "year")} onClick={() => setRangeKey(o.key)}>{o.label}</Chip>)}
@@ -115,6 +117,12 @@ export function RecordsPage() {
         </>
       )}
       <p className="records-wording">{RECORDS_WORDING}</p>
+      <ResponsiveSheet open={exporting} onOpenChange={(o) => !o && setExporting(false)} title="Export" wide="side">
+        {exporting && range ? (
+          <ExportSheet fields={setup.fields} children={children.data} subjects={subjects.data} entries={entries.data} start={range.start} end={range.end}
+            childIds={childId ? [childId] : kids.map((k) => k.id)} onClose={() => setExporting(false)} />
+        ) : null}
+      </ResponsiveSheet>
       <ResponsiveSheet open={logging !== null} onOpenChange={(o) => !o && setLogging(null)} title={logging === "new" || logging === null ? "Log" : "Change entry"} wide="side">
         {logging ? (
           <LogEntryForm key={logging === "new" ? "new" : logging.id} fields={setup.fields} children={children.data} subjects={subjects.data}
