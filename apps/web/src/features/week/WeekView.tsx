@@ -9,9 +9,8 @@ import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import type { ScheduleEvent } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
-import { Link } from "react-router-dom";
 import { Segmented } from "../../ui/components";
-import { aheadTitle } from "../checkin/ChildAdjustment";
+import { weekRangeText } from "../checkin/checkinText";
 import { Briefing } from "../plan/Briefing";
 import { PlanRefreshProvider } from "../plan/planRefresh";
 import { useWeekPlansState } from "../plan/useWeekPlans";
@@ -19,10 +18,15 @@ import { useDebugFlag, useShownWeek } from "../plan/useShownWeek";
 import { PlanDebugView } from "../plan/PlanDebugView";
 import { WeekAdjustment } from "../plan/WeekAdjustment";
 import { weekSpan } from "../home/homeSummary";
+import { PastWeek } from "../track/PastWeek";
 import { WeekBar, WeekBars } from "./WeekBar";
 import { barsFromPlans, eventLines } from "./weekBars";
 import { BOTH, useChildChoice } from "./useChildChoice";
 import { useWeekLookups } from "./useWeekLookups";
+
+/** "Frank · This week · Oct 26 – Nov 1", or "Frank · Nov 2 – 8" for a coming week (S6-03). */
+export const aheadTitle = (childName: string, weekStart: string, weekEnd: string, current: boolean) =>
+  `${childName} · ${current ? "This week · " : ""}${weekRangeText(weekStart, weekEnd)}`;
 
 export function WeekView() {
   return (
@@ -55,7 +59,7 @@ function Week() {
           options={[...look.activeChildren.map((c) => ({ value: c.id, label: c.name })), { value: BOTH, label: "Both" }]} />
       ) : null}
       {!past && <Briefing weekStart={week.weekStart} />}
-      {past ? <p className="week-empty">A finished week is checked in on <Link to="/track">Track work</Link>.</p> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} />}
+      {past ? <PastWeek weekStart={week.weekStart} choice={choice} look={look} /> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} />}
       {debug ? <PlanDebugView weekStart={week.weekStart} debug={debug} /> : null}
     </div>
   );

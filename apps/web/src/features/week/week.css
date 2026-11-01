@@ -26,6 +26,6 @@ button.bar-body { cursor: pointer; }
 .week-card h3 { font-family: var(--tl-font-display); font-weight: 600; font-size: 1.1rem; margin: 0 0 2px; }
 .week-card p { margin: 0; color: var(--tl-muted-foreground); font-size: 0.875rem; }
 .week-card .btn-row { margin-top: 14px; }
-.week-card .btn-row .btn { flex: 1; }
+.week-card .btn-row .btn { flex: 1; white-space: nowrap; padding-left: 12px; padding-right: 12px; }
 @media (prefers-reduced-motion: reduce) { .bar-check { transition: none; } }
 .bar-error { flex: 1 0 100%; margin: 0; padding: 0 0 4px 16px; color: var(--tl-foreground); font-size: 0.875rem; font-weight: 600; }

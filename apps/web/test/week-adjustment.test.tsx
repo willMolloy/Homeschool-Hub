@@ -6,7 +6,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
-import { aheadTitle } from "../src/features/checkin/ChildAdjustment";
+import { aheadTitle } from "../src/features/week/WeekView";
 import { adjustRows, changesFor, roundToStep, stepAmount, type AdjustRow } from "../src/features/plan/weekAdjust";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";

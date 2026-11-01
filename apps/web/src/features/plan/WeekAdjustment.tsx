@@ -2,7 +2,7 @@
  * "Make an adjustment" for a current or coming week (S6-03): that child's assignments with the amount planned this
  * week, a stepper on each, and, once an amount moved, the question of what happens to the end date. Save sends ONE
  * PUT /api/week-overrides/batch with every changed row and every row taken "Back to plan" (S7b-01), so it is one change
- * and one Undo. A past week keeps the check-in sheet (ChildAdjustment). The default is to keep the end date, as in the check-in.
+ * and one Undo. A finished week is the check-in board on Track work (S8-06). The default is to keep the end date, as in the check-in.
  */
 import { useState } from "react";
 import type { OverrideMode } from "@hh/engine";

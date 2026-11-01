@@ -6,22 +6,13 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
-import type { CheckInItem, ScheduleEvent, Subject, WeekCheckIn } from "../src/api/types";
-import { forChild, withOtherChildren } from "../src/features/checkin/childWeek";
+import type { ScheduleEvent, Subject } from "../src/api/types";
 import { shownWeek } from "../src/features/plan/useShownWeek";
 import { barsFromPlans, eventLines, rangeWords } from "../src/features/week/weekBars";
 import { shownChoice } from "../src/features/week/useChildChoice";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
-const item = (over: Partial<CheckInItem>): CheckInItem => ({
-  assignmentId: "ti", childId: "c1", childName: "Frank", title: "Treasure Island", unitType: "pages",
-  plannedFrom: 0, plannedTo: 80, totalUnits: 270, actual: null, mode: null, ...over,
-});
-const TI = item({});
-const MATH = item({ assignmentId: "math", title: "Math 5", unitType: "lessons", plannedFrom: 10, plannedTo: 15, totalUnits: 120 });
-const VIOLIN_M = item({ assignmentId: "violin", childId: "c2", childName: "Margaret", title: "Violin", unitType: "minutes", plannedFrom: 600, plannedTo: 750, totalUnits: 3000, actual: 700, mode: "pushEndDate" });
-const OCT19: WeekCheckIn = { weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, items: [TI, MATH, VIOLIN_M], addable: [] };
 /** A plan for the week of Mon 2026-10-26: `before` units done in earlier weeks, then `week` units spread over Mon and Tue. */
 const plan = (assignmentId: string, childId: string, subjectId: string, over: Partial<ChildPlan> & { before?: number; week?: number } = {}): ChildPlan => {
   const { before = 119, week = 31, ...rest } = over;
@@ -184,18 +175,5 @@ describe("shownWeek", () => {
     expect(shownWeek("2026-10-14", "2026-10-28", "mon").checkInWeekStart).toBe("2026-10-12");
     expect(shownWeek("2026-11-04", "2026-10-28", "mon").checkInWeekStart).toBe("2026-10-19");
     expect(shownWeek("nonsense", "2026-10-28", "mon").weekStart).toBe("2026-10-26");
-  });
-});
-
-describe("childWeek", () => {
-  it("forChild keeps one child's rows and addable pairs", () => {
-    const week = { ...OCT19, addable: [item({ assignmentId: "sci", childId: "c2" })] };
-    expect(forChild(week, "c1").items.map((i) => i.assignmentId)).toEqual(["ti", "math"]);
-    expect(forChild(week, "c1").addable).toEqual([]);
-    expect(forChild(week, "c2").addable).toHaveLength(1);
-  });
-  it("withOtherChildren appends only the other children's stored rows", () => {
-    expect(withOtherChildren(OCT19, "c1", [])).toEqual([{ assignmentId: "violin", childId: "c2", position: 700, mode: "pushEndDate" }]);
-    expect(withOtherChildren(OCT19, "c2", [])).toEqual([]);
   });
 });

@@ -232,7 +232,7 @@ describe("Weekly briefing on This Week (S4-09)", () => {
     const { router } = renderAt("/schedule?view=week");
     await user.click(await screen.findByRole("link", { name: "Last week isn't checked in yet." }));
     expect(router.state.location.pathname).toBe("/track");
-    await user.click(await screen.findByRole("button", { name: "Looks right" }));
+    await user.click(await screen.findByRole("button", { name: "Yes, all done" }));
     await user.click(within(screen.getByRole("navigation", { name: "Main" })).getByRole("link", { name: "Schedule" }));
     await screen.findAllByRole("heading", { name: /'s work$/ });
     await waitFor(() => expect(screen.queryByRole("link", { name: "Last week isn't checked in yet." })).toBeNull());
