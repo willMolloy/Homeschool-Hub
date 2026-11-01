@@ -1,4 +1,4 @@
-/* Shared form + list styles (login, kids, subjects). */
+/* Shared Soft Paper form, button and card styles (S8-03; components in ui/components.tsx wrap these classes). */
 .field {
   display: flex;
   flex-direction: column;
@@ -13,17 +13,17 @@
 .field input[type="email"],
 .field input[type="password"] {
   padding: 10px 12px;
-  border: 1px solid #b7c0cc;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--tl-input);
+  border-radius: var(--tl-radius-bar);
+  background: var(--tl-card);
   width: 100%;
   box-sizing: border-box;
 }
 .field select {
   padding: 10px 12px;
-  border: 1px solid #b7c0cc;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--tl-input);
+  border-radius: var(--tl-radius-bar);
+  background: var(--tl-card);
   min-height: 44px;
   box-sizing: border-box;
 }
@@ -37,9 +37,9 @@
 }
 .form-error {
   color: var(--danger);
-  background: #fdecec;
-  border: 1px solid #f3c1c1;
-  border-radius: 8px;
+  background: var(--tl-destructive-soft);
+  border: 1px solid var(--tl-destructive);
+  border-radius: var(--tl-radius-bar);
   padding: 10px 12px;
   margin: 0 0 14px;
 }
@@ -49,11 +49,11 @@
   justify-content: center;
   gap: 6px;
   min-height: 44px;
-  padding: 10px 18px;
-  border-radius: 8px;
+  padding: 10px 22px;
+  border-radius: 999px;
   border: 1px solid var(--brand);
   background: var(--brand);
-  color: #fff;
+  color: var(--tl-primary-foreground);
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
@@ -63,18 +63,26 @@
   cursor: default;
 }
 .btn-secondary {
-  background: #fff;
-  color: var(--brand);
+  background: var(--tl-secondary);
+  border-color: var(--tl-secondary);
+  color: var(--tl-foreground);
 }
+.btn-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--tl-primary);
+}
+.btn { transition: background-color var(--tl-motion) ease-out, opacity var(--tl-motion) ease-out; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 .btn-row {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
 .card {
-  background: #fff;
+  background: var(--tl-card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--tl-radius);
   padding: 20px;
 }
 /* An inline text button, e.g. "Use 1.4" in a hint (S2b-11). */
@@ -83,7 +91,7 @@
   border: 0;
   padding: 0 2px;
   min-height: 0;
-  color: var(--accent, #2f6fb0);
+  color: var(--tl-primary);
   font: inherit;
   text-decoration: underline;
   cursor: pointer;

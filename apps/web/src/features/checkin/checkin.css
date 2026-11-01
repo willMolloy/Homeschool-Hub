@@ -37,14 +37,14 @@
 
 /* As planned / Less / More: one soft segmented control. */
 .checkin-choice { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; border-radius: 10px;
-  background: color-mix(in srgb, var(--surface, #fff) 70%, transparent); }
+  background: color-mix(in srgb, var(--tl-card) 70%, transparent); }
 .checkin-choice button { min-height: 44px; border: 0; border-radius: 8px; background: none; font: inherit; color: inherit; cursor: pointer; }
-.checkin-choice button[aria-pressed="true"] { background: var(--surface, #fff); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+.checkin-choice button[aria-pressed="true"] { background: var(--tl-card); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
 .checkin-choice button:disabled { opacity: 0.4; cursor: default; }
 
 /* The amount stepper: − value + */
 .checkin-stepper { display: flex; align-items: center; justify-content: center; gap: 12px; }
-.checkin-stepper button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--surface, #fff);
+.checkin-stepper button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--tl-card);
   font-size: 1.25rem; line-height: 1; color: inherit; cursor: pointer; }
 .checkin-stepper button:disabled { opacity: 0.4; cursor: default; }
 .checkin-stepper output { min-width: 7em; text-align: center; font-variant-numeric: tabular-nums; }

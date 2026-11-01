@@ -76,6 +76,9 @@ export const CHROME: Record<ThemeName, Record<string, string>> = {
     "accent-foreground": "#2F2A24",
     destructive: "#9B2C2C",
     "destructive-foreground": "#FFFFFF",
+    "destructive-soft": "#F8E3DF",
+    notice: "#F6EBCB",
+    "notice-foreground": "#4A3A00",
     border: "#E8E0D2",
     input: "#9C917E",
     ring: "#3F6B5C",
@@ -103,6 +106,9 @@ export const CHROME: Record<ThemeName, Record<string, string>> = {
     "accent-foreground": "#F1EBE1",
     destructive: "#F2A194",
     "destructive-foreground": "#1C1A17",
+    "destructive-soft": "#3C2723",
+    notice: "#3D3420",
+    "notice-foreground": "#F1E3B5",
     border: "#3A352F",
     input: "#7A7266",
     ring: "#9CCBB8",
@@ -131,6 +137,8 @@ export const CHROME_TEXT_PAIRS: ReadonlyArray<readonly [fg: string, bg: string]>
   ["destructive-foreground", "destructive"],
   ["destructive", "background"],
   ["destructive", "card"],
+  ["destructive", "destructive-soft"],
+  ["notice-foreground", "notice"],
 ];
 
 const toRgb = converter("rgb");

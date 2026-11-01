@@ -1,0 +1,29 @@
+/* S8-03: shared Soft Paper pieces that are not in forms.css: chip, segmented control, list row, check button. */
+.chip {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; min-width: 44px; box-sizing: border-box; padding: 0 16px;
+  border: 0; border-radius: 999px; background: var(--tl-secondary); color: var(--tl-foreground);
+  font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  transition: background-color var(--tl-motion) ease-out, color var(--tl-motion) ease-out;
+}
+.chip[aria-pressed="true"] { background: var(--tl-primary-soft); color: var(--tl-primary); box-shadow: inset 0 0 0 2px var(--tl-primary); }
+.chip:disabled { opacity: 0.5; cursor: default; }
+
+.segmented { display: flex; gap: 2px; padding: 4px; margin: 0 0 16px; border-radius: 999px; background: var(--tl-secondary); }
+.segmented button {
+  flex: 1; min-height: 44px; min-width: 44px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent;
+  color: var(--tl-muted-foreground); font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  transition: background-color var(--tl-motion) ease-out, color var(--tl-motion) ease-out;
+}
+.segmented button[aria-pressed="true"] { background: var(--tl-card); color: var(--tl-foreground); box-shadow: 0 0 0 1px var(--tl-border); }
+
+.list-row {
+  display: flex; align-items: center; gap: 12px; min-height: 56px; box-sizing: border-box; width: 100%; padding: 8px 4px;
+  border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer;
+}
+div.list-row { cursor: default; }
+.list-row-lead { flex: none; display: inline-flex; align-items: center; justify-content: center; }
+.list-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.list-row-title { font-weight: 700; overflow-wrap: anywhere; }
+.list-row-desc { font-size: 0.875rem; color: var(--tl-muted-foreground); overflow-wrap: anywhere; }
+.list-row-chevron { flex: none; color: var(--tl-muted-foreground); }

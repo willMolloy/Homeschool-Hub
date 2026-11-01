@@ -4,7 +4,7 @@
 .plan-debug-week { font-weight: 600; }
 .plan-debug-asof { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .plan-debug-child { margin-bottom: 20px; }
-.plan-debug-scroll { overflow-x: auto; background: #fff; border-radius: 8px; }
+.plan-debug-scroll { overflow-x: auto; background: var(--tl-card); border-radius: 8px; }
 .plan-debug-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 .plan-debug-table caption { text-align: left; font-weight: 600; padding: 8px 10px; }
 /* T-03b: no rules between rows; padding spaces them. */
@@ -53,6 +53,6 @@
 .briefing-line a { display: inline-block; min-height: 44px; line-height: 44px; }
 .briefing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 4px; }
 .briefing-actions .btn { min-height: 44px; }
-.briefing-error { color: var(--danger, #b00020); }
+.briefing-error { color: var(--danger); }
 .briefing-lines li { margin-bottom: 8px; }
 .briefing-more { min-height: 44px; padding: 0; border: 0; background: none; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }

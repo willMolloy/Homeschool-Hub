@@ -81,6 +81,9 @@
   --color-accent-foreground: var(--tl-accent-foreground);
   --color-destructive: var(--tl-destructive);
   --color-destructive-foreground: var(--tl-destructive-foreground);
+  --color-destructive-soft: var(--tl-destructive-soft);
+  --color-notice: var(--tl-notice);
+  --color-notice-foreground: var(--tl-notice-foreground);
   --color-border: var(--tl-border);
   --color-input: var(--tl-input);
   --color-ring: var(--tl-ring);

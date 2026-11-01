@@ -60,9 +60,9 @@
 .schedule-form input[type="date"],
 .schedule-form input[type="number"] {
   padding: 10px 12px;
-  border: 1px solid #b7c0cc;
+  border: 1px solid var(--tl-input);
   border-radius: 8px;
-  background: #fff;
+  background: var(--tl-card);
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -99,9 +99,9 @@
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  border: 1px solid #b7c0cc;
+  border: 1px solid var(--tl-input);
   border-radius: 8px;
-  background: #fff;
+  background: var(--tl-card);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -116,7 +116,7 @@
 .day-chip:has(input:checked) {
   background: var(--brand);
   border-color: var(--brand);
-  color: #fff;
+  color: var(--tl-primary-foreground);
 }
 .day-chip:has(input:focus-visible) {
   outline: 3px solid var(--brand);
@@ -168,21 +168,21 @@
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--tl-card);
   font: inherit;
   color: inherit;
   cursor: pointer;
   min-height: 44px;
 }
 .schedule-card-btn:hover {
-  border-color: #b7c0cc;
+  border-color: var(--tl-input);
 }
 .schedule-card-btn:focus-visible {
   outline: 3px solid var(--brand);
   outline-offset: 2px;
 }
 .schedule-card.is-archived .schedule-card-btn {
-  background: #f3f5f8;
+  background: var(--tl-secondary);
   color: var(--muted);
 }
 .card-body {
@@ -248,11 +248,11 @@
 .schedule-form [role="group"] > .btn { justify-self: start; margin-bottom: 14px; }
 /* S3a-06: the CSV preview or its errors, a plain list. */
 .import-list { margin: 0 0 14px; padding-left: 20px; overflow-wrap: anywhere; }
-.schedule-form textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #b7c0cc; border-radius: 8px; font: inherit; }
+.schedule-form textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--tl-input); border-radius: 8px; font: inherit; }
 .schedule-form a[download] { display: inline-flex; align-items: center; min-height: 44px; }
 /* S3b-07: the CSV file picker is a 44 px target, like the other controls (the native one is 24 px). */
 .schedule-form input[type="file"] { width: 100%; max-width: 100%; box-sizing: border-box; min-height: 44px; font: inherit; }
-.schedule-form input[type="file"]::file-selector-button { min-height: 44px; margin-right: 12px; padding: 0 16px; border: 1px solid #b7c0cc; border-radius: 8px; background: #fff; font: inherit; cursor: pointer; }
+.schedule-form input[type="file"]::file-selector-button { min-height: 44px; margin-right: 12px; padding: 0 16px; border: 1px solid var(--tl-input); border-radius: 8px; background: var(--tl-card); font: inherit; cursor: pointer; }
 /* S5-02: "What changes" under the event form's rules: plain text, no box. */
 .event-preview { margin: 0 0 14px; }
 .event-preview-title { margin: 0 0 4px; font-weight: 600; }
@@ -270,12 +270,12 @@
 .effort legend { padding: 0; font-weight: 600; margin-bottom: 4px; }
 .effort-pace { margin: 0 0 6px; color: var(--muted); }
 .effort-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 4px; }
-.effort-chip { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; border: 1px solid #b7c0cc; border-radius: 8px; background: #fff; cursor: pointer; }
+.effort-chip { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; border: 1px solid var(--tl-input); border-radius: 8px; background: var(--tl-card); cursor: pointer; }
 .effort-chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.effort-chip:has(input:checked) { background: var(--brand); border-color: var(--brand); color: #fff; }
+.effort-chip:has(input:checked) { background: var(--brand); border-color: var(--brand); color: var(--tl-primary-foreground); }
 .effort-chip:has(input:focus-visible) { outline: 3px solid var(--brand); outline-offset: 2px; }
 .effort-custom { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: var(--muted); }
-.effort-custom input { width: 7rem; min-height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid #b7c0cc; border-radius: 8px; }
+.effort-custom input { width: 7rem; min-height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--tl-input); border-radius: 8px; }
 
 /* S6b-08: the inline name field under the subject dropdown */
 .subject-new {
