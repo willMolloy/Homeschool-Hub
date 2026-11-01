@@ -30,8 +30,9 @@ function Track() {
   const [notQuite, setNotQuite] = useState(false);
   const week = state.data;
   const plans = useWeekPlans(week?.weekStart);
-  if (state.loadError) return <><h1>Track work</h1><p className="checkin-error" role="alert">{state.loadError}</p></>;
-  if (!week || !look.ready) return <><h1>Track work</h1><p aria-busy="true">Loading…</p></>;
+  // One tree for loading and loaded, so the page title is never remounted under a reader.
+  if (state.loadError) return <div className="track"><h1>Track work</h1><p className="checkin-error" role="alert">{state.loadError}</p></div>;
+  if (!week || !look.ready) return <div className="track"><h1>Track work</h1><p aria-busy="true">Loading…</p></div>;
   const hadWork = week.items.length > 0;
   const unanswered = week.status === null && hadWork;
   return (

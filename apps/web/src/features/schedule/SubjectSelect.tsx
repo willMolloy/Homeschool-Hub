@@ -13,7 +13,8 @@ import { useEffect, useId, useState, type MutableRefObject } from "react";
 import { ApiError, apiPost } from "../../api/client";
 import type { Subject } from "../../api/types";
 import { findSubjectNamed, missingCommonSubjects } from "../roster/commonSubjects";
-import { nextUnusedColor } from "../roster/palette";
+import { SWATCH_SLOTS, nextUnusedColor } from "../roster/palette";
+import { SubjectBadge } from "../subjects/SubjectIcon";
 import type { Lookups } from "./lookups";
 
 const NEW_VALUE = "__new__";
@@ -45,6 +46,7 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const common = missingCommonSubjects(l.subjects);
+  const chosen = options.find((s) => s.id === value);
 
   /**
    * Creates the subject (next free palette colour) and selects it; a duplicate name selects the one that exists.
@@ -125,6 +127,8 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
 
   return (
     <>
+      <div className="subject-select-row">
+      {chosen ? <SubjectBadge subject={chosen} slot={SWATCH_SLOTS[chosen.color?.toLowerCase() ?? ""] ?? 1} size={32} /> : null}
       <select id={id} value={naming ? NEW_VALUE : pending ? PENDING_VALUE : value} disabled={busy} onChange={(e) => choose(e.target.value)} {...invalidProps}>
         <option value="">Choose a subject…</option>
         {pending ? <option value={PENDING_VALUE}>{pending} (new)</option> : null}
@@ -140,6 +144,7 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
         ) : null}
         <option value={NEW_VALUE}>New subject…</option>
       </select>
+      </div>
       {naming ? (
         <div className="subject-new">
           <label htmlFor={nameId}>Subject name</label>

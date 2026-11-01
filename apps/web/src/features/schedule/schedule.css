@@ -292,3 +292,6 @@
 .choice-list .copy-choice {
   align-items: flex-start;
 }
+/* S8-11: the chosen subject's badge beside the subject dropdown. */
+.subject-select-row { display: flex; align-items: center; gap: 10px; }
+.subject-select-row select { flex: 1; min-width: 0; }

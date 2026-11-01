@@ -5,7 +5,8 @@ import { renderAt } from "./render";
 describe("routes", () => {
   it.each([["/login", "Sign in"], ["/schedule", "Schedule"], ["/track", "Track work"], ["/setup", "Set up"], ["/setup/children", "Children"], ["/setup/subjects", "Subjects"]])("%s shows %s", async (path, name) => {
     renderAt(path);
-    expect(await screen.findByRole("heading", { name })).toBeInTheDocument();
+    // Several screens fetch before their title shows; give a loaded machine room (the gate runs suites in parallel).
+    expect(await screen.findByRole("heading", { name }, { timeout: 5000 })).toBeInTheDocument();
   });
   it("/ is Home, with the family button and the greeting", async () => {
     renderAt("/");

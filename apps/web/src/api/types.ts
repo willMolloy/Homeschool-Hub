@@ -73,6 +73,8 @@ export interface Subject {
   defaultWeight: SubjectDefaultWeight | null;
   /** S4-03: the days (0 = Sunday … 6 = Saturday, sorted) new work in this subject runs on, or null = every school day. */
   defaultWeekdays: number[] | null;
+  /** S8-11: a key from the fixed icon list, or null for the first-letter badge. */
+  icon?: string | null;
 }
 
 /** GET /api/health */

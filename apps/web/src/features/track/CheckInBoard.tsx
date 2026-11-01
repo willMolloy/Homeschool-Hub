@@ -11,6 +11,7 @@ import { Button } from "../../ui/components";
 import { AddProgress } from "../checkin/AddProgress";
 import { DEFAULT_MODE, itemKey, rowOutcome, storedAnswers } from "../checkin/absorb";
 import { compactText } from "../checkin/amount";
+import { SubjectGlyph } from "../subjects/SubjectIcon";
 import { WeekBar, WeekBars } from "../week/WeekBar";
 import { BOTH } from "../week/useChildChoice";
 import type { WeekLookups } from "../week/useWeekLookups";
@@ -82,7 +83,7 @@ export function CheckInBoard({ week, choice, look, plans, busy, error, itemError
                   const planned = i.plannedTo - i.plannedFrom > 1e-9;
                   const bar = { key, assignmentId: i.assignmentId, childId: i.childId, childName: i.childName, subjectId: look.subjectOf(i.assignmentId), title: i.title, unitType: i.unitType, from: i.plannedFrom, to: i.plannedTo, total: i.totalUnits };
                   return (
-                    <WeekBar key={key} bar={bar} slot={look.slotOfAssignment(i.assignmentId)} onOpen={() => setOpen(i)}
+                    <WeekBar key={key} bar={bar} slot={look.slotOfAssignment(i.assignmentId)} icon={<SubjectGlyph subject={look.subjectFor(i.assignmentId)} />} onOpen={() => setOpen(i)}
                       state={outcome === "asPlanned" ? undefined : compactText(i, positionOf(i))} error={itemErrors[key]}
                       check={planned ? { checked: outcome !== "behind", onToggle: () => toggle(i), disabled: busy } : undefined} />
                   );

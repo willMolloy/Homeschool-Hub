@@ -9,6 +9,8 @@ export interface WeekLookups extends Lookups {
   ready: boolean;
   activeChildren: Child[];
   slotOfAssignment: (assignmentId: string) => number;
+  /** The subject of an assignment, for its icon. */
+  subjectFor: (assignmentId: string) => Subject | undefined;
   assignments: readonly Assignment[];
 }
 
@@ -30,6 +32,7 @@ export function useWeekLookups(): WeekLookups {
       titleOf: (id: string) => byId.get(id)?.title ?? "Assignment",
       subjectOf,
       slotOfAssignment: (id: string) => { const s = subjectOf(id); return s ? slot(s) : 1; },
+      subjectFor: (id: string) => subs.find((s) => s.id === subjectOf(id)),
     };
   }, [children.data, subjects.data, assignments.data, children.loading, subjects.loading, assignments.loading]);
 }

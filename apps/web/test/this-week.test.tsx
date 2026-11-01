@@ -80,6 +80,8 @@ describe("Schedule, Week view", () => {
     // The subject's pastel and strong rule come from the tokens.
     expect(bars[0]!.getAttribute("style")).toMatch(/--c: var\(--tl-subject-\d\);.*--cs: var\(--tl-subject-\d-strong\)/);
     expect(within(frank).queryByRole("button", { name: /completed/ })).toBeNull(); // no check mid-week
+    // S8-11: each bar carries its subject's mark (the letter here: these subjects have no icon).
+    for (const b of bars) expect(b.querySelector(".bar-title .subject-glyph")).not.toBeNull();
   });
 
   it("one child at a time: Frank, Margaret or Both; the choice is remembered on this device", async () => {

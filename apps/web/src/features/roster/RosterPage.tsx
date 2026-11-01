@@ -36,6 +36,8 @@ export interface RosterExtension<T extends RosterItem, V extends RosterValues> {
   renderForm: (props: RosterFormSlotProps<T, V>) => ReactNode;
   /** Shown after the name on a row, e.g. a chip. */
   renderBadge?: (item: T) => ReactNode;
+  /** S8-11: shown between the colour dot and the name (the subject's icon). */
+  renderLead?: (item: T) => ReactNode;
 }
 
 /** Values are equal for PATCH purposes; a missing key counts as null. */
@@ -247,6 +249,7 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
               <li key={item.id} className={`roster-row${item.archived ? " is-archived" : ""}`}>
                 <button type="button" className="roster-row-btn" data-row-id={item.id} onClick={() => openEdit(item.id)}>
                   <ColorDot color={item.color} />
+                  {extension?.renderLead?.(item)}
                   <span className="roster-name">{item.name}</span>
                   {extension?.renderBadge?.(item)}
                   {item.archived ? <span className="tag">Archived</span> : null}

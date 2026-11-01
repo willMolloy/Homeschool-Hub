@@ -1,0 +1,17 @@
+/* S8-11: subject icons and badges. */
+.subject-glyph { flex: none; color: var(--cs, currentColor); }
+.subject-letter { display: inline-grid; place-items: center; font-weight: 700; line-height: 1; border-radius: 999px; }
+/* The letter is drawn by CSS, so it is never part of the text a screen reader or a test reads from the row. */
+.subject-letter::before { content: attr(data-letter); }
+.subject-badge { flex: none; display: inline-grid; place-items: center; box-sizing: border-box; border-radius: 999px; background: var(--c); box-shadow: inset 0 0 0 1.5px var(--cs); color: var(--cs); }
+.subject-badge .subject-glyph { color: var(--cs); }
+.icon-picker { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+.icon-picker legend { font-weight: 600; font-size: 0.95rem; margin-bottom: 6px; padding: 0; }
+.icon-picker-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.icon-chip { position: relative; display: inline-flex; }
+.icon-chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.icon-chip-face { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 999px; background: var(--tl-secondary); color: var(--tl-foreground); box-sizing: border-box; }
+.icon-chip input:checked + .icon-chip-face { background: var(--tl-primary-soft); color: var(--tl-primary); box-shadow: inset 0 0 0 2px var(--tl-primary); }
+.icon-chip input:focus-visible + .icon-chip-face { outline: 3px solid var(--tl-ring); outline-offset: 2px; }
+.icon-chip-letter { font-weight: 700; font-size: 1.05rem; }
+.icon-chip .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

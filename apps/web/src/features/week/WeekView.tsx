@@ -19,6 +19,7 @@ import { PlanDebugView } from "../plan/PlanDebugView";
 import { WeekAdjustment } from "../plan/WeekAdjustment";
 import { weekSpan } from "../home/homeSummary";
 import { PastWeek } from "../track/PastWeek";
+import { SubjectGlyph } from "../subjects/SubjectIcon";
 import { WeekBar, WeekBars } from "./WeekBar";
 import { barsFromPlans, eventLines } from "./weekBars";
 import { BOTH, useChildChoice } from "./useChildChoice";
@@ -93,7 +94,7 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look }: { weekStart:
             {mine.length === 0 ? <p className="week-empty">Nothing planned this week.</p> : (
               <WeekBars label={`${k.name}'s bars`}>
                 {mine.map((b) => (
-                  <WeekBar key={b.key} bar={b} slot={look.slotOfAssignment(b.assignmentId)}
+                  <WeekBar key={b.key} bar={b} slot={look.slotOfAssignment(b.assignmentId)} icon={<SubjectGlyph subject={look.subjectFor(b.assignmentId)} />}
                     onOpen={() => setAdjusting({ childId: k.id, childName: k.name })} />
                 ))}
               </WeekBars>

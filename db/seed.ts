@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { DEMO_LOGIN_EMAIL } from "../apps/api/src/auth/demo";
 import { hashPassword } from "../apps/api/src/auth/password";
+import { defaultIconFor } from "../apps/api/src/http/subjectIcons";
 import { DEMO_FAMILY } from "./demo-family";
 import type { SeedFamily } from "./seed-data";
 import { databaseName, databaseUrlFromEnv } from "./migrate";
@@ -52,9 +53,9 @@ export async function seed(databaseUrl: string, email: string = DEMO_EMAIL, fami
     for (const [i, s] of family.subjects.entries()) {
       const dw = subjectWeights.find((w) => w.subjectId === s.key); // S2b-33: Math has a lessons default
       ids.subject[s.key] = await one(
-        `INSERT INTO subject (id, family_id, name, color, sort_order, default_weight_unit, default_weight)
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6) RETURNING id`,
-        [familyId, s.name, s.color, i, dw?.unitType ?? null, dw?.weightPerUnit ?? null]);
+        `INSERT INTO subject (id, family_id, name, color, sort_order, default_weight_unit, default_weight, icon)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [familyId, s.name, s.color, i, dw?.unitType ?? null, dw?.weightPerUnit ?? null, defaultIconFor(s.name)]);
     }
     for (const a of assignments) {
       const id = await one(
