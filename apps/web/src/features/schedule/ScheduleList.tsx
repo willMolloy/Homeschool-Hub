@@ -287,7 +287,10 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
               ))}
             </ul>
           ) : !adding ? (
-            <p className="schedule-empty">{emptyText}</p>
+            <div className="schedule-empty">
+              <p>{emptyText}</p>
+              {canAdd && !/Add|add/.test(emptyText) ? <p className="hint">Tap Add {noun} above to start.</p> : null}
+            </div>
           ) : null}
         </>
       )}

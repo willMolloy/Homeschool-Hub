@@ -7,6 +7,8 @@ import type { Lookups } from "./weekBars";
 
 export interface WeekLookups extends Lookups {
   ready: boolean;
+  /** The lists answered (a failed request is not "empty"): used to tell a new family from a broken screen. */
+  known: { children: boolean; assignments: boolean };
   activeChildren: Child[];
   slotOfAssignment: (assignmentId: string) => number;
   /** The subject of an assignment, for its icon. */
@@ -26,6 +28,7 @@ export function useWeekLookups(): WeekLookups {
     const slot = subjectSlots(subs);
     const subjectOf = (id: string) => byId.get(id)?.subjectId ?? null;
     return {
+      known: { children: Boolean(children.data), assignments: Boolean(assignments.data) },
       ready: !children.loading && !subjects.loading && !assignments.loading,
       children: kids, subjects: subs, assignments: list,
       activeChildren: kids.filter((c) => !c.archived),

@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CaretRight, CheckSquare, ListBullets, SlidersHorizontal } from "@phosphor-icons/react";
-import type { Assignment, Child, Subject } from "../../api/types";
+import type { Assignment, BlockedRange, Child, Subject } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useAuth, useMe } from "../../auth/AuthProvider";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
@@ -14,6 +14,7 @@ import { Logo } from "../../layout/Logo";
 import { Button, Card, ListRow } from "../../ui/components";
 import { useLastWeekCheckIn } from "../checkin/useLastWeekCheckIn";
 import { Briefing } from "../plan/Briefing";
+import { Checklist, checklistSteps } from "./Checklist";
 import { PlanRefreshProvider } from "../plan/planRefresh";
 import { useWeekPlans } from "../plan/useWeekPlans";
 import { deviceToday, shownWeek } from "../plan/useShownWeek";
@@ -37,6 +38,7 @@ function Home() {
   const children = useApi<Child[]>("/api/children");
   const assignments = useApi<Assignment[]>("/api/assignments");
   const subjects = useApi<Subject[]>("/api/subjects");
+  const blocked = useApi<BlockedRange[]>("/api/blocked-ranges");
   const lastWeek = useLastWeekCheckIn();
   const plans = useWeekPlans(currentWeekStart);
   const live = (assignments.data ?? []).filter((a) => !a.archived);
@@ -53,6 +55,12 @@ function Home() {
       <h1 className="home-greeting">{greetingFor(new Date().getHours())}</h1>
       <p className="home-date">{longDate(today)}{weekNo ? ` · Week ${weekNo.n} of ${weekNo.m}` : ""}</p>
       <Briefing weekStart={currentWeekStart} showNudge={false} />
+      {/* S8-09: only once all four lists have answered, so it never flashes for a family that has set up. */}
+      {children.data && subjects.data && assignments.data && blocked.data ? (
+        <Checklist steps={checklistSteps({
+          children: kids.length, subjects: subjects.data.filter((s) => !s.archived).length, assignments: live.length, breaks: blocked.data.length,
+        })} />
+      ) : null}
 
       <Card className="home-card">
         <div className="home-card-head">

@@ -4,6 +4,8 @@
  * check-in board, so a bar there opens Update status (S8-06). Nothing on the page is a number the family didn't enter.
  */
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { EmptyState } from "../../ui/EmptyState";
 import { addDays } from "@hh/engine";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import type { ScheduleEvent } from "../../api/types";
@@ -79,6 +81,15 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look }: { weekStart:
     );
   }
   if (!look.ready || !plans) return <p aria-busy="true">Loading…</p>;
+  // S8-09: a new family is told what to do first, with the one button that does it.
+  if (look.known.children && look.activeChildren.length === 0) {
+    return <EmptyState text="No children yet." hint="Add the children you teach, then their subjects and books."
+      action={<Link className="btn" to="/setup/children">Add your children</Link>} />;
+  }
+  if (look.known.assignments && !look.assignments.some((a) => !a.archived)) {
+    return <EmptyState text="Nothing is planned yet." hint="Add a book or a lesson and your week fills in."
+      action={<Link className="btn" to="/setup/assignments">Add your first assignment</Link>} />;
+  }
   const bars = barsFromPlans(plans, weekStart, look);
   const kids = choice === BOTH ? look.activeChildren : look.activeChildren.filter((c) => c.id === choice);
   const current = weekStart === currentWeekStart;

@@ -263,6 +263,7 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
       ) : (
         <div className="roster-empty">
           <p>{emptyText}</p>
+          {!adding ? <p className="hint">{suggestions ? `Tap a common subject below, or Add ${noun}.` : `Tap Add ${noun} below to start.`}</p> : null}
         </div>
       )}
       {suggestions && remaining.length > 0 && !loading && !error ? (

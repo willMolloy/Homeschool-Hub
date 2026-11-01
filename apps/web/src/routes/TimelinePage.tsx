@@ -194,6 +194,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
           <>
             <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`} subjects={subjects} />
             <p className="tl-empty">Nothing planned yet.</p>
+            <p className="tl-empty tl-empty-hint">Tap + Add assignment above and your books and lessons appear here.</p>
           </>
         ) : (
           <>
