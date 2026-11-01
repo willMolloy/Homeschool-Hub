@@ -105,8 +105,8 @@ function writeKept(kept: Record<string, string>): void {
   } catch { /* the choice just isn't remembered */ }
 }
 
-/** `showNudge` false (Home): the "last week isn't checked in" line is Home's own business. */
-export function Briefing({ weekStart, showNudge = true }: { weekStart: LocalDate; showNudge?: boolean }) {
+/** The Week view's briefing: every child's lines, and the check-in nudge. (Home shows one line instead: `HomeBriefing`.) */
+export function Briefing({ weekStart }: { weekStart: LocalDate }) {
   const assignments = useApi<Assignment[]>("/api/assignments");
   const children = useApi<Child[]>("/api/children");
   const weeks = useApi<{ weeks: PastWeek[] }>("/api/check-ins/weeks");
@@ -119,7 +119,7 @@ export function Briefing({ weekStart, showNudge = true }: { weekStart: LocalDate
   if (!assignments.data || !children.data) return null;
   // Never shown to a family that has not checked in before.
   const checkedInBefore = (weeks.data?.weeks ?? []).some((w) => w.status === "reviewed" || w.hasCheckIns);
-  const nudge = showNudge && checkedInBefore && lastWeek.week !== null;
+  const nudge = checkedInBefore && lastWeek.week !== null;
   return <BriefingBody assignments={assignments.data} children={children.data} weekStart={weekStart} nudge={nudge} />;
 }
 
@@ -130,7 +130,11 @@ interface BodyProps {
   nudge: boolean;
 }
 
-function BriefingBody({ assignments, children, weekStart, nudge }: BodyProps) {
+/**
+ * The briefing's lines per child for the shown week, with "Keep" remembered (S7b-05): undefined while the plan loads
+ * or fails to load. Shared by the Week view's briefing and Home's one-line version (S9-05).
+ */
+export function useBriefingGroups(assignments: Assignment[], children: Child[], weekStart: LocalDate): { groups: ChildBriefing[] | undefined; keep: (a: LateAction) => void } {
   const me = useMe();
   const ranges = useMemo(() => briefingRanges(assignments, weekStart), [assignments, weekStart]);
   // A check-in or adjustment elsewhere on the page changed the plan: refetch in place.
@@ -144,7 +148,7 @@ function BriefingBody({ assignments, children, weekStart, nudge }: BodyProps) {
     setKept(next);
   };
   const groups = useMemo(() => {
-    if (!plans) return [];
+    if (!plans) return undefined;
     const titles = new Map(assignments.map((a) => [a.id, a.title]));
     const shown = buildBriefing({
       plans,
@@ -157,6 +161,11 @@ function BriefingBody({ assignments, children, weekStart, nudge }: BodyProps) {
     const visible = (l: BriefingLine) => !(l.action && kept[keptKey(l.action)] === l.action.signature);
     return shown.map((g) => ({ ...g, lines: g.lines.filter(visible) })).filter((g) => g.lines.length > 0);
   }, [plans, assignments, children, weekStart, me.weekStart, me.schoolDays, kept]);
+  return { groups, keep };
+}
+
+function BriefingBody({ assignments, children, weekStart, nudge }: BodyProps) {
+  const { groups = [], keep } = useBriefingGroups(assignments, children, weekStart);
   const { invalidate } = usePlanRefresh();
 
   if (groups.length === 0 && !nudge) return null;

@@ -73,10 +73,10 @@ describe("Home", () => {
     expect(await screen.findByText(/on track to finish Dec 1/)).toBeInTheDocument();
   });
 
-  it("shows the briefing line when something needs attention, and none otherwise", async () => {
+  it("shows no briefing line when nothing needs attention (the line itself is tested in home-briefing.test)", async () => {
     renderAt("/");
     await findInMain("Records");
-    expect(screen.queryByRole("region", { name: "Weekly briefing" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Needs you" })).toBeNull();
   });
 
   it("has a Set up row that opens the list", async () => {

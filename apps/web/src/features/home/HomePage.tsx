@@ -12,7 +12,7 @@ import { useAuth, useMe } from "../../auth/AuthProvider";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { Logo } from "../../layout/Logo";
 import { Button, Card, ListRow } from "../../ui/components";
-import { Briefing } from "../plan/Briefing";
+import { HomeBriefing } from "../plan/HomeBriefing";
 import { Checklist, checklistSteps } from "./Checklist";
 import { PlanRefreshProvider } from "../plan/planRefresh";
 import { useWeekPlans } from "../plan/useWeekPlans";
@@ -52,7 +52,7 @@ function Home() {
       </header>
       <h1 className="home-greeting">{greetingFor(new Date().getHours())}</h1>
       <p className="home-date">{longDate(today)}{weekNo ? ` · Week ${weekNo.n} of ${weekNo.m}` : ""}</p>
-      <Briefing weekStart={currentWeekStart} showNudge={false} />
+      <HomeBriefing weekStart={currentWeekStart} />
       {/* S8-09: only once all four lists have answered, so it never flashes for a family that has set up. */}
       {children.data && subjects.data && assignments.data && blocked.data ? (
         <Checklist steps={checklistSteps({
