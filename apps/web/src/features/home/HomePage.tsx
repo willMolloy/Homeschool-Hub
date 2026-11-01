@@ -12,7 +12,7 @@ import { useAuth, useMe } from "../../auth/AuthProvider";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { Logo } from "../../layout/Logo";
 import { Button, Card, ListRow } from "../../ui/components";
-import { HomeBriefing } from "../plan/HomeBriefing";
+import { HomeBriefing, ScheduleSubtitle } from "../plan/HomeBriefing";
 import { Checklist, checklistSteps } from "./Checklist";
 import { PlanRefreshProvider } from "../plan/planRefresh";
 import { useWeekPlans } from "../plan/useWeekPlans";
@@ -66,7 +66,8 @@ function Home() {
           <div className="home-card-text">
             <h2><Link className="home-card-link" to="/schedule">Schedule</Link></h2>
             <div className="home-sub">
-              {finish ? (finish.onTrack ? `This week and your year · on track to finish ${dayMonth(finish.date)}` : `This week and your year · finishing about ${dayMonth(finish.date)}`) : "This week and your year"}
+              <ScheduleSubtitle weekStart={currentWeekStart}
+                finishText={finish ? (finish.onTrack ? `This week and your year · on track to finish ${dayMonth(finish.date)}` : `This week and your year · finishing about ${dayMonth(finish.date)}`) : "This week and your year"} />
             </div>
           </div>
           <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />

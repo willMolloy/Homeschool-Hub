@@ -53,6 +53,25 @@ const briefingFetched = async () => {
   await new Promise((r) => setTimeout(r, 30));
 };
 
+describe("Home's Schedule card never says on track beside a late line (S9b-03)", () => {
+  it("says how many are running late when the briefing finds late work", async () => {
+    stub([slowPlan()]);
+    renderAt("/");
+    const card = (await within(await screen.findByRole("main")).findByRole("link", { name: "Schedule" })).closest(".card") as HTMLElement;
+    expect(await within(card).findByText("This week and your year · 1 running late")).toBeInTheDocument();
+    expect(card.textContent).not.toMatch(/on track/);
+    expect(await screen.findByRole("region", { name: "Needs you" })).toBeInTheDocument();
+  });
+  it("keeps the finish line when nothing is late", async () => {
+    stub([onPlan()]);
+    renderAt("/");
+    const card = (await within(await screen.findByRole("main")).findByRole("link", { name: "Schedule" })).closest(".card") as HTMLElement;
+    await briefingFetched();
+    expect(card.textContent).not.toMatch(/running late/);
+    expect(card.textContent).toMatch(/on track to finish|finishing about|This week and your year/);
+  });
+});
+
 describe("Home's briefing line", () => {
   it("shows one line with a working Review action when something is late", async () => {
     stub([slowPlan()]);
