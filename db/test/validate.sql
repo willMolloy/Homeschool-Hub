@@ -324,4 +324,23 @@ SELECT pg_temp.expect_error($$UPDATE family SET zoom_views = NULL WHERE id = 'f0
   '23502', 'zoom_views can''t be NULL');
 DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c3';
 
+-- S9-03: log setup and core subjects (016_log_setup)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c4', 'Log family');
+INSERT INTO subject (id, family_id, name) VALUES ('50000000-0000-0000-0000-0000000000c4', 'f0000000-0000-0000-0000-0000000000c4', 'Math');
+DO $$ BEGIN
+  IF (SELECT log_setup FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c4') IS NOT NULL THEN RAISE EXCEPTION 'FAIL a family should start with no log setup'; END IF;
+  IF (SELECT core FROM subject WHERE id = '50000000-0000-0000-0000-0000000000c4') THEN RAISE EXCEPTION 'FAIL a subject should start non-core'; END IF;
+  RAISE NOTICE 'ok   a family starts with no log setup and a subject starts non-core (016)';
+END $$;
+UPDATE family SET log_setup = '{"template":"coreNonCore","fields":{"subjectHours":true,"coreSplit":true}}' WHERE id = 'f0000000-0000-0000-0000-0000000000c4';
+UPDATE subject SET core = true WHERE id = '50000000-0000-0000-0000-0000000000c4';
+DO $$ BEGIN RAISE NOTICE 'ok   family.log_setup accepts a setup object and subject.core a flag (016)'; END $$;
+SELECT pg_temp.expect_error($$UPDATE family SET log_setup = '[]' WHERE id = 'f0000000-0000-0000-0000-0000000000c4'$$,
+  '23514', 'log_setup must be an object');
+SELECT pg_temp.expect_error($$UPDATE family SET log_setup = '{"template":"x"}' WHERE id = 'f0000000-0000-0000-0000-0000000000c4'$$,
+  '23514', 'log_setup needs its fields');
+SELECT pg_temp.expect_error($$UPDATE subject SET core = NULL WHERE id = '50000000-0000-0000-0000-0000000000c4'$$,
+  '23502', 'subject.core can''t be NULL');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c4';
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

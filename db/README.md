@@ -21,6 +21,7 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `012_calendar_template.sql` | S5-06: `calendar_template` (a family's named template: `breaks` is a JSON list of 1-100 `{ offsetDays, lengthDays, label, kind }`, offsets from the year's first day) |
 | `013_undo.sql` | S6-05: `assignment.original` (JSON of the values as created, filled for existing rows; reset, S6-07) and `undo_entry` (one row per family: `label` and the JSON `inverse` of the last change, S6-06) |
 | `014_zoom_views.sql` | S7-03: `family.zoom_views` (JSON `{ hidden, custom }`: the built-in zoom views a family hides and its own named views; the API checks the contents, S7-04/05) |
+| `016_log_setup.sql` | S9-03: `family.log_setup` (JSON: the template style and the fields the records track; NULL until picked) and `subject.core` (core or non-core, for core and non-core hours) |
 | `015_subject_icon.sql` | S8-11: `subject.icon` (a key from the fixed icon list, NULL = first-letter badge; existing subjects get the default their name suggests) |
 
 **Expand/contract (004–007).** Sprint 2b moved from minutes per unit to weights without a broken step: 004 *expands* (adds `weight_per_unit` next to the old column and backfills it at ÷ 2), 005 and 006 add the history and subject defaults, the API and web then switch to weights (S2b-06 … S2b-14), and only after nothing reads the old column does 007 *contract* (drop it and its 003 constraint). Every migration in between leaves the app working and the gate green.

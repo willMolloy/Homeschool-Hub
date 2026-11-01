@@ -13,7 +13,7 @@ import { sameWeekdays } from "../services/weekdaysChange";
 
 // Unknown keys (e.g. family_id) are dropped: ownership always comes from the session.
 const Icon = z.enum(SUBJECT_ICONS);
-const CreateBody = z.strictObject({ name: Name, color: Color.optional(), defaultWeight: DefaultWeight.nullable().optional(), defaultWeekdays: Weekdays.nullable().optional(), icon: Icon.nullable().optional() });
+const CreateBody = z.strictObject({ name: Name, color: Color.optional(), defaultWeight: DefaultWeight.nullable().optional(), defaultWeekdays: Weekdays.nullable().optional(), icon: Icon.nullable().optional(), core: z.boolean("core must be true or false.").optional() });
 const PatchBody = z
   .strictObject({
     name: Name.optional(),
@@ -23,8 +23,9 @@ const PatchBody = z
     defaultWeight: DefaultWeight.nullable().optional(),
     defaultWeekdays: Weekdays.nullable().optional(),
     icon: Icon.nullable().optional(),
+    core: z.boolean("core must be true or false.").optional(),
   })
-  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, color, sortOrder, archived, defaultWeight, defaultWeekdays, icon.");
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, color, sortOrder, archived, defaultWeight, defaultWeekdays, icon, core.");
 
 const notFound = () => new HttpError(404, "not_found", "No such subject.");
 

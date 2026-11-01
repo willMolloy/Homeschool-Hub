@@ -41,12 +41,27 @@ export interface ZoomViews {
 export interface BuiltInZoomOverride { name: string; start: string; end: string }
 export type BuiltInZoomOverrides = { fall?: BuiltInZoomOverride; spring?: BuiltInZoomOverride };
 
+/** S9-03: what a family's records track. A template style is only a starting point; the fields are what counts. */
+export interface LogFields {
+  subjectHours: boolean;
+  coreSplit: boolean;
+  totalHours: boolean;
+  schoolDays: boolean;
+  homeAway: boolean;
+  notes: boolean;
+  books: boolean;
+}
+export type LogTemplate = "hoursBySubject" | "coreNonCore" | "daysAttended" | "daysAndHours" | "detailed" | "custom";
+export interface LogSetup { template: LogTemplate; fields: LogFields }
+
 /** GET/PATCH /api/family */
 export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */
   weekStartLocked: boolean;
   /** S7-03 */
   zoomViews: ZoomViews;
+  /** S9-03: what the records track; null until the family picks a template style. */
+  logSetup: LogSetup | null;
 };
 /** The PATCH /api/family body: any of the editable fields. */
 export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">>;
@@ -79,6 +94,8 @@ export interface Subject {
   defaultWeekdays: number[] | null;
   /** S8-11: a key from the fixed icon list, or null for the first-letter badge. */
   icon?: string | null;
+  /** S9-03: a core subject (the records split hours into core and non-core). Missing = non-core. */
+  core?: boolean;
 }
 
 /** GET /api/health */

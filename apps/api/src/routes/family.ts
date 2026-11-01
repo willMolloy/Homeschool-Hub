@@ -5,6 +5,7 @@
  * S2c-01 (D25): stored check-ins and week reviews are keyed to the week start, so once any exist the week
  * start can't change (409 week_start_locked). They are never re-keyed.
  * S7-03: `zoomViews` is the timeline's hidden built-in zoom views and the family's own (014_zoom_views).
+ * S9-03: `logSetup` is what the family's records track (016_log_setup); null until the family picks a template style.
  */
 import type { FastifyInstance } from "fastify";
 import { humanList, WEEK_STARTS } from "@hh/engine";
@@ -13,6 +14,7 @@ import { withTransaction, type Queryable } from "../db";
 import { HttpError } from "../http/errors";
 import { TimeZone } from "../http/timeZone";
 import { Name, parseBody } from "../http/validate";
+import { LogSetup, type LogSetupJson } from "../http/logSetup";
 import { ZoomViews, type ZoomViewsJson } from "../http/zoomViews";
 
 export interface FamilySettings {
@@ -20,11 +22,12 @@ export interface FamilySettings {
   /** Some week has a check-in or review, so the week start can't change (S2c-01). */
   weekStartLocked: boolean;
   zoomViews: ZoomViewsJson;
+  logSetup: LogSetupJson | null;
 }
-interface FamilyRow { name: string; week_start: "mon" | "sun"; school_days: number[]; time_zone: string; zoom_views: ZoomViewsJson }
+interface FamilyRow { name: string; week_start: "mon" | "sun"; school_days: number[]; time_zone: string; zoom_views: ZoomViewsJson; log_setup: LogSetupJson | null }
 
 const toSettings = (r: FamilyRow, weekStartLocked: boolean): FamilySettings =>
-  ({ name: r.name, weekStart: r.week_start, schoolDays: r.school_days, timeZone: r.time_zone, weekStartLocked, zoomViews: r.zoom_views });
+  ({ name: r.name, weekStart: r.week_start, schoolDays: r.school_days, timeZone: r.time_zone, weekStartLocked, zoomViews: r.zoom_views, logSetup: r.log_setup });
 
 export const WEEK_START_LOCKED_MESSAGE = "weekStart: the week start can't change after weeks have been checked in.";
 
@@ -46,10 +49,10 @@ export const SchoolDays = z
 
 // Strict: a typo'd key is a 400 rather than a silent no-op on a settings form.
 const PatchBody = z
-  .strictObject({ name: Name.optional(), weekStart: z.enum(WEEK_STARTS, `weekStart must be ${humanList(WEEK_STARTS.map((s) => `"${s}"`))}.`).optional(), schoolDays: SchoolDays.optional(), timeZone: TimeZone.optional(), zoomViews: ZoomViews.optional() })
-  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, weekStart, schoolDays, timeZone, zoomViews.");
+  .strictObject({ name: Name.optional(), weekStart: z.enum(WEEK_STARTS, `weekStart must be ${humanList(WEEK_STARTS.map((s) => `"${s}"`))}.`).optional(), schoolDays: SchoolDays.optional(), timeZone: TimeZone.optional(), zoomViews: ZoomViews.optional(), logSetup: LogSetup.optional() })
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, weekStart, schoolDays, timeZone, zoomViews, logSetup.");
 
-const COLS = "name, week_start, school_days, time_zone, zoom_views";
+const COLS = "name, week_start, school_days, time_zone, zoom_views, log_setup";
 const gone = () => new HttpError(401, "unauthenticated", "Your family no longer exists.");
 
 export async function familyRoutes(app: FastifyInstance): Promise<void> {
@@ -75,9 +78,10 @@ export async function familyRoutes(app: FastifyInstance): Promise<void> {
            school_days = COALESCE($4::smallint[], school_days),
            time_zone = COALESCE($5, time_zone),
            zoom_views = COALESCE($6::jsonb, zoom_views),
+           log_setup = COALESCE($7::jsonb, log_setup),
            updated_at = now()
          WHERE id = $1 RETURNING ${COLS}`,
-        [req.familyId, b.name ?? null, b.weekStart ?? null, b.schoolDays ?? null, b.timeZone ?? null, b.zoomViews ? JSON.stringify(b.zoomViews) : null]);
+        [req.familyId, b.name ?? null, b.weekStart ?? null, b.schoolDays ?? null, b.timeZone ?? null, b.zoomViews ? JSON.stringify(b.zoomViews) : null, b.logSetup ? JSON.stringify(b.logSetup) : null]);
       return toSettings(rows[0]!, locked);
     });
   });
