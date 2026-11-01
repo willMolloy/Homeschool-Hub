@@ -6,6 +6,7 @@ import { useId, useRef, useState, type ReactNode } from "react";
 import { ApiError, apiPatch, apiPost } from "../../api/client";
 import { useApi } from "../../api/useApi";
 import { ColorDot } from "../../ui/ColorDot";
+import { BackToSetup } from "../setup/SetupPage";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import "../../ui/forms.css";
 import { nextUnusedColor } from "./palette";
@@ -188,6 +189,7 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
 
   return (
     <section className="roster">
+      <BackToSetup />
       <div className="roster-head">
         <h1>{title}</h1>
         <label className="roster-toggle" htmlFor={toggleId}>

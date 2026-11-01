@@ -8,9 +8,9 @@ const MIN = 44;
 const WIDTH = Number(process.env.TAP_WIDTH ?? 360);
 if (!Number.isInteger(WIDTH) || WIDTH < 280 || WIDTH > 1600) throw new Error(`TAP_WIDTH must be a whole number from 280 to 1600, got "${process.env.TAP_WIDTH}"`);
 const SCREENS = [
-  ["This Week", "/"], ["Timeline (bar selected)", "/timeline"], ["Kids", "/kids"], ["Subjects", "/subjects"],
-  ["Schedule", "/schedule"], ["Assignments", "/schedule/assignments"], ["Days off", "/schedule/days-off"],
-  ["Events", "/schedule/events"], ["Settings", "/schedule/settings"],
+  ["Home", "/"], ["Track work", "/track"], ["Schedule (Week)", "/schedule?view=week"], ["Schedule (Year, bar selected)", "/schedule?view=year"],
+  ["Set up", "/setup"], ["Children", "/setup/children"], ["Subjects", "/setup/subjects"], ["Assignments", "/setup/assignments"],
+  ["Days off", "/setup/days-off"], ["Events", "/setup/events"], ["Family settings", "/setup/settings"],
 ];
 // Buttons in the page that open a form or panel in place (by the start of their label); each is opened in turn and measured too.
 // S7b-07 (F5): the two Copy panels on Assignments are opened too.
@@ -56,7 +56,7 @@ export default async function ({ page, login, log, BASE }) {
   for (const [name, path] of SCREENS) {
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0" });
     await settle();
-    if (path === "/timeline") {
+    if (path.includes("view=year")) {
       await page.waitForSelector("[data-assignment]");
       const box = await (await page.$("[data-assignment]")).boundingBox();
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -77,7 +77,7 @@ export default async function ({ page, login, log, BASE }) {
     }
   }
   // S7b-07 (F5): the Zoom views sheet behind the zoom row's quiet Edit.
-  await page.goto(`${BASE}/timeline`, { waitUntil: "networkidle0" });
+  await page.goto(`${BASE}/schedule?view=year`, { waitUntil: "networkidle0" });
   await settle();
   if (await page.$(".tl-zoom-edit")) {
     await page.click(".tl-zoom-edit");
@@ -88,7 +88,7 @@ export default async function ({ page, login, log, BASE }) {
     log("Timeline > Edit zoom views: skipped (no zoom row on this family's timeline)");
   }
   // A row opened for editing (Kids, Subjects, and the Schedule lists' cards).
-  for (const [name, path, row] of [["Kids", "/kids", ".roster-row-btn"], ["Subjects", "/subjects", ".roster-row-btn"]]) {
+  for (const [name, path, row] of [["Children", "/setup/children", ".roster-row-btn"], ["Subjects", "/setup/subjects", ".roster-row-btn"]]) {
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0" });
     await page.waitForSelector(row);
     await page.click(row);

@@ -56,7 +56,7 @@ describe("zoom presets", () => {
     expect(buttons.map((b) => [b.textContent, b.getAttribute("aria-pressed")])).toEqual([
       ["Year", "true"], ["Fall", "false"], ["Spring", "false"], ["This month", "false"],
     ]);
-    expect(zoomGroup().closest("header")!.querySelector("h1")!.textContent).toBe("Timeline");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Schedule"); // the page title; the zoom row has none of its own (S8-04)
   });
 
   it("Fall draws the layout's Fall zoom (smooth: over 8 weeks), with Today at its date", async () => {

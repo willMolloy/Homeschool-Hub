@@ -95,7 +95,7 @@ describe("buildDebugTables", () => {
 describe("Plan debug view", () => {
   it("asks /api/plan for the week containing ?week, Monday to Sunday", async () => {
     setup();
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     await screen.findByRole("table", { name: "Frank" });
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01");
     expect(screen.getByRole("heading", { name: "Debug view (temporary)" })).toBeInTheDocument();
@@ -104,7 +104,7 @@ describe("Plan debug view", () => {
 
   it("S6b-01 (was T-03b): parents see no table and none of the debug extras — no heading, Plan as of, markers, legend or engine footer; S6b-14: and no warnings list", async () => {
     setup();
-    renderAt("/?week=2026-10-28&asOf=2026-10-19");
+    renderAt("/schedule?view=week&week=2026-10-28&asOf=2026-10-19");
     await screen.findByRole("button", { name: "Make an adjustment for Frank" });
     expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByRole("heading", { name: "Debug view (temporary)" })).toBeNull();
@@ -126,7 +126,7 @@ describe("Plan debug view", () => {
 
   it("one table per child; Literature merges both assignments: 22.6 Mon/Wed/Thu/Fri, 0 Tue; totals add up", async () => {
     setup();
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     const frank = await screen.findByRole("table", { name: "Frank" });
     expect(screen.getByRole("table", { name: "Margaret" })).toBeInTheDocument();
     // weekend columns hidden: nothing planned on them and they aren't school days
@@ -139,7 +139,7 @@ describe("Plan debug view", () => {
 
   it("the mixed lane shows the subject-default marker only where the default adds work", async () => {
     setup();
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     const margaret = await screen.findByRole("table", { name: "Margaret" });
     expect(cellsOf(rowOf(margaret, "Math"))).toEqual(["20", "35s", "20", "35s", "20", "130"]);
     expect(within(margaret).getAllByLabelText("subject default weight")).toHaveLength(2);
@@ -147,7 +147,7 @@ describe("Plan debug view", () => {
 
   it("default cells get a labelled marker and the legend names each marker used", async () => {
     setup();
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     const frank = await screen.findByRole("table", { name: "Frank" });
     expect(within(frank).getAllByLabelText("built-in weight")).toHaveLength(4);
     const legend = screen.getByRole("list", { name: "Markers" });
@@ -160,14 +160,14 @@ describe("Plan debug view", () => {
   it("no defaults in the week → no legend", async () => {
     setup();
     fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: PLANS.filter((p) => p.weightSource === "assignment") });
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     await screen.findByRole("table", { name: "Frank" });
     expect(screen.queryByRole("list", { name: "Markers" })).not.toBeInTheDocument();
   });
 
   it("lists plan warnings under the child's table (debug only, S6b-14)", async () => {
     setup();
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     const list = await screen.findByRole("list", { name: "Warnings for Margaret" });
     expect(list).toHaveTextContent("Math: the end date has passed with work left past-end");
     expect(screen.queryByRole("list", { name: "Warnings for Frank" })).not.toBeInTheDocument();
@@ -176,7 +176,7 @@ describe("Plan debug view", () => {
   it("S6b-14: the duplicate-adjustment warning shows no engine text to a parent, and shows only with the debug flag", async () => {
     setup();
     fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: [plan({ assignmentId: "ti", warnings: ["override-duplicate-week"], days: days([10, 10, 10, 10, 10]) })] });
-    renderAt("/?week=2026-10-28");
+    renderAt("/schedule?view=week&week=2026-10-28");
     await screen.findByRole("button", { name: "Make an adjustment for Frank" });
     expect(screen.queryByText(/two overrides/)).toBeNull();
     expect(screen.queryByText(/override-duplicate-week/)).toBeNull();
@@ -187,7 +187,7 @@ describe("Plan debug view", () => {
   it("S6b-14: with ?debug=1 the same warning is listed, with its code", async () => {
     setup();
     fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: [plan({ assignmentId: "ti", warnings: ["override-duplicate-week"], days: days([10, 10, 10, 10, 10]) })] });
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     expect(await screen.findByRole("list", { name: "Warnings for Frank" })).toHaveTextContent("two overrides for the same week override-duplicate-week");
   });
 
@@ -200,7 +200,7 @@ describe("Plan debug view", () => {
       vi.setSystemTime(new Date("2026-12-16T12:00:00"));
       setup();
       fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-11-04" });
-      renderAt("/");
+      renderAt("/schedule?view=week");
       await screen.findByRole("button", { name: "Make an adjustment for Frank" });
       expect(within(screen.getByRole("group", { name: "Week" })).getByText("This week")).toBeInTheDocument();
       expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
@@ -212,7 +212,7 @@ describe("Plan debug view", () => {
       vi.setSystemTime(new Date("2026-11-01T20:00:00"));
       setup();
       fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-11-02" });
-      renderAt("/");
+      renderAt("/schedule?view=week");
       await screen.findByRole("button", { name: "Make an adjustment for Frank" });
       expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
     });
@@ -220,7 +220,7 @@ describe("Plan debug view", () => {
 
   it("the header's week switcher moves by 7 days and names the week; 'Plan as of' (debug) passes asOf", async () => {
     setup();
-    renderAt("/?week=2026-10-28");
+    renderAt("/schedule?view=week&week=2026-10-28");
     const user = userEvent.setup();
     await screen.findByRole("button", { name: "Make an adjustment for Frank" });
     const switcher = screen.getByRole("group", { name: "Week" });
@@ -232,7 +232,7 @@ describe("Plan debug view", () => {
     await user.click(within(switcher).getByRole("button", { name: "Previous week" }));
     expect(await within(switcher).findByText("Oct 19–25")).toBeInTheDocument();
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-19&to=2026-10-25");
-    renderAt("/?week=2026-10-26&asOf=2026-10-19&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-26&asOf=2026-10-19&debug=1");
     await screen.findAllByRole("table", { name: "Frank" });
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01&asOf=2026-10-19");
   });
@@ -240,7 +240,7 @@ describe("Plan debug view", () => {
   it("error → alert with Retry", async () => {
     setup();
     fakeApi.on("GET /api/plan", 500, { error: "internal_error" });
-    renderAt("/?week=2026-10-28");
+    renderAt("/schedule?view=week&week=2026-10-28");
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load the plan.");
     fakeApi.on("GET /api/plan", 200, RESPONSE);
     await userEvent.setup().click(screen.getByRole("button", { name: "Retry" }));
@@ -250,7 +250,7 @@ describe("Plan debug view", () => {
   it("no plans → 'Nothing planned this week.'", async () => {
     setup();
     fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: [] });
-    renderAt("/?week=2026-10-28");
+    renderAt("/schedule?view=week&week=2026-10-28");
     expect(await screen.findByText("Nothing planned this week.")).toBeInTheDocument();
   });
 
@@ -262,7 +262,7 @@ describe("Plan debug view", () => {
       { id: "c3", name: "Ada", color: null, sortOrder: 2, archived: false },
       { id: "c4", name: "Old Kid", color: null, sortOrder: 3, archived: true },
     ]);
-    renderAt("/?week=2026-10-28");
+    renderAt("/schedule?view=week&week=2026-10-28");
     expect(await screen.findByText("Ada: nothing planned this week.")).toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Ada" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Old Kid/)).not.toBeInTheDocument();

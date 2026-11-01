@@ -76,7 +76,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 // S6-03: on the current or a coming week the button sets that week's amounts (week-adjustment.test.tsx); the check-in
 // sheet is for a finished week, so these tests open it on last week.
-async function openSheet(name = "Frank", path = "/?week=2026-10-19") {
+async function openSheet(name = "Frank", path = "/schedule?view=week&week=2026-10-19") {
   renderAt(path);
   await userEvent.click(await screen.findByRole("button", { name: `Make an adjustment for ${name}` }));
   return screen.findByRole("dialog");
@@ -85,9 +85,9 @@ async function openSheet(name = "Frank", path = "/?week=2026-10-19") {
 describe("This Week header", () => {
   it("has the title and one week switcher; no Prev/Next bar, past-week list, or debug extras", async () => {
     stub();
-    renderAt("/");
+    renderAt("/schedule?view=week");
     await screen.findByRole("button", { name: "Make an adjustment for Frank" });
-    expect(screen.getByRole("heading", { level: 1, name: "Plan" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Schedule" })).toBeInTheDocument();
     const switcher = screen.getByRole("group", { name: "Week" });
     expect(within(switcher).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["Previous week", "Next week"]);
     expect(switcher).toHaveTextContent("This week");
@@ -99,7 +99,7 @@ describe("This Week header", () => {
   it("has no \"Missed a day?\" control: missed work is reported through the weekly check-in (S6-04)", async () => {
     stub();
     fakeApi.on("GET /api/check-ins", 200, OCT19);
-    renderAt("/");
+    renderAt("/schedule?view=week");
     await screen.findByRole("button", { name: "Make an adjustment for Frank" });
     expect(screen.queryByRole("button", { name: /Missed a day/ })).toBeNull();
     expect(screen.queryByText(/Missed a day/)).toBeNull();
@@ -118,7 +118,7 @@ describe("This Week header", () => {
 describe("Make an adjustment", () => {
   it("one button per active student, nothing opened or fetched until tapped", async () => {
     stub();
-    renderAt("/");
+    renderAt("/schedule?view=week");
     expect(await screen.findByRole("button", { name: "Make an adjustment for Frank" })).toHaveTextContent("Make an adjustment");
     expect(screen.getByRole("button", { name: "Make an adjustment for Margaret" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Old Kid/ })).toBeNull();
@@ -192,7 +192,7 @@ describe("Make an adjustment", () => {
       home = { ...OCT19, status: "reviewed" };
       return [200, { ...home, planChanged: true }];
     });
-    renderAt("/?week=2026-10-19");
+    renderAt("/schedule?view=week&week=2026-10-19");
     expect(await screen.findByRole("region", { name: /How did last week go\?/ })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Make an adjustment for Frank" }));
     const sheet = await screen.findByRole("dialog");
@@ -202,7 +202,7 @@ describe("Make an adjustment", () => {
 
   it("a past shown week is adjusted as itself, prefilled and keeping its stored mode; a skipped week saves as reviewed", async () => {
     stub();
-    const sheet = await openSheet("Frank", "/?week=2026-10-14");
+    const sheet = await openSheet("Frank", "/schedule?view=week&week=2026-10-14");
     expect(sheet).toHaveAccessibleName("Frank · Oct 12–18");
     await within(sheet).findByRole("list");
     expect(within(sheet).queryByText(/skipped/)).toBeNull();
@@ -218,7 +218,7 @@ describe("Make an adjustment", () => {
 
   it("Undo on a stored row removes it from the week on Save", async () => {
     stub();
-    const sheet = await openSheet("Frank", "/?week=2026-10-14");
+    const sheet = await openSheet("Frank", "/schedule?view=week&week=2026-10-14");
     await within(sheet).findByRole("list");
     await userEvent.click(within(sheet).getByRole("button", { name: "Undo Treasure Island for Frank" }));
     await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
@@ -232,7 +232,7 @@ describe("Make an adjustment", () => {
 
   it("the later-check-ins note shows only when a later week has check-ins", async () => {
     stub();
-    const older = await openSheet("Frank", "/?week=2026-10-14");
+    const older = await openSheet("Frank", "/schedule?view=week&week=2026-10-14");
     expect(await within(older).findByText(LATER_NOTE)).toBeInTheDocument();
     expect(laterCheckInsExist(WEEKS, "2026-10-19")).toBe(false);
     expect(laterCheckInsExist(WEEKS, "2026-10-12")).toBe(true);
@@ -249,7 +249,7 @@ describe("Make an adjustment", () => {
   it("a child with nothing planned this week still gets the button", async () => {
     stub();
     fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [] });
-    renderAt("/");
+    renderAt("/schedule?view=week");
     expect(await screen.findByText("Nothing planned this week.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Make an adjustment for Frank" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Make an adjustment for Margaret" })).toBeInTheDocument();

@@ -2,7 +2,7 @@
 import type { ReactNode } from "react";
 import type { Child, Subject, SubjectDefaultWeight } from "../../api/types";
 import { useApi } from "../../api/useApi";
-import { BackToSchedule } from "./ScheduleHub";
+import { BackToSetup } from "../setup/SetupPage";
 
 export interface Lookups {
   children: Child[];
@@ -26,7 +26,7 @@ export function WithLookups({ title, children }: { title: string; children: (l: 
   if (kids.loading || subs.loading) {
     return (
       <section className="schedule">
-        <BackToSchedule />
+        <BackToSetup />
         <h1>{title}</h1>
         <p aria-busy="true">Loading…</p>
       </section>
@@ -36,7 +36,7 @@ export function WithLookups({ title, children }: { title: string; children: (l: 
     const offline = kids.error?.status === 0 || subs.error?.status === 0;
     return (
       <section className="schedule">
-        <BackToSchedule />
+        <BackToSetup />
         <h1>{title}</h1>
         <div className="form-error" role="alert">
           <p>{offline ? "Can't reach the server." : "Couldn't load your children and subjects."}</p>

@@ -95,10 +95,10 @@ describe("the child filter on the page", () => {
     expect(bandIds(shown).length).toBeGreaterThan(0);
     expect(bandIds(shown).every((id) => frank.has(id))).toBe(true);
     expect(totalsD(shown)).not.toBe(before);
-    expect(router.state.location.search).toBe("?child=frank");
+    expect(router.state.location.search).toBe("?view=year&child=frank"); // the Year view of Schedule (S8-04)
     expect(screen.getByRole("button", { name: "Frank" })).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(screen.getByRole("button", { name: "All" }));
-    expect(router.state.location.search).toBe("");
+    expect(router.state.location.search).toBe("?view=year");
     expect(totalsD(screen.getByRole("img", { name: "Year timeline" }))).toBe(before);
   });
 

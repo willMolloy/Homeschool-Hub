@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { apiGet } from "../src/api/client";
@@ -14,10 +14,10 @@ describe("auth", () => {
     expect((router.state.location.state as { from: { pathname: string } }).from.pathname).toBe("/kids");
   });
 
-  it("me=200 → page renders with the family name in the header", async () => {
+  it("me=200 → the page renders; the family name is the title of the family button's sheet on Home (S8-04)", async () => {
     renderAt("/kids");
-    expect(await screen.findByRole("heading", { name: "Kids" })).toBeInTheDocument();
-    expect(within(screen.getByRole("banner")).getByText("Demo family")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Children" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Main" })).toBeInTheDocument();
   });
 
   it("shows a loading state until /api/me answers", async () => {
@@ -28,7 +28,7 @@ describe("auth", () => {
     // The skeleton can render before the request reaches the fake API; wait for it.
     await waitFor(() => expect(answer).toBeTypeOf("function"));
     answer();
-    expect(await screen.findByText("Late family")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Family and settings" })).toHaveTextContent("L");
   });
 
   it("server unreachable → Try again, which retries /api/me", async () => {
@@ -37,7 +37,7 @@ describe("auth", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Can't reach the server.");
     fakeApi.reset();
     await userEvent.setup().click(screen.getByRole("button", { name: "Try again" }));
-    expect(await screen.findByRole("heading", { name: "Plan" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Family and settings" })).toBeInTheDocument();
   });
 
   it("fresh session: /kids → login → back on /kids", async () => {
@@ -49,14 +49,15 @@ describe("auth", () => {
     await user.type(await screen.findByLabelText("Email"), "demo@example.com");
     await user.type(screen.getByLabelText("Password"), "demo-password");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
-    expect(await screen.findByRole("heading", { name: "Kids" })).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe("/kids");
+    expect(await screen.findByRole("heading", { name: "Children" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/setup/children"); // /kids is an old link (S8-04)
   });
 
-  it("Sign out calls logout, clears state, and returns to /login", async () => {
-    const { router } = renderAt("/subjects");
-    await screen.findByRole("heading", { name: "Subjects" });
-    await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
+  it("Sign out (in the family button's sheet on Home) calls logout, clears state, and returns to /login", async () => {
+    const { router } = renderAt("/");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Family and settings" }));
+    await user.click(await screen.findByRole("button", { name: "Sign out" }));
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/login");
     expect(fakeApi.calls.some((c) => c.method === "POST" && c.path === "/api/auth/logout")).toBe(true);
@@ -65,7 +66,7 @@ describe("auth", () => {
 
   it("a 401 from any later call (expired session) sends the user to /login", async () => {
     const { router } = renderAt("/");
-    await screen.findByRole("heading", { name: "Plan" });
+    await screen.findByRole("button", { name: "Family and settings" });
     fakeApi.on("GET /api/children", 401, { error: "unauthenticated" });
     await apiGet("/api/children").catch(() => {});
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));

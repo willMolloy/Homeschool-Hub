@@ -7,7 +7,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import "../../ui/forms.css";
 import { saveError, WeekdayPicker } from "./formBits";
 import { AppearanceChoice } from "../settings/AppearanceChoice";
-import { BackToSchedule } from "./ScheduleHub";
+import { BackToSetup } from "../setup/SetupPage";
 import "./schedule.css";
 
 const NAME_MAX = 60;
@@ -29,7 +29,7 @@ export function FamilySettingsPage() {
   const { data, error, loading, reload, setData } = useApi<FamilySettings>("/api/family");
   return (
     <section className="schedule">
-      <BackToSchedule />
+      <BackToSetup />
       <h1>Family settings</h1>
       {loading ? (
         <p aria-busy="true">Loading…</p>

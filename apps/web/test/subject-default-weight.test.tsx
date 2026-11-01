@@ -227,7 +227,7 @@ describe("Kids form", () => {
     fakeApi.on("GET /api/children", 200, [{ id: "k1", name: "Ada", color: "#2f6fb0", sortOrder: 0, archived: false }]);
     const user = userEvent.setup();
     renderAt("/kids");
-    await screen.findByRole("list", { name: "Kids" });
+    await screen.findByRole("list", { name: "Children" });
     await user.click(screen.getByRole("button", { name: "Ada" }));
     const form = screen.getByRole("form", { name: "Edit Ada" });
     expect(within(form).queryByText(/Usual effort/)).toBeNull();

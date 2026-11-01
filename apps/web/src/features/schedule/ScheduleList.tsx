@@ -9,7 +9,7 @@ import { useApi } from "../../api/useApi";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import "../../ui/forms.css";
 import { saveError } from "./formBits";
-import { BackToSchedule } from "./ScheduleHub";
+import { BackToSetup } from "../setup/SetupPage";
 import "./schedule.css";
 
 export interface ListItem {
@@ -193,7 +193,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
 
   return (
     <section className="schedule">
-      <BackToSchedule />
+      <BackToSetup />
       <div className="schedule-head">
         <h1>{title}</h1>
         {archivable ? (

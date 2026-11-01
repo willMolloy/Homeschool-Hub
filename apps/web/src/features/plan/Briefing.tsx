@@ -5,6 +5,7 @@
  * need more than the shown week).
  */
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { addDays, toDayNumber, type ChildPlan, type LocalDate, type Weekday } from "@hh/engine";
 import { ApiError, apiGet, apiPatch } from "../../api/client";
 import type { Assignment, Child, PastWeek, PlanResponse } from "../../api/types";
@@ -104,7 +105,8 @@ function writeKept(kept: Record<string, string>): void {
   } catch { /* the choice just isn't remembered */ }
 }
 
-export function Briefing({ weekStart }: { weekStart: LocalDate }) {
+/** `showNudge` false (Home): the "last week isn't checked in" line is Home's Track work card instead. */
+export function Briefing({ weekStart, showNudge = true }: { weekStart: LocalDate; showNudge?: boolean }) {
   const assignments = useApi<Assignment[]>("/api/assignments");
   const children = useApi<Child[]>("/api/children");
   const weeks = useApi<{ weeks: PastWeek[] }>("/api/check-ins/weeks");
@@ -117,7 +119,7 @@ export function Briefing({ weekStart }: { weekStart: LocalDate }) {
   if (!assignments.data || !children.data) return null;
   // Never shown to a family that has not checked in before.
   const checkedInBefore = (weeks.data?.weeks ?? []).some((w) => w.status === "reviewed" || w.hasCheckIns);
-  const nudge = checkedInBefore && lastWeek.week !== null;
+  const nudge = showNudge && checkedInBefore && lastWeek.week !== null;
   return <BriefingBody assignments={assignments.data} children={children.data} weekStart={weekStart} nudge={nudge} />;
 }
 
@@ -161,7 +163,7 @@ function BriefingBody({ assignments, children, weekStart, nudge }: BodyProps) {
   return (
     <section className="briefing" aria-label="Weekly briefing">
       {groups.map((g) => <ChildLines key={g.childId} group={g} onKeep={keep} onMoved={invalidate} />)}
-      {nudge ? <p className="briefing-line"><a href="#last-week-checkin">{NUDGE_TEXT}</a></p> : null}
+      {nudge ? <p className="briefing-line"><Link to="/track">{NUDGE_TEXT}</Link></p> : null}
     </section>
   );
 }

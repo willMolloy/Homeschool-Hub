@@ -12,7 +12,7 @@ describe("Kids list", () => {
   it("lists the family's children in API order", async () => {
     fakeApi.on("GET /api/children", 200, [FRANK, MARGARET]);
     renderAt("/kids");
-    const list = await screen.findByRole("list", { name: "Kids" });
+    const list = await screen.findByRole("list", { name: "Children" });
     expect(within(list).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["Frank", "Margaret"]);
   });
 
@@ -20,7 +20,7 @@ describe("Kids list", () => {
     let answer!: () => void;
     fakeApi.on("GET /api/children", () => new Promise((r) => (answer = () => r([200, [FRANK]]))));
     renderAt("/kids");
-    expect(await screen.findByRole("list", { name: "Loading kids" })).toHaveAttribute("aria-busy", "true");
+    expect(await screen.findByRole("list", { name: "Loading children" })).toHaveAttribute("aria-busy", "true");
     // The skeleton can render before the request reaches the fake API; wait for it.
     await waitFor(() => expect(answer).toBeTypeOf("function"));
     answer();
@@ -36,7 +36,7 @@ describe("Kids list", () => {
   it("error → message + Retry, which refetches", async () => {
     fakeApi.on("GET /api/children", 500, { error: "internal_error" });
     renderAt("/kids");
-    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load kids.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load children.");
     fakeApi.on("GET /api/children", 200, [FRANK]);
     await userEvent.setup().click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByText("Frank")).toBeInTheDocument();

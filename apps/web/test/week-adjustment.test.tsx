@@ -49,7 +49,7 @@ function stub(overrides: object[] = []) {
   fakeApi.on("PUT /api/week-overrides/batch", (body) => [200, { overrides: (body as { set: object[] }).set.map((r) => ({ id: "new", updatedAt: "2026-10-28T15:00:00.000Z", ...r })) }]);
 }
 
-async function openSheet(path = "/", name = "Frank") {
+async function openSheet(path = "/schedule?view=week", name = "Frank") {
   renderAt(path);
   await userEvent.click(await screen.findByRole("button", { name: `Make an adjustment for ${name}` }));
   const sheet = await screen.findByRole("dialog");
@@ -165,7 +165,7 @@ describe("This Week adjustment (other weeks)", () => {
     stub();
     const next = plan("ti", "c1", { days: ["2026-11-02", "2026-11-03"].map((date) => ({ date, capacity: 1, schoolDay: true, units: 10, thickness: 10, kind: "planned" as const, position: 10 })) } as Partial<ChildPlan>);
     fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-11-02", to: "2026-11-08", plans: [next] });
-    const sheet = await openSheet("/?week=2026-11-04");
+    const sheet = await openSheet("/schedule?view=week&week=2026-11-04");
     expect(sheet).toHaveAccessibleName("Frank · Nov 2–8");
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/week-overrides?weekStart=2026-11-02");
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
@@ -188,7 +188,7 @@ describe("This Week adjustment (other weeks)", () => {
     stub();
     const next = plan("ti", "c1", { days: ["2026-11-02", "2026-11-03"].map((date) => ({ date, capacity: 1, schoolDay: true, units: 10, thickness: 10, kind: "planned" as const, position: 10 })) } as Partial<ChildPlan>);
     fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-11-02", to: "2026-11-08", plans: [next] });
-    const sheet = await openSheet("/?week=2026-11-04");
+    const sheet = await openSheet("/schedule?view=week&week=2026-11-04");
     expect(within(sheet).getByText("That week")).toBeInTheDocument();
     expect(within(sheet).queryByText(/This week/)).toBeNull();
   });
@@ -217,7 +217,7 @@ describe("This Week adjustment (other weeks)", () => {
       weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, addable: [],
       items: [{ assignmentId: "ti", childId: "c1", childName: "Frank", title: "Treasure Island", unitType: "pages", plannedFrom: 0, plannedTo: 80, totalUnits: 270, actual: null, mode: null }],
     });
-    const sheet = await openSheet("/?week=2026-10-19");
+    const sheet = await openSheet("/schedule?view=week&week=2026-10-19");
     expect(sheet).toHaveAccessibleName("Frank · Last week · Oct 19–25");
     expect(await within(sheet).findByRole("button", { name: "Save" })).toBeEnabled();
     expect(fakeApi.calls.some((c) => c.path.startsWith("/api/week-overrides"))).toBe(false);

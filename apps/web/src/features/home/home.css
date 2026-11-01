@@ -1,0 +1,39 @@
+/* S8-04: Home. */
+.logo { display: inline-flex; align-items: center; gap: 10px; }
+.logo b { font-family: var(--tl-font-display); font-weight: 600; font-size: 1.15rem; }
+.home-top { display: flex; align-items: center; justify-content: space-between; margin: 0 0 20px; }
+.home-avatar { width: 44px; height: 44px; border-radius: 999px; border: 0; background: var(--tl-primary-soft); color: var(--tl-primary); font-weight: 700; cursor: pointer; }
+.home-greeting { font-size: 1.75rem; margin: 0 0 4px; }
+.home-date { margin: 0 0 18px; color: var(--tl-muted-foreground); }
+.home-card { position: relative; margin-bottom: 14px; padding: 18px; }
+.home-card-head { display: flex; align-items: center; gap: 12px; }
+.home-card-text { flex: 1; min-width: 0; }
+.home-card-text h2 { margin: 0; font-size: 1.25rem; }
+.home-card-link { color: inherit; text-decoration: none; }
+/* The whole card is the tap target. */
+.home-card-link::after { content: ""; position: absolute; inset: 0; border-radius: var(--tl-radius); }
+.home-card-link:focus-visible { outline: none; }
+.home-card-link:focus-visible::after { outline: 3px solid var(--tl-ring); outline-offset: 2px; }
+.home-sub { font-size: 0.875rem; color: var(--tl-muted-foreground); }
+.home-chevron { color: var(--tl-muted-foreground); flex: none; }
+.home-icon { width: 44px; height: 44px; border-radius: var(--tl-radius-bar); background: var(--tl-primary-soft); color: var(--tl-primary); display: inline-grid; place-items: center; flex: none; }
+.home-icon-small { width: 36px; height: 36px; }
+.home-progress { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.home-progress:first-of-type { margin-top: 16px; }
+.home-kid { width: 68px; font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-track { flex: 1; height: 8px; border-radius: 99px; background: var(--tl-border); overflow: hidden; }
+.home-track i { display: block; height: 100%; border-radius: 99px; background: var(--tl-primary); transition: width var(--tl-motion) ease-out; }
+.home-left { font-size: 0.8125rem; color: var(--tl-muted-foreground); min-width: 4.2em; text-align: right; }
+.home-note { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 0.8125rem; }
+.home-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--tl-primary); flex: none; }
+.home-mini { position: relative; display: grid; gap: 4px; margin: 14px 0 4px; }
+.home-mini span { display: block; height: 8px; border-radius: 99px; }
+.home-today { position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: 2px; background: var(--tl-today); }
+.home-setup { padding: 8px 18px; margin-bottom: 14px; }
+.home-signout { margin-top: 12px; }
+
+/* Setup list and the Schedule page (S8-04). */
+.setup-list { padding: 8px 18px; }
+.setup-list ul { list-style: none; margin: 0; padding: 0; }
+.setup-list li + li { border-top: 1px solid var(--tl-border); }
+.schedule-page h1 { margin-bottom: 12px; }

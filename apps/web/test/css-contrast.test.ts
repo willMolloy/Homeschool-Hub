@@ -23,6 +23,9 @@ const NON_TEXT = new Set([
   ".confirm-dialog::backdrop",
   ".sheet-backdrop",
   ".swatch-chip",
+  ".home-track i",
+  ".home-dot",
+  ".home-today",
 ]);
 /** Translucent backgrounds, with the colour they sit on. */
 const TRANSLUCENT_ON: Record<string, string> = { '.shell-nav a[aria-current="page"]': "var(--brand)" };

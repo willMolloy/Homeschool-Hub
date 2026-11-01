@@ -16,7 +16,7 @@ describe("Engine version", () => {
 
   it("parents get an empty footer (T-03b)", async () => {
     renderAt("/kids");
-    await screen.findByRole("heading", { name: "Kids" });
+    await screen.findByRole("heading", { name: "Children" });
     expect(screen.getByRole("contentinfo")).toBeEmptyDOMElement();
   });
 

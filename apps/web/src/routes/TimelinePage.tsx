@@ -60,7 +60,8 @@ interface LayoutArgs { width: number; measureText: MeasureText; month: string | 
 const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: LayoutArgs) =>
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
-export function TimelinePage() {
+/** `embedded`: inside Schedule (S8-04), which owns the page title. */
+export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects, zoomViews, setZoomViews } = useTimelineData();
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
   const [childParam, setChild] = useChildParam();
@@ -176,7 +177,7 @@ export function TimelinePage() {
   return (
     <>
       <header className="timeline-page-header">
-        <h1>Timeline</h1>
+        {embedded ? null : <h1>Timeline</h1>}
         {!failed && !loading && model && <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />}
         {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews)} onEdit={() => setEditingViews(true)} />}
       </header>

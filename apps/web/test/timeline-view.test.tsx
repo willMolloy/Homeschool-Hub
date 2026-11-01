@@ -63,11 +63,11 @@ describe("which days the Year view covers", () => {
 });
 
 describe("the Year timeline page", () => {
-  it("is in the main nav and fetches the plan for the school year", async () => {
+  it("lives under Schedule's Year view and fetches the plan for the school year", async () => {
     stubSample();
     await openTimeline();
     const nav = screen.getByRole("navigation", { name: "Main" });
-    expect(within(nav).getByRole("link", { name: "Timeline" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("link", { name: "Schedule" })).toHaveAttribute("aria-current", "page");
     expect(plansPath()).toEqual(["/api/plan?from=2026-07-27&to=2027-07-04"]);
   });
 
@@ -122,7 +122,7 @@ describe("the Year timeline page", () => {
     // The visible buttons: add (T-10), the presets and the quiet Edit that ends the row (S7-05), then the child chips (T-07c). (T-07: the lanes list's pick buttons are visually hidden until focused.)
     const visible = within(main).getAllByRole("button").filter((b) => !b.closest(".sr-only"));
     expect(visible.map((b) => b.textContent)).toEqual(["+ Add assignment", "Year", "Fall", "Spring", "This month", "Edit", "All", "Frank", "Margaret"]);
-    expect(within(main).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Timeline"]);
+    expect(within(main).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Schedule"]); // the page title; Week | Year is a pair of tabs, not buttons
     // Below the title: the picture, and the lane list that only screen readers get. Nothing else.
     const bleed = main.querySelector(".timeline-bleed")!;
     expect([...bleed.children].map((e) => `${e.tagName.toLowerCase()}.${e.getAttribute("class")}`)).toEqual(["div.tl-stage", "ul.sr-only tl-lanes-list"]);

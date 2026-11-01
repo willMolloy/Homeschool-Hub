@@ -143,7 +143,7 @@ describe("the undo bar after a timeline edit", () => {
     offer("Moved Treasure Island");
     move(edit);
     await screen.findByText("Moved Treasure Island.");
-    await user.click(screen.getByRole("link", { name: "Kids" }));
+    await user.click(screen.getByRole("link", { name: "Track work" }));
     await waitFor(() => expect(screen.queryByText("Moved Treasure Island.")).toBeNull());
   });
 

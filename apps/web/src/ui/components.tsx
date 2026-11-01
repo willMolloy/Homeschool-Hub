@@ -35,14 +35,18 @@ export interface SegmentedProps<T extends string> {
   value: T;
   onChange: (value: T) => void;
   className?: string;
+  /** "toggle" (default): buttons with aria-pressed. "tabs": switches between two views of one screen (Week | Year). */
+  as?: "toggle" | "tabs";
 }
 
 /** A segmented control (Frank / Margaret / Both, Week / Year): a pill track with one raised choice. */
-export function Segmented<T extends string>({ label, options, value, onChange, className }: SegmentedProps<T>) {
+export function Segmented<T extends string>({ label, options, value, onChange, className, as = "toggle" }: SegmentedProps<T>) {
+  const tabs = as === "tabs";
   return (
-    <div role="group" aria-label={label} className={["segmented", className].filter(Boolean).join(" ")}>
+    <div role={tabs ? "tablist" : "group"} aria-label={label} className={["segmented", className].filter(Boolean).join(" ")}>
       {options.map((o) => (
-        <button key={o.value} type="button" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
+        <button key={o.value} type="button" {...(tabs ? { role: "tab", "aria-selected": o.value === value } : { "aria-pressed": o.value === value })}
+          onClick={() => onChange(o.value)}>
           {o.label}
         </button>
       ))}

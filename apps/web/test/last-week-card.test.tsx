@@ -30,7 +30,7 @@ const puts = () => fakeApi.calls.filter((c) => c.method === "PUT");
 async function showCard(week: WeekCheckIn = WEEK) {
   fakeApi.on("GET /api/check-ins", 200, week);
   fakeApi.on(PUT, (body) => [200, { ...week, status: (body as { status: string }).status, planChanged: true }]);
-  renderAt("/");
+  renderAt("/schedule?view=week");
   return screen.findByRole("region", { name: "How did last week go?" });
 }
 
@@ -96,8 +96,8 @@ describe("the default: everything went as planned", () => {
     ["the request fails", () => fakeApi.on("GET /api/check-ins", 500, { error: "internal" })],
   ])("hidden when %s, and the plan still renders", async (_n, arrange) => {
     arrange();
-    renderAt("/");
-    expect(await screen.findByRole("heading", { name: "Plan" })).toBeInTheDocument();
+    renderAt("/schedule?view=week");
+    expect(await screen.findByRole("heading", { name: "Schedule" })).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 20));
     expect(card()).toBeNull();
     expect(fakeApi.calls.some((c) => c.path === "/api/check-ins")).toBe(true);
@@ -156,7 +156,7 @@ describe("adjusting a row", () => {
       const after = fakeApi.calls.slice(before).map((x) => `${x.method} ${x.path.split("?")[0]}`);
       expect(after.indexOf("PUT /api/check-ins/2026-10-19")).toBe(0);
       expect(after.indexOf("GET /api/plan")).toBeGreaterThan(0);
-      expect(screen.getByRole("heading", { name: "Plan" })).toBeInTheDocument(); // no page reload
+      expect(screen.getByRole("heading", { name: "Schedule" })).toBeInTheDocument(); // no page reload
       await act(async () => { vi.advanceTimersByTime(THANKS_MS + 10); });
       expect(screen.queryByRole("status")).toBeNull();
       expect(card()).toBeNull();

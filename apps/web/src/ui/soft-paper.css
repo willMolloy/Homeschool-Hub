@@ -15,7 +15,7 @@
   color: var(--tl-muted-foreground); font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
   transition: background-color var(--tl-motion) ease-out, color var(--tl-motion) ease-out;
 }
-.segmented button[aria-pressed="true"] { background: var(--tl-card); color: var(--tl-foreground); box-shadow: 0 0 0 1px var(--tl-border); }
+.segmented button[aria-pressed="true"], .segmented button[aria-selected="true"] { background: var(--tl-card); color: var(--tl-foreground); box-shadow: 0 0 0 1px var(--tl-border); }
 
 .list-row {
   display: flex; align-items: center; gap: 12px; min-height: 56px; box-sizing: border-box; width: 100%; padding: 8px 4px;

@@ -17,14 +17,14 @@ function patchMerging(...rows: Row[]) {
   };
 }
 
-const rowNames = () => within(screen.getByRole("list", { name: "Kids" })).getAllByRole("listitem").map((li) => li.textContent);
+const rowNames = () => within(screen.getByRole("list", { name: "Children" })).getAllByRole("listitem").map((li) => li.textContent);
 
 async function setup(rows = [FRANK, MARGARET]) {
   fakeApi.on("GET /api/children", 200, rows);
   for (const r of [FRANK, MARGARET, OLD]) fakeApi.on(`PATCH /api/children/${r.id}`, patchMerging(r));
   const user = userEvent.setup();
   renderAt("/kids");
-  await screen.findByRole("list", { name: "Kids" });
+  await screen.findByRole("list", { name: "Children" });
   return user;
 }
 
