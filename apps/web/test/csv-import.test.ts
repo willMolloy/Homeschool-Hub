@@ -170,11 +170,12 @@ describe("parseAssignmentsCsv", () => {
 });
 
 describe("assignmentsCsvTemplate", () => {
-  it("has the header row and one example that imports as is", () => {
+  it("has the header row and two examples in sequence (S7b-06) that import as is", () => {
     const t = assignmentsCsvTemplate(lookups);
     expect(t.split("\n")[0]).toBe(HEADER);
     const r = parse(t);
     expect(r.errors).toEqual([]);
-    expect(r.rows).toHaveLength(1);
+    expect(r.rows).toHaveLength(2);
+    expect(r.rows[1]!.startDate > r.rows[0]!.endDate).toBe(true); // the second book starts after the first ends
   });
 });

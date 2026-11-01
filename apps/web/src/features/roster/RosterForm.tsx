@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { ApiError } from "../../api/client";
-import { PALETTE, PALETTE_NAMES } from "./palette";
+import { PALETTE, PALETTE_NAMES, swatchColor } from "./palette";
 
 export interface RosterValues {
   name: string;
@@ -19,10 +19,12 @@ export interface RosterFormProps {
   extra?: ReactNode;
   /** An error from an action outside the form (e.g. Unarchive). */
   externalError?: string | null;
-  /** Extra fields rendered after Color (e.g. the subject's default bar width). */
+  /** Extra fields rendered after Color (e.g. the subject's usual effort). */
   children?: ReactNode;
   /** S2c-03: an extra field is invalid, so Save is disabled and submitting does nothing. */
   blocked?: boolean;
+  /** S8-11: told on every keystroke, so a field of the host (the subject icon) can follow the name. */
+  onNameChange?: (name: string) => void;
 }
 
 /** Server messages look like "name: Name is required." — the field is already obvious here. */
@@ -30,7 +32,7 @@ function cleanMessage(m: string): string {
   return m.replace(/^[a-zA-Z.]+: /, "");
 }
 
-export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extra, externalError, children, blocked = false }: RosterFormProps) {
+export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extra, externalError, children, blocked = false, onNameChange }: RosterFormProps) {
   const [name, setName] = useState(initial.name);
   const [color, setColor] = useState<string | null>(initial.color);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extr
           maxLength={80}
           aria-invalid={fieldError ? true : undefined}
           aria-describedby={fieldError ? errId : undefined}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => { setName(e.target.value); onNameChange?.(e.target.value); }}
         />
         {fieldError ? <p id={errId} className="field-error" role="alert">{fieldError}</p> : null}
       </div>
@@ -91,7 +93,7 @@ export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extr
         {PALETTE.map((c) => (
           <label key={c} className="swatch" title={PALETTE_NAMES[c]}>
             <input type="radio" name="color" value={c} checked={color === c} onChange={() => setColor(c)} aria-label={PALETTE_NAMES[c]} />
-            <span className="swatch-chip" style={{ background: c }} aria-hidden="true" />
+            <span className="swatch-chip" style={{ background: swatchColor(c) ?? c }} aria-hidden="true" />
           </label>
         ))}
       </fieldset>

@@ -214,6 +214,30 @@ describe.skipIf(!hasDb)("loadPlanInputs (integration)", () => {
     }
   });
 
+  it("returns week adjustments in edit order, so the one edited last decides the mode, whatever its week (S6-01)", async () => {
+    const ti = fam.ids.assignment.ti!;
+    const frank = fam.ids.child.frank!;
+    const put = (week: string, mode: string) => pool.query(
+      `INSERT INTO week_override (family_id, assignment_id, child_id, week_start, planned_units, mode)
+       VALUES ($1, $2, $3, $4, 10, $5)
+       ON CONFLICT (assignment_id, COALESCE(child_id, '00000000-0000-0000-0000-000000000000'::uuid), week_start)
+       DO UPDATE SET mode = EXCLUDED.mode, updated_at = clock_timestamp()`, [fam.familyId, ti, frank, week, mode]);
+    const modeOf = async () => {
+      const loaded = await loadPlanInputs(pool, fam.familyId);
+      const p = planChild(loaded.assignments.find((a) => a.id === ti)!, frank, { ...loaded.ctx, asOf: "2026-10-21" });
+      return { order: loaded.ctx.overrides.map((o) => o.weekStart), mode: p.mode };
+    };
+    try {
+      await put("2026-11-02", "pushEndDate"); // the later week, edited first
+      await put("2026-10-26", "keepEndDate"); // the earlier week, edited last
+      expect(await modeOf()).toEqual({ order: ["2026-11-02", "2026-10-26"], mode: "keepEndDate" });
+      await put("2026-11-02", "pushEndDate"); // edit the later week again: now it is the newest
+      expect(await modeOf()).toEqual({ order: ["2026-10-26", "2026-11-02"], mode: "pushEndDate" });
+    } finally {
+      await pool.query("DELETE FROM week_override WHERE assignment_id = $1", [ti]);
+    }
+  });
+
   it("maps check-ins (position as a number), only this family's, skipping archived children (S2b-22)", async () => {
     const ti = fam.ids.assignment.ti!;
     const frank = fam.ids.child.frank!;

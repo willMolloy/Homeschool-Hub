@@ -5,7 +5,7 @@ export function NotFoundPage() {
     <main className="not-found">
       <h1>Page not found</h1>
       <p>
-        <Link to="/">Go to the plan</Link>
+        <Link to="/">Go home</Link>
       </p>
     </main>
   );

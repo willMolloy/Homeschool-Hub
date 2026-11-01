@@ -129,14 +129,14 @@ describe("Import assignments from a CSV (S3a-06)", () => {
     expect(within(form).getByRole("button", { name: "Import" })).toBeEnabled();
   });
 
-  it("the template link downloads the header row and an example that imports as is", async () => {
+  it("the template link downloads the header row and two examples in sequence that import as is (S7b-06)", async () => {
     const { form } = await setup();
     const link = within(form).getByRole("link", { name: "Download template" });
     expect(link).toHaveAttribute("download", "assignments-template.csv");
     const csv = decodeURIComponent(link.getAttribute("href")!.replace("data:text/csv;charset=utf-8,", ""));
     expect(csv.split("\n")[0]).toBe(HEADER);
     paste(form, csv);
-    expect(await within(form).findByText("1 assignment")).toBeInTheDocument();
+    expect(await within(form).findByText("2 assignments")).toBeInTheDocument();
   });
 
   it("Cancel sends nothing", async () => {

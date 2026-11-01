@@ -218,11 +218,15 @@ export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly 
 
 const cellText = (s: string) => (/[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
 
-/** The header row and one example row, using the family's own first subject and child so it imports as is. */
+/**
+ * The header row and two example rows, using the family's own first subject and child so it imports as is. S7b-06: each
+ * row has its own start and end, so the second book starts where the first ends (books read in sequence).
+ */
 export function assignmentsCsvTemplate(lookups: { subjects: readonly Subject[]; children: readonly Child[] }): string {
   const subject = lookups.subjects.find((s) => !s.archived)?.name ?? "Math";
   const child = lookups.children.find((c) => !c.archived)?.name ?? "Ada";
   const start: LocalDate = "2026-11-02";
-  const example = [subject, "Saxon 5/4", child, "lessons", "120", start, addDays(start, 45)];
-  return `${CSV_COLUMNS.join(",")}\n${example.map(cellText).join(",")}\n`;
+  const first = [subject, "Saxon 5/4", child, "lessons", "120", start, addDays(start, 45)];
+  const second = [subject, "Saxon 5/5", child, "lessons", "120", addDays(start, 46), addDays(start, 91)];
+  return `${CSV_COLUMNS.join(",")}\n${[first, second].map((r) => r.map(cellText).join(",")).join("\n")}\n`;
 }

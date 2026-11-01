@@ -7,11 +7,12 @@
  */
 import { aggregate, type ChildPlan, type LocalDate, type PlanWarning, type WeekStart } from "@hh/engine";
 import type { Assignment, BlockedRange, Child, ScheduleEvent, Subject } from "../../api/types";
+import { slotOfColor } from "../roster/palette";
 import { buildDayGrid, gridIndex, sumSeries, zeros, type DayGrid } from "./grid";
 import { breaksOnGrid, eventsOnGrid, type TimelineBreak, type TimelineEvent } from "./marks";
 
-/** Subject colour slots in the T-01b palette (`--tl-subject-1` … `-10`). Slots repeat after this; the lane name is the backup cue. */
-export const PALETTE_SLOTS = 10;
+/** Subject colour slots in the Soft Paper palette (`--tl-subject-1` … `-8`, S8-01). Slots repeat after this; the subject's icon (S8-11) is the cue, never colour alone. */
+export const PALETTE_SLOTS = 8;
 /** A child's sub-lane is a step of its subject's colour (`--tl-subject-N`, `-light`, `-dark`), in child order. */
 export const CHILD_STEPS = ["base", "light", "dark"] as const;
 export type ChildStep = (typeof CHILD_STEPS)[number];
@@ -104,10 +105,18 @@ function ranked<T extends { id: string; archived: boolean; sortOrder: number; na
 
 const slotOfRank = (rank: number) => (rank % PALETTE_SLOTS) + 1;
 
+/**
+ * S8b-04: a subject's colour slot is the hue of the colour stored on it (the one its swatch and badge show on Set up, which the
+ * parent can change on the subject form), so a subject is one colour everywhere. Dealing slots by display order is only the
+ * default for a subject with no colour or one the palette doesn't know.
+ */
+const slotFor = (subject: { color?: string | null } | undefined, rank: number) =>
+  slotOfColor(subject?.color) ?? slotOfRank(rank);
+
 /** Each subject's palette slot, dealt as the timeline deals them (display order). This Week's pastels use it too. */
 export function subjectSlots(subjects: readonly Subject[]): (subjectId: string) => number {
   const r = ranked(subjects);
-  return (subjectId) => slotOfRank(r.rank(subjectId));
+  return (subjectId) => slotFor(r.get(subjectId), r.rank(subjectId));
 }
 
 /** Put one series of dated values onto the grid; days off the grid are dropped. */
@@ -172,7 +181,7 @@ export function buildTimelineModel(input: TimelineInput): TimelineModel {
     .map(([subjectId, byChild]) => ({
       subjectId,
       name: subjects.get(subjectId)?.name ?? "Subject",
-      paletteSlot: slotOfRank(subjects.rank(subjectId)),
+      paletteSlot: slotFor(subjects.get(subjectId), subjects.rank(subjectId)),
       children: [...byChild.entries()]
         .sort(([a], [b]) => children.rank(a) - children.rank(b))
         .map(([childId, plans]): ChildLane => {

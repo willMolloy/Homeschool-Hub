@@ -3,8 +3,11 @@
  * Recomputes every plan from rows on each request (rates are never stored) and trims `days` to [from, to].
  */
 import type { FastifyInstance } from "fastify";
-import { ENGINE_VERSION, EngineInputError, planAll, toDayNumber, type ChildPlan } from "@hh/engine";
+import { z } from "zod";
+import { capacityDays, ENGINE_VERSION, EngineInputError, planAll, toDayNumber, type ChildPlan, type Weekday } from "@hh/engine";
 import { HttpError } from "../http/errors";
+import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, Weekdays } from "../http/scheduleLimits";
+import { parseBody, UUID_RE } from "../http/validate";
 import { familyToday } from "../http/today";
 import { FamilyNotFoundError, loadPlanInputs, type PlanInputs } from "../plan/loadPlanInputs";
 
@@ -18,6 +21,18 @@ export interface PlanResponse {
   to: string;
   plans: ChildPlan[];
 }
+
+/** S7b-10: up to this many drafts in one POST /api/plan/pace (a list of assignments asks for all of its cards at once). */
+const MAX_PACE_DRAFTS = 500;
+const PaceBody = z.strictObject({
+  drafts: z.array(z.strictObject({
+    subjectId: z.string().regex(UUID_RE, "subjectId must be a UUID.").transform((x) => x.toLowerCase()).nullable(),
+    childIds: IdList(20).refine((ids) => ids.length > 0, "Pick at least one child."),
+    startDate: LocalDate,
+    endDate: LocalDate,
+    weekdays: Weekdays.nullable(),
+  })).min(1, "Send at least one draft.").max(MAX_PACE_DRAFTS, `At most ${MAX_PACE_DRAFTS} drafts.`),
+});
 
 function dayParam(q: Record<string, unknown>, name: string, required: boolean): string | undefined {
   const v = q[name];
@@ -60,5 +75,34 @@ export async function planRoutes(app: FastifyInstance): Promise<void> {
       days: p.days.filter((d) => d.date >= from && d.date <= to),
     }));
     return { engineVersion: ENGINE_VERSION, asOf, from, to, plans };
+  });
+
+  /**
+   * S7b-10: the full days of work each draft assignment really has for each child (school days on its own days, minus days
+   * off, event skips and lighter days), the same count the plan spreads over. The form turns it into "pages a day" and
+   * minutes; nothing is saved. `capacityDays` is the smallest across the children (the busiest child sets the pace).
+   */
+  app.post("/api/plan/pace", async (req) => {
+    const { drafts } = parseBody(PaceBody, req.body);
+    for (const d of drafts) checkDateOrder(d.startDate, d.endDate, MAX_ASSIGNMENT_DAYS);
+    let inputs: PlanInputs;
+    try {
+      inputs = await loadPlanInputs(app.db, req.familyId);
+    } catch (e) {
+      if (e instanceof FamilyNotFoundError) throw new HttpError(401, "unauthenticated", "Your family no longer exists.");
+      throw e;
+    }
+    const { calendar, ctx } = inputs;
+    const paces = drafts.map((d) => {
+      const perChild = d.childIds.map((childId) => ({
+        childId,
+        capacityDays: capacityDays({
+          calendar, events: ctx.events, blocked: ctx.blocked, subjectWeekdays: ctx.subjectWeekdays, subjectId: d.subjectId, childId,
+          start: d.startDate, end: d.endDate, weekdays: d.weekdays as Weekday[] | null,
+        }),
+      }));
+      return { capacityDays: Math.min(...perChild.map((c) => c.capacityDays)), perChild };
+    });
+    return { paces };
   });
 }

@@ -12,14 +12,15 @@
  * - Horizontal room: labels sit above their rows, not in a column, so the plot spans the width.
  */
 import { weekdayOf } from "@hh/engine";
-import { PX_PER_THICKNESS } from "../plan/scale";
+import type { CustomZoomView } from "../../api/types";
+import { PX_PER_THICKNESS, softCapPx } from "../plan/scale";
 import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
 import { estimateTextWidth, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows } from "./rows";
 import { sumSeries } from "./grid";
-import { cleanSeries, smoothSeries } from "./smooth";
+import { calmSeries, limitSlope } from "./smooth";
 import { makeXScale, type XScale } from "./xscale";
 import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, type Zoom } from "./zoom";
 
@@ -29,6 +30,12 @@ import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, typ
  * phones, with nothing beside it).
  */
 export const SIDE_PAD_PX = 4;
+/** S8-07: the narrow left gutter that holds one round subject badge per lane (the subject's icon), so lanes need no name rows. */
+export const GUTTER_PX = 24;
+/** S8-07: a badge's diameter. */
+export const BADGE_PX = 20;
+/** S8b-02: a lane is never shorter than this, so its badge's tap area (the whole lane slice of the gutter) is at least this tall without overlapping a neighbour. */
+export const BADGE_HIT_PX = 32;
 /** The label line above each child's rows (12 px text). */
 export const LABEL_ROW_PX = 16;
 /** Month ticks along the top. */
@@ -36,15 +43,22 @@ export const AXIS_HEIGHT_PX = 20;
 /** A month label is shown only when its slot is at least this wide. T-05c: on phones, labels also keep this far apart. */
 export const MIN_TICK_LABEL_PX = 24;
 export const PHONE_MIN_TICK_LABEL_PX = 48;
+/**
+ * S7-19: how far a week's day label must be from a month label, in px of axis. A month label ("Dec", 11 px text) starts
+ * 3 px right of its tick and is about 23 px wide, so a day label just after it needs `MONTH_LABEL_CLEAR_PX`; one just
+ * before it ("30" is about 12 px wide, 3 px right of its tick) needs `DAY_LABEL_CLEAR_PX`.
+ */
+export const MONTH_LABEL_CLEAR_PX = 28;
+export const DAY_LABEL_CLEAR_PX = 16;
 /** Layout widths under this are phones (matches the app's 640 px breakpoint). */
 export const PHONE_WIDTH_PX = 640;
 /** One strip row per recurring event, above the lanes. */
 export const EVENT_ROW_PX = 6;
 export const EVENT_ROW_GAP_PX = 2;
-/** The one uniform gap between rows (agreed: spacing = each row's thickest point + the same small gap). */
-export const LANE_GAP_PX = 4;
-/** The extra gap before each subject. */
-export const SUBJECT_GAP_PX = 8;
+/** The one uniform gap between rows (agreed: spacing = each row's thickest point + the same small gap). S6b-10: 2 px (was 4), so bars sit close but never touch. */
+export const LANE_GAP_PX = 2;
+/** The extra gap before each subject. S6b-10: 4 px (was 8). */
+export const SUBJECT_GAP_PX = 4;
 /** Any band with thickness is drawn at least this thick (agreed 2 px floor); an empty row is this tall too. */
 export const MIN_BAND_PX = 2;
 /** The total-load strip's fixed height; its own scale fits the year's busiest day. */
@@ -53,6 +67,8 @@ export const BOTTOM_PAD_PX = 4;
 
 export interface LayoutOptions {
   zoom: Zoom;
+  /** S7-04: the family's own zoom views, for a custom `zoom`. */
+  customViews?: readonly CustomZoomView[];
   /** Available width in CSS px. */
   width: number;
   detail?: Detail;
@@ -87,14 +103,22 @@ export interface LaneRow {
   labelLane: number;
 }
 
-/** The short label line above a child's rows. */
-export interface LaneLabel {
+/** S8-07: a lane's badge in the left gutter (replaces the name row above each lane). */
+export interface LaneBadge {
   laneKey: string;
-  /** Subject name on a subject's first child, with the child's name when the family has more than one. */
+  subjectId: string;
+  subjectName: string;
+  childName: string;
+  /** What the badge says when tapped and its accessible name: the subject, with the child when the family has more than one. */
   text: string;
-  x: number;
-  y: number;
-  height: number;
+  paletteSlot: number;
+  step: ChildStep;
+  /** Centre of the badge. */
+  cx: number;
+  cy: number;
+  /** The lane's box, for the highlight. */
+  top: number;
+  bottom: number;
 }
 
 export interface LaneBand {
@@ -174,7 +198,7 @@ export interface TimelineLayout {
   pxPerPoint: number;
   plot: { x: number; width: number; columnWidth: number; columns: number; first: number; last: number };
   rows: LaneRow[];
-  labels: LaneLabel[];
+  badges: LaneBadge[];
   bands: LaneBand[];
   /** T-06: names that fit inside their bars (at most one per bar). */
   names: BarName[];
@@ -183,8 +207,10 @@ export interface TimelineLayout {
   ticks: Tick[];
   /** Centre of today's column, or its boundary on a day off; null when today isn't shown. */
   todayX: number | null;
-  /** The total-load strip, with its "Total" label row above it (labelY). */
-  totals: { labelY: number; y: number; height: number; cy: number; d: string };
+  /** Where the Today line starts: just under the axis (S8-07: lanes have no name rows any more). */
+  todayTop: number;
+  /** The total-load strip, pinned above the lanes (its chart icon sits in the gutter, S8-07). */
+  totals: { y: number; height: number; cy: number; d: string };
   /** Top and bottom of the lane area (breaks span it). */
   lanesTop: number;
   lanesBottom: number;
@@ -202,8 +228,11 @@ export function totalsPxPerPoint(totals: { daily: readonly number[]; weekly: rea
   return peak > 0 ? maxPx / peak : 0;
 }
 
-/** Drawn height of one value: nothing at zero, otherwise at least the 2 px floor. */
-export const bandHeight = (value: number, pxPerPoint: number): number => (value > 0 ? Math.max(value * pxPerPoint, MIN_BAND_PX) : 0);
+/**
+ * Drawn height of one value: nothing at zero, otherwise at least the 2 px floor. S6b-06: soft-capped, so no bar
+ * passes `MAX_BAR_PX` and a heavier day still looks heavier (the All subjects strip stays under the knee).
+ */
+export const bandHeight = (value: number, pxPerPoint: number): number => (value > 0 ? Math.max(softCapPx(value * pxPerPoint), MIN_BAND_PX) : 0);
 
 /** A row's height: its thickest drawn point anywhere on the grid, daily or weekly, so it never moves between zooms. */
 function rowHeight(assignments: readonly TimelineAssignment[], pxPerPoint: number): number {
@@ -236,9 +265,12 @@ export const SMOOTH_DEADBAND_PX = 3;
 export function smoothColumns(series: readonly number[], xs: XScale, cy: number, pxPerPoint: number, maxPx: number): (BandColumn | null)[] {
   const out: (BandColumn | null)[] = [];
   let held = 0;
-  for (let i = xs.first; i <= xs.last; i++) {
-    if (!xs.isColumn(i)) continue;
-    const raw = (series[i] ?? 0) * pxPerPoint;
+  // S7-21: the heights first, then their change from column to column is limited (a gentle slope per week).
+  const at: number[] = [];
+  for (let i = xs.first; i <= xs.last; i++) if (xs.isColumn(i)) at.push(i);
+  const heights = limitSlope(at.map((i) => softCapPx((series[i] ?? 0) * pxPerPoint)), at.map((i, k) => (k === 0 ? 1 : i - at[k - 1]!)));
+  for (const [k, i] of at.entries()) {
+    const raw = heights[k]!;
     // Even heights keep both edges on whole pixels; a change under the dead band keeps the height held.
     if (raw <= 0) held = 0;
     else if (held === 0 || Math.abs(raw - held) >= SMOOTH_DEADBAND_PX) held = Math.max(MIN_BAND_PX, 2 * Math.round(raw / 2));
@@ -265,12 +297,12 @@ function runsOf(columns: readonly (BandColumn | null)[]): { x0: number; x1: numb
 
 export function layoutTimeline(model: TimelineModel, options: LayoutOptions): TimelineLayout {
   const pxPerPoint = options.pxPerPoint ?? PX_PER_THICKNESS;
-  const range = zoomRange(model, options.zoom, options.month);
+  const range = zoomRange(model, options.zoom, options.month, options.customViews);
   const weeks = spanWeeks(model, range);
   const detail = resolveDetail(weeks, options.detail, options.previousDetail);
   const width = Math.max(0, options.width);
-  const plotX = Math.min(SIDE_PAD_PX, width / 2);
-  const plotWidth = Math.max(0, width - 2 * SIDE_PAD_PX);
+  const plotX = Math.min(GUTTER_PX + SIDE_PAD_PX, width / 2);
+  const plotWidth = Math.max(0, width - plotX - SIDE_PAD_PX);
   const [first, last] = range ?? [0, -1];
   const xs = makeXScale(model, first, last, plotX, plotWidth);
   const shown = (i: number) => i >= first && i <= last;
@@ -304,6 +336,12 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
       ticks.push({ index: i, x: xs.start(i), kind: "week", label });
     }
     ticks.sort((a, b) => a.x - b.x || a.index - b.index);
+    // S7-19: a day label that would touch a month label is dropped (its tick line stays).
+    const labelled = ticks.filter((t) => t.kind === "month" && t.label);
+    for (const t of ticks) {
+      if (t.kind !== "week" || !t.label) continue;
+      if (labelled.some((m) => (t.x >= m.x ? t.x - m.x < MONTH_LABEL_CLEAR_PX : m.x - t.x < DAY_LABEL_CLEAR_PX))) t.label = null;
+    }
   }
 
   // Event strips, one row each, under the axis. T-05c: only with daily detail; zoomed out they are noise.
@@ -318,16 +356,17 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   // T-05c: which series and outline a band uses at this detail.
   const schoolColumns = model.dates.map((_, i) => i).filter((i) => model.schoolDay[i]);
   // T-08b: zoomed out, an assignment is its clean shape (no lumps); All subjects smooths the sum of those shapes.
+  // S7-21: that shape is now a four-week moving average (`calmSeries`) with the slope limited in `smoothColumns`.
   const clean = new Map<TimelineAssignment, number[]>();
   const cleanOf = (a: TimelineAssignment) => {
     let c = clean.get(a);
-    if (!c) clean.set(a, (c = cleanSeries(a.daily, schoolColumns)));
+    if (!c) clean.set(a, (c = calmSeries(a.daily, schoolColumns)));
     return c;
   };
   const seriesFor = (a: TimelineAssignment) => (detail === "smooth" ? cleanOf(a) : detail === "weekly" ? a.weekly : a.daily);
   const totalsSeries = () =>
     detail === "smooth"
-      ? smoothSeries(sumSeries(model.lanes.flatMap((l) => l.children.flatMap((c) => c.assignments.map(cleanOf))), model.dates.length), schoolColumns)
+      ? calmSeries(sumSeries(model.lanes.flatMap((l) => l.children.flatMap((c) => c.assignments.map(cleanOf))), model.dates.length), schoolColumns)
       : detail === "weekly" ? model.totals.weekly : model.totals.daily;
   const columnsFor = (series: readonly number[], cy: number, scale: number, maxPx: number) =>
     detail === "smooth" ? smoothColumns(series, xs, cy, scale, maxPx) : bandColumns(series, xs, cy, scale);
@@ -335,12 +374,10 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
 
   // T-05b: the "All subjects" bar, pinned above the lanes on its own label row and centerline. Its thickness is
   // the sum of every lane, normalised so the family's heaviest point (at any zoom) is TOTALS_HEIGHT_PX.
-  const totalsLabelY = eventsBottom;
-  const totalsY = totalsLabelY + LABEL_ROW_PX;
+  const totalsY = eventsBottom;
   const totalsScale = totalsPxPerPoint(model.totals);
   const totalsCy = totalsY + TOTALS_HEIGHT_PX / 2;
   const totals = {
-    labelY: totalsLabelY,
     y: totalsY,
     height: TOTALS_HEIGHT_PX,
     cy: totalsCy,
@@ -351,7 +388,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   // Labels, rows and their bands. A child's name is only needed when there is more than one child.
   const manyChildren = new Set(model.lanes.flatMap((l) => l.children.map((c) => c.childId))).size > 1;
   const rows: LaneRow[] = [];
-  const labels: LaneLabel[] = [];
+  const badges: LaneBadge[] = [];
   const bands: LaneBand[] = [];
   const names: BarName[] = [];
   const measure = options.measureText ?? estimateTextWidth;
@@ -372,18 +409,22 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     if (s > 0) y += SUBJECT_GAP_PX;
     children.forEach(({ child, packed }, c) => {
       if (c > 0) y += LANE_GAP_PX;
-      const text = c === 0 ? (manyChildren ? `${subject.name} · ${child.childName}` : subject.name) : child.childName;
-      labels.push({ laneKey: child.key, text, x: plotX, y, height: LABEL_ROW_PX });
-      y += LABEL_ROW_PX;
-      const top = y;
-      packed.forEach((members, r) => {
-        if (r > 0) y += LANE_GAP_PX;
+      const text = manyChildren ? `${subject.name} · ${child.childName}` : subject.name;
+      // Each row's height and the room its outside names need, worked out first so a lane shorter than its badge can be centred.
+      const measured = packed.map((members) => {
         const height = rowHeight(members, pxPerPoint);
         // T-11d/T-11e: a name outside a thin bar sits just above it; the row gets only the extra space that needs.
         const piecesAt = (a: TimelineAssignment, at: number) => piecesOf(insetEnds(columnsFor(seriesFor(a), at, pxPerPoint, height)));
         const above = members.flatMap((a) => placePieceNames(a.title, piecesAt(a, height / 2), height / 2, detail === "smooth", measure, true))
           .filter((n) => n.outside).map((n) => -n.y);
-        const labelLane = Math.max(0, Math.ceil(Math.max(0, ...above)));
+        return { members, height, labelLane: Math.max(0, Math.ceil(Math.max(0, ...above))) };
+      });
+      const content = measured.reduce((n, m, r) => n + m.labelLane + m.height + (r > 0 ? LANE_GAP_PX : 0), 0);
+      const pad = Math.max(0, (BADGE_HIT_PX - content) / 2);
+      const laneTop = y;
+      y += pad;
+      measured.forEach(({ members, height, labelLane }, r) => {
+        if (r > 0) y += LANE_GAP_PX;
         y += labelLane;
         const cy = y + height / 2;
         const key = `${child.key}#${r}`;
@@ -407,7 +448,12 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
         }
         y += height;
       });
-      childSpans.set(child.key, { childId: child.childId, top, bottom: y });
+      y += pad;
+      badges.push({
+        laneKey: child.key, subjectId: subject.subjectId, subjectName: subject.name, childName: child.childName, text, paletteSlot: subject.paletteSlot,
+        step: child.step, cx: GUTTER_PX / 2, cy: (laneTop + y) / 2, top: laneTop, bottom: y,
+      });
+      childSpans.set(child.key, { childId: child.childId, top: laneTop, bottom: y });
     });
   });
   const lanesBottom = y;
@@ -442,13 +488,14 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     pxPerPoint,
     plot: { x: plotX, width: plotWidth, columnWidth: xs.columnWidth, columns: xs.columns, first, last },
     rows,
-    labels,
+    badges,
     bands,
     names,
     breaks,
     events,
     ticks,
     todayX,
+    todayTop: AXIS_HEIGHT_PX - 4,
     totals,
     lanesTop,
     lanesBottom,

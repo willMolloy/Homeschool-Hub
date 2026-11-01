@@ -1,28 +1,24 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth, useMe } from "../auth/AuthProvider";
+import { useApiEngineVersion, EngineFooter, EngineMismatchBanner } from "./EngineVersion";
 import { AppShell } from "./AppShell";
-import { EngineFooter, EngineMismatchBanner, useApiEngineVersion } from "./EngineVersion";
+import { UndoBar } from "../features/undo/UndoBar";
+import { UndoProvider, useUndo } from "../features/undo/UndoProvider";
 
-/** The app shell filled in with the signed-in family and a Sign out button. */
+/** The app shell with S6-08's undo bar and the engine-version banner. Sign out lives behind the family button on Home (S8-04). */
 export function SignedInShell() {
-  const me = useMe();
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
-  const [busy, setBusy] = useState(false);
+  return (
+    <UndoProvider>
+      <Shell />
+    </UndoProvider>
+  );
+}
+
+function Shell() {
   const apiEngineVersion = useApiEngineVersion();
-
-  async function onSignOut() {
-    setBusy(true);
-    await signOut();
-    navigate("/login", { replace: true });
-  }
-
+  const { round } = useUndo();
   return (
     <AppShell
-      familyName={me.name}
-      headerActions={<button type="button" onClick={() => void onSignOut()} disabled={busy}>Sign out</button>}
-      banner={<EngineMismatchBanner apiVersion={apiEngineVersion} />}
+      banner={<><EngineMismatchBanner apiVersion={apiEngineVersion} /><UndoBar /></>}
+      contentKey={round}
       footer={<EngineFooter />}
     />
   );

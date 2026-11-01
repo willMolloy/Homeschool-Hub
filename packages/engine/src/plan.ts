@@ -7,7 +7,7 @@ import { replanFrom } from "./reanchor";
 import { validWeekdays, weekdaysOf } from "./weekdays";
 import { weightPerUnitOf } from "./weights";
 import { ENGINE_VERSION } from "./version";
-import type { Assignment, ChildPlan, DayKind, DayLoad, PlanContext, PlanWarning, SubjectWeight } from "./types";
+import type { Assignment, ChildPlan, DayKind, DayLoad, LocalDate, PlanContext, PlanWarning, SubjectWeight } from "./types";
 
 export { EPS, MAX_PUSH_DAYS } from "./placement";
 
@@ -30,9 +30,12 @@ function subjectDefaultFor(a: Assignment, ctx: PlanContext): SubjectWeight | nul
  * - capacity(d) comes from the calendar, blocked periods, and events (see capacity.ts); it is 0 on a weekday
  *   outside the assignment's own, else its subject's, weekdays (S4-01).
  * - The plan runs from the assignment's start, as if every scheduled day before today was done (S2b-18).
- *   Logs don't move bars; `ctx.asOf` only labels earlier days `assumed`.
+ *   Logs don't move bars; `ctx.asOf` labels earlier days `assumed` and (S7b-18) is where a last-week adjustment may start pulling work back.
  * - Override weeks are fixed first: their units are spread over that week's capacity.
- * - keepEndDate: rate = remaining after overrides / sum of capacity on the other days up to the end.
+ * - keepEndDate (S7b-09): anchored at each adjusted week. Days before the first one keep the plan without it, the week
+ *   gets its units, and the rest is spread over the days after it up to the end (next adjusted week anchors there in turn).
+ *   An adjustment in the last week, with no day after it, pulls the rest back only into the days from asOf (S7b-18), never the
+ *   days before; with none free from asOf the end moves later at the old pace ("keep-end-extended").
  * - pushEndDate: the other days keep the old pace (baseRate) and the end moves to where the work runs out.
  * - Check-ins (S2b-20) re-anchor the plan after their week and replan what is left (checkins.ts).
  * - The rate is an output only; nothing here is meant to be persisted.
@@ -85,12 +88,14 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   let done = 0;
   let finishedEarly = false;
   let checkInWeeks: string[] = [];
+  let adjustedWeeks: LocalDate[] = [];
   if (E < S) {
     warn("invalid-range");
     p = { planned: new Map(), kinds: new Map(), baseRate: 0, rate: 0, endDay: E, unplaced: total, noCapacity: total > EPS, mode: null };
   } else {
     const overrides = prepareOverrides(a, childId, ctx.overrides, ctx.calendar, warn);
-    p = placeSegment({ from: S, end: E, pushLimit: E + MAX_PUSH_DAYS, remaining: total, overrides, first: true }, c, warn);
+    adjustedWeeks = overrides.map((o) => fromDayNumber(o.w0)).sort();
+    p = placeSegment({ from: S, end: E, pushLimit: E + MAX_PUSH_DAYS, remaining: total, overrides, first: true, notBefore: asOf }, c, warn);
     // Re-anchoring events: a missed day that has work (keep the plan before it, put 0 on it, replan the rest, S4-00)
     // and a change of weekdays (keep the plan before it, replan the rest on the new days, S4-01b). Check-ins are
     // authoritative (S2b-38), so events up to the last check-in's week are handled first and the check-ins then
@@ -103,11 +108,11 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     const reanchor = (x: Anchor): void => {
       const worked = (p.planned.get(x.cut) ?? 0) > EPS;
       x.apply();
-      if (worked || !x.onlyIfWorked) replanFrom(p, x.cut, x.from, total, overrides, c, E + MAX_PUSH_DAYS, warn);
+      if (worked || !x.onlyIfWorked) replanFrom(p, x.cut, x.from, total, overrides, c, E + MAX_PUSH_DAYS, warn, asOf);
     };
     const lastCheckIn = lastCheckInWeekEnd(a, childId, ctx.checkIns, ctx.calendar);
     for (const x of anchors) if (x.cut <= lastCheckIn) reanchor(x);
-    const ci = applyCheckIns(p, { a, childId, calendar: ctx.calendar, checkIns: ctx.checkIns, S, E, overrides, c, warn });
+    const ci = applyCheckIns(p, { a, childId, calendar: ctx.calendar, checkIns: ctx.checkIns, S, E, overrides, c, warn, notBefore: asOf });
     for (const x of anchors) if (x.cut > lastCheckIn) reanchor(x);
     ({ done, finishedEarly, checkInWeeks } = ci);
   }
@@ -156,6 +161,9 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     complete: total <= EPS || (checkInWeeks.length > 0 && remaining <= EPS),
     finishedEarly,
     checkInWeeks,
+    adjustedWeeks,
+    weekdaysFrom: changesDays ? fromDayNumber(from!) : null,
+    previousWeekdays: changesDays ? previous : null,
     days,
     warnings,
   };

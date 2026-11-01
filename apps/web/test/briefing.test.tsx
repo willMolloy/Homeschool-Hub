@@ -1,9 +1,11 @@
 /** S4-09: the weekly briefing on This Week (briefingLines.ts, Briefing.tsx). */
+import { readFileSync } from "node:fs";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { addDays, ENGINE_VERSION, forecastFinish, planAll, type Assignment as EngineAssignment, type ChildPlan, type ProgressCheckIn } from "@hh/engine";
 import { briefingRanges, mergePlans } from "../src/features/plan/Briefing";
+import { shortDate } from "../src/features/schedule/formBits";
 import { buildBriefing, weeksLate } from "../src/features/plan/briefingLines";
 import { EMPTY_WEEK, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
@@ -66,6 +68,15 @@ describe("briefing lines (pure)", () => {
     expect(buildBriefing(input([{ ...slowPlan(), checkInWeeks: ["2026-09-14"] }]))).toEqual([]);
   });
 
+  it("S7b-04: a deliberately adjusted check-in week is not the child's pace, so it doesn't make a late or no-progress line", () => {
+    // The same slow check-ins, but the parent had adjusted both weeks: nothing is measured, so no line.
+    expect(buildBriefing(input([{ ...slowPlan(), adjustedWeeks: ["2026-09-14", "2026-09-21"] }]))).toEqual([]);
+    // One adjusted week leaves fewer than two weeks: still nothing.
+    expect(buildBriefing(input([{ ...slowPlan(), adjustedWeeks: ["2026-09-21"] }]))).toEqual([]);
+    // An adjustment in some other week changes nothing.
+    expect(buildBriefing(input([{ ...slowPlan(), adjustedWeeks: ["2026-11-02"] }]))[0]!.lines).toHaveLength(1);
+  });
+
   it("S4b-03: zero progress over two check-in weeks is a no-progress line; one check-in shows nothing", () => {
     const base = planAll([{ id: "ti", subjectId: "lit", childIds: ["c1"], unitType: "pages", totalUnits: 100, start: "2026-09-07", end: "2026-12-18" }], { calendar: CALENDAR, asOf: TODAY })[0]!;
     const before = base.days.find((d) => d.date === "2026-09-11")!.position;
@@ -84,6 +95,15 @@ describe("briefing lines (pure)", () => {
     expect(text(addDays(forecast, -21))).toBe("Treasure Island will finish about 3 weeks late at this pace.");
     expect(text(addDays(forecast, -26 * 7))).toBe("Treasure Island will finish about 26 weeks late at this pace.");
     expect(text(addDays(forecast, -61 * 7))).toBe("Treasure Island won't finish this school year at this pace.");
+  });
+
+  it("S7-10: a pace so slow the forecast gives up still gets the plain line", () => {
+    const book: EngineAssignment = { id: "ti", subjectId: "lit", childIds: ["c1"], unitType: "pages", totalUnits: 100, start: "2026-10-05", end: "2026-10-30" };
+    const checkIns: ProgressCheckIn[] = [["2026-10-05", 0.1], ["2026-10-12", 0.2]].map(([weekStart, position]) =>
+      ({ assignmentId: "ti", childId: "c1", weekStart: weekStart as string, position: position as number, mode: "keepEndDate" as const }));
+    const plan = planAll([book], { calendar: CALENDAR, asOf: TODAY, checkIns })[0]!;
+    expect(forecastFinish(plan, checkIns, CALENDAR)).toBeNull();
+    expect(buildBriefing(input([plan]))[0]!.lines[0]!.text).toBe("Treasure Island won't finish this school year at this pace.");
   });
 
   it("orders late, plan problems, heavy; leaves out a child with nothing", () => {
@@ -169,7 +189,7 @@ const region = () => screen.queryByRole("region", { name: "Weekly briefing" });
 describe("Weekly briefing on This Week (S4-09)", () => {
   it("shows a late line for a child at a slow pace", async () => {
     stub([slowPlan()]);
-    renderAt("/");
+    renderAt("/schedule?view=week");
     const briefing = await screen.findByRole("region", { name: "Weekly briefing" });
     expect(within(briefing).getByText("Frank")).toBeInTheDocument();
     expect(within(briefing).getByText(/^Treasure Island will finish about \d+ weeks? late at this pace\.$/)).toBeInTheDocument();
@@ -178,7 +198,7 @@ describe("Weekly briefing on This Week (S4-09)", () => {
 
   it("shows unplaced work and no-capacity lines with the end date", async () => {
     stub([{ ...onPaceBase("poems", "c2"), unplacedUnits: 12, end: "2026-11-26" }, { ...onPaceBase("math", "c1"), noCapacity: true, unplacedUnits: 100 }]);
-    renderAt("/");
+    renderAt("/schedule?view=week");
     const briefing = await screen.findByRole("region", { name: "Weekly briefing" });
     expect(within(briefing).getByText("Poems has work that doesn't fit before Nov 26, 2026.")).toBeInTheDocument();
     expect(within(briefing).getByText("Math 5 has no school days left.")).toBeInTheDocument();
@@ -187,10 +207,13 @@ describe("Weekly briefing on This Week (S4-09)", () => {
   it("shows a heavy week for the shown week only", async () => {
     const plans = [loadPlan("math", "c1", { "2026-10-26": 30, "2026-11-02": 10, "2026-11-09": 10, "2026-11-16": 10 })];
     stub(plans);
-    const { unmount } = renderAt("/");
+    const { unmount } = renderAt("/schedule?view=week");
     expect(await screen.findByText("This is a heavy week for Frank.")).toBeInTheDocument();
+    // S8b-07 (N13): the line already says whose week it is, so there is no bare name above it; it sits on a soft card.
+    expect(document.querySelector(".briefing-name")).toBeNull();
+    expect(readFileSync("src/features/plan/plan.css", "utf8")).toMatch(/\.briefing-child \{[^}]*border-radius: var\(--tl-radius\)[^}]*background: var\(--tl-primary-soft\)/);
     unmount();
-    renderAt("/?week=2026-11-02");
+    renderAt("/schedule?view=week&week=2026-11-02");
     await briefingFetched();
     expect(screen.queryByText("This is a heavy week for Frank.")).toBeNull();
     expect(region()).toBeNull();
@@ -198,36 +221,39 @@ describe("Weekly briefing on This Week (S4-09)", () => {
 
   it("nudges about last week, with a link, once the family has checked in before", async () => {
     stub([], { weeks: WEEKS_CHECKED, lastWeek: LAST_WEEK });
-    renderAt("/");
+    renderAt("/schedule?view=week");
     const link = await screen.findByRole("link", { name: "Last week isn't checked in yet." });
-    expect(link).toHaveAttribute("href", "#last-week-checkin");
-    expect(document.getElementById("last-week-checkin")).not.toBeNull();
+    expect(link).toHaveAttribute("href", "/track");
   });
 
-  it("the nudge goes once last week is confirmed from the card", async () => {
+  it("the nudge takes you to Track work, and goes once last week is confirmed there", async () => {
     stub([], { weeks: WEEKS_CHECKED, lastWeek: LAST_WEEK });
     fakeApi.on("PUT /api/check-ins/2026-10-19", () => {
       fakeApi.on("GET /api/check-ins", 200, { ...LAST_WEEK, status: "reviewed" });
       return [200, { ...LAST_WEEK, status: "reviewed", planChanged: false }];
     });
-    renderAt("/");
-    await screen.findByRole("link", { name: "Last week isn't checked in yet." });
-    await userEvent.click(screen.getByRole("button", { name: "Looks right" }));
+    const user = userEvent.setup();
+    const { router } = renderAt("/schedule?view=week");
+    await user.click(await screen.findByRole("link", { name: "Last week isn't checked in yet." }));
+    expect(router.state.location.pathname).toBe("/track");
+    await user.click(await screen.findByRole("button", { name: "Yes, all done" }));
+    await user.click(within(screen.getByRole("navigation", { name: "Main" })).getByRole("link", { name: "Schedule" }));
+    await screen.findAllByRole("heading", { name: /'s work$/ });
     await waitFor(() => expect(screen.queryByRole("link", { name: "Last week isn't checked in yet." })).toBeNull());
   });
 
   it("never nudges a family that has not checked in before, or when last week is done", async () => {
     stub([], { weeks: { weeks: [] }, lastWeek: LAST_WEEK });
-    renderAt("/");
+    renderAt("/schedule?view=week");
     await screen.findByRole("group", { name: "Week" });
-    await screen.findByText(/How did last week go\?|Last week/);
+    await briefingFetched();
     expect(screen.queryByText("Last week isn't checked in yet.")).toBeNull();
     expect(region()).toBeNull();
   });
 
   it("no nudge once last week is reviewed", async () => {
     stub([], { weeks: WEEKS_CHECKED, lastWeek: { ...LAST_WEEK, status: "reviewed" } });
-    renderAt("/");
+    renderAt("/schedule?view=week");
     await screen.findByRole("group", { name: "Week" });
     await screen.findByText("Nothing planned this week.");
     expect(screen.queryByText("Last week isn't checked in yet.")).toBeNull();
@@ -239,7 +265,7 @@ describe("Weekly briefing on This Week (S4-09)", () => {
     fakeApi.on("GET /api/assignments", 200, []);
     stub(many.map(stuck));
     fakeApi.on("GET /api/assignments", 200, many.map((id, i) => ({ ...ASSIGNMENTS[0], id, title: `Book ${i + 1}` })));
-    renderAt("/");
+    renderAt("/schedule?view=week");
     const list = await screen.findByRole("list", { name: "Briefing for Frank" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     await userEvent.click(screen.getByRole("button", { name: "and 2 more" }));
@@ -249,8 +275,8 @@ describe("Weekly briefing on This Week (S4-09)", () => {
 
   it("a clean plan shows no briefing at all", async () => {
     stub([onPacePlan()]);
-    renderAt("/");
-    await screen.findAllByRole("table");
+    renderAt("/schedule?view=week");
+    await screen.findAllByRole("heading", { name: /'s work$/ });
     await briefingFetched();
     expect(region()).toBeNull();
   });
@@ -258,15 +284,15 @@ describe("Weekly briefing on This Week (S4-09)", () => {
   it("an API failure shows no briefing and doesn't break the page", async () => {
     stub([slowPlan()]);
     fakeApi.on("GET /api/assignments", 500, { error: "boom" });
-    renderAt("/");
-    await screen.findAllByRole("table");
+    renderAt("/schedule?view=week");
+    await screen.findAllByRole("heading", { name: /'s work$/ });
     expect(region()).toBeNull();
   });
 
   it("one very long assignment doesn't hide a short one's late line: the request keeps the earliest start (S4b-01)", async () => {
     stub([slowPlan()]);
     fakeApi.on("GET /api/assignments", 200, [...ASSIGNMENTS, { ...ASSIGNMENTS[0], id: "long", title: "Epic", startDate: "2026-09-07", endDate: "2028-06-30" }]);
-    renderAt("/");
+    renderAt("/schedule?view=week");
     expect(await screen.findByText(/^Treasure Island will finish about \d+ weeks? late at this pace\.$/)).toBeInTheDocument();
     const plans = fakeApi.calls.filter((c) => c.path.startsWith("/api/plan?"));
     expect(plans.map((c) => c.path)).toContain("/api/plan?from=2026-09-07&to=2027-10-11");
@@ -275,8 +301,95 @@ describe("Weekly briefing on This Week (S4-09)", () => {
 
   it("a normal family makes one briefing request", async () => {
     stub([onPacePlan()]);
-    renderAt("/");
+    renderAt("/schedule?view=week");
     await briefingFetched();
     expect(fakeApi.calls.filter((c) => c.path.startsWith("/api/plan?from=2026-09-07"))).toHaveLength(1);
+  });
+});
+
+describe("A late line offers one next step (S7b-05)", () => {
+  beforeEach(() => { window.localStorage.clear(); });
+  const slow = slowPlan();
+  const finish = forecastFinish(slow, slow.checkInWeeks.map((weekStart) => ({ assignmentId: "ti", childId: "c1", weekStart, position: 0, mode: null })), CALENDAR)!;
+  const moveName = `Move end to ${shortDate(finish)}`;
+  const keepName = `Keep ${shortDate("2026-12-18")}`;
+  const lateText = /^Treasure Island will finish about \d+ weeks? late at this pace\.$/;
+  const wontText = "Treasure Island won't finish this school year at this pace.";
+
+  it("the pure line carries the forecast to move to and the end to keep", () => {
+    const line = buildBriefing({ plans: [slow], children: CHILDREN, titleOf: (id) => titles.get(id) ?? id, weekStart: "2026-10-26", calendar: CALENDAR })[0]!.lines[0]!;
+    expect(line.action).toEqual({ assignmentId: "ti", childId: "c1", end: "2026-12-18", moveTo: finish, signature: finish });
+  });
+
+  it("Move PATCHes the end date to the forecast, the line goes once the plan is on time, and the label is the undo bar's", async () => {
+    stub([slow]);
+    fakeApi.on("PATCH /api/assignments/ti", () => {
+      stub([onPacePlan()]);
+      return [200, { ...ASSIGNMENTS[0], endDate: finish }];
+    });
+    fakeApi.on("GET /api/undo", 200, null);
+    renderAt("/schedule?view=week");
+    await screen.findByText(lateText);
+    await userEvent.click(screen.getByRole("button", { name: moveName }));
+    await waitFor(() => expect(fakeApi.calls.filter((c) => c.method === "PATCH")).toHaveLength(1));
+    expect(fakeApi.calls.find((c) => c.method === "PATCH")).toMatchObject({ path: "/api/assignments/ti", body: { endDate: finish } });
+    await waitFor(() => expect(screen.queryByText(lateText)).toBeNull());
+  });
+
+  it("a refused move says so and keeps the line", async () => {
+    stub([slow]);
+    fakeApi.on("PATCH /api/assignments/ti", 400, { error: "invalid_request", message: "Nope." });
+    renderAt("/schedule?view=week");
+    await screen.findByText(lateText);
+    await userEvent.click(screen.getByRole("button", { name: moveName }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Nope.");
+    expect(screen.getByText(lateText)).toBeInTheDocument();
+  });
+
+  it("Keep hides the line on this device until the forecast changes", async () => {
+    stub([slow]);
+    const { unmount } = renderAt("/schedule?view=week");
+    await screen.findByText(lateText);
+    await userEvent.click(screen.getByRole("button", { name: keepName }));
+    expect(screen.queryByText(lateText)).toBeNull();
+    expect(JSON.parse(window.localStorage.getItem("hh.briefing.kept")!)).toEqual({ "ti:c1": finish });
+    unmount();
+    // Remembered after a reload.
+    renderAt("/schedule?view=week");
+    await briefingFetched();
+    expect(screen.queryByText(lateText)).toBeNull();
+    expect(region()).toBeNull();
+    // A different forecast brings the line back.
+    window.localStorage.setItem("hh.briefing.kept", JSON.stringify({ "ti:c1": "2030-01-01" }));
+    stub([slow]);
+    const again = renderAt("/schedule?view=week");
+    expect(await screen.findAllByText(lateText)).not.toHaveLength(0);
+    again.unmount();
+  });
+
+  it("a pace so slow there is no forecast date offers Keep only", async () => {
+    const verySlow = planAll([{ id: "ti", subjectId: "lit", childIds: ["c1"], unitType: "pages", totalUnits: 100, start: "2026-09-07", end: "2026-12-18" }], {
+      calendar: CALENDAR, asOf: TODAY,
+      checkIns: [["2026-09-14", 0.1], ["2026-09-21", 0.2]].map(([weekStart, position]) => ({ assignmentId: "ti", childId: "c1", weekStart: weekStart as string, position: position as number, mode: "keepEndDate" as const })),
+    })[0]!;
+    stub([verySlow]);
+    renderAt("/schedule?view=week");
+    await screen.findByText(wontText);
+    expect(screen.getByRole("button", { name: keepName })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Move end to/ })).toBeNull();
+  });
+});
+
+describe("a plan that had to move its end (S7b-18)", () => {
+  it("says it will finish late, with the stored end to keep and the plan's end to move to", () => {
+    const p = { ...slowPlan(), checkInWeeks: [], warnings: ["keep-end-extended" as const], plannedEnd: "2026-12-18", end: "2027-01-06" };
+    const [frank] = buildBriefing({ plans: [p], children: CHILDREN, titleOf: (id) => titles.get(id) ?? id, weekStart: "2026-10-26", calendar: CALENDAR });
+    expect(frank!.lines).toHaveLength(1);
+    expect(frank!.lines[0]!.text).toBe("Treasure Island will finish about 3 weeks late.");
+    expect(frank!.lines[0]!.action).toMatchObject({ end: "2026-12-18", moveTo: "2027-01-06" });
+  });
+  it("a pushEndDate plan that ends later (the parent's choice) says nothing", () => {
+    const p = { ...onPacePlan(), end: "2027-01-06", plannedEnd: "2026-12-18" };
+    expect(buildBriefing({ plans: [p], children: CHILDREN, titleOf: (id) => titles.get(id) ?? id, weekStart: "2026-10-26", calendar: CALENDAR })).toEqual([]);
   });
 });

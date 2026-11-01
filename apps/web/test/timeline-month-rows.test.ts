@@ -11,7 +11,7 @@ const model = buildTimelineModel(sampleInput({ today: DEMO_ME.today }));
 const all = model.lanes.flatMap((s) => s.children.flatMap((c) => c.assignments));
 
 describe("This month shows only what is in the month", () => {
-  it("draws exactly the assignments with something in the month, and labels only their lanes", () => {
+  it("draws exactly the assignments with something in the month, and badges only their lanes", () => {
     let hidden = 0;
     for (const month of gridMonths(model)) {
       const [first, last] = zoomRange(model, "month", month)!;
@@ -19,7 +19,7 @@ describe("This month shows only what is in the month", () => {
       const layout = layoutTimeline(model, { zoom: "month", width: 390, month });
       expect(new Set(layout.bands.map((b) => b.assignmentId))).toEqual(new Set(expected.map((a) => a.assignmentId)));
       const lanes = new Set(layout.bands.map((b) => b.laneKey));
-      expect(new Set(layout.labels.map((l) => l.laneKey))).toEqual(lanes);
+      expect(new Set(layout.badges.map((l) => l.laneKey))).toEqual(lanes);
       expect(layout.rows.every((r) => layout.bands.some((b) => b.rowKey === r.key))).toBe(true);
       hidden += all.length - expected.length;
     }
@@ -28,7 +28,7 @@ describe("This month shows only what is in the month", () => {
 
   it("keeps every lane at Year, and a bar keeps its row number at This month", () => {
     const year = layoutTimeline(model, { zoom: "year", width: 390 });
-    expect(year.labels).toHaveLength(model.lanes.reduce((n, s) => n + s.children.length, 0));
+    expect(year.badges).toHaveLength(model.lanes.reduce((n, s) => n + s.children.length, 0));
     const key = (b: { assignmentId: string; laneKey: string }) => `${b.laneKey}/${b.assignmentId}`;
     const rowOf = new Map(year.bands.map((b) => [key(b), b.rowKey]));
     for (const month of gridMonths(model)) {

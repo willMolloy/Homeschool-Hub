@@ -21,7 +21,7 @@ describe("Add child", () => {
     const name = screen.getByLabelText("Name");
     expect(name).toHaveFocus();
     await user.type(name, "  Ada  {Enter}");
-    const list = await screen.findByRole("list", { name: "Kids" });
+    const list = await screen.findByRole("list", { name: "Children" });
     expect(within(list).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["Frank", "Ada"]);
     expect(screen.queryByRole("form", { name: "Add child" })).toBeNull();
     // Trimmed name; default color = first swatch Frank isn't using (Frank is blue → brick).

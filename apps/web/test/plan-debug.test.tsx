@@ -22,7 +22,7 @@ const plan = (over: Partial<ChildPlan>): ChildPlan => ({
   engineVersion: ENGINE_VERSION, assignmentId: "a1", childId: "c1", subjectId: "lit", unitType: "pages",
   weightPerUnit: 1, weightSource: "assignment", weekdays: null, weekdaysSource: "default", totalUnits: 100, doneUnits: 0, remainingUnits: 100,
   baseRate: 22.5, rate: 22.5, plannedEnd: "2026-11-06", end: "2026-11-06", mode: null, unplacedUnits: 0,
-  noCapacity: false, complete: false, checkInWeeks: [], days: days([]), warnings: [], ...over,
+  noCapacity: false, complete: false, checkInWeeks: [], adjustedWeeks: [], weekdaysFrom: null, previousWeekdays: null, days: days([]), warnings: [], ...over,
 });
 
 const PLANS: ChildPlan[] = [
@@ -95,25 +95,30 @@ describe("buildDebugTables", () => {
 describe("Plan debug view", () => {
   it("asks /api/plan for the week containing ?week, Monday to Sunday", async () => {
     setup();
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     await screen.findByRole("table", { name: "Frank" });
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01");
     expect(screen.getByRole("heading", { name: "Debug view (temporary)" })).toBeInTheDocument();
     expect(screen.getByText(/Effort \(units × weight\) per day/)).toBeInTheDocument();
   });
 
-  it("T-03b: parents see only the tables — no debug heading, Plan as of, markers, legend, warning codes or engine footer", async () => {
+  it("S6b-01 (was T-03b): parents see no table and none of the debug extras — no heading, Plan as of, markers, legend or engine footer; S6b-14: and no warnings list", async () => {
     setup();
-    renderAt("/?week=2026-10-28&asOf=2026-10-19");
-    const frank = await screen.findByRole("table", { name: "Frank" });
+    renderAt("/schedule?view=week&week=2026-10-28&asOf=2026-10-19");
+    await screen.findByRole("heading", { name: "Frank's work" });
+    expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByRole("heading", { name: "Debug view (temporary)" })).toBeNull();
     expect(screen.queryByText(/Effort \(units × weight\) per day/)).toBeNull();
     expect(screen.queryByLabelText(/Plan as of/)).toBeNull();
-    expect(within(frank).queryAllByLabelText("built-in weight")).toHaveLength(0);
+    expect(screen.queryAllByLabelText("built-in weight")).toHaveLength(0);
     expect(screen.queryByRole("list", { name: "Markers" })).toBeNull();
     expect(screen.queryByText(/Engine/)).toBeNull();
-    expect(screen.getByRole("list", { name: "Warnings for Margaret" })).toHaveTextContent("Math: the end date has passed with work left");
+    // S6b-14: the engine's warnings are developer text; Margaret's past-end warning shows only with the debug flag.
+    expect(screen.queryByRole("list", { name: "Warnings for Margaret" })).toBeNull();
+    expect(screen.queryByText(/end date has passed/)).toBeNull();
     expect(screen.queryByText("past-end")).toBeNull();
+    // The child's name is visible to assistive tech now that no table caption carries it.
+    expect(screen.getByText("Frank")).not.toHaveAttribute("aria-hidden");
     // asOf is a debug tool: ignored for parents.
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01");
     expect(screen.queryByText(/Prev week|Review a past week/)).toBeNull();
@@ -121,7 +126,7 @@ describe("Plan debug view", () => {
 
   it("one table per child; Literature merges both assignments: 22.6 Mon/Wed/Thu/Fri, 0 Tue; totals add up", async () => {
     setup();
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     const frank = await screen.findByRole("table", { name: "Frank" });
     expect(screen.getByRole("table", { name: "Margaret" })).toBeInTheDocument();
     // weekend columns hidden: nothing planned on them and they aren't school days
@@ -134,7 +139,7 @@ describe("Plan debug view", () => {
 
   it("the mixed lane shows the subject-default marker only where the default adds work", async () => {
     setup();
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     const margaret = await screen.findByRole("table", { name: "Margaret" });
     expect(cellsOf(rowOf(margaret, "Math"))).toEqual(["20", "35s", "20", "35s", "20", "130"]);
     expect(within(margaret).getAllByLabelText("subject default weight")).toHaveLength(2);
@@ -142,7 +147,7 @@ describe("Plan debug view", () => {
 
   it("default cells get a labelled marker and the legend names each marker used", async () => {
     setup();
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     const frank = await screen.findByRole("table", { name: "Frank" });
     expect(within(frank).getAllByLabelText("built-in weight")).toHaveLength(4);
     const legend = screen.getByRole("list", { name: "Markers" });
@@ -155,17 +160,35 @@ describe("Plan debug view", () => {
   it("no defaults in the week → no legend", async () => {
     setup();
     fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: PLANS.filter((p) => p.weightSource === "assignment") });
-    renderAt("/?week=2026-10-28");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     await screen.findByRole("table", { name: "Frank" });
     expect(screen.queryByRole("list", { name: "Markers" })).not.toBeInTheDocument();
   });
 
-  it("lists plan warnings under the child's table", async () => {
+  it("lists plan warnings under the child's table (debug only, S6b-14)", async () => {
     setup();
-    renderAt("/?week=2026-10-28&debug=1");
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     const list = await screen.findByRole("list", { name: "Warnings for Margaret" });
     expect(list).toHaveTextContent("Math: the end date has passed with work left past-end");
     expect(screen.queryByRole("list", { name: "Warnings for Frank" })).not.toBeInTheDocument();
+  });
+
+  it("S6b-14: the duplicate-adjustment warning shows no engine text to a parent, and shows only with the debug flag", async () => {
+    setup();
+    fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: [plan({ assignmentId: "ti", warnings: ["override-duplicate-week"], days: days([10, 10, 10, 10, 10]) })] });
+    renderAt("/schedule?view=week&week=2026-10-28");
+    await screen.findByRole("heading", { name: "Frank's work" });
+    expect(screen.queryByText(/two overrides/)).toBeNull();
+    expect(screen.queryByText(/override-duplicate-week/)).toBeNull();
+    expect(screen.queryByRole("list", { name: "Warnings for Frank" })).toBeNull();
+    expect(document.querySelector(".plan-debug-warnings")).toBeNull();
+  });
+
+  it("S6b-14: with ?debug=1 the same warning is listed, with its code", async () => {
+    setup();
+    fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: [plan({ assignmentId: "ti", warnings: ["override-duplicate-week"], days: days([10, 10, 10, 10, 10]) })] });
+    renderAt("/schedule?view=week&week=2026-10-28&debug=1");
+    expect(await screen.findByRole("list", { name: "Warnings for Frank" })).toHaveTextContent("two overrides for the same week override-duplicate-week");
   });
 
   describe("default week (no ?week)", () => {
@@ -177,9 +200,10 @@ describe("Plan debug view", () => {
       vi.setSystemTime(new Date("2026-12-16T12:00:00"));
       setup();
       fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-11-04" });
-      renderAt("/");
-      await screen.findByRole("table", { name: "Frank" });
-      expect(within(screen.getByRole("group", { name: "Week" })).getByText("This week")).toBeInTheDocument();
+      renderAt("/schedule?view=week");
+      await screen.findByRole("heading", { name: "Frank's work" });
+      expect(screen.getByRole("heading", { level: 2, name: "This week" })).toBeInTheDocument();
+      expect(screen.getByText("2 Nov – 8 Nov")).toBeInTheDocument();
       expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
       expect(fakeApi.calls.some((c) => c.path.includes("2026-12-14"))).toBe(false);
     });
@@ -189,27 +213,28 @@ describe("Plan debug view", () => {
       vi.setSystemTime(new Date("2026-11-01T20:00:00"));
       setup();
       fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-11-02" });
-      renderAt("/");
-      await screen.findByRole("table", { name: "Frank" });
+      renderAt("/schedule?view=week");
+      await screen.findByRole("heading", { name: "Frank's work" });
       expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
     });
   });
 
   it("the header's week switcher moves by 7 days and names the week; 'Plan as of' (debug) passes asOf", async () => {
     setup();
-    renderAt("/?week=2026-10-28");
+    renderAt("/schedule?view=week&week=2026-10-28");
     const user = userEvent.setup();
-    await screen.findByRole("table", { name: "Frank" });
+    await screen.findByRole("heading", { name: "Frank's work" });
     const switcher = screen.getByRole("group", { name: "Week" });
-    expect(switcher).toHaveTextContent("This week");
+    expect(screen.getByRole("heading", { level: 2, name: "This week" })).toBeInTheDocument();
     await user.click(within(switcher).getByRole("button", { name: "Next week" }));
-    expect(await within(switcher).findByText("Nov 2–8")).toBeInTheDocument();
+    expect(await screen.findByText("2 Nov – 8 Nov")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Coming week" })).toBeInTheDocument();
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
     await user.click(within(switcher).getByRole("button", { name: "Previous week" }));
     await user.click(within(switcher).getByRole("button", { name: "Previous week" }));
-    expect(await within(switcher).findByText("Oct 19–25")).toBeInTheDocument();
-    expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-19&to=2026-10-25");
-    renderAt("/?week=2026-10-26&asOf=2026-10-19&debug=1");
+    expect(await screen.findByText("19 Oct – 25 Oct")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Last week" })).toBeInTheDocument();
+    renderAt("/schedule?view=week&week=2026-10-26&asOf=2026-10-19&debug=1");
     await screen.findAllByRole("table", { name: "Frank" });
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01&asOf=2026-10-19");
   });
@@ -217,17 +242,17 @@ describe("Plan debug view", () => {
   it("error → alert with Retry", async () => {
     setup();
     fakeApi.on("GET /api/plan", 500, { error: "internal_error" });
-    renderAt("/?week=2026-10-28");
-    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load the plan.");
+    renderAt("/schedule?view=week&week=2026-10-28");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load this week.");
     fakeApi.on("GET /api/plan", 200, RESPONSE);
     await userEvent.setup().click(screen.getByRole("button", { name: "Retry" }));
-    expect(await screen.findByRole("table", { name: "Frank" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Frank's work" })).toBeInTheDocument();
   });
 
   it("no plans → 'Nothing planned this week.'", async () => {
     setup();
     fakeApi.on("GET /api/plan", 200, { ...RESPONSE, plans: [] });
-    renderAt("/?week=2026-10-28");
+    renderAt("/schedule?view=week&week=2026-10-28");
     expect(await screen.findByText("Nothing planned this week.")).toBeInTheDocument();
   });
 
@@ -239,8 +264,10 @@ describe("Plan debug view", () => {
       { id: "c3", name: "Ada", color: null, sortOrder: 2, archived: false },
       { id: "c4", name: "Old Kid", color: null, sortOrder: 3, archived: true },
     ]);
-    renderAt("/?week=2026-10-28");
-    expect(await screen.findByText("Ada: nothing planned this week.")).toBeInTheDocument();
+    renderAt("/schedule?view=week&week=2026-10-28");
+    await userEvent.setup().click(await screen.findByRole("button", { name: "All children" }));
+    const ada = await screen.findByRole("region", { name: "Ada's work" });
+    expect(within(ada).getByText("Nothing planned this week.")).toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Ada" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Old Kid/)).not.toBeInTheDocument();
   });

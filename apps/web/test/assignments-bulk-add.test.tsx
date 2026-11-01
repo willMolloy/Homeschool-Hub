@@ -61,6 +61,66 @@ describe("Add several assignments (S3a-04)", () => {
     expect(screen.queryByRole("form")).toBeNull();
   });
 
+  it("S7b-06: three books in sequence, each with its own dates, go in with one Save; an untouched row uses the shared dates", async () => {
+    const { user, form } = await setup();
+    fakeApi.on("POST /api/assignments/bulk", (body) => [201, (body as { assignments: object[] }).assignments.map((a, i) => ({ ...a, id: rowId(10 + i), archived: false }))]);
+    await fillShared(user, form);
+    await fillRow(user, form, 1, "Book One", "100");
+    await fillRow(user, form, 2, "Book Two", "120");
+    await fillRow(user, form, 3, "Book Three", "140");
+    // Row 1 is left alone (the shared dates); rows 2 and 3 get their own.
+    await user.click(within(form).getByRole("button", { name: "Dates for row 2" }));
+    // Prefilled from the shared dates.
+    expect(within(row(form, 2)).getByLabelText("Start")).toHaveValue("2026-11-02");
+    expect(within(row(form, 2)).getByLabelText("End")).toHaveValue("2026-12-18");
+    expect(within(row(form, 1)).queryByLabelText("Start")).toBeNull();
+    date(row(form, 2), "Start", "2026-11-02"); date(row(form, 2), "End", "2026-12-18");
+    await user.click(within(form).getByRole("button", { name: "Dates for row 3" }));
+    date(row(form, 3), "Start", "2027-01-04"); date(row(form, 3), "End", "2027-02-26");
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    const sent = (writes()[0]!.body as { assignments: { title: string; startDate: string; endDate: string }[] }).assignments;
+    expect(sent.map((a) => [a.title, a.startDate, a.endDate])).toEqual([
+      ["Book One", "2026-11-02", "2026-12-18"], ["Book Two", "2026-11-02", "2026-12-18"], ["Book Three", "2027-01-04", "2027-02-26"],
+    ]);
+  });
+
+  it("S7b-06: a row's own dates follow the shared ones until changed; closing Dates goes back to the shared dates", async () => {
+    const { user, form } = await setup();
+    await fillShared(user, form);
+    await fillRow(user, form, 1, "One", "5");
+    await user.click(within(form).getByRole("button", { name: "Dates for row 1" }));
+    fireEvent.change(within(form).getAllByLabelText("Start")[0]!, { target: { value: "2026-11-09" } }); // the shared Start comes first
+    expect(within(row(form, 1)).getByLabelText("Start")).toHaveValue("2026-11-09");
+    date(row(form, 1), "End", "2026-11-20");
+    await user.click(within(form).getByRole("button", { name: "Dates for row 1" }));
+    expect(within(form).queryByRole("group", { name: "Row 1" })!.querySelector('input[type="date"]')).toBeNull();
+    fakeApi.on("POST /api/assignments/bulk", (body) => [201, (body as { assignments: object[] }).assignments.map((a, i) => ({ ...a, id: rowId(10 + i), archived: false }))]);
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect((writes()[0]!.body as { assignments: { startDate: string; endDate: string }[] }).assignments[0]).toMatchObject({ startDate: "2026-11-09", endDate: "2026-12-18" });
+  });
+
+  it("S7b-06: bad dates on one row show on that row only and nothing is sent; with every row dated the shared dates aren't needed", async () => {
+    const { user, form } = await setup();
+    await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
+    await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
+    await fillRow(user, form, 1, "One", "5");
+    await fillRow(user, form, 2, "Two", "6");
+    for (const n of [1, 2]) await user.click(within(form).getByRole("button", { name: `Dates for row ${n}` }));
+    date(row(form, 1), "Start", "2026-12-18"); date(row(form, 1), "End", "2026-11-02"); // backwards
+    date(row(form, 2), "Start", "2027-01-04"); date(row(form, 2), "End", "2027-02-26");
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    expect(await within(row(form, 1)).findByRole("alert")).toHaveTextContent(/start|before|after/i);
+    expect(within(row(form, 2)).queryByRole("alert")).toBeNull();
+    expect(writes()).toEqual([]);
+    // Fixing it sends both, without any shared dates ever being filled in.
+    fakeApi.on("POST /api/assignments/bulk", (body) => [201, (body as { assignments: object[] }).assignments.map((a, i) => ({ ...a, id: rowId(10 + i), archived: false }))]);
+    date(row(form, 1), "Start", "2026-11-02"); date(row(form, 1), "End", "2026-12-18");
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+  });
+
   it("Add row and Remove change the rows", async () => {
     const { user, form } = await setup();
     await user.click(within(form).getByRole("button", { name: "Add row" }));

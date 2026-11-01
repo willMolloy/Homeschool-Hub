@@ -1,13 +1,13 @@
 // Hand-test fixes: "black text on a dark gray background". Two guards so it can't come back:
-//   1. The app is light-only, so it says so (color-scheme: light). Without it, a dark OS or browser
-//      theme can draw native fields and buttons dark while our text stays dark.
+//   1. The app says which colour schemes it draws (color-scheme, from the theme, S8-02), so native fields and
+//      buttons are never dark under our dark text or light under our light text.
 //   2. Every app CSS rule that paints a solid background pairs it with text that reads on it
 //      (WCAG AA 4.5:1). A rule without its own `color` inherits the page text, so it is checked
 //      against that. The timeline tokens (light and dark) are checked in palette.test.ts.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { AA_TEXT, contrast } from "../scripts/palette";
 
 const WEB = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -23,6 +23,9 @@ const NON_TEXT = new Set([
   ".confirm-dialog::backdrop",
   ".sheet-backdrop",
   ".swatch-chip",
+  ".home-track i",
+  ".home-dot",
+  ".home-today",
 ]);
 /** Translucent backgrounds, with the colour they sit on. */
 const TRANSLUCENT_ON: Record<string, string> = { '.shell-nav a[aria-current="page"]': "var(--brand)" };
@@ -53,9 +56,21 @@ function rules(file: string): Rule[] {
 }
 
 const root = rules(join(SRC, "styles.css")).find((r) => r.selector === ":root")!;
-const vars: Record<string, string> = Object.fromEntries(Object.entries(root.decls).filter(([k]) => k.startsWith("--")));
-const PAGE_TEXT = root.decls.color!;
-const PAGE_BG = root.decls.background!;
+/** S8-01: the generated light tokens (hex), then the app's own aliases (`--brand: var(--tl-primary)` …) on top. */
+const tokenRoot = rules(join(SRC, "styles/tokens.css")).find((r) => r.selector === ":root")!;
+/** S8-03: the dark values, from the `[data-theme="dark"]` block. */
+const darkRoot = rules(join(SRC, "styles/tokens.css")).find((r) => r.selector === '[data-theme="dark"]')!;
+const themeVars = (theme: "light" | "dark"): Record<string, string> =>
+  Object.fromEntries(Object.entries({ ...tokenRoot.decls, ...(theme === "dark" ? darkRoot.decls : {}), ...root.decls }).filter(([k]) => k.startsWith("--")));
+let vars = themeVars("light");
+let PAGE_TEXT = "";
+let PAGE_BG = "";
+const selectTheme = (theme: "light" | "dark") => {
+  vars = themeVars(theme);
+  PAGE_TEXT = resolve(root.decls.color)!;
+  PAGE_BG = resolve(root.decls.background)!;
+};
+selectTheme("light");
 
 /** A concrete colour, or null for anything that isn't one (gradients, currentColor, none…). */
 function resolve(v: string | undefined): string | null {
@@ -80,10 +95,15 @@ function over(c: string, under: string): string {
 
 const all = cssFiles(SRC).flatMap(rules);
 
-describe("app CSS contrast", () => {
-  it("declares the app light-only, in CSS and in index.html", () => {
-    expect(root.decls["color-scheme"]).toBe("light");
-    expect(readFileSync(join(WEB, "index.html"), "utf8")).toMatch(/<meta name="color-scheme" content="light"/);
+describe.each(["light", "dark"] as const)("app CSS contrast, %s theme", (theme) => {
+  beforeEach(() => selectTheme(theme));
+
+  it("lets native controls follow the theme (S8-02: light dark, or the one the person chose), in CSS and in index.html", () => {
+    expect(root.decls["color-scheme"]).toBe("light dark");
+    const all = rules(join(SRC, "styles.css"));
+    expect(all.find((r) => r.selector === ':root[data-theme="light"]')?.decls["color-scheme"]).toBe("light");
+    expect(all.find((r) => r.selector === ':root[data-theme="dark"]')?.decls["color-scheme"]).toBe("dark");
+    expect(readFileSync(join(WEB, "index.html"), "utf8")).toMatch(/<meta name="color-scheme" content="light dark"/);
   });
 
   it("gives native fields their own text and background colours", () => {
@@ -127,7 +147,7 @@ describe("app CSS contrast", () => {
     for (const s of [...NON_TEXT, ...Object.keys(TRANSLUCENT_ON)]) expect(selectors.has(s), s).toBe(true);
   });
 
-  it("the check catches dark text on a dark background", () => {
-    expect(contrast(PAGE_TEXT, "#3a3f47")).toBeLessThan(AA_TEXT);
+  it("the check catches page text on the wrong background (dark on dark, light on light)", () => {
+    expect(contrast(PAGE_TEXT, theme === "light" ? "#3a3f47" : "#d8d8d8")).toBeLessThan(AA_TEXT);
   });
 });

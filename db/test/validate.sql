@@ -266,4 +266,62 @@ SELECT pg_temp.expect_error($$INSERT INTO week_review (family_id, week_start, st
 SELECT pg_temp.expect_error($$INSERT INTO week_review (family_id, week_start, status) VALUES ('f0000000-0000-0000-0000-0000000000e0', '2026-09-14', 'maybe')$$,
   '23514', 'a week review status outside reviewed/skipped is rejected');
 
+-- S5-06: calendar templates (012_calendar_template)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c1', 'Template family');
+INSERT INTO calendar_template (family_id, name, breaks) VALUES
+  ('f0000000-0000-0000-0000-0000000000c1', 'Our year', '[{"offsetDays": 21, "lengthDays": 7, "label": "Break", "kind": "vacation"}]');
+DO $$ BEGIN RAISE NOTICE 'ok   calendar_template accepts a named list of breaks (012)'; END $$;
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) VALUES ('f0000000-0000-0000-0000-0000000000c1', '', '[1]')$$,
+  '23514', 'a calendar template needs a name');
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) VALUES ('f0000000-0000-0000-0000-0000000000c1', repeat('x', 61), '[1]')$$,
+  '23514', 'a calendar template name is at most 60 characters');
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) VALUES ('f0000000-0000-0000-0000-0000000000c1', 'Empty', '[]')$$,
+  '23514', 'a calendar template needs at least one break');
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) VALUES ('f0000000-0000-0000-0000-0000000000c1', 'Object', '{"a": 1}')$$,
+  '23514', 'a calendar template''s breaks must be a list');
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) SELECT 'f0000000-0000-0000-0000-0000000000c1', 'Many', jsonb_agg(i) FROM generate_series(1, 101) i$$,
+  '23514', 'a calendar template has at most 100 breaks');
+SELECT pg_temp.expect_error($$INSERT INTO calendar_template (family_id, name, breaks) VALUES ('f0000000-0000-0000-0000-0000000000ff', 'Nobody', '[1]')$$,
+  '23503', 'a calendar template needs a real family');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c1';
+DO $$ BEGIN
+  IF (SELECT count(*) FROM calendar_template) <> 0 THEN RAISE EXCEPTION 'FAIL calendar templates should go with their family'; END IF;
+  RAISE NOTICE 'ok   calendar templates are deleted with their family';
+END $$;
+
+-- S6-05: undo (013_undo)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c2', 'Undo family');
+INSERT INTO undo_entry (family_id, label, inverse) VALUES ('f0000000-0000-0000-0000-0000000000c2', 'Moved Book', '{"steps": []}');
+DO $$ BEGIN RAISE NOTICE 'ok   undo_entry accepts a label and an inverse (013)'; END $$;
+SELECT pg_temp.expect_error($$INSERT INTO undo_entry (family_id, label, inverse) VALUES ('f0000000-0000-0000-0000-0000000000c2', 'Again', '{}')$$,
+  '23505', 'a family has at most one undo entry');
+SELECT pg_temp.expect_error($$UPDATE undo_entry SET label = '' WHERE family_id = 'f0000000-0000-0000-0000-0000000000c2'$$,
+  '23514', 'an undo entry needs a label');
+SELECT pg_temp.expect_error($$UPDATE undo_entry SET inverse = '[]' WHERE family_id = 'f0000000-0000-0000-0000-0000000000c2'$$,
+  '23514', 'an undo entry''s inverse must be an object');
+SELECT pg_temp.expect_error($$UPDATE assignment SET original = '[1]' WHERE id = 'a0000000-0000-0000-0000-0000000000e1'$$,
+  '23514', 'an assignment''s original must be an object');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c2';
+DO $$ BEGIN
+  IF (SELECT count(*) FROM undo_entry) <> 0 THEN RAISE EXCEPTION 'FAIL the undo entry should go with its family'; END IF;
+  RAISE NOTICE 'ok   an undo entry is deleted with its family';
+END $$;
+
+-- S7-03: zoom views (014_zoom_views)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c3', 'Zoom family');
+DO $$ BEGIN
+  IF (SELECT zoom_views FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c3') <> '{"hidden":[],"custom":[]}'::jsonb THEN RAISE EXCEPTION 'FAIL a family should start with no hidden or custom zoom views'; END IF;
+  RAISE NOTICE 'ok   a family starts with no hidden or custom zoom views (014)';
+END $$;
+UPDATE family SET zoom_views = '{"hidden":["fall"],"custom":[{"id":"70000000-0000-4000-8000-000000000001","name":"Term 1","start":"2026-08-17","end":"2026-11-06"}]}'
+  WHERE id = 'f0000000-0000-0000-0000-0000000000c3';
+DO $$ BEGIN RAISE NOTICE 'ok   family.zoom_views accepts hidden and custom views (014)'; END $$;
+SELECT pg_temp.expect_error($$UPDATE family SET zoom_views = '[]' WHERE id = 'f0000000-0000-0000-0000-0000000000c3'$$,
+  '23514', 'zoom_views must be an object');
+SELECT pg_temp.expect_error($$UPDATE family SET zoom_views = '{"hidden":[]}' WHERE id = 'f0000000-0000-0000-0000-0000000000c3'$$,
+  '23514', 'zoom_views needs both lists');
+SELECT pg_temp.expect_error($$UPDATE family SET zoom_views = NULL WHERE id = 'f0000000-0000-0000-0000-0000000000c3'$$,
+  '23502', 'zoom_views can''t be NULL');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c3';
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

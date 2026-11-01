@@ -1,9 +1,9 @@
-/** /api/assignments (S2a-04..06); POST /api/assignments/bulk (S3a-03). */
+/** /api/assignments (S2a-04..06); POST /api/assignments/bulk (S3a-03); POST /api/assignments/:id/reset (S6-07). */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { withTransaction, type Tx } from "../db";
 import { checkUnitChange } from "../http/assignmentWeight";
-import { checkDatesKeepLatestCheckIn } from "../http/checkInDates";
+import { checkDatesKeepLatestCheckIn, short as shortDate } from "../http/checkInDates";
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, Title, TotalUnits, UnitTypeField, WeightPerUnit, Weekdays } from "../http/scheduleLimits";
 import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
@@ -13,6 +13,8 @@ import { subjectDefaultWeekdays } from "../repos/subjectRepo";
 import { familyWeekStart } from "../http/familyWeek";
 import { effectiveWeekdays, weekdaysChange } from "../services/weekdaysChange";
 import { recordWeightChoices } from "../repos/weightChoiceRepo";
+import { resetAssignment } from "../services/assignmentReset";
+import { appendCreatedToUndo, assignmentStep, recordUndo, type UndoStep } from "../services/undoService";
 
 const Id = z.string("Must be an id.").regex(UUID_RE, "Must be a UUID.").transform((s) => s.toLowerCase());
 const Children = IdList(MAX_ASSIGNMENT_CHILDREN).min(1, "Pick at least one child.");
@@ -35,6 +37,15 @@ const CreateBody = z.strictObject({
 const MAX_BULK = 50;
 const BulkBody = z.strictObject({
   assignments: z.array(z.unknown(), "Must be a list.").min(1, "Send at least one assignment.").max(MAX_BULK, `Send at most ${MAX_BULK} assignments.`),
+  /**
+   * S7b-11: the copy panels ask for one undo entry covering what they create ("Copied 21 assignments to 2027–28"). Without
+   * it the request is not undoable (Add several and CSV import are not). `append` adds a later chunk of the same copy to
+   * the entry the first chunk made.
+   */
+  undo: z.strictObject({
+    label: z.string("label must be text.").trim().min(1, "label is required.").max(200, "label must be 200 characters or fewer."),
+    append: z.boolean("append must be true or false.").optional(),
+  }).optional(),
 });
 
 const PatchBody = z
@@ -79,6 +90,20 @@ async function atPosition<T>(n: number, fn: () => T | Promise<T>): Promise<T> {
 
 const notFound = () => new HttpError(404, "not_found", "No such assignment.");
 
+/** S6-06: the label of the undo entry for an edit, e.g. "Moved Treasure Island". */
+/** S7b-20: "Treasure Island's", "Fractions'" (no second s after a final s). */
+const possessive = (title: string) => (/s$/i.test(title) ? `${title}'` : `${title}'s`);
+
+function patchLabel(p: z.infer<typeof PatchBody>, title: string): string {
+  if (p.archived !== undefined) return `${p.archived ? "Archived" : "Restored"} ${title}`;
+  const sent = Object.entries(p).filter(([, v]) => v !== undefined).map(([k]) => k);
+  // S7b-05: moving only the end (the late line's "Move end to ...") says so.
+  if (sent.length === 1 && p.endDate !== undefined) return `Moved ${possessive(title)} end to ${shortDate(p.endDate)}`;
+  if (sent.every((k) => k === "startDate" || k === "endDate")) return `Moved ${title}`;
+  if (sent.every((k) => k === "weightPerUnit")) return `Updated the time estimate for ${title}`; // S7b-02: the parent's words, not "weight"
+  return `Changed ${title}`;
+}
+
 export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/assignments", async (req) => {
     const { includeArchived } = parseListQuery(req.query);
@@ -93,7 +118,7 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/api/assignments/bulk", async (req, reply) => {
-    const { assignments } = parseBody(BulkBody, req.body);
+    const { assignments, undo } = parseBody(BulkBody, req.body);
     // Every item is validated before anything is written.
     const items: CreateInput[] = [];
     for (const [i, raw] of assignments.entries()) {
@@ -106,6 +131,12 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
     const rows = await withTransaction(app.db, async (c) => {
       const created = [];
       for (const [i, b] of items.entries()) created.push(await atPosition(i + 1, () => createOne(c, req.familyId, b)));
+      // S7b-11: a copy is one undoable change; undo deletes exactly these.
+      if (undo) {
+        const ids = created.map((r) => r.id);
+        if (undo.append) await appendCreatedToUndo(c, req.familyId, undo.label, ids);
+        else await recordUndo(c, req.familyId, undo.label, [{ op: "assignmentsCreated", ids }]);
+      }
       return created;
     });
     return reply.code(201).send(rows.map(toAssignmentJson));
@@ -136,15 +167,30 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
         const before = effectiveWeekdays(cur.weekdays, await subjectDefaultWeekdays(c, req.familyId, cur.subject_id));
         const after = effectiveWeekdays(p.weekdays === undefined ? cur.weekdays : p.weekdays, await subjectDefaultWeekdays(c, req.familyId, subjectId));
         const week = await familyWeekStart(c, req);
-        history = weekdaysChange({ startDate: p.startDate ?? cur.start_date, today: week.today, weekStart: week.weekStart, before, after, stored: { weekdaysFrom: cur.weekdays_from, previousWeekdays: cur.previous_weekdays } }) ?? undefined;
+        history = weekdaysChange({ startDate: p.startDate ?? cur.start_date, today: week.today, weekStart: week.weekStart, before, after, schoolDays: week.schoolDays, stored: { weekdaysFrom: cur.weekdays_from, previousWeekdays: cur.previous_weekdays } }) ?? undefined;
       }
       await updateAssignment(c, req.familyId, cur.id, { ...p, history });
       // A new weight (or the same number under a new unit type) is a choice for every child left on the assignment.
+      let choiceIds: string[] = [];
       if (p.weightPerUnit !== undefined && (p.weightPerUnit !== cur.weight_per_unit || unitType !== cur.unit_type)) {
-        await recordWeightChoices(c, { familyId: req.familyId, assignmentId: cur.id, childIds: p.childIds ?? cur.child_ids, unitType, weight: p.weightPerUnit });
+        choiceIds = await recordWeightChoices(c, { familyId: req.familyId, assignmentId: cur.id, childIds: p.childIds ?? cur.child_ids, unitType, weight: p.weightPerUnit });
       }
-      return (await getAssignment(c, req.familyId, cur.id))!;
+      const after = (await getAssignment(c, req.familyId, cur.id))!;
+      // S6-06: the edit can be undone (its fields come back, and so does the weight choice it recorded).
+      const step = assignmentStep(cur, after);
+      if (step) {
+        const steps: UndoStep[] = choiceIds.length ? [step, { op: "weightChoices", ids: choiceIds }] : [step];
+        await recordUndo(c, req.familyId, patchLabel(p, after.title), steps);
+      }
+      return after;
     });
     return toAssignmentJson(row);
+  });
+
+  // S6-07: back to how it was created, without the week adjustments; undoable.
+  app.post<{ Params: { id: string } }>("/api/assignments/:id/reset", async (req) => {
+    if (!UUID_RE.test(req.params.id)) throw notFound();
+    const { assignment, kept } = await withTransaction(app.db, (c) => resetAssignment(c, req.familyId, req.params.id));
+    return { assignment: toAssignmentJson(assignment), kept };
   });
 }

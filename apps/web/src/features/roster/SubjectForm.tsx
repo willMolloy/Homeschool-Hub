@@ -1,5 +1,5 @@
 /**
- * The subject create/edit form: the shared roster fields plus the default bar width (S2b-35).
+ * The subject create/edit form: the shared roster fields plus the usual effort (S2b-35).
  * Kept separate from RosterForm so the kids form never sees subject-only fields.
  */
 import { useState } from "react";
@@ -10,6 +10,8 @@ import type { Assignment, Subject, SubjectDefaultWeight } from "../../api/types"
 import { DefaultWeightSection, draftFrom, draftValue, type DefaultWeightDraft } from "./DefaultWeightSection";
 import { offeredDays, sameSet, WeekdayPicker } from "../schedule/formBits";
 import "../schedule/schedule.css";
+import { IconPicker } from "../subjects/IconPicker";
+import { defaultIconFor, isIconKey, type SubjectIconKey } from "../subjects/icons";
 import { RosterForm } from "./RosterForm";
 import type { RosterFormSlotProps } from "./RosterPage";
 import type { RosterValues } from "./RosterForm";
@@ -18,6 +20,8 @@ export interface SubjectValues extends RosterValues {
   defaultWeight: SubjectDefaultWeight | null;
   /** S4-06: null = every school day. */
   defaultWeekdays: number[] | null;
+  /** S8-11: undefined (adding, untouched) lets the API pick the icon the name suggests; null is the first letter. */
+  icon?: string | null;
 }
 
 /** Live assignments in this subject and unit with no weight of their own, i.e. the ones whose bars follow the default. */
@@ -46,13 +50,16 @@ export function SubjectForm({ initial, onSave, item, ...rest }: RosterFormSlotPr
   const [draft, setDraft] = useState<DefaultWeightDraft>(() => draftFrom(initial.defaultWeight));
   const [weightError, setWeightError] = useState<string | null>(null);
   const [weightValid, setWeightValid] = useState(true);
+  /** undefined = not chosen (adding): the picker follows the name and the API applies the same default. */
+  const [icon, setIcon] = useState<SubjectIconKey | null | undefined>(() => (initial.icon === undefined ? undefined : isIconKey(initial.icon) ? initial.icon : null));
+  const [typed, setTyped] = useState(initial.name);
 
   async function save(values: RosterValues) {
     setWeightError(null);
     try {
       // Every school day selected is no default (S4-06); a list is stored sorted.
       const defaultWeekdays = sameSet(days, schoolDays) ? null : [...days].sort((a, b) => a - b);
-      await onSave({ ...values, defaultWeight: draftValue(draft), defaultWeekdays });
+      await onSave({ ...values, defaultWeight: draftValue(draft), defaultWeekdays, ...(icon === undefined ? {} : { icon }) });
     } catch (err) {
       // Shown next to the default rather than under Name; the form stays open.
       if (isDefaultWeightError(err)) return setWeightError(err.message.replace(/^[a-zA-Z.]+: /, ""));
@@ -61,7 +68,8 @@ export function SubjectForm({ initial, onSave, item, ...rest }: RosterFormSlotPr
   }
 
   return (
-    <RosterForm {...rest} initial={{ name: initial.name, color: initial.color }} onSave={save} blocked={!weightValid}>
+    <RosterForm {...rest} initial={{ name: initial.name, color: initial.color }} onSave={save} blocked={!weightValid} onNameChange={setTyped}>
+      <IconPicker name={typed} value={icon === undefined ? defaultIconFor(typed) : icon} onChange={setIcon} />
       {/* The last chip can't be switched off: a subject needs at least one day. */}
       <WeekdayPicker legend="Usual days" offer={offer} value={days} onChange={(d) => (d.length > 0 ? setDays(d) : undefined)} />
       <DefaultWeightSection

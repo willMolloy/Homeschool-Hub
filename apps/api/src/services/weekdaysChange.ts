@@ -2,6 +2,7 @@
  * The history a weekday change leaves on a started assignment (S4-01b). Only one level is kept: the date the new days
  * apply from (the start of the family's current week) and the effective days before the change. The engine keeps the plan
  * before that date; earlier weeks are assumed done anyway.
+ * S7-11: days are compared as they take effect, with "every school day" (null) read as the family's school days.
  */
 import { fromDayNumber, toDayNumber, weekStartOfDayNumber, type WeekStart } from "@hh/engine";
 
@@ -26,12 +27,14 @@ export const currentWeekStart = (today: string, weekStart: WeekStart): string =>
  * S4b-02: when `stored` already starts at this week, an earlier change this week keeps its `previousWeekdays` (the days
  * the past was planned on), and a change back to those days clears the history.
  */
-export function weekdaysChange(i: { startDate: string; today: string; weekStart: WeekStart; before: number[] | null; after: number[] | null; stored?: { weekdaysFrom: string | null; previousWeekdays: number[] | null } }): WeekdaysChange | null {
-  if (sameWeekdays(i.before, i.after)) return null;
+export function weekdaysChange(i: { startDate: string; today: string; weekStart: WeekStart; before: number[] | null; after: number[] | null; schoolDays?: readonly number[]; stored?: { weekdaysFrom: string | null; previousWeekdays: number[] | null } }): WeekdaysChange | null {
+  // S7-11: null → the family's school days (when known), so "follow" and an explicit list of the same days are one thing.
+  const resolved = (d: number[] | null) => d ?? (i.schoolDays ? [...i.schoolDays] : null);
+  if (sameWeekdays(resolved(i.before), resolved(i.after))) return null;
   const weekdaysFrom = currentWeekStart(i.today, i.weekStart);
   if (i.startDate >= weekdaysFrom) return null;
   if (i.stored?.weekdaysFrom === weekdaysFrom) {
-    if (sameWeekdays(i.after, i.stored.previousWeekdays)) return { weekdaysFrom: null, previousWeekdays: null };
+    if (sameWeekdays(resolved(i.after), resolved(i.stored.previousWeekdays))) return { weekdaysFrom: null, previousWeekdays: null };
     return { weekdaysFrom, previousWeekdays: i.stored.previousWeekdays };
   }
   return { weekdaysFrom, previousWeekdays: i.before };

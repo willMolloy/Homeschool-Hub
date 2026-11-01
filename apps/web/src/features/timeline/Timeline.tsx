@@ -3,17 +3,18 @@
  * Back to front: breaks, gridlines, bands, event strips, Today. One path per band and per event, so the Year view
  * stays well under 300 nodes. Colours are the `--tl-*` tokens (palette and theme switch without a re-render).
  */
-import { useId } from "react";
+import { useEffect, useId, useState, type CSSProperties } from "react";
+import { ChartBar } from "@phosphor-icons/react";
+import type { Subject } from "../../api/types";
+import { SubjectBadge } from "../subjects/SubjectIcon";
 import { bandExtent } from "./drag";
-import { AXIS_HEIGHT_PX, LABEL_ROW_PX, type TimelineLayout } from "./layout";
+import { AXIS_HEIGHT_PX, BADGE_HIT_PX, BADGE_PX, GUTTER_PX, type TimelineLayout } from "./layout";
 import type { ChildStep } from "./model";
 
 /** Room under the lanes for the Today pill. */
 export const TODAY_PILL_PX = 22;
 const PILL_W = 44;
 const PILL_H = 18;
-/** Baseline of 12 px text in a 16 px label row. */
-const LABEL_BASELINE = LABEL_ROW_PX - 4;
 /** T-08b: the grip at each end of the selected bar: a small pill in the bar's label colour. */
 export const HANDLE_W_PX = 4;
 export const HANDLE_INSET_PX = 3;
@@ -24,7 +25,7 @@ export const bandFill = (slot: number, step: ChildStep) => `var(--tl-subject-${s
 /** T-06: the AA label colour picked for each swatch (light or dark text, from the tokens). */
 export const nameFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]}-label)`;
 
-/** T-05b: the label of the summed bar pinned above the lanes. */
+/** T-05b: the summed bar pinned above the lanes. S8-07: it has no text label; its chart icon in the gutter says so (title and name). */
 export const TOTALS_LABEL = "All subjects";
 
 export interface TimelineProps {
@@ -37,17 +38,37 @@ export interface TimelineProps {
   onPick?: (x: number, y: number) => void;
   /** T-10: a just-added assignment, briefly highlighted. */
   flashId?: string | null;
+  /** S7-20: draw the selected bar's end grips (only meaningful while bars can be dragged). */
+  grips?: boolean;
+  /** S8-07: the family's subjects, for each lane badge's icon (a missing subject shows its first letter). */
+  subjects?: readonly Pick<Subject, "id" | "name" | "icon">[];
 }
 
-export function Timeline({ layout, label, selectedId = null, onPick, flashId = null }: TimelineProps) {
+export function Timeline({ layout, label, selectedId = null, onPick, flashId = null, grips = true, subjects = [] }: TimelineProps) {
   const hatchId = `tl-hatch-${useId().replace(/:/g, "")}`;
   /** T-05c: zoomed out, breaks are a very faint plain tint instead of a hatch. */
   const quiet = layout.detail === "smooth";
   const bottom = Math.max(layout.lanesBottom, layout.totals.y + layout.totals.height);
   const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
-  const dim = (id: string) => (selectedId === null ? "" : id === selectedId ? " tl-selected" : " tl-dim") + (id === flashId ? " tl-flash" : "");
+  // S8-07: tapping a lane's badge names its subject in a small popover and highlights that lane (the other lanes dim).
+  const [lane, setLane] = useState<string | null>(null);
+  const laneIds = new Map(layout.bands.map((b) => [b.assignmentId, b.laneKey]));
+  useEffect(() => {
+    if (lane === null) return;
+    const away = (e: Event) => { if (!(e.target instanceof Element) || !e.target.closest(".tl-gutter")) setLane(null); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setLane(null); };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc); };
+  }, [lane]);
+  const picked = lane !== null && layout.badges.some((b) => b.laneKey === lane) ? lane : null;
+  const dim = (id: string) => {
+    const base = selectedId === null ? "" : id === selectedId ? " tl-selected" : " tl-dim";
+    const lit = picked === null || selectedId !== null ? "" : laneIds.get(id) === picked ? "" : " tl-dim";
+    return base + lit + (id === flashId ? " tl-flash" : "");
+  };
   // T-08b: one pair of grips per lane the selected assignment is drawn in, at its outer ends.
-  const handles = selectedId === null ? [] : layout.bands.filter((b, i, all) => b.assignmentId === selectedId && b.d
+  const handles = selectedId === null || !grips ? [] : layout.bands.filter((b, i, all) => b.assignmentId === selectedId && b.d
     && all.findIndex((o) => o.assignmentId === selectedId && o.laneKey === b.laneKey && o.d) === i).flatMap((b) => {
     const extent = bandExtent(layout, b);
     const row = layout.rows.find((r) => r.key === b.rowKey);
@@ -59,6 +80,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
   const pillX = layout.todayX === null ? 0 : Math.max(0, Math.min(layout.width - PILL_W, layout.todayX - PILL_W / 2));
 
   return (
+    <div className="tl-wrap" style={{ width: layout.width, height }}>
     <svg className="tl-svg" width={layout.width} height={height} viewBox={`0 0 ${layout.width} ${height}`} role="img" aria-label={label} data-pickable={onPick ? "" : undefined}
       onClick={onPick ? (e) => {
         const r = e.currentTarget.getBoundingClientRect();
@@ -89,13 +111,6 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         ) : null))}
       </g>
 
-      <g className="tl-labels">
-        <text className="tl-lane-label" x={layout.plot.x} y={layout.totals.labelY + LABEL_BASELINE}>{TOTALS_LABEL}</text>
-        {layout.labels.map((l) => (
-          <text key={l.laneKey} className="tl-lane-label" x={l.x} y={l.y + LABEL_BASELINE}>{l.text}</text>
-        ))}
-      </g>
-
       <g className="tl-bands">
         {layout.totals.d ? <path className="tl-totals" d={layout.totals.d} /> : null}
         {layout.bands.flatMap((b) => b.connectors.map((c, k) => (
@@ -103,7 +118,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
             style={{ stroke: bandFill(b.paletteSlot, b.step) }} data-connector-for={b.assignmentId} />
         )))}
         {layout.bands.map((b) => (b.d ? (
-          <path key={`${b.rowKey}-${b.assignmentId}`} className={`tl-band${dim(b.assignmentId)}`} d={b.d} style={{ fill: bandFill(b.paletteSlot, b.step) }}
+          <path key={`${b.rowKey}-${b.assignmentId}`} className={`tl-band${dim(b.assignmentId)}`} d={b.d} style={{ fill: bandFill(b.paletteSlot, b.step), stroke: `var(--tl-subject-${b.paletteSlot}-strong)` }}
             data-assignment={b.assignmentId} />
         ) : null))}
       </g>
@@ -134,11 +149,31 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
 
       {layout.todayX === null ? null : (
         <g className="tl-today" data-today>
-          <line x1={layout.todayX} x2={layout.todayX} y1={AXIS_HEIGHT_PX - 4} y2={bottom + 4} />
+          <line x1={layout.todayX} x2={layout.todayX} y1={layout.todayTop} y2={bottom + 4} />
           <rect x={pillX} y={bottom + 4} width={PILL_W} height={PILL_H} rx={PILL_H / 2} />
           <text x={pillX + PILL_W / 2} y={bottom + 4 + PILL_H - 5} textAnchor="middle">Today</text>
         </g>
       )}
+
     </svg>
+    {/* S8-07: the gutter. One round badge per lane (the subject's icon, or its letter) and a chart icon for All subjects; no names on the picture. */}
+    <div className="tl-gutter" style={{ width: GUTTER_PX }}>
+      {layout.rows.length > 0 && (
+        <span className="tl-total-icon" title={TOTALS_LABEL} style={{ top: layout.totals.cy - BADGE_PX / 2, width: GUTTER_PX, height: BADGE_PX } as CSSProperties}>
+          <ChartBar size={14} weight="light" aria-hidden="true" />
+        </span>
+      )}
+      {layout.badges.map((b) => (
+        <button key={b.laneKey} type="button" className="tl-badge" aria-label={b.text} aria-pressed={picked === b.laneKey}
+          style={{ top: b.top, height: Math.max(BADGE_HIT_PX, b.bottom - b.top), width: GUTTER_PX } as CSSProperties}
+          onClick={() => setLane(picked === b.laneKey ? null : b.laneKey)}>
+          <SubjectBadge subject={subjects.find((s) => s.id === b.subjectId) ?? { name: b.subjectName, icon: null }} slot={b.paletteSlot} size={BADGE_PX} />
+        </button>
+      ))}
+      {layout.badges.filter((b) => b.laneKey === picked).map((b) => (
+        <div key={b.laneKey} className="tl-lane-pop" role="status" style={{ top: b.cy - 14 }}>{b.text}</div>
+      ))}
+    </div>
+    </div>
   );
 }

@@ -13,9 +13,13 @@ import { planRoutes } from "./routes/plan";
 import { assignmentsRoutes } from "./routes/assignments";
 import { blockedRangesRoutes } from "./routes/blockedRanges";
 import { eventsRoutes } from "./routes/events";
+import { calendarTemplatesRoutes } from "./routes/calendarTemplates";
+import { eventPreviewRoutes } from "./routes/eventPreview";
 import { timeZonesRoutes } from "./routes/timezones";
 import { weightsRoutes } from "./routes/weights";
 import { checkInsRoutes } from "./routes/checkIns";
+import { weekOverridesRoutes } from "./routes/weekOverrides";
+import { undoRoutes } from "./routes/undo";
 import { registerSessionAuth } from "./auth/session";
 import { HttpError } from "./http/errors";
 import { loggerOptions, type LogStream } from "./http/logging";
@@ -96,9 +100,13 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
   app.register(assignmentsRoutes);
   app.register(blockedRangesRoutes);
   app.register(eventsRoutes);
+  app.register(calendarTemplatesRoutes);
   app.register(planRoutes);
+  app.register(eventPreviewRoutes);
   app.register(weightsRoutes);
   app.register(checkInsRoutes);
+  app.register(weekOverridesRoutes);
+  app.register(undoRoutes);
 
   return app;
 }

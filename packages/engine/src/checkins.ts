@@ -63,6 +63,8 @@ export interface CheckInArgs {
   overrides: PreparedOverride[];
   c: CapacityOf;
   warn: Warn;
+  /** S7b-18: today as a day number (see SegmentInput.notBefore). */
+  notBefore?: number;
 }
 
 export interface CheckInResult {
@@ -73,7 +75,7 @@ export interface CheckInResult {
 }
 
 /** Apply the check-ins to segment 0 in place. */
-export function applyCheckIns(p: Placement, { a, childId, calendar, checkIns, S, E, overrides, c, warn }: CheckInArgs): CheckInResult {
+export function applyCheckIns(p: Placement, { a, childId, calendar, checkIns, S, E, overrides, c, warn, notBefore }: CheckInArgs): CheckInResult {
   const total = a.totalUnits;
   // Segment 0 as planned before any check-in: the end keepEndDate keeps and the pace pushEndDate keeps.
   const original = { end: p.endDay, pace: p.baseRate };
@@ -155,6 +157,7 @@ export function applyCheckIns(p: Placement, { a, childId, calendar, checkIns, S,
       forcedMode: mode,
       pace: original.pace,
       first: false,
+      notBefore,
     }, c, warn);
     for (const [d, v] of seg.planned) p.planned.set(d, v);
     for (const [d, k] of seg.kinds) p.kinds.set(d, k);

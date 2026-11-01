@@ -13,5 +13,6 @@ try {
   throw e;
 }
 const app = buildApp(config);
-await app.listen({ port: config.PORT, host: "0.0.0.0" });
-console.log(`api listening on http://localhost:${config.PORT}`);
+// S7b-14: HOST from config (default 127.0.0.1), not every network interface.
+await app.listen({ port: config.PORT, host: config.HOST });
+console.log(`api listening on http://${config.HOST}:${config.PORT}`);

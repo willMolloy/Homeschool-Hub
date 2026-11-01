@@ -6,6 +6,7 @@ A year-long timeline planner for homeschool families, with low-friction logging.
 
 - [docs/APP_OVERVIEW.md](docs/APP_OVERVIEW.md): what the app is, its rules, stack and layout.
 - [docs/ROADMAP.md](docs/ROADMAP.md): what's done, what's next, open decisions.
+- [docs/DESIGN_DIRECTION.md](docs/DESIGN_DIRECTION.md): where the app's design is heading, and the screen tests.
 - [docs/HOW_WE_WORK.md](docs/HOW_WE_WORK.md): roles, tickets, local dev, rules, and a new-session checklist.
 
 ```

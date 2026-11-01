@@ -7,6 +7,7 @@
  * are read for every subject, archived ones included, and only matter for assignments that are planned; so are subject
  * default weekdays (S4-05), and an assignment's own weekdays with the date and days of its last change (S4-01b).
  * `asOf` is not set here: the route decides it.
+ * Week overrides come back in edit order, newest last (S6-01, C1): the engine lets the later entry win.
  * Check-ins (S2b-22) follow the overrides' rule: only for planned assignments and active children.
  * The log tables are never read: they feed hours and exports only (S2b-18/19).
  */
@@ -96,7 +97,7 @@ export async function readPlanInputs(db: Queryable, familyId: string): Promise<P
     "SELECT blocked_range_id, child_id FROM blocked_range_child WHERE family_id = $1 ORDER BY child_id", [familyId]);
   const overrideRows = await query<{ assignment_id: string; child_id: string | null; week_start: string; planned_units: number; mode: WeekOverride["mode"] }>(db,
     `SELECT assignment_id, child_id, week_start, planned_units, mode
-       FROM week_override WHERE family_id = $1 ORDER BY week_start`, [familyId]);
+       FROM week_override WHERE family_id = $1 ORDER BY updated_at, id`, [familyId]);
   const checkInRows = await query<{ assignment_id: string; child_id: string; week_start: string; position: number; mode: ProgressCheckIn["mode"] }>(db,
     `SELECT assignment_id, child_id, week_start, position, mode
        FROM progress_checkin WHERE family_id = $1 ORDER BY week_start, assignment_id, child_id`, [familyId]);

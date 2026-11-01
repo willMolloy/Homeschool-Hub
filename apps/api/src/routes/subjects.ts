@@ -4,6 +4,7 @@ import { withTransaction, type Tx } from "../db";
 import { HttpError } from "../http/errors";
 import { isUniqueViolation } from "../http/pgErrors";
 import { DefaultWeight, Weekdays } from "../http/scheduleLimits";
+import { SUBJECT_ICONS } from "../http/subjectIcons";
 import { Color, Name, SortOrder, UUID_RE, parseBody, parseListQuery } from "../http/validate";
 import { familyWeekStart } from "../http/familyWeek";
 import { recordSubjectWeekdaysChange } from "../repos/assignmentRepo";
@@ -11,7 +12,8 @@ import { SUBJECT_NAME_INDEX, createSubject, listSubjects, lockSubjectWeekdays, t
 import { sameWeekdays } from "../services/weekdaysChange";
 
 // Unknown keys (e.g. family_id) are dropped: ownership always comes from the session.
-const CreateBody = z.strictObject({ name: Name, color: Color.optional(), defaultWeight: DefaultWeight.nullable().optional(), defaultWeekdays: Weekdays.nullable().optional() });
+const Icon = z.enum(SUBJECT_ICONS);
+const CreateBody = z.strictObject({ name: Name, color: Color.optional(), defaultWeight: DefaultWeight.nullable().optional(), defaultWeekdays: Weekdays.nullable().optional(), icon: Icon.nullable().optional() });
 const PatchBody = z
   .strictObject({
     name: Name.optional(),
@@ -20,8 +22,9 @@ const PatchBody = z
     archived: z.boolean().optional(),
     defaultWeight: DefaultWeight.nullable().optional(),
     defaultWeekdays: Weekdays.nullable().optional(),
+    icon: Icon.nullable().optional(),
   })
-  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, color, sortOrder, archived, defaultWeight, defaultWeekdays.");
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, color, sortOrder, archived, defaultWeight, defaultWeekdays, icon.");
 
 const notFound = () => new HttpError(404, "not_found", "No such subject.");
 

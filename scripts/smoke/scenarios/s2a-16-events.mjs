@@ -1,17 +1,17 @@
 export default async function ({ page, shot, login, log, BASE }) {
-  await page.goto(`${BASE}/schedule/events`, { waitUntil: "networkidle0" });
-  await login();
-  await page.waitForFunction(() => location.pathname === "/schedule/events", { timeout: 5000 });
+  await page.goto(`${BASE}/setup/events`, { waitUntil: "networkidle0" });
+  await login(process.env.SMOKE_EMAIL); // a family that is not the demo (the demo cannot add events): see README, "Smoke login"
+  await page.waitForFunction(() => location.pathname === "/setup/events", { timeout: 5000 });
   await page.waitForSelector(".schedule-list, .schedule-empty");
   log("cards:", await page.$$eval(".schedule-card", (c) => c.map((x) => x.innerText.replace(/\n/g, " | ")).join(" // ")), "sw", await page.evaluate(() => document.documentElement.scrollWidth));
   await shot("s2a-16-events-list-360");
   const planText = async () => {
-    await page.goto(`${BASE}/?week=2026-11-16`, { waitUntil: "networkidle0" });
+    await page.goto(`${BASE}/schedule?view=week&week=2026-11-16&debug=1`, { waitUntil: "networkidle0" });
     await page.waitForSelector("table");
     return page.$eval("table", (t) => t.innerText);
   };
   const before = await planText();
-  await page.goto(`${BASE}/schedule/events`, { waitUntil: "networkidle0" });
+  await page.goto(`${BASE}/setup/events`, { waitUntil: "networkidle0" });
   await page.waitForSelector(".schedule-list, .schedule-empty");
   await page.click(".schedule-actions .btn");
   const form = "form[aria-label='Add event']";
@@ -33,7 +33,7 @@ export default async function ({ page, shot, login, log, BASE }) {
   log("before rows:", JSON.stringify(tueCol(before)));
   log("after rows:", JSON.stringify(tueCol(after)));
   await shot("s2a-16-plan-after-add-360");
-  await page.goto(`${BASE}/schedule/events`, { waitUntil: "networkidle0" });
+  await page.goto(`${BASE}/setup/events`, { waitUntil: "networkidle0" });
   await page.waitForSelector(".schedule-list");
   for (const b of await page.$$(".schedule-card-btn")) if ((await b.evaluate((e) => e.textContent)).includes("Smoke test event")) { await b.click(); break; }
   await page.waitForSelector("form.schedule-form");
@@ -43,7 +43,7 @@ export default async function ({ page, shot, login, log, BASE }) {
   await page.click("dialog[open] .btn-danger, dialog[open] button.btn:not(.btn-secondary)");
   await page.waitForFunction(() => ![...document.querySelectorAll(".card-title")].some((e) => e.textContent === "Smoke test event"), { timeout: 5000 });
   log("archived; plan back:", (await planText()) === before);
-  await page.goto(`${BASE}/schedule/events`, { waitUntil: "networkidle0" });
+  await page.goto(`${BASE}/setup/events`, { waitUntil: "networkidle0" });
   await page.setViewport({ width: 1280, height: 800 });
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForSelector(".schedule-list, .schedule-empty");

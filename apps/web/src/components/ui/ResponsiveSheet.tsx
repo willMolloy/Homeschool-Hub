@@ -31,6 +31,7 @@ export function ResponsiveSheet({ open, onOpenChange, title, children, wide = "d
           <Drawer.Viewport className="sheet-viewport sheet-viewport-drawer">
             <Drawer.Popup className="sheet-popup sheet-drawer" data-sheet="drawer">
               <Drawer.Content>
+                <div className="sheet-grab" aria-hidden="true" />
                 <div className="sheet-head">
                   <Drawer.Title className="sheet-title">{title}</Drawer.Title>
                   <Drawer.Close className="sheet-close" aria-label="Close">×</Drawer.Close>

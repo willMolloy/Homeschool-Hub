@@ -6,7 +6,7 @@ import { timeZoneOptions, WEEK_START_LOCKED_HINT } from "../src/features/schedul
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
-const SETTINGS: FamilySettings = { name: "Demo family", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false };
+const SETTINGS: FamilySettings = { name: "Demo family", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false, zoomViews: { hidden: [], custom: [] } };
 
 async function open(settings: FamilySettings = SETTINGS) {
   fakeApi.on("GET /api/family", 200, settings);
@@ -117,7 +117,7 @@ describe("Family settings form", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Unknown time zone.");
   });
 
-  it("header name updates after save", async () => {
+  it("the new name reaches Home's family button after save (S8-04: there is no header any more)", async () => {
     let me = { ...DEMO_ME };
     fakeApi.on("GET /api/me", () => [200, me]);
     fakeApi.on("PATCH /api/family", (body) => {
@@ -125,15 +125,15 @@ describe("Family settings form", () => {
       return [200, { ...SETTINGS, ...(body as object) }];
     });
     const user = await open();
-    const header = screen.getByRole("banner");
-    expect(within(header).getByText("Demo family")).toBeInTheDocument();
+    expect(me.name).toBe("Demo family");
     const name = screen.getByLabelText("Family name");
     await user.clear(name);
     await user.type(name, "  The Smiths ");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await screen.findByText("Saved.");
-    expect(within(header).getByText("The Smiths")).toBeInTheDocument();
     expect(patches()[0]!.body).toEqual({ name: "The Smiths" });
+    await user.click(screen.getByRole("link", { name: "Home" }));
+    expect(await screen.findByRole("button", { name: "Family and settings" })).toHaveTextContent("T");
   });
 
   it("load failure → Retry", async () => {

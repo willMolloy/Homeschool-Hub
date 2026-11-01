@@ -1,7 +1,7 @@
 /** T-07c: the child filter (childFilter.ts, ChildFilter, `?child=` on the page). */
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import type { Child } from "../src/api/types";
 import { filterChildren, forChild, shownChild } from "../src/features/timeline/childView";
@@ -72,21 +72,22 @@ function stub(children: Child[] = SAMPLE_CHILDREN) {
 const bandIds = (svg: Element) => [...svg.querySelectorAll("path.tl-band")].map((b) => b.getAttribute("data-assignment")!);
 const totalsD = (svg: Element) => svg.querySelector("path.tl-totals")?.getAttribute("d");
 
-describe("the child filter on the page", () => {
-  it("shows All, then each child, with All chosen and nothing else in the row", async () => {
+describe("the child switch on the Year page (S8b-07: the one shared with Week and Track work)", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("shows All children first, then each child, with All children chosen and nothing else in the row", async () => {
     stub();
     renderAt("/timeline");
     await screen.findByRole("img", { name: "Year timeline" });
     const group = screen.getByRole("group", { name: "Child" });
     const chips = within(group).getAllByRole("button");
-    expect(chips.map((b) => b.textContent)).toEqual(["All", "Frank", "Margaret"]);
+    expect(chips.map((b) => b.textContent)).toEqual(["All children", "Frank", "Margaret"]);
     expect(chips.map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "false", "false"]);
-    expect(group.textContent).toBe("AllFrankMargaret");
   });
 
-  it("narrows to one child, recomputes the All subjects bar and remembers the choice in ?child=", async () => {
+  it("narrows to one child, recomputes the All subjects bar and remembers the choice on the device", async () => {
     stub();
-    const { router } = renderAt("/timeline");
+    const first = renderAt("/timeline");
     const svg = await screen.findByRole("img", { name: "Year timeline" });
     const before = totalsD(svg);
     await userEvent.click(within(screen.getByRole("group", { name: "Child" })).getByRole("button", { name: "Frank" }));
@@ -95,34 +96,43 @@ describe("the child filter on the page", () => {
     expect(bandIds(shown).length).toBeGreaterThan(0);
     expect(bandIds(shown).every((id) => frank.has(id))).toBe(true);
     expect(totalsD(shown)).not.toBe(before);
-    expect(router.state.location.search).toBe("?child=frank");
+    expect(localStorage.getItem("hh.child")).toBe("frank");
     expect(screen.getByRole("button", { name: "Frank" })).toHaveAttribute("aria-pressed", "true");
-    await userEvent.click(screen.getByRole("button", { name: "All" }));
-    expect(router.state.location.search).toBe("");
+    first.unmount();
+    renderAt("/timeline");
+    const again = await screen.findByRole("img", { name: "Year timeline" });
+    expect(bandIds(again).every((id) => frank.has(id))).toBe(true);
+    await userEvent.click(screen.getByRole("button", { name: "All children" }));
     expect(totalsD(screen.getByRole("img", { name: "Year timeline" }))).toBe(before);
   });
 
-  it("opens on the child named in the URL (survives a reload), and on All for an unknown one", async () => {
+  it("shares the choice with Week: what was picked there is what Year shows", async () => {
     stub();
-    renderAt("/timeline?child=margaret");
+    localStorage.setItem("hh.child", "margaret");
+    renderAt("/timeline");
     const svg = await screen.findByRole("img", { name: "Year timeline" });
-    const margaret = childOf("margaret");
-    expect(bandIds(svg).every((id) => margaret.has(id))).toBe(true);
+    expect(bandIds(svg).every((id) => childOf("margaret").has(id))).toBe(true);
     expect(screen.getByRole("button", { name: "Margaret" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("falls back to All for a child the family doesn't have", async () => {
+  it("falls back to All children for a saved child the family doesn't have, and understands the old saved 'both'", async () => {
     stub();
-    renderAt("/timeline?child=nobody");
+    localStorage.setItem("hh.child", "nobody");
+    const first = renderAt("/timeline");
     await screen.findByRole("img", { name: "Year timeline" });
-    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "All children" })).toHaveAttribute("aria-pressed", "true");
+    first.unmount();
+    localStorage.setItem("hh.child", "both");
+    renderAt("/timeline");
+    await screen.findByRole("img", { name: "Year timeline" });
+    expect(screen.getByRole("button", { name: "All children" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("hides the row entirely when the family has one child", async () => {
+  it("hides the switch entirely when the family has one child", async () => {
     stub(SAMPLE_CHILDREN.slice(0, 1));
     renderAt("/timeline");
     await screen.findByRole("img", { name: "Year timeline" });
     expect(screen.queryByRole("group", { name: "Child" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "All" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "All children" })).toBeNull();
   });
 });

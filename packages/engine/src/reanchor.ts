@@ -11,14 +11,14 @@ const sumOn = (planned: Map<number, number>, from: number, to: number): number =
   return s;
 };
 
-export function replanFrom(p: Placement, cut: number, from: number, total: number, overrides: PreparedOverride[], c: CapacityOf, pushLimit: number, warn: Warn): void {
+export function replanFrom(p: Placement, cut: number, from: number, total: number, overrides: PreparedOverride[], c: CapacityOf, pushLimit: number, warn: Warn, notBefore?: number): void {
   const remaining = Math.max(0, total - sumOn(p.planned, -Infinity, cut - 1));
   // An override week the cut falls inside has already placed part of its units; only the rest is still fixed.
   const rest = overrides.map((o) => (o.w0 < from && o.w1 >= from ? { ...o, plannedUnits: sumOn(p.planned, cut, o.w1) } : o));
   for (const d of [...p.planned.keys()]) if (d >= cut) p.planned.delete(d);
   for (const d of [...p.kinds.keys()]) if (d >= cut) p.kinds.delete(d);
   if (remaining <= EPS) return;
-  const seg = placeSegment({ from, end: p.endDay, pushLimit, remaining, overrides: rest, forcedMode: "keepEndDate", first: false }, c, warn);
+  const seg = placeSegment({ from, end: p.endDay, pushLimit, remaining, overrides: rest, forcedMode: "keepEndDate", first: false, notBefore }, c, warn);
   for (const [d, v] of seg.planned) p.planned.set(d, v);
   for (const [d, k] of seg.kinds) p.kinds.set(d, k);
   // baseRate stays the original pace (a later check-in's pushEndDate keeps it).

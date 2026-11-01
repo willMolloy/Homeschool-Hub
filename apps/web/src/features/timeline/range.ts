@@ -4,6 +4,7 @@
  * The family has no school-year setting yet, so the year is the Aug 1 – Jun 30 window that contains today
  * (July already counts as the coming year). The plan is fetched for that window, then the view is trimmed to the
  * days anything is actually planned, plus today, so empty summer weeks don't eat horizontal room.
+ * S6b-09: with no assignments at all the view still shows a calendar: this month and the next 10.
  */
 import type { ChildPlan, LocalDate, WeekStart } from "@hh/engine";
 import { weekAlignedRange } from "./grid";
@@ -26,11 +27,24 @@ export function fetchRange(today: LocalDate, weekStart: WeekStart): DateRange {
   return weekAlignedRange(sy.from, sy.to, weekStart);
 }
 
+/** Months shown after the current one when nothing is planned (S6b-09). */
+export const EMPTY_CALENDAR_MONTHS_AFTER = 10;
+
+/** S6b-09: the start of today's month through the end of the month `EMPTY_CALENDAR_MONTHS_AFTER` later, week-aligned. */
+export function emptyCalendarRange(today: LocalDate, weekStart: WeekStart): DateRange {
+  const year = Number(today.slice(0, 4));
+  const month = Number(today.slice(5, 7));
+  const last = new Date(Date.UTC(year, month - 1 + EMPTY_CALENDAR_MONTHS_AFTER + 1, 0));
+  const to = `${last.getUTCFullYear()}-${String(last.getUTCMonth() + 1).padStart(2, "0")}-${String(last.getUTCDate()).padStart(2, "0")}` as LocalDate;
+  return weekAlignedRange(`${today.slice(0, 7)}-01` as LocalDate, to, weekStart);
+}
+
 /**
  * The range the view shows: from the first to the last planned day (inside the fetched range), widened to today,
- * week-aligned. With nothing planned it is the whole fetched range.
+ * week-aligned. With days planned nowhere it is the whole fetched range; with no plans at all, the empty calendar (S6b-09).
  */
 export function shownRange(fetched: DateRange, plans: readonly ChildPlan[], today: LocalDate, weekStart: WeekStart): DateRange {
+  if (plans.length === 0) return emptyCalendarRange(today, weekStart);
   let first: LocalDate | null = null;
   let last: LocalDate | null = null;
   for (const p of plans) {

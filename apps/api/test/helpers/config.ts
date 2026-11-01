@@ -4,6 +4,7 @@ import type { Config } from "../../src/config";
 export function testConfig(over: Partial<Config> = {}): Config {
   return {
     PORT: 0,
+    HOST: "127.0.0.1",
     DATABASE_URL: process.env.DATABASE_URL ?? "postgres://hh:hh@localhost:5432/hh_test",
     SESSION_SECRET: "test-secret-test-secret-test-secret-123",
     NODE_ENV: "test",

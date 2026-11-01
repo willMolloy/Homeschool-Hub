@@ -2,12 +2,26 @@
  * S4-09: the weekly briefing's lines, as pure functions of plans the API already made. Per child, in this order:
  * will finish late (or no recent progress), plan problems, a heavy week. The check-in nudge is one line for the family (see Briefing.tsx).
  */
-import { EPS, forecastFinish, fromDayNumber, heavyWeek, HEAVY_WEEK_RATIO, toDayNumber, weekStartOfDayNumber, type ChildPlan, type FamilyCalendar, type LocalDate, type ProgressCheckIn } from "@hh/engine";
+import { EPS, forecastOutcome, heavyWeek, HEAVY_WEEK_RATIO, noRecentProgress, toDayNumber, type ChildPlan, type FamilyCalendar, type LocalDate, type ProgressCheckIn } from "@hh/engine";
 import { shortDate } from "../schedule/formBits";
+
+/**
+ * S7b-05: what a "will finish late" line offers: move the end date to the forecast, or keep it. `moveTo` is null when
+ * there is no date to move to (a pace so slow the forecast gives up). `signature` names the forecast the line was
+ * made from, so a "Keep" lasts until the forecast changes.
+ */
+export interface LateAction {
+  assignmentId: string;
+  childId: string;
+  end: LocalDate;
+  moveTo: LocalDate | null;
+  signature: string;
+}
 
 export interface BriefingLine {
   key: string;
   text: string;
+  action?: LateAction;
 }
 
 export interface ChildBriefing {
@@ -26,31 +40,15 @@ export interface BriefingInput {
   calendar: FamilyCalendar;
 }
 
-/** The check-ins the engine applied, one per week, rebuilt from the plan (`forecastFinish` only counts weeks). */
+/** The check-ins the engine applied, one per week, rebuilt from the plan (the forecast only counts weeks). */
 const appliedCheckIns = (p: ChildPlan): ProgressCheckIn[] =>
   p.checkInWeeks.map((weekStart) => ({ assignmentId: p.assignmentId, childId: p.childId, weekStart, position: 0, mode: null }));
 
 /** S4b-03: a forecast more than this many weeks late is reported plainly, not as a week count. */
 export const VERY_LATE_WEEKS = 26;
 
-/**
- * S4b-03: at least 2 applied check-in weeks and no progress from the start of the first to the end of the last (the same
- * span `forecastFinish` measures, which gives no forecast for it).
- */
-export function noRecentProgress(p: ChildPlan, calendar: FamilyCalendar): boolean {
-  const weeks = p.checkInWeeks.map((w) => toDayNumber(fromDayNumber(weekStartOfDayNumber(toDayNumber(w), calendar.weekStart)))).sort((a, b) => a - b);
-  if (new Set(weeks).size < 2 || p.remainingUnits <= EPS || p.days.length === 0) return false;
-  const first = weeks[0]!;
-  const last = weeks[weeks.length - 1]! + 6;
-  let before = 0;
-  let atEnd = 0;
-  for (const d of p.days) {
-    const n = toDayNumber(d.date);
-    if (n < first) before = d.position;
-    if (n <= last) atEnd = d.position;
-  }
-  return atEnd - before <= EPS;
-}
+/** S4b-03 / S7b-04: the engine decides (adjusted weeks and weekday changes are handled there). */
+export { noRecentProgress };
 
 export function weeksLate(end: LocalDate, forecast: LocalDate): number {
   return Math.max(1, Math.round((toDayNumber(forecast) - toDayNumber(end)) / 7));
@@ -79,11 +77,25 @@ export function buildBriefing(input: BriefingInput): ChildBriefing[] {
         late.push({ key: `noprogress-${p.assignmentId}`, text: `No progress on ${title} in the last ${new Set(p.checkInWeeks).size} weeks.` });
         continue;
       }
-      const forecast = forecastFinish(p, appliedCheckIns(p), calendar);
-      if (forecast && forecast > p.end) {
-        const n = weeksLate(p.end, forecast);
-        const text = n > VERY_LATE_WEEKS ? `${title} won't finish this school year at this pace.` : `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late at this pace.`;
-        late.push({ key: `late-${p.assignmentId}`, text });
+      // S7b-18: a keepEndDate adjustment left no free day from today, so the plan itself runs past its end: say so, and offer the move.
+      if (p.warnings.includes("keep-end-extended") && p.end > p.plannedEnd) {
+        const n = weeksLate(p.plannedEnd, p.end);
+        late.push({
+          key: `late-${p.assignmentId}`, text: `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late.`,
+          action: { assignmentId: p.assignmentId, childId: p.childId, end: p.plannedEnd, moveTo: p.end, signature: `extended-${p.end}` },
+        });
+        continue;
+      }
+      const forecast = forecastOutcome(p, appliedCheckIns(p), calendar);
+      const wontFinish = `${title} won't finish this school year at this pace.`;
+      // S7-10: a pace so slow the forecast gives up (past its limit) is the same plain line as a very late one.
+      const action = (moveTo: LocalDate | null, signature: string): LateAction => ({ assignmentId: p.assignmentId, childId: p.childId, end: p.end, moveTo, signature });
+      if (forecast && "beyondLimit" in forecast) {
+        late.push({ key: `late-${p.assignmentId}`, text: wontFinish, action: action(null, "beyond") });
+      } else if (forecast && forecast.finish > p.end) {
+        const n = weeksLate(p.end, forecast.finish);
+        const text = n > VERY_LATE_WEEKS ? wontFinish : `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late at this pace.`;
+        late.push({ key: `late-${p.assignmentId}`, text, action: action(forecast.finish, forecast.finish) });
       }
     }
     const heavy: BriefingLine[] = [];

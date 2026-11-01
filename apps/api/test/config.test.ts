@@ -10,7 +10,7 @@ const good = {
 
 describe("loadConfig", () => {
   it("returns a typed object when every value is present", () => {
-    expect(loadConfig(good)).toEqual({ ...good, PORT: 4000, LOG_LEVEL: "info" });
+    expect(loadConfig(good)).toEqual({ ...good, PORT: 4000, HOST: "127.0.0.1", LOG_LEVEL: "info" }); // S7b-14: HOST is new
   });
   it("throws naming DATABASE_URL when it is missing", () => {
     const { DATABASE_URL: _omit, ...rest } = good;
@@ -25,6 +25,14 @@ describe("loadConfig", () => {
     try { loadConfig({}); } catch (e) { msg = (e as Error).message; }
     expect(msg).toMatch(/DATABASE_URL/);
     expect(msg).toMatch(/SESSION_SECRET/);
+  });
+  it("S7b-14: HOST defaults to 127.0.0.1 in every environment, an explicit HOST wins, junk is a ConfigError naming it", () => {
+    const base = { DATABASE_URL: good.DATABASE_URL, SESSION_SECRET: good.SESSION_SECRET };
+    for (const NODE_ENV of ["development", "test", "production"]) expect(loadConfig({ ...base, NODE_ENV }).HOST).toBe("127.0.0.1");
+    expect(loadConfig({ ...base, HOST: "0.0.0.0" }).HOST).toBe("0.0.0.0");
+    expect(loadConfig({ ...base, HOST: " ::1 " }).HOST).toBe("::1");
+    expect(() => loadConfig({ ...base, HOST: "" })).toThrow(/HOST/);
+    expect(() => loadConfig({ ...base, HOST: "   " })).toThrow(/HOST/);
   });
   it("defaults PORT to 3000 and NODE_ENV to development", () => {
     const c = loadConfig({ DATABASE_URL: good.DATABASE_URL, SESSION_SECRET: good.SESSION_SECRET });

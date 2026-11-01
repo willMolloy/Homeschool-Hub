@@ -20,16 +20,16 @@
   list-style: none;
   margin: 8px 0 16px;
   padding: 0;
-  background: #fff;
+  background: var(--tl-card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--tl-radius);
   overflow: hidden;
 }
 .roster-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 52px;
+  min-height: 56px;
   padding: 0 16px;
   border-top: 1px solid var(--line);
 }
@@ -38,7 +38,7 @@
 }
 .roster-row.is-archived {
   color: var(--muted);
-  background: #f6f7f9;
+  background: var(--tl-secondary);
 }
 .roster-name {
   flex: 1;
@@ -59,18 +59,18 @@
   font-size: 0.8rem;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #e8ebf0;
+  background: var(--tl-secondary);
   color: var(--muted);
 }
 .skeleton .color-dot {
-  background: #e8ebf0;
+  background: var(--tl-secondary);
   border-color: transparent;
 }
 .skeleton-bar {
   height: 14px;
   width: 40%;
   border-radius: 7px;
-  background: linear-gradient(90deg, #e8ebf0, #f3f5f8, #e8ebf0);
+  background: linear-gradient(90deg, var(--tl-secondary), var(--tl-secondary), var(--tl-secondary));
   background-size: 200% 100%;
   animation: shimmer 1.2s linear infinite;
 }
@@ -89,7 +89,7 @@
   padding: 24px 16px;
   text-align: center;
   color: var(--muted);
-  background: #fff;
+  background: var(--tl-card);
   border: 1px dashed var(--line);
   border-radius: 12px;
 }
@@ -136,7 +136,7 @@
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
 }
 .swatch input:checked + .swatch-chip {
-  box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--brand);
+  box-shadow: 0 0 0 3px var(--tl-card), 0 0 0 5px var(--brand);
 }
 .swatch input:focus-visible + .swatch-chip {
   outline: 3px solid var(--brand);
@@ -153,7 +153,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 52px;
+  min-height: 56px;
   padding: 0 16px;
   border: 0;
   background: transparent;
@@ -163,7 +163,7 @@
   cursor: pointer;
 }
 .roster-row-btn:hover {
-  background: #f0f3f7;
+  background: var(--tl-secondary);
 }
 .roster-row-btn:focus-visible {
   outline: 3px solid var(--brand);
@@ -177,7 +177,7 @@
   margin: 0;
   border: 0;
   border-radius: 0;
-  background: #fbfcfd;
+  background: var(--tl-secondary);
 }
 .btn-danger {
   color: var(--danger);
@@ -186,8 +186,10 @@
 .confirm-dialog {
   max-width: min(420px, calc(100vw - 32px));
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--tl-radius);
   padding: 20px;
+  background: var(--tl-card);
+  color: var(--tl-foreground);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
 }
 .confirm-dialog::backdrop {
@@ -216,4 +218,37 @@
 }
 .tag-weight {
   flex: none;
+}
+
+/* S6b-08: common subjects as one-tap chips for a family with none yet */
+.roster-suggest {
+  margin: 16px 0;
+}
+.roster-suggest h2 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+.roster-suggest-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.roster-suggest-chips .btn {
+  min-height: 44px;
+  border-radius: 999px;
+}
+
+/* S8-08: a list row ends in a chevron (shared by the roster and schedule lists). */
+.row-chevron { flex: none; margin-left: auto; color: var(--tl-muted-foreground); align-self: center; }
+
+/* S8b-05: a subject's name always reads. On a phone the row wraps: dot, badge, name and chevron on the first line, the usual-effort and days pills under the name. The name keeps at least 8rem. From 640 px everything fits on one line again. */
+.roster-row-btn { flex-wrap: wrap; row-gap: 2px; padding-block: 6px; }
+.roster-row-btn .roster-name { flex: 1 1 8rem; min-width: 8rem; }
+.roster-row-btn .row-chevron { order: 1; }
+.roster-row-btn .tag { order: 2; flex: 0 1 auto; max-width: calc(100% - 64px); margin-left: 64px; }
+.roster-row-btn .tag + .tag { margin-left: 0; }
+@media (min-width: 640px) {
+  .roster-row-btn { flex-wrap: nowrap; padding-block: 0; }
+  .roster-row-btn .row-chevron { order: 0; }
+  .roster-row-btn .tag { order: 0; margin-left: 0; max-width: none; }
 }

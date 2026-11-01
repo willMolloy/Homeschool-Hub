@@ -5,13 +5,15 @@
  * need more than the shown week).
  */
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { addDays, toDayNumber, type ChildPlan, type LocalDate, type Weekday } from "@hh/engine";
-import { apiGet } from "../../api/client";
+import { ApiError, apiGet, apiPatch } from "../../api/client";
 import type { Assignment, Child, PastWeek, PlanResponse } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useMe } from "../../auth/AuthProvider";
 import { useLastWeekCheckIn } from "../checkin/useLastWeekCheckIn";
-import { buildBriefing, type ChildBriefing } from "./briefingLines";
+import { shortDate } from "../schedule/formBits";
+import { buildBriefing, type BriefingLine, type ChildBriefing, type LateAction } from "./briefingLines";
 import { usePlanRefresh } from "./planRefresh";
 import "./plan.css";
 
@@ -83,7 +85,28 @@ function usePlans(ranges: readonly DateRange[], refreshKey: number): ChildPlan[]
   return plans;
 }
 
-export function Briefing({ weekStart }: { weekStart: LocalDate }) {
+/**
+ * S7b-05: "Keep" on a late line is remembered on this device: the line stays hidden for that assignment and child until
+ * the forecast it was made from changes (its `signature`). Storage may be missing or blocked; then Keep lasts until reload.
+ */
+const KEPT_KEY = "hh.briefing.kept";
+const keptKey = (a: LateAction) => `${a.assignmentId}:${a.childId}`;
+function readKept(): Record<string, string> {
+  try {
+    const v: unknown = JSON.parse(window.localStorage.getItem(KEPT_KEY) ?? "{}");
+    return typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+function writeKept(kept: Record<string, string>): void {
+  try {
+    window.localStorage.setItem(KEPT_KEY, JSON.stringify(kept));
+  } catch { /* the choice just isn't remembered */ }
+}
+
+/** `showNudge` false (Home): the "last week isn't checked in" line is Home's Track work card instead. */
+export function Briefing({ weekStart, showNudge = true }: { weekStart: LocalDate; showNudge?: boolean }) {
   const assignments = useApi<Assignment[]>("/api/assignments");
   const children = useApi<Child[]>("/api/children");
   const weeks = useApi<{ weeks: PastWeek[] }>("/api/check-ins/weeks");
@@ -96,7 +119,7 @@ export function Briefing({ weekStart }: { weekStart: LocalDate }) {
   if (!assignments.data || !children.data) return null;
   // Never shown to a family that has not checked in before.
   const checkedInBefore = (weeks.data?.weeks ?? []).some((w) => w.status === "reviewed" || w.hasCheckIns);
-  const nudge = checkedInBefore && lastWeek.week !== null;
+  const nudge = showNudge && checkedInBefore && lastWeek.week !== null;
   return <BriefingBody assignments={assignments.data} children={children.data} weekStart={weekStart} nudge={nudge} />;
 }
 
@@ -114,38 +137,74 @@ function BriefingBody({ assignments, children, weekStart, nudge }: BodyProps) {
   const { version } = usePlanRefresh();
   const plans = usePlans(ranges, version);
 
+  const [kept, setKept] = useState(readKept);
+  const keep = (a: LateAction) => {
+    const next = { ...readKept(), ...kept, [keptKey(a)]: a.signature };
+    writeKept(next);
+    setKept(next);
+  };
   const groups = useMemo(() => {
     if (!plans) return [];
     const titles = new Map(assignments.map((a) => [a.id, a.title]));
-    return buildBriefing({
+    const shown = buildBriefing({
       plans,
       children: children.filter((c) => !c.archived).map((c) => ({ id: c.id, name: c.name })),
       titleOf: (id) => titles.get(id) ?? "An assignment",
       weekStart,
       calendar: { weekStart: me.weekStart, schoolDays: me.schoolDays as Weekday[] },
     });
-  }, [plans, assignments, children, weekStart, me.weekStart, me.schoolDays]);
+    // S7b-05: a kept line stays hidden until its forecast changes.
+    const visible = (l: BriefingLine) => !(l.action && kept[keptKey(l.action)] === l.action.signature);
+    return shown.map((g) => ({ ...g, lines: g.lines.filter(visible) })).filter((g) => g.lines.length > 0);
+  }, [plans, assignments, children, weekStart, me.weekStart, me.schoolDays, kept]);
+  const { invalidate } = usePlanRefresh();
 
   if (groups.length === 0 && !nudge) return null;
   return (
     <section className="briefing" aria-label="Weekly briefing">
-      {groups.map((g) => <ChildLines key={g.childId} group={g} />)}
-      {nudge ? <p className="briefing-line"><a href="#last-week-checkin">{NUDGE_TEXT}</a></p> : null}
+      {groups.map((g) => <ChildLines key={g.childId} group={g} onKeep={keep} onMoved={invalidate} />)}
+      {nudge ? <p className="briefing-line"><Link to="/track">{NUDGE_TEXT}</Link></p> : null}
     </section>
   );
 }
 
-function ChildLines({ group }: { group: ChildBriefing }) {
+function ChildLines({ group, onKeep, onMoved }: { group: ChildBriefing; onKeep: (a: LateAction) => void; onMoved: () => void }) {
   const [open, setOpen] = useState(false);
   const hidden = open ? 0 : Math.max(0, group.lines.length - SHOWN);
   const shown = hidden > 0 ? group.lines.slice(0, SHOWN) : group.lines;
   return (
     <div className="briefing-child">
-      <p className="briefing-name">{group.childName}</p>
+      {/* S8b-07 (N13): the child's name heads the lines only when a line does not already say it ("…heavy week for Frank."). */}
+      {group.lines.every((l) => l.text.includes(group.childName)) ? null : <p className="briefing-name">{group.childName}</p>}
       <ul className="briefing-lines" aria-label={`Briefing for ${group.childName}`}>
-        {shown.map((l) => <li key={l.key}>{l.text}</li>)}
+        {shown.map((l) => <li key={l.key}>{l.text}{l.action ? <LateButtons action={l.action} onKeep={onKeep} onMoved={onMoved} /> : null}</li>)}
       </ul>
       {hidden > 0 ? <button type="button" className="briefing-more" onClick={() => setOpen(true)}>and {hidden} more</button> : null}
     </div>
+  );
+}
+
+/** S7b-05: the one next step on a late line: move the end to the forecast (undoable), or keep it. */
+function LateButtons({ action, onKeep, onMoved }: { action: LateAction; onKeep: (a: LateAction) => void; onMoved: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const move = async () => {
+    if (!action.moveTo) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await apiPatch(`/api/assignments/${action.assignmentId}`, { endDate: action.moveTo });
+      onMoved();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Couldn't move the end. Please try again.");
+      setBusy(false);
+    }
+  };
+  return (
+    <span className="briefing-actions">
+      {action.moveTo ? <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => void move()}>Move end to {shortDate(action.moveTo)}</button> : null}
+      <button type="button" className="briefing-more" disabled={busy} onClick={() => onKeep(action)}>Keep {shortDate(action.end)}</button>
+      {error ? <span className="briefing-error" role="alert">{error}</span> : null}
+    </span>
   );
 }

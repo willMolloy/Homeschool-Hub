@@ -1,3 +1,4 @@
+import { EngineInputError } from "./dates";
 import type { Assignment, UnitType } from "./types";
 
 /**
@@ -152,4 +153,28 @@ export function suggestWeight(input: {
   }
   const resolved = weightPerUnitOf({ unitType: input.unitType, weightPerUnit: null }, input.subjectDefault);
   return { weight: resolved.weight, source: resolved.source === "subject" ? "subject" : "builtin", childIdsWithHistory, childIdsWithout };
+}
+
+// ---- Effort asked in time (S6-09, decision C3) ----
+
+/**
+ * S6-09: the weight per unit that makes `minutesPerDay` of work a day, at `unitsPerDay` units a day:
+ * minutes ÷ units ÷ MINUTES_PER_WEIGHT_POINT, rounded to WEIGHT_DECIMALS and kept within [MIN, MAX]. Both must be
+ * positive finite numbers (EngineInputError otherwise); a result that rounds to 0 is the minimum weight.
+ */
+export function weightFromMinutesPerDay(minutesPerDay: number, unitsPerDay: number): number {
+  if (!Number.isFinite(minutesPerDay) || minutesPerDay <= 0) throw new EngineInputError(`minutesPerDay must be a positive number, got ${minutesPerDay}`);
+  if (!Number.isFinite(unitsPerDay) || unitsPerDay <= 0) throw new EngineInputError(`unitsPerDay must be a positive number, got ${unitsPerDay}`);
+  const w = roundWeight(minutesPerDay / unitsPerDay / MINUTES_PER_WEIGHT_POINT);
+  return Math.min(MAX_WEIGHT_PER_UNIT, Math.max(MIN_WEIGHT_PER_UNIT, w));
+}
+
+/**
+ * S6-09: the inverse, for display: the minutes a day a weight asks for at `unitsPerDay` units a day (not rounded, so a
+ * stored weight survives the round trip; the caller rounds for the screen).
+ */
+export function minutesPerDayFromWeight(weightPerUnit: number, unitsPerDay: number): number {
+  if (!Number.isFinite(weightPerUnit) || weightPerUnit < 0) throw new EngineInputError(`weightPerUnit must be a non-negative number, got ${weightPerUnit}`);
+  if (!Number.isFinite(unitsPerDay) || unitsPerDay < 0) throw new EngineInputError(`unitsPerDay must be a non-negative number, got ${unitsPerDay}`);
+  return weightPerUnit * unitsPerDay * MINUTES_PER_WEIGHT_POINT;
 }

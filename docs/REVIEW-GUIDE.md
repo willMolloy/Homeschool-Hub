@@ -1,5 +1,7 @@
 # Review guide
 
+> **For the current app (Sprints 5–8b, Soft Paper), use [LOCAL_TESTING.md](LOCAL_TESTING.md).** Section 1 below (setup) still applies; the click-through in section 2 describes the old screens.
+
 A short guide for reviewing Homeschool Hub on your own machine. It's written for a Java/SQL backend developer who is new to this TypeScript stack.
 
 - **What exists today:** Sprint 1 and Sprint 2a are done, and Sprint 2b's weights are in. You can sign in, manage kids and subjects (with optional default weights), enter schedule data (settings, assignments with a thickness picker, days off, events), and see the engine's plan in a temporary debug table.

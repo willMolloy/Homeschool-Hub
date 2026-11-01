@@ -150,6 +150,8 @@ export type PlanWarning =
   | "override-clamped"
   | "push-horizon-exceeded"
   | "keep-no-free-capacity"
+  /** S7b-18: a keepEndDate adjustment left no free day from today to the end, so the end moved later to hold the work. */
+  | "keep-end-extended"
   | "checkin-misaligned"
   | "checkin-duplicate-week"
   | "checkin-clamped"
@@ -196,6 +198,11 @@ export interface ChildPlan {
   finishedEarly?: boolean;
   /** Weeks (their first day) with a check-in that was applied, oldest first. */
   checkInWeeks: LocalDate[];
+  /** S7b-04: weeks (their first day) the parent adjusted on purpose for this assignment and child, oldest first. The finish forecast leaves them out. */
+  adjustedWeeks: LocalDate[];
+  /** S7b-04: when the days changed mid-assignment (S4-01b), the first day of the new days and the days before it (null = every school day); null when they did not change. */
+  weekdaysFrom: LocalDate | null;
+  previousWeekdays: Weekday[] | null;
   days: DayLoad[];
   warnings: PlanWarning[];
 }

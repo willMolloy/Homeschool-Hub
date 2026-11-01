@@ -1,5 +1,8 @@
 /**
- * The week's plan table (S1-36), until the timeline lands. T-03b: the week comes in as a prop (the page's
+ * The week's plan table (S1-36), until the timeline lands. S6b-01: the table itself shows only with `debug` (it
+ * is the engine's thickness numbers, meaningless to parents); without it each child keeps their name, the
+ * "Make an adjustment" entry, until S6b-02 replaces them with bars. S6b-14: the engine's warnings ("two overrides for the
+ * same week") are developer text and show only with `debug`; the briefing says plan problems in plain words. T-03b: the week comes in as a prop (the page's
  * switcher owns it), each child's table can carry an action (the page's "Make an adjustment"), and everything a
  * parent doesn't need (heading, note, "Plan as of", markers and legend, warning codes, engine footer) shows only
  * with `debug`.
@@ -127,7 +130,7 @@ export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDeb
           <p>Nothing planned this week.</p>
           {childAction && activeChildren.map((c) => (
             <div key={c.id} className="plan-debug-child">
-              <ChildHead name={c.name} action={childAction(c.id, c.name)} />
+              <ChildHead name={c.name} action={childAction(c.id, c.name)} tableShown={false} />
             </div>
           ))}
         </>
@@ -135,8 +138,8 @@ export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDeb
         <>
           {tables.map((t) => (
             <div key={t.childId} className="plan-debug-child">
-              {childAction && <ChildHead name={childName(t.childId)} action={childAction(t.childId, childName(t.childId))} />}
-              <div className="plan-debug-scroll">
+              {childAction && <ChildHead name={childName(t.childId)} action={childAction(t.childId, childName(t.childId))} tableShown={debug} />}
+              {debug && <div className="plan-debug-scroll">
                 <table className="plan-debug-table">
                   <caption className={childAction ? "plan-sr-only" : undefined}>{childName(t.childId)}</caption>
                   <thead>
@@ -167,8 +170,8 @@ export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDeb
                     </tr>
                   </tfoot>
                 </table>
-              </div>
-              {t.warnings.length > 0 ? (
+              </div>}
+              {debug && t.warnings.length > 0 ? (
                 <ul className="plan-debug-warnings" aria-label={`Warnings for ${childName(t.childId)}`}>
                   {t.warnings.map((w, i) => (
                     <li key={i}>{subjectName(w.subjectId)}: {WARNING_TEXT[w.warning] ?? w.warning}{debug && <> <code>{w.warning}</code></>}</li>
@@ -179,7 +182,7 @@ export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDeb
           ))}
           {unplanned.map((c) => (
             <div key={c.id} className="plan-debug-child">
-              {childAction && <ChildHead name={c.name} action={childAction(c.id, c.name)} />}
+              {childAction && <ChildHead name={c.name} action={childAction(c.id, c.name)} tableShown={debug} />}
               <p className="plan-debug-unplanned">{c.name}: nothing planned this week.</p>
             </div>
           ))}
@@ -195,11 +198,11 @@ export function PlanDebugView({ weekStart, debug = false, childAction }: PlanDeb
   );
 }
 
-/** A student's name with their action beside it (T-03b). The name is visual only; the table caption names the table. */
-function ChildHead({ name, action }: { name: string; action: ReactNode }) {
+/** A student's name with their action beside it (T-03b). With the table shown the name is visual only (its caption names it). */
+function ChildHead({ name, action, tableShown = true }: { name: string; action: ReactNode; tableShown?: boolean }) {
   return (
     <div className="plan-child-head">
-      <span className="plan-child-name" aria-hidden="true">{name}</span>
+      <span className="plan-child-name" aria-hidden={tableShown || undefined}>{name}</span>
       {action}
     </div>
   );

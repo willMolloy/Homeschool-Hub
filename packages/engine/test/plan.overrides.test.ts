@@ -17,17 +17,19 @@ describe("week overrides: keepEndDate vs pushEndDate", () => {
     expect(unitsBetween(p, W2, "2026-09-20")).toBeCloseTo(75);
   });
 
-  it("keepEndDate: the override week is fixed, other weeks thicken, end holds", () => {
+  it("keepEndDate: the override week is fixed, only the weeks after it thicken, end holds (S7b-09)", () => {
     const p = run([ov(W2, 15, "keepEndDate")]);
     expectSane(p);
     expectConserved(p);
     expect(unitsBetween(p, W2, "2026-09-18")).toBeCloseTo(15);
     expect(p.end).toBe("2026-10-02");
     expect(p.mode).toBe("keepEndDate");
-    expect(p.rate).toBeCloseTo((300 - 15) / 15); // 19 per day on the 15 free days
+    // S7b-09: the week before the adjusted one keeps the plan it had (15 a day); the rest is spread over the weeks after it
+    // (300 - 75 - 15 = 210 over 10 days). It used to be one rate (19) on every non-override day, past weeks included.
+    expect(p.rate).toBeCloseTo(21);
     expect(p.rate).toBeGreaterThan(p.baseRate);
-    expect(unitsOn(p, W1)).toBeCloseTo(19); // spec: all non-override days share one rate
-    expect(unitsOn(p, W4)).toBeCloseTo(19);
+    expect(unitsOn(p, W1)).toBeCloseTo(15);
+    expect(unitsOn(p, W4)).toBeCloseTo(21);
     expect(p.days.find((d) => d.date === W2)!.kind).toBe("override");
   });
 
@@ -63,7 +65,7 @@ describe("week overrides: keepEndDate vs pushEndDate", () => {
 
   it("keepEndDate when the parent got ahead: later weeks thin out", () => {
     const p = run([ov(W2, 150, "keepEndDate")]);
-    expect(p.rate).toBeCloseTo(10);
+    expect(p.rate).toBeCloseTo(7.5); // S7b-09: (300 - 75 - 150) over the 10 days after it (was 10 over all non-override days)
     expect(p.end).toBe("2026-10-02");
     expectConserved(p);
   });
@@ -71,7 +73,7 @@ describe("week overrides: keepEndDate vs pushEndDate", () => {
   it("override of 0 units: a week off for this book", () => {
     const keep = run([ov(W2, 0, "keepEndDate")]);
     expect(unitsBetween(keep, W2, "2026-09-18")).toBe(0);
-    expect(keep.rate).toBeCloseTo(20);
+    expect(keep.rate).toBeCloseTo(22.5); // S7b-09: (300 - 75) over the 10 days after it (was 20 over all non-override days)
     const push = run([ov(W2, 0, "pushEndDate")]);
     expect(push.end).toBe("2026-10-09");
     expectConserved(keep);
@@ -80,7 +82,9 @@ describe("week overrides: keepEndDate vs pushEndDate", () => {
 
   it("override bigger than what's left is clamped, with a warning", () => {
     const p = run([ov(W2, 999, "keepEndDate")]);
-    expect(unitsBetween(p, W2, "2026-09-18")).toBeCloseTo(300);
+    // S7b-09: the week before keeps its 75, so the clamp is to the 225 left (it was all 300).
+    expect(unitsBetween(p, W1, "2026-09-11")).toBeCloseTo(75);
+    expect(unitsBetween(p, W2, "2026-09-18")).toBeCloseTo(225);
     expect(p.warnings).toContain("override-clamped");
     expect(p.rate).toBe(0);
     expectConserved(p);
@@ -121,7 +125,8 @@ describe("week overrides: keepEndDate vs pushEndDate", () => {
     const p = run([ov(W3, 30, "keepEndDate"), ov(W2, 45, "keepEndDate")]);
     expect(unitsBetween(p, W2, "2026-09-18")).toBeCloseTo(45);
     expect(unitsBetween(p, W3, "2026-09-25")).toBeCloseTo(30);
-    expect(p.rate).toBeCloseTo((300 - 75) / 10);
+    expect(p.rate).toBeCloseTo(30); // S7b-09: 300 - 75 (week 1) - 45 - 30 = 150 over the last week's 5 days (was 22.5 over 10)
+    expect(unitsBetween(p, W1, "2026-09-11")).toBeCloseTo(75);
     expectConserved(p);
   });
 

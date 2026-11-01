@@ -19,3 +19,15 @@ export function rowOutcome(item: Pick<CheckInItem, "plannedTo" | "totalUnits">, 
 
 /** A new difference keeps the end date (D10); T-09 no longer asks. */
 export const DEFAULT_MODE: OverrideMode = "keepEndDate";
+
+/** Stored positions and modes, by itemKey (S2b-27): what a reopened week starts from. */
+export function storedAnswers(items: readonly CheckInItem[]) {
+  const positions: Record<string, number> = {};
+  const modes: Record<string, OverrideMode> = {};
+  for (const i of items) {
+    if (i.actual === null) continue;
+    positions[itemKey(i)] = i.actual;
+    if (i.mode) modes[itemKey(i)] = i.mode;
+  }
+  return { positions, modes };
+}

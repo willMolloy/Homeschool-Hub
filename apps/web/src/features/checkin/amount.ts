@@ -4,7 +4,7 @@
  */
 import type { UnitType } from "@hh/engine";
 import type { CheckInItem } from "../../api/types";
-import { unitNumber } from "../../components/unitLabels";
+import { UNIT_LABELS, unitNumber } from "../../components/unitLabels";
 import { ON_PLAN_TOLERANCE } from "./absorb";
 
 export type Choice = "asPlanned" | "less" | "more";
@@ -63,12 +63,16 @@ export function startAmount(r: Row, choice: Exclude<Choice, "asPlanned">): numbe
   return choiceOf(r, positionOfAmount(r, n)) === choice ? n : null;
 }
 
-/** The row's state, compact: "2 of 3 ch.", "Missed", or "+2 ch." on a row with nothing planned. */
+/**
+ * The row's state in plain words (S7b-03): "2 of 3 ch." when behind, "Missed", "4 chapters (2 more than planned)" when
+ * beyond the plan (never "4 of 2"), "Finished" when the child reached the end, "+2 lessons" on a row with nothing planned.
+ */
 export function compactText(r: Row, position: number): string {
-  const done = doneAmount(r, position);
-  const planned = plannedAmount(r);
-  const unit = shortUnit(r.unitType, Math.round(planned));
-  if (planned <= 0) return `+${unitNumber(Math.round(done))} ${shortUnit(r.unitType, Math.round(done))}`;
+  const done = Math.round(doneAmount(r, position));
+  const planned = Math.round(plannedAmount(r));
+  if (position >= r.totalUnits - 1e-9 && done > 0) return "Finished";
+  if (planned <= 0) return `+${unitNumber(done)} ${shortUnit(r.unitType, done)}`;
   if (done <= 0) return "Missed";
-  return `${unitNumber(Math.round(done))} of ${unitNumber(Math.round(planned))} ${unit}`;
+  if (done > planned) return `${unitNumber(done)} ${UNIT_LABELS[r.unitType][done === 1 ? "one" : "many"]} (${unitNumber(done - planned)} more than planned)`;
+  return `${unitNumber(done)} of ${unitNumber(planned)} ${shortUnit(r.unitType, planned)}`;
 }

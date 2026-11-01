@@ -13,9 +13,11 @@ export {
   WEIGHT_DECIMALS,
   isLearnedUnit,
   isValidWeight,
+  minutesPerDayFromWeight,
   roundWeight,
   suggestWeight,
   usualWeight,
+  weightFromMinutesPerDay,
   weightPerUnitOf,
   type LearnedUnitType,
   type SubjectDefaultWeight,
@@ -26,7 +28,9 @@ export {
 } from "./weights";
 export { validWeekdays, weekdaysOf, type WeekdaysSource } from "./weekdays";
 export { buildCapacityModel, ruleFactor, type CapacityModel } from "./capacity";
+export { capacityDays, type CapacityDaysInput } from "./pace";
 export { planChild, planAssignment, planAll, EPS, MAX_PUSH_DAYS } from "./plan";
-export { forecastFinish, heavyWeek, HEAVY_WEEK_RATIO } from "./briefing";
+export { forecastFinish, forecastOutcome, noRecentProgress, heavyWeek, HEAVY_WEEK_RATIO, type FinishForecast } from "./briefing";
 export { plannedRangeForWeek } from "./checkins";
 export { aggregate, weeklySummary, mergeLane, detailForZoom, sumByDate, DAILY_ZOOM_THRESHOLD_PX, type LaneDay } from "./aggregate";
+export { usHolidays, onOffBreaks, CALENDAR_SHAPES, HOLIDAY_KEYS, HOLIDAY_LABELS, type BreakRange, type CalendarShape, type Holiday, type HolidayKey } from "./yearShape";

@@ -1,206 +1,122 @@
-// Generates the timeline design tokens (T-01, T-01b): two 10-subject palettes with per-child
-// steps, pastel tints, contrast-aware label colours and light and dark chrome colours, written
-// as plain CSS variables to src/styles/tokens.css (read by the SVG timeline) and a Tailwind v4
-// `@theme inline` map to src/styles/tokens.theme.css (read by the chrome).
+// Generates the Soft Paper design tokens (S8-01, which replaced the T-01 / T-01b palettes):
+// plain CSS variables in src/styles/tokens.css (read by the SVG timeline and every screen) and a
+// Tailwind v4 `@theme inline` map in src/styles/tokens.theme.css (read by the shadcn chrome).
 // Run with `npm run tokens -w @hh/web`.
-//   - "safe" (the default): Okabe–Ito plus three extra colours, with lightness varied by subject
-//     so lanes stay apart under protan, deutan and tritan simulation.
-//   - "vivid" (opt-in, data-palette="vivid"): the T-01 hues, fixed lightness and chroma.
+//   - Eight subject hues, each with a fill (14% toward its strong tone in light, 10% in dark), a strong
+//     tone for rules, rings and badges, and a label colour (ink). Subjects are never told apart by colour
+//     alone: every subject also has an icon (S8-11).
+//   - Child steps (lighter / darker fill) for a subject drawn once per child on the Year timeline.
 // culori is a dev-only dependency: nothing here ships to the browser, only the CSS it writes.
-import { clampChroma, converter, displayable, filterDeficiencyDeuter, filterDeficiencyProt, filterDeficiencyTrit, differenceEuclidean, wcagContrast, type Color, type Oklch } from "culori";
+import { converter, formatHex, wcagContrast } from "culori";
 
 export type ThemeName = "light" | "dark";
-export type PaletteName = "safe" | "vivid";
 export type StepName = "base" | "light" | "dark";
 
 export const THEME_NAMES: readonly ThemeName[] = ["light", "dark"];
-export const PALETTE_NAMES: readonly PaletteName[] = ["safe", "vivid"];
-export const DEFAULT_PALETTE: PaletteName = "safe";
-export const SUBJECT_COUNT = 10;
 export const STEP_NAMES: readonly StepName[] = ["base", "light", "dark"];
 export const AA_TEXT = 4.5;
-/** The safe palette's floor: smallest OKLab distance between any two subjects under every vision simulation. Okabe–Ito itself is 0.086. */
-export const CVD_MIN_DISTANCE = 0.08;
-/**
- * Bars are semi-transparent (agreed), emitted as the one token `--tl-bar-opacity`. T-03 started at 0.82
- * (DeeDee asked for a bit more transparency); T-08c raised it halfway to full, to 0.91 (DeeDee, 2026-10-28).
- */
-export const BAR_OPACITY = 0.91;
-/**
- * The floor for bars as seen on the page (composited at BAR_OPACITY). Transparency pulls every colour
- * toward the background, so distances shrink: Okabe–Ito's own seven colours fall from 0.086 to 0.069.
- */
-export const CVD_MIN_DISTANCE_AT_BAR_OPACITY = 0.065;
+/** Strong tones and check rings against their fill (WCAG non-text contrast). */
+export const AA_UI = 3;
+/** Bars are solid: the pastel is already mixed toward the page, so no transparency is layered on top. */
+export const BAR_OPACITY = 1;
+/** The bar's secondary text (the amount) is ink at this opacity; it must stay at 5.2:1 or better (dark fills are darker, so dark needs a little more ink). */
+export const BAR_SECONDARY_OPACITY: Record<ThemeName, number> = { light: 0.78, dark: 0.86 };
 
-const oklch = (l: number, c: number, h: number): Oklch => ({ mode: "oklch", l, c, h });
-const toOklch = converter("oklch");
-const toRgb = converter("rgb");
-
-/** A colour drawn at `opacity` over `bg`, as the browser blends it (in sRGB). */
-export function composite(color: Color | string, bg: Color | string, opacity: number): Oklch {
-  const c = toRgb(color);
-  const b = toRgb(bg);
-  if (!c || !b) throw new Error("Not a colour");
-  const mix = (x: number, y: number) => x * opacity + y * (1 - opacity);
-  return toOklch({ mode: "rgb", r: mix(c.r, b.r), g: mix(c.g, b.g), b: mix(c.b, b.b) }) as Oklch;
+export interface SubjectHue {
+  name: string;
+  light: { fill: string; strong: string };
+  dark: { fill: string; strong: string };
 }
 
-/** The two label colours; each swatch takes whichever contrasts more with it. */
-export const LABEL_INK = oklch(0.2, 0.01, 260);
-export const LABEL_PAPER = oklch(0.985, 0.002, 250);
-
-/** How far the lighter and darker child steps sit from the subject's base lightness. */
-const SAFE_STEP = 0.07;
-
-/**
- * Safe palette, subjects 1–7: Okabe–Ito's seven colours (black left out: it disappears on the
- * dark theme), each nudged in lightness only where a ±SAFE_STEP child step would otherwise fall
- * where neither label colour reaches 4.5:1. Subjects 8–10 were chosen by a search over sRGB
- * (lightness 0.45–0.90) for the colour farthest from all the others under every simulation.
- */
-const OKABE_ITO_BASE: ReadonlyArray<{ hex: string; name: string; dL: number }> = [
-  { hex: "#E69F00", name: "orange", dL: 0 },
-  { hex: "#56B4E9", name: "sky blue", dL: 0 },
-  { hex: "#009E73", name: "bluish green", dL: -0.01 },
-  { hex: "#F0E442", name: "yellow", dL: 0 },
-  { hex: "#0072B2", name: "blue", dL: 0 },
-  { hex: "#D55E00", name: "vermillion", dL: 0 },
-  { hex: "#CC79A7", name: "reddish purple", dL: 0.01 },
+/** The eight subject hues, in slot order (slot 1 is honey). Values are the mockup's (`design/mockups/soft-paper.html`). */
+export const SUBJECT_HUES: readonly SubjectHue[] = [
+  { name: "honey", light: { fill: "#F0D6A8", strong: "#A86A00" }, dark: { fill: "#5B4826", strong: "#F5C46B" } },
+  { name: "sky", light: { fill: "#BDDCF0", strong: "#2A7DB0" }, dark: { fill: "#2A485D", strong: "#8FCBF0" } },
+  { name: "mint", light: { fill: "#B5DFD1", strong: "#1F8063" }, dark: { fill: "#265044", strong: "#7FD3B6" } },
+  { name: "butter", light: { fill: "#EAE2A5", strong: "#8A7A00" }, dark: { fill: "#565126", strong: "#E9DB6A" } },
+  { name: "blue", light: { fill: "#C1D0EA", strong: "#3F64A8" }, dark: { fill: "#2E3E5D", strong: "#9DB7EA" } },
+  { name: "coral", light: { fill: "#F0C8B4", strong: "#B4532A" }, dark: { fill: "#5E3728", strong: "#F2A786" } },
+  { name: "lilac", light: { fill: "#E5C8DB", strong: "#9B4F80" }, dark: { fill: "#543649", strong: "#E0A6CB" } },
+  { name: "sage", light: { fill: "#D1D5C9", strong: "#5F6B50" }, dark: { fill: "#41453B", strong: "#B6C0A6" } },
 ];
-const SAFE_EXTRAS: readonly Oklch[] = [oklch(0.45, 0.18, 0), oklch(0.89, 0.12, 188), oklch(0.63, 0.24, 304)];
-
-function safeBase(): Oklch[] {
-  const oi = OKABE_ITO_BASE.map(({ hex, dL }) => {
-    const c = toOklch(hex);
-    if (!c) throw new Error(`Bad colour ${hex}`);
-    return roundOklch(clampChroma({ ...c, l: c.l + dL }, "oklch") as Oklch);
-  });
-  return [...oi, ...SAFE_EXTRAS];
-}
-
-/** Vivid palette (T-01): fixed lightness and chroma, hue evenly spaced, steps per theme. */
-export const VIVID_HUE_START = 25;
-export const VIVID: Record<ThemeName, { steps: Record<StepName, number>; maxChroma: number }> = {
-  light: { steps: { base: 0.8, light: 0.87, dark: 0.73 }, maxChroma: 0.15 },
-  dark: { steps: { base: 0.45, light: 0.52, dark: 0.38 }, maxChroma: 0.15 },
-};
-
-export const vividHues = (): number[] =>
-  Array.from({ length: SUBJECT_COUNT }, (_, i) => round((VIVID_HUE_START + (i * 360) / SUBJECT_COUNT) % 360, 2));
-
-/** Largest chroma that keeps oklch(l, c, h) inside sRGB, to 0.001. */
-export function maxChromaInGamut(l: number, h: number): number {
-  let lo = 0;
-  let hi = 0.4;
-  while (hi - lo > 0.0005) {
-    const mid = (lo + hi) / 2;
-    if (displayable(oklch(l, mid, h))) lo = mid;
-    else hi = mid;
-  }
-  return Math.floor(lo * 1000) / 1000;
-}
-
-/** The one chroma every vivid hue can reach at the theme's base lightness. */
-export function vividChroma(theme: ThemeName): number {
-  const spec = VIVID[theme];
-  return Math.min(spec.maxChroma, ...vividHues().map((h) => maxChromaInGamut(spec.steps.base, h)));
-}
+export const SUBJECT_COUNT = SUBJECT_HUES.length;
 
 /**
- * T-11c: lightness nudges for the safe swatches whose label fell below AA on the bar as drawn
- * (BAR_OPACITY over the page or a card). Each is the smallest move, in 0.001 steps, that brings the
- * swatch's own label to 4.5:1 drawn and solid. On light the failing swatches carry paper labels, so
- * they deepen; on dark they carry ink labels (the background pulls the drawn bar darker), so they
- * lighten: deepening those far enough for paper would have taken 0.043–0.067 and pushed subject 3's
- * base onto its dark step. The one exception is subject 6's base on dark: lightening it brought it
- * within 0.125 of orange (subject 1), under the Okabe–Ito-minus-0.01 floor, so it deepens to a paper
- * label instead and its dark step deepens with it to stay 0.042 below (the smallest gap elsewhere).
- * Hue never moves; chroma drops only where sRGB requires it.
+ * Which hue each of the eight old subject colour swatches (`features/roster/palette.ts`) keeps, so a subject that
+ * was blue stays blue-ish. The old swatch is still what the picker stores; this is what it draws as.
  */
-export const SAFE_AA_NUDGE: Record<ThemeName, Readonly<Record<string, number>>> = {
-  light: { "3/dark": -0.037, "5/base": -0.017, "6/dark": -0.019, "10/dark": -0.008 },
-  dark: { "3/base": 0.006, "5/light": 0.026, "6/base": -0.049, "6/dark": -0.021, "7/dark": 0.027, "10/base": 0.028 },
+export const SWATCH_TO_HUE: Readonly<Record<string, string>> = {
+  "#2f6fb0": "blue",
+  "#b0482f": "coral",
+  "#2f8f6f": "mint",
+  "#7a5cc2": "lilac",
+  "#b08a2f": "honey",
+  "#2f8fb0": "sky",
+  "#c25c8a": "butter",
+  "#5b6b7d": "sage",
 };
 
-/** A safe swatch: the subject's design colour at the child step's lightness, plus any T-11c nudge. */
-function safeSwatchColor(base: Oklch, subject: number, step: StepName, theme: ThemeName): Oklch {
-  const l = base.l + (step === "light" ? SAFE_STEP : step === "dark" ? -SAFE_STEP : 0) + (SAFE_AA_NUDGE[theme][`${subject}/${step}`] ?? 0);
-  return roundOklch(clampChroma(oklch(round(l, 4), base.c, base.h ?? 0), "oklch") as Oklch);
-}
-
-/** The safe palette's design colours, before any T-11c nudge: the same on light and dark. */
-export const safeDesignBase = (): Oklch[] => safeBase();
-
-/** The base colour of every subject, 1–10, for a palette and theme, as drawn (safe: including T-11c nudges). */
-export function baseColors(palette: PaletteName, theme: ThemeName): Oklch[] {
-  if (palette === "safe") return safeBase().map((b, i) => safeSwatchColor(b, i + 1, "base", theme));
-  const c = vividChroma(theme);
-  return vividHues().map((h) => oklch(VIVID[theme].steps.base, c, h));
-}
-
-/** Pastel tints (T-01b, for the This Week screens): the subject's hue, very light (or very deep in dark). */
-export const PASTEL: Record<ThemeName, { l: number; c: number }> = {
-  light: { l: 0.95, c: 0.035 },
-  dark: { l: 0.32, c: 0.035 },
-};
-
-export const pastel = (base: Oklch, theme: ThemeName): Oklch =>
-  roundOklch(clampChroma(oklch(PASTEL[theme].l, Math.min(PASTEL[theme].c, base.c), base.h ?? 0), "oklch") as Oklch);
-
-/** Text colour for a swatch: whichever label colour contrasts more. */
-export const labelFor = (bg: Oklch): Oklch => (contrast(LABEL_INK, bg) >= contrast(LABEL_PAPER, bg) ? LABEL_INK : LABEL_PAPER);
-
-/** Chrome colours (the shadcn/ui semantic set plus timeline extras), as foreground/background pairs where text sits on them. */
-export const CHROME: Record<ThemeName, Record<string, Oklch>> = {
+/** Chrome colours: the shadcn/ui semantic set plus the timeline's extras. */
+export const CHROME: Record<ThemeName, Record<string, string>> = {
   light: {
-    background: oklch(0.975, 0.003, 250),
-    foreground: oklch(0.22, 0.01, 260),
-    card: oklch(1, 0, 0),
-    "card-foreground": oklch(0.22, 0.01, 260),
-    popover: oklch(1, 0, 0),
-    "popover-foreground": oklch(0.22, 0.01, 260),
-    primary: oklch(0.36, 0.07, 255),
-    "primary-foreground": oklch(0.985, 0.002, 250),
-    secondary: oklch(0.94, 0.006, 250),
-    "secondary-foreground": oklch(0.25, 0.01, 260),
-    muted: oklch(0.94, 0.006, 250),
-    "muted-foreground": oklch(0.47, 0.02, 255),
-    accent: oklch(0.93, 0.012, 250),
-    "accent-foreground": oklch(0.25, 0.01, 260),
-    destructive: oklch(0.48, 0.17, 27),
-    "destructive-foreground": oklch(0.985, 0.002, 250),
-    border: oklch(0.9, 0.008, 250),
-    input: oklch(0.86, 0.01, 250),
-    ring: oklch(0.77, 0.16, 75),
-    grid: oklch(0.9, 0.008, 250),
-    today: oklch(0.55, 0.2, 27),
-    hatch: oklch(0.82, 0.008, 250),
-    total: oklch(0.74, 0.008, 250),
+    background: "#FAF6EE",
+    foreground: "#2F2A24",
+    card: "#FFFDF8",
+    "card-foreground": "#2F2A24",
+    popover: "#FFFDF8",
+    "popover-foreground": "#2F2A24",
+    primary: "#3F6B5C",
+    "primary-foreground": "#FFFFFF",
+    "primary-soft": "#E3EEE8",
+    secondary: "#F2ECE1",
+    "secondary-foreground": "#2F2A24",
+    muted: "#F2ECE1",
+    "muted-foreground": "#6E655A",
+    accent: "#E3EEE8",
+    "accent-foreground": "#2F2A24",
+    destructive: "#9B2C2C",
+    "destructive-foreground": "#FFFFFF",
+    "destructive-soft": "#F8E3DF",
+    notice: "#F6EBCB",
+    "notice-foreground": "#4A3A00",
+    border: "#E8E0D2",
+    input: "#9C917E",
+    ring: "#3F6B5C",
+    grid: "#E8E0D2",
+    today: "#3F6B5C",
+    hatch: "#DDD3C2",
+    total: "#B8AE9E",
+    scrim: "#14120E",
   },
   dark: {
-    background: oklch(0.2, 0.01, 260),
-    foreground: oklch(0.95, 0.005, 85),
-    card: oklch(0.24, 0.01, 260),
-    "card-foreground": oklch(0.95, 0.005, 85),
-    popover: oklch(0.24, 0.01, 260),
-    "popover-foreground": oklch(0.95, 0.005, 85),
-    primary: oklch(0.8, 0.08, 250),
-    "primary-foreground": oklch(0.2, 0.02, 260),
-    secondary: oklch(0.3, 0.012, 260),
-    "secondary-foreground": oklch(0.95, 0.005, 85),
-    muted: oklch(0.3, 0.012, 260),
-    "muted-foreground": oklch(0.75, 0.015, 255),
-    accent: oklch(0.32, 0.015, 260),
-    "accent-foreground": oklch(0.95, 0.005, 85),
-    destructive: oklch(0.7, 0.16, 25),
-    "destructive-foreground": oklch(0.2, 0.01, 260),
-    border: oklch(0.34, 0.012, 260),
-    input: oklch(0.4, 0.012, 260),
-    ring: oklch(0.8, 0.15, 80),
-    grid: oklch(0.32, 0.012, 260),
-    today: oklch(0.72, 0.17, 25),
-    hatch: oklch(0.38, 0.012, 260),
-    total: oklch(0.56, 0.01, 260),
+    background: "#1C1A17",
+    foreground: "#F1EBE1",
+    card: "#26231F",
+    "card-foreground": "#F1EBE1",
+    popover: "#26231F",
+    "popover-foreground": "#F1EBE1",
+    primary: "#9CCBB8",
+    "primary-foreground": "#1C1A17",
+    "primary-soft": "#25342E",
+    secondary: "#302C27",
+    "secondary-foreground": "#F1EBE1",
+    muted: "#302C27",
+    "muted-foreground": "#B3A99B",
+    accent: "#25342E",
+    "accent-foreground": "#F1EBE1",
+    destructive: "#F2A194",
+    "destructive-foreground": "#1C1A17",
+    "destructive-soft": "#3C2723",
+    notice: "#3D3420",
+    "notice-foreground": "#F1E3B5",
+    border: "#3A352F",
+    input: "#7A7266",
+    ring: "#9CCBB8",
+    grid: "#3A352F",
+    today: "#9CCBB8",
+    hatch: "#4A443C",
+    total: "#6B6459",
+    scrim: "#000000",
   },
 };
 
@@ -213,161 +129,140 @@ export const CHROME_TEXT_PAIRS: ReadonlyArray<readonly [fg: string, bg: string]>
   ["secondary-foreground", "secondary"],
   ["muted-foreground", "muted"],
   ["muted-foreground", "background"],
+  ["muted-foreground", "card"],
   ["accent-foreground", "accent"],
+  ["primary", "background"],
+  ["primary", "card"],
+  ["primary", "primary-soft"],
   ["destructive-foreground", "destructive"],
   ["destructive", "background"],
+  ["destructive", "card"],
+  ["destructive", "destructive-soft"],
+  ["notice-foreground", "notice"],
 ];
 
-/** Published reference palettes the subject palette is compared against. */
-export const REFERENCE_PALETTES: Record<string, readonly string[]> = {
-  "Okabe–Ito": ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#000000"],
-  "Paul Tol bright": ["#4477AA", "#EE6677", "#228833", "#CCBB44", "#66CCEE", "#AA3377", "#BBBBBB"],
-};
+const toRgb = converter("rgb");
+const hex = (c: { r: number; g: number; b: number }): string =>
+  formatHex({ mode: "rgb", r: Math.min(1, Math.max(0, c.r)), g: Math.min(1, Math.max(0, c.g)), b: Math.min(1, Math.max(0, c.b)) }).toUpperCase();
+
+/** `a` mixed `amount` (0-1) of the way toward `b`, in sRGB, as a hex colour. */
+export function mix(a: string, b: string, amount: number): string {
+  const x = toRgb(a);
+  const y = toRgb(b);
+  if (!x || !y) throw new Error("Not a colour");
+  return hex({ r: x.r + (y.r - x.r) * amount, g: x.g + (y.g - x.g) * amount, b: x.b + (y.b - x.b) * amount });
+}
+
+/** A colour drawn at `opacity` over `bg`, as the browser blends it (in sRGB). */
+export const composite = (color: string, bg: string, opacity: number): string => mix(bg, color, opacity);
+
+export const contrast = (a: string, b: string): number => wcagContrast(a, b);
 
 export interface Swatch {
   subject: number; // 1-based
   step: StepName;
-  color: Oklch;
-  label: Oklch;
+  color: string;
+  label: string;
+  strong: string;
 }
 
 /**
- * Every swatch for a palette and theme. A lighter or darker child step keeps the subject's hue
- * and chroma unless that hue can't reach it there, in which case chroma is reduced just enough
- * to stay in sRGB (hue and lightness never move).
+ * Every swatch for a theme. The base step is the design fill. A subject drawn once per child gets a lighter
+ * (toward the page) and a darker (toward its strong tone) step so children stay apart in the same hue. The label is
+ * the theme's ink on every step.
  */
-export function swatches(palette: PaletteName, theme: ThemeName): Swatch[] {
-  const bases = palette === "safe" ? safeBase() : baseColors(palette, theme);
-  return bases.flatMap((base, i) =>
+export function swatches(theme: ThemeName): Swatch[] {
+  const chrome = CHROME[theme];
+  return SUBJECT_HUES.flatMap((h, i) =>
     STEP_NAMES.map((step) => {
-      const color =
-        palette === "safe"
-          ? safeSwatchColor(base, i + 1, step, theme)
-          : roundOklch(clampChroma(oklch(VIVID[theme].steps[step], base.c, base.h ?? 0), "oklch") as Oklch);
-      return { subject: i + 1, step, color, label: labelFor(color) };
+      const { fill, strong } = h[theme];
+      const color = step === "base" ? fill : step === "light" ? mix(fill, chrome.card!, theme === "light" ? 0.4 : 0.14) : mix(fill, strong, theme === "light" ? 0.16 : 0.1);
+      return { subject: i + 1, step, color, label: chrome.foreground!, strong };
     }),
   );
 }
 
-export const contrast = (a: Oklch | string, b: Oklch | string): number => wcagContrast(a, b);
-
-/** Smallest OKLab distance between any two colours, optionally after a colour-vision-deficiency simulation. */
-export function minPairwiseDistance(colors: ReadonlyArray<Oklch | string>, simulate?: Simulation): number {
-  const diff = differenceEuclidean("oklab");
-  const seen = colors.map((c) => {
-    const parsed = toOklch(c);
-    if (!parsed) throw new Error(`Not a colour: ${String(c)}`);
-    return simulate ? simulate(parsed) : parsed;
-  });
-  let min = Infinity;
-  for (let i = 0; i < seen.length; i++) for (let j = i + 1; j < seen.length; j++) min = Math.min(min, diff(seen[i]!, seen[j]!));
-  return min;
-}
-
-type Simulation = (c: Color) => Color;
-
-export const VISION: Record<string, Simulation | undefined> = {
-  normal: undefined,
-  deuteranopia: filterDeficiencyDeuter(1),
-  protanopia: filterDeficiencyProt(1),
-  tritanopia: filterDeficiencyTrit(1),
-};
-
-const round = (n: number, places: number): number => Math.round(n * 10 ** places) / 10 ** places;
-const roundOklch = (c: Oklch): Oklch => oklch(round(c.l, 4), round(c.c, 4), round(c.h ?? 0, 2));
-export const css = (c: Oklch): string => `oklch(${round(c.l, 4)} ${round(c.c, 4)} ${round(c.h ?? 0, 2)})`;
+/** The check-in tint and the This Week bar fill: the base fill. */
+export const pastelOf = (subject: number, theme: ThemeName): string => SUBJECT_HUES[subject - 1]![theme].fill;
 
 const swatchVar = (s: Pick<Swatch, "subject" | "step">): string => `subject-${s.subject}${s.step === "base" ? "" : `-${s.step}`}`;
 
-/** The subject variables for one palette and theme. Both palettes declare the same names. */
-function subjectLines(palette: PaletteName, theme: ThemeName): string[] {
+function subjectLines(theme: ThemeName): string[] {
   const lines: string[] = [];
-  for (const s of swatches(palette, theme)) {
-    lines.push(`  --tl-${swatchVar(s)}: ${css(s.color)};`, `  --tl-${swatchVar(s)}-label: ${css(s.label)};`);
+  for (const s of swatches(theme)) {
+    lines.push(`  --tl-${swatchVar(s)}: ${s.color};`, `  --tl-${swatchVar(s)}-label: ${s.label};`);
+    if (s.step === "base") lines.push(`  --tl-subject-${s.subject}-strong: ${s.strong};`, `  --tl-subject-${s.subject}-pastel: ${s.color};`);
   }
-  baseColors(palette, theme).forEach((b, i) => lines.push(`  --tl-subject-${i + 1}-pastel: ${css(pastel(b, theme))};`));
   return lines;
 }
 
-const chromeLines = (theme: ThemeName): string[] => Object.entries(CHROME[theme]).map(([name, c]) => `  --tl-${name}: ${css(c)};`);
+const chromeLines = (theme: ThemeName): string[] => Object.entries(CHROME[theme]).map(([name, c]) => `  --tl-${name}: ${c};`);
 
 const HEADER = "/* Generated by apps/web/scripts/palette.ts (npm run tokens -w @hh/web). Do not edit by hand. */";
 
-/** Selectors for the vivid palette on the dark theme, whichever element carries which attribute. */
-const VIVID_DARK = '[data-theme="dark"][data-palette="vivid"],\n[data-theme="dark"] [data-palette="vivid"],\n[data-palette="vivid"] [data-theme="dark"]';
+const darkBody = (indent: string): string[] => [...chromeLines("dark"), ...subjectLines("dark")].map((l) => indent + l);
 
 /**
- * Plain CSS variables. Light theme + safe palette on :root; [data-theme="dark"] and
- * [data-palette="vivid"] are opt-in attributes (src/lib/timelinePalette.ts sets the palette one).
+ * Plain CSS variables. Light is on :root. Dark applies under `[data-theme="dark"]`, and under the device's dark
+ * setting unless the person chose Light (`data-theme="light"`); S8-02 sets `data-theme` before first paint.
  */
 export function renderTokensCss(): string {
   return [
     HEADER,
     ":root {",
     ...chromeLines("light"),
-    ...subjectLines("safe", "light"),
-    "  --tl-font: system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif;",
+    ...subjectLines("light"),
+    '  --tl-font: "Nunito Sans Variable", "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;',
+    '  --tl-font-display: "Fraunces Variable", Fraunces, Georgia, "Times New Roman", serif;',
     "  --tl-text-sm: 12px;",
     "  --tl-text-md: 14px;",
     "  --tl-text-lg: 20px;",
     "  --tl-numeric: tabular-nums;",
-    "  --tl-radius: 0.5rem;",
+    "  --tl-radius: 14px;",
+    "  --tl-radius-bar: 12px;",
+    "  --tl-radius-sheet: 18px;",
+    "  --tl-rule: 4px;",
+    "  --tl-motion: 220ms;",
     `  --tl-bar-opacity: ${BAR_OPACITY};`,
+    `  --tl-bar-secondary-opacity: ${BAR_SECONDARY_OPACITY.light};`,
+    "  --tl-sheet-shadow: 0 -8px 24px rgb(60 40 20 / 0.1);",
     "}",
     '[data-theme="dark"] {',
-    ...chromeLines("dark"),
-    ...subjectLines("safe", "dark"),
+    ...darkBody(""),
+    `  --tl-bar-secondary-opacity: ${BAR_SECONDARY_OPACITY.dark};`,
+    "  --tl-sheet-shadow: 0 -8px 24px rgb(0 0 0 / 0.5);",
     "}",
-    '[data-palette="vivid"] {',
-    ...subjectLines("vivid", "light"),
-    "}",
-    `${VIVID_DARK} {`,
-    ...subjectLines("vivid", "dark"),
+    "@media (prefers-color-scheme: dark) {",
+    '  :root:not([data-theme="light"]) {',
+    ...darkBody("  "),
+    `    --tl-bar-secondary-opacity: ${BAR_SECONDARY_OPACITY.dark};`,
+    "    --tl-sheet-shadow: 0 -8px 24px rgb(0 0 0 / 0.5);",
+    "  }",
     "}",
     "",
   ].join("\n");
 }
 
-/** Tailwind v4 theme map: utilities such as bg-subject-3-light, text-subject-3-light-label or bg-subject-3-pastel resolve to the --tl-* variables. */
+/** Tailwind v4 theme map: utilities such as bg-subject-3-light, text-subject-3-label or bg-subject-3-pastel resolve to the --tl-* variables. */
 export function renderThemeCss(): string {
-  const subjects = swatches(DEFAULT_PALETTE, "light").flatMap((s) => [swatchVar(s), `${swatchVar(s)}-label`]);
-  const pastels = Array.from({ length: SUBJECT_COUNT }, (_, i) => `subject-${i + 1}-pastel`);
-  const colors = [...subjects, ...pastels, ...Object.keys(CHROME.light)];
+  const subjects = swatches("light").flatMap((s) => [swatchVar(s), `${swatchVar(s)}-label`]);
+  const extras = Array.from({ length: SUBJECT_COUNT }, (_, i) => [`subject-${i + 1}-pastel`, `subject-${i + 1}-strong`]).flat();
+  const colors = [...subjects, ...extras, ...Object.keys(CHROME.light)];
   return [
     HEADER,
     "@theme inline {",
     ...colors.map((n) => `  --color-${n}: var(--tl-${n});`),
     "  --font-sans: var(--tl-font);",
+    "  --font-display: var(--tl-font-display);",
     // Named sizes rather than remapping Tailwind's own scale, so text-sm keeps meaning what shadcn components expect.
     "  --text-label: var(--tl-text-sm);",
     "  --text-body: var(--tl-text-md);",
     "  --text-title: var(--tl-text-lg);",
-    "  --radius-sm: calc(var(--tl-radius) - 4px);",
+    "  --radius-sm: calc(var(--tl-radius) - 6px);",
     "  --radius-md: calc(var(--tl-radius) - 2px);",
     "  --radius-lg: var(--tl-radius);",
     "}",
     "",
-  ].join("\n");
-}
-
-const baseMin = (palette: PaletteName, theme: ThemeName, sim: Simulation | undefined): number => minPairwiseDistance(baseColors(palette, theme), sim);
-
-/** A plain-text distinctness report: both palettes against the reference palettes, per vision type. */
-export function renderReport(): string {
-  const rows = Object.entries(VISION).map(([v, sim]) => {
-    const ours = PALETTE_NAMES.flatMap((p) => THEME_NAMES.map((t) => `${p} ${t} ${baseMin(p, t, sim).toFixed(3)}`));
-    const refs = Object.entries(REFERENCE_PALETTES).map(([k, pal]) => `${k} ${minPairwiseDistance(pal, sim).toFixed(3)}`);
-    return `${v.padEnd(13)} ${[...ours, ...refs].join("  ")}`;
-  });
-  const bars = Object.entries(VISION).map(([v, sim]) => {
-    const ours = THEME_NAMES.map((t) => `safe ${t} ${minPairwiseDistance(baseColors("safe", t).map((c) => composite(c, CHROME[t].background!, BAR_OPACITY)), sim).toFixed(3)}`);
-    return `${v.padEnd(13)} ${ours.join("  ")}`;
-  });
-  return [
-    "Smallest OKLab distance between any two subjects (higher = easier to tell apart):",
-    ...rows,
-    `As drawn, at --tl-bar-opacity ${BAR_OPACITY} over the page background:`,
-    ...bars,
   ].join("\n");
 }
 
@@ -378,7 +273,6 @@ async function main(): Promise<void> {
   writeFileSync(`${dir}tokens.css`, renderTokensCss());
   writeFileSync(`${dir}tokens.theme.css`, renderThemeCss());
   console.log(`Wrote ${dir}tokens.css and tokens.theme.css`);
-  console.log(renderReport());
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/"))) void main();

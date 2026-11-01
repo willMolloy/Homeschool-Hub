@@ -4,7 +4,7 @@
 .plan-debug-week { font-weight: 600; }
 .plan-debug-asof { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .plan-debug-child { margin-bottom: 20px; }
-.plan-debug-scroll { overflow-x: auto; background: #fff; border-radius: 8px; }
+.plan-debug-scroll { overflow-x: auto; background: var(--tl-card); border-radius: 8px; }
 .plan-debug-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 .plan-debug-table caption { text-align: left; font-weight: 600; padding: 8px 10px; }
 /* T-03b: no rules between rows; padding spaces them. */
@@ -33,25 +33,22 @@
 .plan-refreshing .plan-debug-child { animation: plan-shimmer 1s ease-in-out infinite alternate; }
 @keyframes plan-shimmer { from { opacity: 1; } to { opacity: 0.45; } }
 @media (prefers-reduced-motion: reduce) { .plan-refreshing .plan-debug-child { animation: none; opacity: 0.6; } }
-/* This Week header (T-03b): the title and one small week switcher on a line. */
-.plan-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-.plan-header h1 { margin: 0; }
-.week-switcher { display: inline-flex; align-items: center; gap: 2px; }
-.week-switcher-step { min-width: 44px; min-height: 44px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: 1.3rem; line-height: 1; color: inherit; cursor: pointer; }
-.week-switcher-step:hover { background: var(--line); }
-.week-switcher-label { min-width: 7.5em; text-align: center; font-variant-numeric: tabular-nums; }
 /* Each student's name with "Make an adjustment" beside it. */
 .plan-child-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; }
 .plan-child-name { font-weight: 600; overflow-wrap: anywhere; }
 .plan-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* S4-09: the weekly briefing: plain lines under the title, only when something needs attention. */
 .briefing { margin: 0 0 16px; }
-.briefing-child { margin: 0 0 8px; }
+.briefing-child { margin: 0 0 10px; padding: 12px 16px; border-radius: var(--tl-radius); background: var(--tl-primary-soft); }
 .briefing-name { margin: 0; font-weight: 600; }
 .briefing-lines { margin: 2px 0 0; padding: 0; list-style: none; overflow-wrap: anywhere; }
 .briefing-line { margin: 0 0 8px; overflow-wrap: anywhere; }
 .briefing-line a { display: inline-block; min-height: 44px; line-height: 44px; }
+.briefing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 4px; }
+.briefing-actions .btn { min-height: 44px; }
+.briefing-error { color: var(--danger); }
+.briefing-lines li { margin-bottom: 8px; }
 .briefing-more { min-height: 44px; padding: 0; border: 0; background: none; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }
-/* S4-10: "Missed a day?" sheet: day and who as wrapping 44 px chips. */
-.missed-options { display: flex; flex-wrap: wrap; gap: 4px; }
-.missed-chip { padding: 0 14px; min-width: 44px; }
+.briefing-line a { color: var(--tl-primary); font-weight: 600; }
+.briefing-child .briefing-line a, .briefing-child .briefing-more { color: var(--tl-primary); }
+.briefing-lines li:last-child { margin-bottom: 0; }

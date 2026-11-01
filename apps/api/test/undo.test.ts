@@ -1,0 +1,336 @@
+/** S6-06: record and undo the last change (GET/POST /api/undo). */
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { buildApp } from "../src/app";
+import { testConfig } from "./helpers/config";
+import { hasDb, testPool } from "./helpers/db";
+import { inject, rosterFor } from "./helpers/schedule";
+import { signedInFamily } from "./helpers/session";
+
+describe.skipIf(!hasDb)("/api/undo (S6-06, integration)", () => {
+  const pool = hasDb ? testPool() : null!;
+  const app = hasDb ? buildApp(testConfig(), { db: pool, now: () => new Date("2026-10-28T15:00:00Z") }) : null!;
+  let a: Awaited<ReturnType<typeof signedInFamily>>;
+  let b: Awaited<ReturnType<typeof signedInFamily>>;
+  let req: ReturnType<typeof inject>;
+  let theirs: ReturnType<typeof inject>;
+  let kids: string[] = [];
+  let subject = "";
+  let id = "";
+  const NEXT = "2026-11-02";
+
+  const assignment = async () => (await req("GET", "/api/assignments")).json().find((x: { id: string }) => x.id === id);
+  const plan = async () => (await req("GET", "/api/plan?from=2026-10-26&to=2026-12-31")).json().plans;
+  const undoEntry = async () => (await req("GET", "/api/undo")).json();
+  const put = (body: object) => app.inject({ method: "PUT", url: "/api/week-overrides", cookies: a.cookies, payload: body });
+  const override = (over: object = {}) => ({ assignmentId: id, childId: kids[0], weekStart: NEXT, plannedUnits: 10, mode: "keepEndDate", ...over });
+  const choices = async () => Number((await pool.query("SELECT count(*) FROM weight_choice WHERE assignment_id = $1", [id])).rows[0].count);
+
+  beforeAll(async () => {
+    a = await signedInFamily(pool, "Undo A");
+    b = await signedInFamily(pool, "Undo B");
+    req = inject(app, a.cookies);
+    theirs = inject(app, b.cookies);
+    const r = await rosterFor(app, a.cookies, ["Ada", "Ben"], ["Spelling"]);
+    kids = r.childIds;
+    subject = r.subjectIds[0]!;
+  });
+  beforeEach(async () => {
+    await pool.query("DELETE FROM undo_entry WHERE family_id = $1", [a.familyId]);
+    await pool.query("DELETE FROM assignment WHERE family_id = $1", [a.familyId]);
+    await pool.query("DELETE FROM blocked_range WHERE family_id = $1", [a.familyId]);
+    id = (await req("POST", "/api/assignments", {
+      subjectId: subject, title: "Treasure Island", unitType: "pages", totalUnits: 100, weightPerUnit: 2, startDate: "2026-10-26", endDate: "2026-11-27", childIds: kids,
+    })).json().id;
+  });
+  afterAll(async () => {
+    await app.close();
+    await pool.query("DELETE FROM family WHERE id = ANY($1)", [[a.familyId, b.familyId]]);
+    await pool.end();
+  });
+
+  it("401 without a session", async () => {
+    expect((await app.inject({ method: "GET", url: "/api/undo" })).statusCode).toBe(401);
+    expect((await app.inject({ method: "POST", url: "/api/undo" })).statusCode).toBe(401);
+  });
+
+  it("nothing recorded: GET is null and POST is a 404", async () => {
+    const res = await req("GET", "/api/undo");
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toBeNull();
+    expect((await req("POST", "/api/undo")).statusCode).toBe(404);
+  });
+
+  it("an edit that moves the dates: label, undo restores the assignment and the plan, a second undo is a 404", async () => {
+    const before = await plan();
+    const original = await assignment();
+    expect((await req("PATCH", `/api/assignments/${id}`, { startDate: "2026-11-02", endDate: "2026-12-04" })).statusCode).toBe(200);
+    expect(await undoEntry()).toEqual({ label: "Moved Treasure Island", createdAt: expect.any(String) });
+    expect(await plan()).not.toEqual(before);
+    const res = await req("POST", "/api/undo");
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.json()).toEqual({ label: "Moved Treasure Island" });
+    expect(await assignment()).toEqual(original);
+    expect(await plan()).toEqual(before);
+    expect(await undoEntry()).toBeNull();
+    expect((await req("POST", "/api/undo")).statusCode).toBe(404);
+  });
+
+  it("S7b-05: moving only the end says so; both dates stay 'Moved'", async () => {
+    await req("PATCH", `/api/assignments/${id}`, { endDate: "2026-12-04" });
+    expect((await undoEntry()).label).toBe("Moved Treasure Island's end to Dec 4");
+    // S7b-20: a title that ends in s takes only the apostrophe.
+    await req("PATCH", `/api/assignments/${id}`, { title: "Fractions" });
+    await req("PATCH", `/api/assignments/${id}`, { endDate: "2026-11-30" });
+    expect((await undoEntry()).label).toBe("Moved Fractions' end to Nov 30");
+    await req("PATCH", `/api/assignments/${id}`, { title: "Chess club" });
+    await req("PATCH", `/api/assignments/${id}`, { endDate: "2026-12-01" });
+    expect((await undoEntry()).label).toBe("Moved Chess club's end to Dec 1");
+    await req("PATCH", `/api/assignments/${id}`, { title: "Treasure Island" });
+    await req("PATCH", `/api/assignments/${id}`, { startDate: "2026-10-27", endDate: "2026-12-11" });
+    expect((await undoEntry()).label).toBe("Moved Treasure Island");
+  });
+
+  it("other edits are labelled: changed, archived, restored, the weight", async () => {
+    await req("PATCH", `/api/assignments/${id}`, { title: "Treasure Isle", totalUnits: 120 });
+    expect((await undoEntry()).label).toBe("Changed Treasure Isle");
+    await req("PATCH", `/api/assignments/${id}`, { weightPerUnit: 2.5 });
+    expect((await undoEntry()).label).toBe("Updated the time estimate for Treasure Isle");
+    await req("PATCH", `/api/assignments/${id}`, { archived: true });
+    expect((await undoEntry()).label).toBe("Archived Treasure Isle");
+    expect(await assignment()).toBeUndefined(); // the list hides archived ones
+    await req("POST", "/api/undo");
+    expect(await assignment()).toMatchObject({ archived: false });
+    await req("PATCH", `/api/assignments/${id}`, { archived: true });
+    await req("PATCH", `/api/assignments/${id}`, { archived: false });
+    expect((await undoEntry()).label).toBe("Restored Treasure Isle");
+  });
+
+  it("an undo restores children, days, weight and the weight choice it recorded", async () => {
+    await req("PATCH", `/api/assignments/${id}`, { weightPerUnit: 3 });
+    expect(await choices()).toBe(4); // 2 from the create, 2 from the edit
+    await req("PATCH", `/api/assignments/${id}`, { childIds: [kids[0]], weekdays: [1, 2], title: "Short" });
+    await req("POST", "/api/undo");
+    expect(await assignment()).toMatchObject({ title: "Treasure Island", childIds: kids, weekdays: null, weightPerUnit: 3 });
+    // The nudge itself, undone: back to 2 and the choice is gone.
+    await req("PATCH", `/api/assignments/${id}`, { weightPerUnit: 3.5 });
+    expect(await choices()).toBe(6);
+    await req("POST", "/api/undo");
+    expect(await assignment()).toMatchObject({ weightPerUnit: 3 });
+    expect(await choices()).toBe(4);
+  });
+
+  it("an edit that changes nothing leaves the earlier entry alone", async () => {
+    await req("PATCH", `/api/assignments/${id}`, { title: "Renamed" });
+    const first = await undoEntry();
+    await req("PATCH", `/api/assignments/${id}`, { title: "Renamed" });
+    expect(await undoEntry()).toEqual(first);
+  });
+
+  it("a day off created, bulk created, changed and deleted can each be undone", async () => {
+    const mk = (over: object = {}) => ({ label: "Trip", kind: "vacation", startDate: "2026-11-09", endDate: "2026-11-13", childIds: [], ...over });
+    const dayId = (await req("POST", "/api/blocked-ranges", mk())).json().id;
+    expect(await undoEntry()).toMatchObject({ label: "Added a day off" });
+    expect((await req("POST", "/api/undo")).statusCode).toBe(200);
+    expect((await req("GET", "/api/blocked-ranges")).json()).toEqual([]);
+
+    await req("POST", "/api/blocked-ranges/bulk", { blockedRanges: [mk(), mk({ startDate: "2026-11-16", endDate: "2026-11-17" })] });
+    expect(await undoEntry()).toMatchObject({ label: "Added 2 days off" });
+    await req("POST", "/api/undo");
+    expect((await req("GET", "/api/blocked-ranges")).json()).toEqual([]);
+
+    const day = (await req("POST", "/api/blocked-ranges", mk({ childIds: [kids[1]] }))).json();
+    const before = await plan();
+    await req("PATCH", `/api/blocked-ranges/${day.id}`, { label: "Longer", endDate: "2026-11-20", childIds: kids });
+    expect(await undoEntry()).toMatchObject({ label: "Changed a day off" });
+    await req("POST", "/api/undo");
+    expect((await req("GET", "/api/blocked-ranges")).json()).toEqual([day]);
+
+    expect((await req("DELETE", `/api/blocked-ranges/${day.id}`)).statusCode).toBe(204);
+    expect(await undoEntry()).toMatchObject({ label: "Removed a day off" });
+    expect(await plan()).not.toEqual(before);
+    await req("POST", "/api/undo");
+    expect((await req("GET", "/api/blocked-ranges")).json()).toEqual([day]); // same id, fields and children
+    expect(await plan()).toEqual(before);
+    void dayId;
+  });
+
+  it("a week adjustment set, replaced and removed can each be undone", async () => {
+    const before = await plan();
+    const first = (await put(override())).json();
+    expect(await undoEntry()).toMatchObject({ label: "Adjusted Treasure Island for Ada, week of Nov 2" });
+    expect(await plan()).not.toEqual(before);
+    await req("POST", "/api/undo");
+    expect((await req("GET", `/api/week-overrides?weekStart=${NEXT}`)).json()).toEqual({ overrides: [] });
+    expect(await plan()).toEqual(before);
+
+    const one = (await put(override())).json();
+    await put(override({ plannedUnits: 4, mode: "pushEndDate" }));
+    await req("POST", "/api/undo");
+    // The earlier amount is back with its own place in the edit order.
+    expect((await req("GET", `/api/week-overrides?weekStart=${NEXT}`)).json()).toEqual({ overrides: [one] });
+
+    expect((await req("DELETE", `/api/week-overrides/${one.id}`)).statusCode).toBe(204);
+    expect(await undoEntry()).toMatchObject({ label: "Removed the adjustment to Treasure Island for Ada, week of Nov 2" });
+    await req("POST", "/api/undo");
+    expect((await req("GET", `/api/week-overrides?weekStart=${NEXT}`)).json()).toEqual({ overrides: [one] });
+    void first;
+  });
+
+  it("S6b-14: the label names the child and the week; every child when the adjustment is for all", async () => {
+    await put(override({ childId: kids[1], weekStart: "2026-11-09" }));
+    expect((await undoEntry()).label).toBe("Adjusted Treasure Island for Ben, week of Nov 9");
+    const all = (await put(override({ childId: null }))).json();
+    expect((await undoEntry()).label).toBe("Adjusted Treasure Island for every child, week of Nov 2");
+    await req("DELETE", `/api/week-overrides/${all.id}`);
+    expect((await undoEntry()).label).toBe("Removed the adjustment to Treasure Island for every child, week of Nov 2");
+  });
+
+  it("S7b-01: a batch save is one change and one undo puts every row back (set, replaced and removed)", async () => {
+    const mk = async (title: string) => (await req("POST", "/api/assignments", {
+      subjectId: subject, title, unitType: "pages", totalUnits: 100, weightPerUnit: 2, startDate: "2026-10-26", endDate: "2026-11-27", childIds: kids,
+    })).json().id as string;
+    const b2 = await mk("Second");
+    const b3 = await mk("Third");
+    const batch = (body: object) => app.inject({ method: "PUT", url: "/api/week-overrides/batch", cookies: a.cookies, payload: body });
+    const rowsNow = async () => (await req("GET", `/api/week-overrides?weekStart=${NEXT}`)).json().overrides;
+    // Before: one row to be replaced (id) and one to be removed (b3).
+    const replaced = (await put(override({ plannedUnits: 30 }))).json();
+    const removed = (await put(override({ assignmentId: b3, plannedUnits: 5 }))).json();
+    const before = await rowsNow();
+    const planBefore = await plan();
+
+    const res = await batch({
+      weekStart: NEXT,
+      set: [override({ plannedUnits: 12, weekStart: undefined }), override({ assignmentId: b2, plannedUnits: 7, weekStart: undefined })],
+      remove: [removed.id],
+    });
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.json().overrides).toHaveLength(2);
+    const rows = await rowsNow();
+    expect(rows.map((r: { assignmentId: string; plannedUnits: number }) => [r.assignmentId, r.plannedUnits]).sort()).toEqual([[id, 12], [b2, 7]].sort());
+    expect(rows.find((r: { id: string }) => r.id === replaced.id).plannedUnits).toBe(12);
+    // One entry, naming the count, the child and the week.
+    expect((await undoEntry()).label).toBe("Adjusted week of Nov 2"); // S7b-20: was "Adjusted 3 assignments for Ada, week of Nov 2"
+
+    expect((await req("POST", "/api/undo")).statusCode).toBe(200);
+    expect(await rowsNow()).toEqual(before);
+    expect(await plan()).toEqual(planBefore);
+    expect((await req("POST", "/api/undo")).statusCode).toBe(404);
+  });
+
+  it("S7b-01: a batch is all or nothing, validates like the single endpoints and labels one row like them", async () => {
+    const batch = (body: object) => app.inject({ method: "PUT", url: "/api/week-overrides/batch", cookies: a.cookies, payload: body });
+    const count = async () => (await req("GET", `/api/week-overrides?weekStart=${NEXT}`)).json().overrides.length;
+    const ok = { assignmentId: id, childId: kids[0], plannedUnits: 10, mode: "keepEndDate" };
+    // The second row is over the total: nothing saved, no undo entry.
+    const bad = await batch({ weekStart: NEXT, set: [ok, { ...ok, assignmentId: id, childId: kids[1], plannedUnits: 999 }], remove: [] });
+    expect(bad.statusCode).toBe(400);
+    expect(await count()).toBe(0);
+    expect(await undoEntry()).toBeNull();
+    // A removal of an unknown row is a 404 and the sets before it roll back.
+    expect((await batch({ weekStart: NEXT, set: [ok], remove: ["00000000-0000-4000-8000-000000000000"] })).statusCode).toBe(404);
+    expect(await count()).toBe(0);
+    // Nothing to change, a misaligned week and a duplicate row are refused.
+    expect((await batch({ weekStart: NEXT, set: [], remove: [] })).statusCode).toBe(400);
+    expect((await batch({ weekStart: "2026-11-03", set: [ok], remove: [] })).statusCode).toBe(400);
+    expect((await batch({ weekStart: NEXT, set: [ok, ok], remove: [] })).statusCode).toBe(400);
+    // One row reads like the single endpoint; two children read "several children".
+    expect((await batch({ weekStart: NEXT, set: [ok], remove: [] })).statusCode).toBe(200);
+    expect((await undoEntry()).label).toBe("Adjusted Treasure Island for Ada, week of Nov 2");
+    expect((await batch({ weekStart: NEXT, set: [ok, { ...ok, childId: kids[1] }], remove: [] })).statusCode).toBe(200);
+    expect((await undoEntry()).label).toBe("Adjusted week of Nov 2"); // S7b-20: was "Adjusted 2 assignments for several children, week of Nov 2"
+    // Another family's request cannot touch these rows.
+    expect((await app.inject({ method: "PUT", url: "/api/week-overrides/batch", cookies: b.cookies, payload: { weekStart: NEXT, set: [ok], remove: [] } })).statusCode).toBe(400);
+  });
+
+  it("S7b-11: a copy made with an undo label is one change; undo removes exactly the created assignments (chunks add to it)", async () => {
+    const body = (title: string) => ({ subjectId: subject, title, unitType: "pages", totalUnits: 50, weightPerUnit: 2, startDate: "2027-08-16", endDate: "2027-09-24", childIds: kids });
+    const bulk = (items: object[], undo?: object) => req("POST", "/api/assignments/bulk", { assignments: items, ...(undo ? { undo } : {}) });
+    const titles = async () => (await req("GET", "/api/assignments")).json().map((x: { title: string }) => x.title).sort();
+    const before = await titles();
+    const familyChoices = async () => Number((await pool.query("SELECT count(*) FROM weight_choice WHERE family_id = $1", [a.familyId])).rows[0].count);
+    const choicesBefore = await familyChoices();
+    // Without a label a bulk create is not undoable (Add several and CSV import).
+    expect((await bulk([body("Plain")])).statusCode).toBe(201);
+    expect(await undoEntry()).toBeNull();
+    // A copy in two chunks: the second appends; the label counts the copies so far.
+    expect((await bulk([body("Copy A"), body("Copy B")], { label: "Copied 2 assignments to 2027–28" })).statusCode).toBe(201);
+    expect((await undoEntry()).label).toBe("Copied 2 assignments to 2027–28");
+    expect((await bulk([body("Copy C")], { label: "Copied 3 assignments to 2027–28", append: true })).statusCode).toBe(201);
+    expect((await undoEntry()).label).toBe("Copied 3 assignments to 2027–28");
+    expect(await titles()).toEqual([...before, "Copy A", "Copy B", "Copy C", "Plain"].sort());
+    expect((await req("POST", "/api/undo")).statusCode).toBe(200);
+    expect(await titles()).toEqual([...before, "Plain"].sort()); // exactly the copies are gone
+    expect(await familyChoices()).toBe(choicesBefore + 2); // Plain's two (one per child); the copies' went with them
+    expect((await req("POST", "/api/undo")).statusCode).toBe(404);
+  });
+
+  it("S7b-11: the undo of a copy is refused once one of the copies has a check-in, and nothing is removed", async () => {
+    const res = await req("POST", "/api/assignments/bulk", {
+      assignments: [{ subjectId: subject, title: "Copy X", unitType: "pages", totalUnits: 50, weightPerUnit: 2, startDate: "2027-08-16", endDate: "2027-09-24", childIds: kids },
+        { subjectId: subject, title: "Copy Y", unitType: "pages", totalUnits: 50, weightPerUnit: 2, startDate: "2027-08-16", endDate: "2027-09-24", childIds: kids }],
+      undo: { label: "Copied 2 assignments to 2027–28" },
+    });
+    const [x] = res.json() as { id: string }[];
+    await pool.query("INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position) VALUES ($1, $2, $3, '2027-08-16', 5)", [a.familyId, x!.id, kids[0]]);
+    expect((await req("POST", "/api/undo")).statusCode).toBe(409);
+    const titles = (await req("GET", "/api/assignments")).json().map((r: { title: string }) => r.title);
+    expect(titles).toEqual(expect.arrayContaining(["Copy X", "Copy Y"]));
+  });
+
+  it("S7b-11: an undo label must be text, not empty, and bulk takes no other keys", async () => {
+    const one = [{ subjectId: subject, title: "Z", unitType: "pages", totalUnits: 5, startDate: "2027-08-16", endDate: "2027-09-24", childIds: kids }];
+    for (const undo of [{ label: "" }, { label: 5 }, { label: "x", append: "yes" }, { label: "x", extra: 1 }, {}]) {
+      expect((await req("POST", "/api/assignments/bulk", { assignments: one, undo })).statusCode).toBe(400);
+    }
+  });
+
+  it("only the last change is kept: a new change replaces the entry", async () => {
+    await req("PATCH", `/api/assignments/${id}`, { title: "First" });
+    await req("POST", "/api/blocked-ranges", { label: "Trip", kind: "vacation", startDate: "2026-11-09", endDate: "2026-11-09", childIds: [] });
+    expect((await undoEntry()).label).toBe("Added a day off");
+    expect((await pool.query("SELECT count(*)::int AS n FROM undo_entry WHERE family_id = $1", [a.familyId])).rows[0].n).toBe(1);
+    await req("POST", "/api/undo");
+    expect((await assignment()).title).toBe("First"); // the earlier edit stays: undo is one step
+  });
+
+  it("writes that are not plan changes leave the entry alone", async () => {
+    await req("PATCH", `/api/assignments/${id}`, { title: "Kept" });
+    const entry = await undoEntry();
+    await req("POST", "/api/children", { name: "Cy" });
+    await req("POST", "/api/subjects", { name: "Latin" });
+    await req("PATCH", `/api/children/${kids[0]}`, { name: "Ada B" });
+    await req("POST", "/api/assignments", { subjectId: subject, title: "Another", unitType: "lessons", totalUnits: 3, startDate: NEXT, endDate: "2026-11-06", childIds: kids });
+    expect(await undoEntry()).toEqual(entry);
+  });
+
+  it("a stale entry is a 409 and is dropped: the assignment is gone", async () => {
+    await req("PATCH", `/api/assignments/${id}`, { title: "Gone soon" });
+    await pool.query("DELETE FROM assignment WHERE id = $1", [id]);
+    const res = await req("POST", "/api/undo");
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toEqual({ error: "cannot_undo", message: "That change can't be undone any more." });
+    expect(await undoEntry()).toBeNull();
+    expect((await req("POST", "/api/undo")).statusCode).toBe(404);
+  });
+
+  it("a stale entry is a 409: the day off is gone, or a check-in now pins the dates", async () => {
+    await req("POST", "/api/blocked-ranges", { label: "Trip", kind: "vacation", startDate: "2026-11-09", endDate: "2026-11-09", childIds: [] });
+    await pool.query("DELETE FROM blocked_range WHERE family_id = $1", [a.familyId]);
+    expect((await req("POST", "/api/undo")).statusCode).toBe(409);
+
+    await req("PATCH", `/api/assignments/${id}`, { startDate: "2026-10-27", endDate: "2026-11-27" });
+    // A check-in in the last week: the original end (Nov 27) would still allow it; make the undo's dates conflict instead.
+    await pool.query("INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position) VALUES ($1, $2, $3, '2026-11-23', 5)", [a.familyId, id, kids[0]]);
+    await pool.query("UPDATE undo_entry SET inverse = jsonb_set(inverse, '{steps,0,set,endDate}', '\"2026-11-16\"') WHERE family_id = $1", [a.familyId]);
+    expect((await req("POST", "/api/undo")).statusCode).toBe(409);
+    expect((await assignment()).startDate).toBe("2026-10-27"); // nothing half-applied
+  });
+
+  it("each family has its own entry", async () => {
+    await req("PATCH", `/api/assignments/${id}`, { title: "Mine" });
+    expect((await theirs("GET", "/api/undo")).json()).toBeNull();
+    expect((await theirs("POST", "/api/undo")).statusCode).toBe(404);
+    expect((await undoEntry()).label).toBe("Changed Mine");
+  });
+});

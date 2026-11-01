@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soft Paper mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,500..600,100&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap" rel="stylesheet">
+<style>
+/* Static mockup: Homeschool Hub, direction "Direction 1: Soft Paper". Not app code. */
+.light {
+  --honey:#F0D6A8; --honey-s:#A86A00; --sky:#BDDCF0; --sky-s:#2A7DB0; --mint:#B5DFD1; --mint-s:#1F8063;
+  --butter:#EAE2A5; --butter-s:#8A7A00; --blue:#C1D0EA; --blue-s:#3F64A8; --coral:#F0C8B4; --coral-s:#B4532A;
+  --lilac:#E5C8DB; --lilac-s:#9B4F80; --sage:#D1D5C9; --sage-s:#5F6B50;
+--bg:#FAF6EE; --card:#FFFDF8; --raised:#F2ECE1; --ink:#2F2A24; --muted:#6E655A; --line:#E8E0D2;
+--accent:#3F6B5C; --accent-ink:#FFFFFF; --accent-soft:#E3EEE8; --tabbg:rgb(255 253 248 / .92);
+--r-card:14px; --r-bar:12px; --r-sheet:18px; --r-ico:12px; --bar-h:62px; --rule:4px; --card-border:1px solid #E8E0D2;
+--sh-card:none; --sh-sheet:0 -8px 24px rgb(60 40 20 / .10); --sh-seg:0 0 0 1px #E8E0D2;
+}
+.dark {
+  --honey:#5B4826; --honey-s:#F5C46B; --sky:#2A485D; --sky-s:#8FCBF0; --mint:#265044; --mint-s:#7FD3B6;
+  --butter:#565126; --butter-s:#E9DB6A; --blue:#2E3E5D; --blue-s:#9DB7EA; --coral:#5E3728; --coral-s:#F2A786;
+  --lilac:#543649; --lilac-s:#E0A6CB; --sage:#41453B; --sage-s:#B6C0A6;
+--bg:#1C1A17; --card:#26231F; --raised:#302C27; --ink:#F1EBE1; --muted:#B3A99B; --line:#3A352F;
+--accent:#9CCBB8; --accent-ink:#1C1A17; --accent-soft:#25342E; --tabbg:rgb(38 35 31 / .94);
+--r-card:14px; --r-bar:12px; --r-sheet:18px; --r-ico:12px; --bar-h:62px; --rule:4px; --card-border:1px solid #3A352F;
+--sh-card:none; --sh-sheet:0 -8px 24px rgb(0 0 0 / .5); --sh-seg:0 0 0 1px #3A352F;
+}
+:root { --page:#ECEAE6; --page-ink:#2B2935; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page:#0E0D11; --page-ink:#E9E6EF; } }
+:root[data-theme="dark"] { --page:#0E0D11; --page-ink:#E9E6EF; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--page); color:var(--page-ink); font-family:'Nunito Sans', system-ui, sans-serif; }
+.intro { max-width:1180px; margin:0 auto; padding:32px 16px 8px; }
+.intro h1 { font-family:'Fraunces', Georgia, serif; font-weight:600; font-size:28px; margin:0 0 6px; }
+.intro p { margin:0 0 6px; max-width:760px; line-height:1.5; font-size:15px; opacity:.85; }
+.frames { display:flex; flex-wrap:wrap; gap:32px; justify-content:center; padding:24px 16px 56px; }
+.cap { font-size:13px; font-weight:600; margin:0 0 10px 6px; opacity:.75; }
+.frame { width:390px; max-width:100%; height:844px; border-radius:40px; overflow:hidden; position:relative;
+  background:var(--bg); color:var(--ink); font-family:'Nunito Sans', system-ui, sans-serif; font-size:15px; line-height:1.4;
+  box-shadow:0 0 0 10px #1d1c22, 0 24px 60px rgb(0 0 0 / .25); }
+.scroll { padding:54px 20px 110px; height:100%; overflow:hidden; }
+.h { font-family:'Fraunces', Georgia, serif; font-weight:600; letter-spacing:0; }
+.muted { color:var(--muted); }
+.row { display:flex; align-items:center; gap:12px; }
+.between { justify-content:space-between; }
+.top { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+.logo { display:flex; align-items:center; gap:10px; }
+.logo b { font-family:'Fraunces', Georgia, serif; font-weight:600; font-size:18px; }
+.avatar { width:44px; height:44px; border-radius:999px; background:var(--accent-soft); color:var(--accent);
+  display:grid; place-items:center; font-weight:700; font-size:15px; border:0; }
+.greet { font-size:28px; line-height:1.15; margin:0 0 4px; }
+.date { font-size:14px; margin:0 0 18px; }
+.brief { display:flex; align-items:center; gap:10px; background:var(--accent-soft); color:var(--ink);
+  border-radius:999px; padding:10px 14px; font-size:14px; margin-bottom:18px; }
+.brief .dot { width:8px; height:8px; border-radius:99px; background:var(--accent); flex:none; }
+.brief a { margin-left:auto; color:var(--accent); font-weight:700; text-decoration:none; }
+.card { background:var(--card); border-radius:var(--r-card); box-shadow:var(--sh-card); border:var(--card-border);
+  padding:18px; margin-bottom:14px; }
+.card h2 { font-size:20px; margin:0; }
+.ico { width:44px; height:44px; border-radius:var(--r-ico); background:var(--accent-soft); color:var(--accent);
+  display:grid; place-items:center; flex:none; }
+.ico svg, .tab svg { width:24px; height:24px; }
+.chev { margin-left:auto; color:var(--muted); }
+.track { height:8px; border-radius:99px; background:var(--line); overflow:hidden; flex:1; }
+.track i { display:block; height:100%; border-radius:99px; background:var(--accent); }
+.kid { font-size:13px; width:68px; }
+.mini { display:grid; gap:4px; margin:14px 0 10px; position:relative; }
+.mini span { display:block; height:8px; border-radius:99px; }
+.mini .today { position:absolute; left:22%; top:-4px; bottom:-4px; width:2px; border-radius:2px; background:var(--accent); }
+.note { font-size:13px; display:flex; align-items:center; gap:8px; margin-top:12px; }
+.note .dot { width:8px; height:8px; border-radius:99px; background:var(--accent); }
+.listrow { display:flex; align-items:center; gap:12px; padding:6px 2px; min-height:44px; }
+/* this week */
+.title { font-size:28px; margin:0; }
+.wk { display:flex; align-items:center; gap:8px; }
+.rbtn { width:44px; height:44px; border-radius:999px; border:0; background:var(--raised); color:var(--ink); display:grid; place-items:center; font-size:18px; }
+.seg { display:flex; background:var(--raised); border-radius:999px; padding:4px; margin:16px 0 18px; }
+.seg span { flex:1; text-align:center; padding:10px 0; border-radius:999px; font-weight:600; font-size:14px; color:var(--muted); min-height:40px; }
+.seg span.on { background:var(--card); color:var(--ink); box-shadow:var(--sh-seg); }
+.check-in h3 { font-size:17px; margin:0 0 2px; }
+.btns { display:flex; gap:10px; margin-top:14px; }
+.btn { flex:1; min-height:48px; border-radius:999px; border:0; font:inherit; font-weight:700; font-size:15px; display:grid; place-items:center; }
+.btn.primary { background:var(--accent); color:var(--accent-ink); }
+.btn.quiet { background:var(--raised); color:var(--ink); }
+.sec { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:20px 4px 10px; }
+.bar { display:flex; align-items:center; gap:12px; min-height:var(--bar-h); border-radius:var(--r-bar);
+  padding:10px 10px 10px 16px; margin-bottom:10px; background:var(--c); border-left:var(--rule) solid var(--cs); }
+.bar .t { font-weight:700; font-size:16px; display:flex; align-items:center; gap:7px; }
+.bar .si { width:18px; height:18px; color:var(--cs); flex:none; }
+.ev { font-size:14px; color:var(--muted); display:flex; gap:8px; align-items:center; margin:4px 4px 0; }
+.ev b { color:var(--ink); font-weight:600; }
+.bar .a { font-size:14px; color:var(--ink); opacity:.78; }
+.bar .ck { margin-left:auto; width:44px; height:44px; border-radius:999px; border:2px solid var(--cs);
+  background:transparent; display:grid; place-items:center; color:var(--cs); flex:none; }
+.bar.done { opacity:.6; }
+.bar.done .ck { background:var(--cs); color:var(--bg); }
+.tabs { position:absolute; left:0; right:0; bottom:0; height:84px; padding:8px 12px 22px; display:flex;
+  background:var(--tabbg); border-top:1px solid var(--line); backdrop-filter:blur(12px); }
+.tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:12px; font-weight:600; color:var(--muted); }
+.tab.on { color:var(--accent); }
+.tab .pill { width:56px; height:30px; border-radius:999px; display:grid; place-items:center; }
+.tab.on .pill { background:var(--accent-soft); }
+/* sheet */
+.scrim { position:absolute; inset:0; background:rgb(20 18 28 / .35); }
+.sheet { position:absolute; left:0; right:0; bottom:0; background:var(--card); border-radius:var(--r-sheet) var(--r-sheet) 0 0;
+  box-shadow:var(--sh-sheet); padding:12px 20px 30px; }
+.grab { width:40px; height:5px; border-radius:99px; background:var(--line); margin:0 auto 14px; }
+.sheet h3 { font-size:22px; margin:0; }
+.lbl { font-weight:700; font-size:15px; margin:18px 0 10px; }
+.chips { display:flex; gap:8px; }
+.chip { flex:1; text-align:center; min-height:44px; display:grid; place-items:center; border-radius:999px; background:var(--raised); font-weight:600; font-size:14px; }
+.chip.on { background:var(--accent-soft); color:var(--accent); box-shadow:inset 0 0 0 2px var(--accent); }
+.step { display:flex; align-items:center; gap:10px; }
+.step .num { flex:1; min-height:52px; border-radius:var(--r-bar); background:var(--raised); display:flex; align-items:center; padding:0 16px; font-size:17px; }
+.step .num b { font-size:20px; margin:0 6px; }
+.radio { display:flex; gap:12px; align-items:flex-start; border-radius:var(--r-bar); background:var(--raised); padding:14px; margin-bottom:8px; }
+.radio.on { box-shadow:inset 0 0 0 2px var(--accent); background:var(--accent-soft); }
+.radio .o { width:22px; height:22px; border-radius:99px; border:2px solid var(--muted); flex:none; margin-top:1px; }
+.radio.on .o { border:7px solid var(--accent); }
+.radio small { display:block; color:var(--muted); font-size:13px; margin-top:2px; }
+@media (max-width: 440px) { .frame { box-shadow:none; border-radius:24px; } }
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>Direction 1: Soft Paper</h1>
+  <p>A well-loved notebook: cream page, warm hairlines instead of shadows, Fraunces serif headings with Nunito Sans text, a fern-green accent, and pastel bars with a thin coloured rule.</p>
+  <p style="font-size:13px">Static mockup for docs/design/ux-research.md. Navigation as decided: Home · Track work · Schedule (Schedule has a Week | Year switch; Track work holds the check-in). Subject icons on bars. Light frames first, then dark.</p>
+</div>
+<div class="frames">
+<div><p class="cap">Home · light</p><div class="frame light"><div class="scroll">
+<div class="top"><div class="logo"><svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="13" fill="var(--accent-soft)"/>
+<circle cx="20" cy="21" r="7" fill="var(--honey)" stroke="var(--honey-s)" stroke-width="1.5"/>
+<path d="M8 27c4-2.2 8-2.2 12 0 4-2.2 8-2.2 12 0v3c-4-2.2-8-2.2-12 0-4-2.2-8-2.2-12 0z" fill="var(--accent)"/></svg><b>Homeschool Hub</b></div><button class="avatar" aria-label="Family and settings">D</button></div>
+<p class="greet h">Good morning, DeeDee</p>
+<p class="date muted">Saturday 31 October · Week 9 of 36</p>
+<div class="brief"><span class="dot"></span>Latin will finish about 3 weeks late<a href="#">Review</a></div>
+<div class="card">
+  <div class="row"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span><div><h2 class="h">Track work</h2><div class="muted" style="font-size:14px">This week · 26 Oct – 1 Nov</div></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span></div>
+  <div class="row" style="margin-top:16px"><span class="kid">Frank</span><span class="track"><i style="width:62%"></i></span><span class="muted" style="font-size:13px">5 left</span></div>
+  <div class="row" style="margin-top:10px"><span class="kid">Margaret</span><span class="track"><i style="width:40%"></i></span><span class="muted" style="font-size:13px">8 left</span></div>
+  <div class="note"><span class="dot"></span>Last week needs a quick check</div>
+</div>
+<div class="card">
+  <div class="row"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M4 12h14M4 17h7"/><circle cx="17" cy="7" r="0.5"/></svg></span><div><h2 class="h">Schedule</h2><div class="muted" style="font-size:14px">This week and your year · on track for 21 May</div></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span></div>
+  <div class="mini">
+    <span style="background:var(--honey);width:46%"></span><span style="background:var(--sky);width:96%"></span>
+    <span style="background:var(--mint);width:88%;margin-left:6%"></span><span style="background:var(--lilac);width:30%;margin-left:30%"></span>
+    <span style="background:var(--butter);width:70%;margin-left:18%"></span><i class="today"></i>
+  </div>
+</div>
+<div class="card" style="padding:8px 18px"><div class="listrow"><span class="ico" style="width:36px;height:36px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h8M17 7h2M5 17h2M11 17h8"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span><div><b>Set up</b><div class="muted" style="font-size:13px">Children, subjects, books, breaks</div></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span></div></div>
+</div><nav class="tabs"><div class="tab on"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg></span>Home</div><div class="tab"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>Track work</div><div class="tab"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M4 12h14M4 17h7"/><circle cx="17" cy="7" r="0.5"/></svg></span>Schedule</div></nav></div></div>
+<div><p class="cap">Schedule · Week · light</p><div class="frame light"><div class="scroll">
+<div class="row between"><h1 class="title h">Schedule</h1><div class="wk"><button class="rbtn" aria-label="Previous week">‹</button><button class="rbtn" aria-label="Next week">›</button></div></div>
+<div class="muted" style="font-size:14px;margin-top:2px">26 Oct – 1 Nov</div>
+<div class="seg" style="margin-bottom:8px"><span class="on">Week</span><span>Year</span></div>
+<div class="seg" style="margin-top:0"><span class="on">Frank</span><span>Margaret</span><span>Both</span></div>
+<div class="sec">Frank's week</div>
+<div class="bar" style="--c:var(--honey);--cs:var(--honey-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5v13c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z"/><path d="M12 6v13.5"/></svg>Treasure Island</div><div class="a">pages 120–150</div></div></div>
+<div class="bar" style="--c:var(--sky);--cs:var(--sky-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8 7.5h8M8.5 12h1M12 12h0M15.5 12h0M8.5 16h1M12 16h0M15.5 16h0"/></svg>Math 5</div><div class="a">lessons 31–35</div></div></div>
+<div class="bar" style="--c:var(--mint);--cs:var(--mint-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v1H9"/><path d="M7 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><path d="M9 12h6M9 15.5h4"/></svg>History spine</div><div class="a">lessons 25–30</div></div></div>
+<div class="bar" style="--c:var(--lilac);--cs:var(--lilac-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18 8 6l4 12M5.5 14h5"/><path d="M14 12.5c.6-.9 1.5-1.4 2.6-1.4 1.6 0 2.4.9 2.4 2.4V18M19 15.2c-3.4-.3-5 .4-5 1.6 0 .8.6 1.4 1.7 1.4 1.5 0 3.3-1 3.3-3"/></svg>Latin for Children</div><div class="a">chapter 9</div></div></div>
+<div class="bar" style="--c:var(--butter);--cs:var(--butter-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 3.5h5M10.5 3.5v5.2L5.6 17a2 2 0 0 0 1.7 3h9.4a2 2 0 0 0 1.7-3l-4.9-8.3V3.5"/><path d="M8 14h8"/></svg>Science 5</div><div class="a">lessons 22–26</div></div></div>
+<div class="ev">Tue · <b>Co-op</b> (Literature skipped)</div>
+</div><nav class="tabs"><div class="tab"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg></span>Home</div><div class="tab"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>Track work</div><div class="tab on"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M4 12h14M4 17h7"/><circle cx="17" cy="7" r="0.5"/></svg></span>Schedule</div></nav></div></div>
+<div><p class="cap">Track work · Update status · light</p><div class="frame light"><div class="scroll">
+<div class="row between"><h1 class="title h">Track work</h1><div class="wk"><button class="rbtn" aria-label="Previous week">‹</button><button class="rbtn" aria-label="Next week">›</button></div></div>
+<div class="muted" style="font-size:14px;margin-top:2px">Last week · 19–25 Oct</div>
+<div class="seg"><span class="on">Frank</span><span>Margaret</span><span>Both</span></div>
+<div class="card check-in"><h3 class="h">Last week</h3><div class="muted" style="font-size:14px">Did everything get done?</div>
+<div class="btns"><span class="btn primary">Yes, all done</span><span class="btn quiet">Not quite</span></div></div>
+<div class="sec">Frank's last week</div>
+<div class="bar" style="--c:var(--honey);--cs:var(--honey-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5v13c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z"/><path d="M12 6v13.5"/></svg>Treasure Island</div><div class="a">pages 120–150</div></div><button class="ck" aria-label="Completed"></button></div>
+<div class="bar done" style="--c:var(--sky);--cs:var(--sky-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8 7.5h8M8.5 12h1M12 12h0M15.5 12h0M8.5 16h1M12 16h0M15.5 16h0"/></svg>Math 5</div><div class="a">lessons 31–35</div></div><button class="ck" aria-label="Completed"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 12.5 4 4 8-9"/></svg></button></div>
+<div class="bar" style="--c:var(--mint);--cs:var(--mint-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v1H9"/><path d="M7 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><path d="M9 12h6M9 15.5h4"/></svg>History spine</div><div class="a">lessons 25–30</div></div><button class="ck" aria-label="Completed"></button></div>
+<div class="bar" style="--c:var(--lilac);--cs:var(--lilac-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18 8 6l4 12M5.5 14h5"/><path d="M14 12.5c.6-.9 1.5-1.4 2.6-1.4 1.6 0 2.4.9 2.4 2.4V18M19 15.2c-3.4-.3-5 .4-5 1.6 0 .8.6 1.4 1.7 1.4 1.5 0 3.3-1 3.3-3"/></svg>Latin for Children</div><div class="a">chapter 9</div></div><button class="ck" aria-label="Completed"></button></div>
+<div class="bar" style="--c:var(--butter);--cs:var(--butter-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 3.5h5M10.5 3.5v5.2L5.6 17a2 2 0 0 0 1.7 3h9.4a2 2 0 0 0 1.7-3l-4.9-8.3V3.5"/><path d="M8 14h8"/></svg>Science 5</div><div class="a">lessons 22–26</div></div><button class="ck" aria-label="Completed"></button></div>
+</div><nav class="tabs"><div class="tab"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg></span>Home</div><div class="tab on"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>Track work</div><div class="tab"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M4 12h14M4 17h7"/><circle cx="17" cy="7" r="0.5"/></svg></span>Schedule</div></nav><div class="scrim"></div><div class="sheet">
+<div class="grab"></div>
+<h3 class="h">Treasure Island</h3><div class="muted" style="font-size:14px">Frank · pages 120–150 last week</div>
+<div class="lbl">How did it go?</div>
+<div class="chips"><span class="chip">As planned</span><span class="chip">Got ahead</span><span class="chip on">Fell behind</span></div>
+<div class="lbl">They got to</div>
+<div class="step"><button class="rbtn" aria-label="Less">−</button><div class="num">page <b>138</b> <span class="muted">of 270</span></div><button class="rbtn" aria-label="More">+</button></div>
+<div class="lbl">What about the end date?</div>
+<div class="radio"><span class="o"></span><div>Keep 6 Nov<small>The remaining days get a little heavier</small></div></div>
+<div class="radio on"><span class="o"></span><div>Move to 11 Nov<small>Keep the same pace</small></div></div>
+<div class="btns"><span class="btn quiet" style="flex:.6">Cancel</span><span class="btn primary">Save</span></div>
+</div></div></div>
+<div><p class="cap">Home · dark</p><div class="frame dark"><div class="scroll">
+<div class="top"><div class="logo"><svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="13" fill="var(--accent-soft)"/>
+<circle cx="20" cy="21" r="7" fill="var(--honey)" stroke="var(--honey-s)" stroke-width="1.5"/>
+<path d="M8 27c4-2.2 8-2.2 12 0 4-2.2 8-2.2 12 0v3c-4-2.2-8-2.2-12 0-4-2.2-8-2.2-12 0z" fill="var(--accent)"/></svg><b>Homeschool Hub</b></div><button class="avatar" aria-label="Family and settings">D</button></div>
+<p class="greet h">Good morning, DeeDee</p>
+<p class="date muted">Saturday 31 October · Week 9 of 36</p>
+<div class="brief"><span class="dot"></span>Latin will finish about 3 weeks late<a href="#">Review</a></div>
+<div class="card">
+  <div class="row"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span><div><h2 class="h">Track work</h2><div class="muted" style="font-size:14px">This week · 26 Oct – 1 Nov</div></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span></div>
+  <div class="row" style="margin-top:16px"><span class="kid">Frank</span><span class="track"><i style="width:62%"></i></span><span class="muted" style="font-size:13px">5 left</span></div>
+  <div class="row" style="margin-top:10px"><span class="kid">Margaret</span><span class="track"><i style="width:40%"></i></span><span class="muted" style="font-size:13px">8 left</span></div>
+  <div class="note"><span class="dot"></span>Last week needs a quick check</div>
+</div>
+<div class="card">
+  <div class="row"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M4 12h14M4 17h7"/><circle cx="17" cy="7" r="0.5"/></svg></span><div><h2 class="h">Schedule</h2><div class="muted" style="font-size:14px">This week and your year · on track for 21 May</div></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span></div>
+  <div class="mini">
+    <span style="background:var(--honey);width:46%"></span><span style="background:var(--sky);width:96%"></span>
+    <span style="background:var(--mint);width:88%;margin-left:6%"></span><span style="background:var(--lilac);width:30%;margin-left:30%"></span>
+    <span style="background:var(--butter);width:70%;margin-left:18%"></span><i class="today"></i>
+  </div>
+</div>
+<div class="card" style="padding:8px 18px"><div class="listrow"><span class="ico" style="width:36px;height:36px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h8M17 7h2M5 17h2M11 17h8"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span><div><b>Set up</b><div class="muted" style="font-size:13px">Children, subjects, books, breaks</div></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span></div></div>
+</div><nav class="tabs"><div class="tab on"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg></span>Home</div><div class="tab"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>Track work</div><div class="tab"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M4 12h14M4 17h7"/><circle cx="17" cy="7" r="0.5"/></svg></span>Schedule</div></nav></div></div>
+<div><p class="cap">Track work · dark</p><div class="frame dark"><div class="scroll">
+<div class="row between"><h1 class="title h">Track work</h1><div class="wk"><button class="rbtn" aria-label="Previous week">‹</button><button class="rbtn" aria-label="Next week">›</button></div></div>
+<div class="muted" style="font-size:14px;margin-top:2px">Last week · 19–25 Oct</div>
+<div class="seg"><span class="on">Frank</span><span>Margaret</span><span>Both</span></div>
+<div class="card check-in"><h3 class="h">Last week</h3><div class="muted" style="font-size:14px">Did everything get done?</div>
+<div class="btns"><span class="btn primary">Yes, all done</span><span class="btn quiet">Not quite</span></div></div>
+<div class="sec">Frank's last week</div>
+<div class="bar" style="--c:var(--honey);--cs:var(--honey-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5v13c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z"/><path d="M12 6v13.5"/></svg>Treasure Island</div><div class="a">pages 120–150</div></div><button class="ck" aria-label="Completed"></button></div>
+<div class="bar done" style="--c:var(--sky);--cs:var(--sky-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8 7.5h8M8.5 12h1M12 12h0M15.5 12h0M8.5 16h1M12 16h0M15.5 16h0"/></svg>Math 5</div><div class="a">lessons 31–35</div></div><button class="ck" aria-label="Completed"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 12.5 4 4 8-9"/></svg></button></div>
+<div class="bar" style="--c:var(--mint);--cs:var(--mint-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v1H9"/><path d="M7 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><path d="M9 12h6M9 15.5h4"/></svg>History spine</div><div class="a">lessons 25–30</div></div><button class="ck" aria-label="Completed"></button></div>
+<div class="bar" style="--c:var(--lilac);--cs:var(--lilac-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18 8 6l4 12M5.5 14h5"/><path d="M14 12.5c.6-.9 1.5-1.4 2.6-1.4 1.6 0 2.4.9 2.4 2.4V18M19 15.2c-3.4-.3-5 .4-5 1.6 0 .8.6 1.4 1.7 1.4 1.5 0 3.3-1 3.3-3"/></svg>Latin for Children</div><div class="a">chapter 9</div></div><button class="ck" aria-label="Completed"></button></div>
+<div class="bar" style="--c:var(--butter);--cs:var(--butter-s)"><div><div class="t"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 3.5h5M10.5 3.5v5.2L5.6 17a2 2 0 0 0 1.7 3h9.4a2 2 0 0 0 1.7-3l-4.9-8.3V3.5"/><path d="M8 14h8"/></svg>Science 5</div><div class="a">lessons 22–26</div></div><button class="ck" aria-label="Completed"></button></div>
+</div><nav class="tabs"><div class="tab"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg></span>Home</div><div class="tab on"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>Track work</div><div class="tab"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M4 12h14M4 17h7"/><circle cx="17" cy="7" r="0.5"/></svg></span>Schedule</div></nav></div></div>
+</div>
+</body>
+</html>
