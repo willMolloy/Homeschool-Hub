@@ -101,6 +101,9 @@ Added by Will on 2026-10-31: the UI isn't up to modern standards yet. Done once 
 - [ ] **Light, dark and system themes:** follows the device by default; Settings offers Light / Dark / System, remembered on that device. Pastel bars get dark-tuned versions; contrast tests run in both themes. (Today the app is locked to light: `color-scheme: light` in `styles.css`; timeline dark tokens already exist in `tokens.css`.)
 - [ ] **Checks:** the tap-target script and contrast in both themes, and a tester pass with before-and-after screenshots.
 
+### Schedule and Records (Sprint 9, planned, not approved)
+Will, 2026-11-01: Home's two main options are **Schedule** and **Records**; the weekly check-in is an optional helper attached to Schedule. Records (attendance, estimated hours, book list, CSV) therefore moves from "Optional modules" into the core, and the Track work tab goes. Outline and open questions: `tickets/sprint-9-schedule-and-records/README.md`. Accounts and hosting hardening move to Sprint 10.
+
 ### Accounts
 - [ ] **Invite-only accounts, with separate parent logins.** An invite link creates a family account, and the same kind of link adds a second parent to an existing family. Each parent has their own login to the one family; today the login is stored on the family itself, so it moves to its own table. Password resets are done by hand with the existing `set-family-login` CLI. Self-serve signup and emailed resets wait until going public, so no email provider is needed yet.
 - [ ] **Read-only share link** (before the friends beta, phase 4). A secret, revocable link to one family's timeline and This Week, for a grandparent, evaluator or co-op leader. Links are unguessable and hidden from search engines, since they show children's names.

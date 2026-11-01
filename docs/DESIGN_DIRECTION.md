@@ -8,6 +8,8 @@ Where the app is heading, distilled from Will's reviews of 2026-10-31. Read this
 
 The features are largely there. What's missing is the feeling that the app was designed for a parent rather than assembled by builders. The reviews kept pointing at the same gap from different sides: "looks very 2013", "cluttered", "too much going on", "I don't understand what the table is conveying", "the user may not know what the options at the bottom do", "no home base", "the dropdown doesn't populate", "the bar gets enormously thick".
 
+> **Correction (Will, 2026-11-01):** the two main jobs are **Schedule** and **Records** (attendance, hours, books, CSV), not Schedule and Track work. The weekly check-in is an optional helper inside Schedule that keeps the plan up to date. Sprint 8 built Home · Track work · Schedule from a misreading; Sprint 9 (`tickets/sprint-9-schedule-and-records/`) fixes it. Point 1 below and the "Chosen look" navigation are superseded by this.
+
 ## What the critiques add up to
 
 1. **One home, two jobs.** The app has a home page (with a real logo) and two main places: **Schedule** (this week's plan and the year, steered from there) and **Track work** (the check-in). Settings sit to the side. From anywhere there is an obvious way home, and a direct switch between Schedule and Log. A parent never wonders what a tab means.
