@@ -20,6 +20,14 @@ This moves Records from "optional module" into the core (ROADMAP, "Optional modu
 
 So the weekly check-in becomes **logging inside Records**, done whenever the parent likes (a day, a week, a month). **On hold, to be rewritten once Will answers the logging questions:** S9-02, S9-03, S9-07, S9-08. **Building now:** S9-01 (with /records as a placeholder), S9-04, S9-05 (without the check-in item), S9-06. Then S9-09 and S9-10 after the rewrite.
 
+**Logging rules (Will, 2026-11-01):**
+- Logging and the schedule are separate: logging never moves the plan, and the plan never fills in a log.
+- **Logs are never prefilled** ("we don't want to be responsible for a misentered log"); every value is typed or chosen by the parent.
+- Hours are typed by the parent. A log entry counts as a school day by default, with a visible switch the parent can turn off.
+- What to log is configurable (Log setup): hours by subject with core/non-core, school days, home vs away hours, notes, books read.
+- Wording: made for state records, does not guarantee meeting every state requirement.
+- CSV: the parent picks a date range and the columns; no empty columns. Printable summary: yes.
+
 ## Tickets
 
 Build in order, one commit per ticket, each with `bash scripts/check.sh` green. Progress in `docs/progress/sprint-9.md`.
