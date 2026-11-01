@@ -94,8 +94,11 @@ Tickets: `docs/tickets/sprint-8b-fixes/` (from `docs/reviews/sprint-8-verificati
 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
-| S8b-01 Week bars show the real range | (this commit) | `week/weekBars.ts` (`plannedRange`) |
+| S8b-01 Week bars show the real range | 17604d9 | `week/weekBars.ts` (`plannedRange`) |
+| S8b-02 Year badges are easy to tap and show the whole name | (this commit) | `timeline/layout.ts` (`BADGE_HIT_PX`), `Timeline.tsx`, `timeline.css` |
 
 ## Decisions (Sprint 8b)
 
 - **S8b-01 the cause and the fix.** The engine's `plannedRangeForWeek` adds up the plan days before the week, but the Week view asks `/api/plan` for one week only, so every book started at 1. Each plan day carries its cumulative `position` from the assignment's start whatever range is asked, so `plannedRange` takes the start from the first working day's `position` minus its units and the end from the week's largest `position`. A test checks it equals the engine's own range over a whole plan (what Track work shows) for a mid-book, a new and a lesson-based assignment. No API change.
+- **S8b-02 popover and tap area.** The popover was sized by the 24 px gutter it sits in; it is now `width: max-content` with `max-width: calc(100vw - 44px)` (it starts 28 px in, so it ends 16 px before the screen edge at most). Checked in a browser at 320, 360 and 1280 px: "Literature · Frank" and "Art · Margaret" show in full. A badge's tap area is its lane's slice of the gutter, so to make every one at least 32 px tall without overlapping a neighbour a lane is now never shorter than 32 px (`BADGE_HIT_PX`; it was 20): a thin lane is padded evenly above and below, so the lanes of thin subjects sit a little further apart. The visible badge is still 20 px and the gutter 24 px. In the browser every badge measured 32 px or more.
+- **S8b-02 changed test expectations.** `timeline-layout.test.ts`: a lane is at least 32 px (was the 20 px badge) and the centring pad uses 32. New tests in `timeline-soft-paper.test.tsx` (popover width, tap area height and no overlap).

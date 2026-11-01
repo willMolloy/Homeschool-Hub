@@ -4,7 +4,7 @@ import { MAX_BAR_PX, PX_PER_THICKNESS, SOFT_CAP_KNEE_PX, softCapPx, thicknessToP
 import { buildDayGrid } from "../src/features/timeline/grid";
 import { MIN_TAP_PX, hitTest, tapBox } from "../src/features/timeline/hit";
 import {
-  AXIS_HEIGHT_PX, DAY_LABEL_CLEAR_PX, SMOOTH_DEADBAND_PX, smoothColumns, BADGE_PX, GUTTER_PX, LANE_GAP_PX, MONTH_LABEL_CLEAR_PX, MIN_BAND_PX, SIDE_PAD_PX, SUBJECT_GAP_PX, bandHeight, layoutTimeline, type TimelineLayout,
+  AXIS_HEIGHT_PX, DAY_LABEL_CLEAR_PX, SMOOTH_DEADBAND_PX, smoothColumns, BADGE_HIT_PX, GUTTER_PX, LANE_GAP_PX, MONTH_LABEL_CLEAR_PX, MIN_BAND_PX, SIDE_PAD_PX, SUBJECT_GAP_PX, bandHeight, layoutTimeline, type TimelineLayout,
 } from "../src/features/timeline/layout";
 import { buildTimelineModel, type TimelineAssignment, type TimelineModel } from "../src/features/timeline/model";
 import { drawnExtent, packRows } from "../src/features/timeline/rows";
@@ -153,12 +153,12 @@ describe("horizontal room", () => {
     expect("labelWidth" in l).toBe(false);
   });
 
-  it("S8-07: one round badge per lane sits in the gutter, centred on its lane, and no lane is shorter than its badge", () => {
+  it("S8-07: one round badge per lane sits in the gutter, centred on its lane, and no lane is shorter than its 32 px tap area", () => {
     const l = layoutTimeline(sample, { zoom: "year", width: 360 });
     expect(l.badges).toHaveLength(sample.lanes.flatMap((s) => s.children).length);
     for (const b of l.badges) {
       expect(b.cx).toBe(GUTTER_PX / 2);
-      expect(b.bottom - b.top).toBeGreaterThanOrEqual(BADGE_PX);
+      expect(b.bottom - b.top).toBeGreaterThanOrEqual(BADGE_HIT_PX); // S8b-02: room for a 32 px tap area
       expect(b.cy).toBeCloseTo((b.top + b.bottom) / 2, 5);
       const rows = rowsOf(l, b.laneKey);
       expect(rows[0]!.y - rows[0]!.labelLane).toBeGreaterThanOrEqual(b.top);
@@ -183,7 +183,7 @@ describe("horizontal room", () => {
       const rows = rowsOf(l, b.laneKey);
       const content = rows.reduce((n, r, i) => n + r.labelLane + r.height + (i > 0 ? LANE_GAP_PX : 0), 0);
       // The only space above a lane's first row is the centring of a lane shorter than its badge.
-      expect(rows[0]!.y - rows[0]!.labelLane - b.top).toBeCloseTo(Math.max(0, (BADGE_PX - content) / 2), 5);
+      expect(rows[0]!.y - rows[0]!.labelLane - b.top).toBeCloseTo(Math.max(0, (BADGE_HIT_PX - content) / 2), 5);
     }
   });
 });

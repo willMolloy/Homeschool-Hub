@@ -68,6 +68,23 @@ describe("lane badges", () => {
     expect(wrap.querySelector(".tl-lane-pop")).toBeNull();
   });
 
+  it("S8b-02: the popover sizes to its text (it was clipped to the 24 px gutter) and stays on the screen", () => {
+    const pop = rule(".tl-lane-pop");
+    expect(pop).toMatch(/width: max-content/);
+    expect(pop).toMatch(/max-width: calc\(100vw - 44px\)/);
+    expect(pop).not.toMatch(/overflow: hidden;[^}]*width: \d+px/);
+  });
+
+  it("S8b-02: every badge's tap area is at least 32 px tall and none overlaps the next lane's", async () => {
+    stub();
+    const { wrap } = await openYear();
+    const buttons = [...wrap.querySelectorAll<HTMLElement>("button.tl-badge")];
+    const spans = buttons.map((b) => [parseFloat(b.style.top), parseFloat(b.style.height)] as const);
+    expect(spans.length).toBeGreaterThan(3);
+    for (const [, h] of spans) expect(h).toBeGreaterThanOrEqual(32);
+    for (let i = 1; i < spans.length; i++) expect(spans[i]![0]).toBeGreaterThanOrEqual(spans[i - 1]![0] + spans[i - 1]![1] - 0.01);
+  });
+
   it("the gutter never blocks a tap on a bar: only the badges take the pointer", () => {
     expect(rule(".tl-gutter")).toMatch(/pointer-events: none/);
     expect(rule(".tl-badge")).toMatch(/pointer-events: auto/);

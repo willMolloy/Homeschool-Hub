@@ -8,7 +8,7 @@ import { ChartBar } from "@phosphor-icons/react";
 import type { Subject } from "../../api/types";
 import { SubjectBadge } from "../subjects/SubjectIcon";
 import { bandExtent } from "./drag";
-import { AXIS_HEIGHT_PX, BADGE_PX, GUTTER_PX, type TimelineLayout } from "./layout";
+import { AXIS_HEIGHT_PX, BADGE_HIT_PX, BADGE_PX, GUTTER_PX, type TimelineLayout } from "./layout";
 import type { ChildStep } from "./model";
 
 /** Room under the lanes for the Today pill. */
@@ -165,7 +165,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
       )}
       {layout.badges.map((b) => (
         <button key={b.laneKey} type="button" className="tl-badge" aria-label={b.text} aria-pressed={picked === b.laneKey}
-          style={{ top: b.top, height: Math.max(BADGE_PX, b.bottom - b.top), width: GUTTER_PX } as CSSProperties}
+          style={{ top: b.top, height: Math.max(BADGE_HIT_PX, b.bottom - b.top), width: GUTTER_PX } as CSSProperties}
           onClick={() => setLane(picked === b.laneKey ? null : b.laneKey)}>
           <SubjectBadge subject={subjects.find((s) => s.id === b.subjectId) ?? { name: b.subjectName, icon: null }} slot={b.paletteSlot} size={BADGE_PX} />
         </button>

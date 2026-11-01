@@ -32,8 +32,10 @@ import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, typ
 export const SIDE_PAD_PX = 4;
 /** S8-07: the narrow left gutter that holds one round subject badge per lane (the subject's icon), so lanes need no name rows. */
 export const GUTTER_PX = 24;
-/** S8-07: a badge's diameter; a lane is never shorter than this, so its badge fits without touching the next. */
+/** S8-07: a badge's diameter. */
 export const BADGE_PX = 20;
+/** S8b-02: a lane is never shorter than this, so its badge's tap area (the whole lane slice of the gutter) is at least this tall without overlapping a neighbour. */
+export const BADGE_HIT_PX = 32;
 /** The label line above each child's rows (12 px text). */
 export const LABEL_ROW_PX = 16;
 /** Month ticks along the top. */
@@ -418,7 +420,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
         return { members, height, labelLane: Math.max(0, Math.ceil(Math.max(0, ...above))) };
       });
       const content = measured.reduce((n, m, r) => n + m.labelLane + m.height + (r > 0 ? LANE_GAP_PX : 0), 0);
-      const pad = Math.max(0, (BADGE_PX - content) / 2);
+      const pad = Math.max(0, (BADGE_HIT_PX - content) / 2);
       const laneTop = y;
       y += pad;
       measured.forEach(({ members, height, labelLane }, r) => {
