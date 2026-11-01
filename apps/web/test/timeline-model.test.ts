@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { STEP_NAMES, SUBJECT_COUNT } from "../scripts/palette";
 import type { BlockedRange, ScheduleEvent, Subject } from "../src/api/types";
 import { buildDayGrid, clipSpan, gridIndex, weekAlignedRange } from "../src/features/timeline/grid";
-import { buildTimelineModel, CHILD_STEPS, PALETTE_SLOTS } from "../src/features/timeline/model";
+import { SWATCH_SLOTS, slotOfColor } from "../src/features/roster/palette";
+import { buildTimelineModel, CHILD_STEPS, PALETTE_SLOTS, subjectSlots } from "../src/features/timeline/model";
 import { SAMPLE_EVENTS, SAMPLE_SUBJECTS, sampleInput, samplePlans } from "./helpers/timeline-fixtures";
 
 const sum = (xs: readonly number[]) => xs.reduce((a, b) => a + b, 0);
@@ -132,5 +133,42 @@ describe("timeline model", () => {
 
   it("carries thickness, never minutes (S2b-14)", () => {
     expect(JSON.stringify(model)).not.toMatch(/minute/i);
+  });
+});
+
+describe("one colour per subject (S8b-04)", () => {
+  const withColors = (colors: Record<string, string | null>) => SAMPLE_SUBJECTS.map((s) => ({ ...s, color: colors[s.id] ?? null }));
+
+  it("a subject's stored colour decides its slot: the same slot Set up's badge and dot use", () => {
+    const m = buildTimelineModel(sampleInput({ subjects: withColors({ lit: "#7a5cc2", math: "#2f6fb0", hist: "#b0482f", sci: "#2f8f6f", music: "#b08a2f" }) }));
+    const slot = (name: string) => m.lanes.find((l) => l.name === name)!.paletteSlot;
+    expect([slot("Literature"), slot("Math"), slot("History"), slot("Science"), slot("Music")]).toEqual([7, 5, 6, 3, 1]);
+    for (const [hex, n] of Object.entries(SWATCH_SLOTS)) expect(subjectSlots([{ ...SAMPLE_SUBJECTS[0]!, color: hex }])(SAMPLE_SUBJECTS[0]!.id), hex).toBe(n);
+  });
+
+  it("is case-blind, and Week, Track and Home deal the same slot through subjectSlots", () => {
+    const subjects = withColors({ lit: "#7A5CC2" });
+    expect(subjectSlots(subjects)("lit")).toBe(7);
+    expect(buildTimelineModel(sampleInput({ subjects })).lanes.find((l) => l.subjectId === "lit")!.paletteSlot).toBe(7);
+  });
+
+  it("dealing by display order is only the default for a subject with no colour, or one with no hue", () => {
+    const m = buildTimelineModel(sampleInput({ subjects: withColors({ lit: "not-a-colour", math: null }) }));
+    expect(m.lanes.map((l) => l.paletteSlot)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("any other stored #rrggbb takes the hue of the nearest swatch, so no stored colour is left without a hue", () => {
+    expect(slotOfColor("#1f6f43")).toBe(3); // a dark green: mint
+    expect(slotOfColor("#2F6FB1")).toBe(5); // a hair off blue
+    expect(slotOfColor("#fff")).toBeNull();
+    expect(slotOfColor(null)).toBeNull();
+    expect(buildTimelineModel(sampleInput({ subjects: withColors({ lit: "#1f6f43" }) })).lanes.find((l) => l.name === "Literature")!.paletteSlot).toBe(3);
+  });
+
+  it("changing a subject's colour moves its lane to that hue and leaves the others alone", () => {
+    const before = buildTimelineModel(sampleInput({ subjects: withColors({}) }));
+    const after = buildTimelineModel(sampleInput({ subjects: withColors({ sci: "#7a5cc2" }) }));
+    expect(after.lanes.find((l) => l.name === "Science")!.paletteSlot).toBe(7);
+    expect(after.lanes.filter((l) => l.name !== "Science").map((l) => l.paletteSlot)).toEqual(before.lanes.filter((l) => l.name !== "Science").map((l) => l.paletteSlot));
   });
 });

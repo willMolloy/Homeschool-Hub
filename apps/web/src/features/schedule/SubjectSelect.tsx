@@ -13,8 +13,9 @@ import { useEffect, useId, useState, type MutableRefObject } from "react";
 import { ApiError, apiPost } from "../../api/client";
 import type { Subject } from "../../api/types";
 import { findSubjectNamed, missingCommonSubjects } from "../roster/commonSubjects";
-import { SWATCH_SLOTS, nextUnusedColor } from "../roster/palette";
+import { nextUnusedColor } from "../roster/palette";
 import { SubjectBadge } from "../subjects/SubjectIcon";
+import { subjectSlots } from "../timeline/model";
 import type { Lookups } from "./lookups";
 
 const NEW_VALUE = "__new__";
@@ -128,7 +129,7 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
   return (
     <>
       <div className="subject-select-row">
-      {chosen ? <SubjectBadge subject={chosen} slot={SWATCH_SLOTS[chosen.color?.toLowerCase() ?? ""] ?? 1} size={32} /> : null}
+      {chosen ? <SubjectBadge subject={chosen} slot={subjectSlots(l.subjects)(chosen.id)} size={32} /> : null}
       <select id={id} value={naming ? NEW_VALUE : pending ? PENDING_VALUE : value} disabled={busy} onChange={(e) => choose(e.target.value)} {...invalidProps}>
         <option value="">Choose a subject…</option>
         {pending ? <option value={PENDING_VALUE}>{pending} (new)</option> : null}

@@ -43,16 +43,37 @@ const SWATCH_SLOT: Record<string, number> = {
   "#5b6b7d": 8, // slate -> sage
 };
 
-/** The CSS colour a stored swatch is drawn in: its Soft Paper strong tone, or the raw value for anything else. */
+const rgb = (hex: string): [number, number, number] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+
+/**
+ * S8b-04: the hue slot of a stored colour: its swatch's, or for any other valid #rrggbb (an older or hand-made colour) the
+ * nearest swatch by RGB distance, so every stored colour has one hue on every screen. null for no colour or a non-hex value.
+ */
+export function slotOfColor(color: string | null | undefined): number | null {
+  if (!color) return null;
+  const c = color.toLowerCase();
+  if (SWATCH_SLOT[c]) return SWATCH_SLOT[c]!;
+  if (!/^#[0-9a-f]{6}$/.test(c)) return null;
+  const [r, g, b] = rgb(c);
+  let best: [number, number] = [Infinity, 1];
+  for (const [hex, slot] of Object.entries(SWATCH_SLOT)) {
+    const [r2, g2, b2] = rgb(hex);
+    const d = (r - r2) ** 2 + (g - g2) ** 2 + (b - b2) ** 2;
+    if (d < best[0]) best = [d, slot];
+  }
+  return best[1];
+}
+
+/** The CSS colour a stored colour is drawn in: its Soft Paper strong tone, or the raw value if it has no hue. */
 export function swatchColor(color: string | null): string | null {
   if (!color) return null;
-  const slot = SWATCH_SLOT[color.toLowerCase()];
+  const slot = slotOfColor(color);
   return slot ? `var(--tl-subject-${slot}-strong)` : color;
 }
 
-/** The Soft Paper fill a stored swatch is drawn on (for badges), or null for an unknown colour. */
+/** The Soft Paper fill a stored colour is drawn on (for badges), or null when it has no hue. */
 export function swatchFill(color: string | null): string | null {
-  const slot = color ? SWATCH_SLOT[color.toLowerCase()] : undefined;
+  const slot = slotOfColor(color);
   return slot ? `var(--tl-subject-${slot})` : null;
 }
 
