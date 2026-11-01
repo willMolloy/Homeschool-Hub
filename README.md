@@ -12,7 +12,7 @@ A year-long timeline planner for homeschool families, with low-friction logging.
 ```
 packages/engine   @hh/engine: the pure, versioned scheduling engine (no I/O, no Date objects). ENGINE_VERSION in src/version.ts
 apps/api          @hh/api: Fastify API (auth, roster, schedule data, /api/plan)
-apps/web          @hh/web: Vite + React PWA (This Week, Timeline, Kids, Subjects, Schedule)
+apps/web          @hh/web: Vite + React PWA (Home · Schedule · Records: the week, the year timeline and the log; Set up)
 db/               SQL migrations, runner, seed, demo script, schema validation (db/README.md)
 docs/tickets/     tickets by sprint (Sprint 1, 2a, 2b, 2c, review fixes, timeline)
 docs/REVIEW-GUIDE.md  how to run it and what to look at (start here if you're reviewing)

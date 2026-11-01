@@ -73,7 +73,7 @@ Rough sketch only: thicker bars mean more work per day, the gray band is a break
 
 ### Low-friction logging
 
-> **Now optional modules** (ROADMAP.md, "Optional modules"). The first is **Records**: attendance days, estimated hours, a book list and CSV export, all generated from the plan with no daily input. One-tap check-off becomes a later optional daily checklist. The items below are the original design for logging; the positioning rule still applies to everything.
+> **Records is a main job since Sprint 9** (ROADMAP.md, "Schedule and Records"). Will, 2026-11-01: logging is **configurable** (log setup picks what to track from template styles, never a state), **typed by the parent** (hours and minutes; one entry per child; each entry counts as a school day by default with a visible switch), **never prefilled** ("we don't want to be responsible for a misentered log"), and **separate from the plan** (logging never moves the schedule; the schedule never fills in a log). Old check-ins keep steering the plan but are never log entries. Totals for a range, an export with chosen columns and dates (CSV, no empty columns) and a printable page per child are built. One-tap check-off becomes a later optional daily checklist. The items below are the original design for logging, now superseded where they say "prefilled", "progress fills the bars" or "generated from the plan"; the positioning rule still applies to everything.
 
 1.  **One-tap check-off**: Today's scheduled items with expected time prefilled; tap done, or tap and adjust.
 2.  **Quick add for unplanned learning**: Subject, duration, and an optional note or photo for a museum trip or nature walk.
@@ -86,7 +86,7 @@ Positioning rule: a record-keeping helper, never a compliance solution.
 
 -   Logging supports each family's own process with their state's rules. It is useful for policy adherence because it gives clean hours by subject and child, any date range, and clean CSV and PDF exports.
 -   Nothing claims the logs meet or satisfy a state's requirements: no 'compliant' badges, no green checks, and no 'you're on track for your state' language.
--   Every hour total and export carries a short neutral note: 'A record of logged hours to support your own records. Check your state's requirements.'
+-   Every hour total and export carries this wording (Will, 2026-11-01): "Made for your state records. It doesn't guarantee your homeschool meets every state requirement; check your state's rules."
 
 ## Core data model
 
@@ -319,7 +319,7 @@ Required subjects vary. Examples: Vermont lists reading and writing, math, histo
 | Requirement | States | App feature | Tier |
 | --- | --- | --- | --- |
 | Notice of intent, affidavit, or plan approval | All four high states; VT, ND, WA, MN, MD | Reminders the family sets for their own filing dates, with a link to the state's source; a prefilled summary of each child's plan for the family to edit | Reminders MVP; prefilled summaries premium |
-| Required days or hours | NY, PA, VT, ND, RI | Logged days and hours from the same logs, by child, subject, and date range, with the neutral records note. No comparison with the state's threshold and no on-track status | MVP |
+| Required days or hours | NY, PA, VT, ND, RI | Logged days and hours the parent typed in Records, by child, subject, and date range, with the Records wording. No comparison with the state's threshold and no on-track status | MVP |
 | Required subjects | NY, PA, VT, RI, WA, MN, MD | Optional subject labels the family picks, so totals can group by the subject names they track. No flags or checks saying a subject is covered | Labels MVP; state reference summaries premium |
 | Curriculum plan (IHIP, objectives, approval plan) | NY, PA, MA, RI | A prefilled draft from assignments (materials per subject, planned hours, year length) for the family to review, edit, and file themselves | Premium |
 | Quarterly reports | NY | A quarterly summary of logged hours, material covered, and percent of plan covered per subject, plus space for the family's own notes, to use when writing their report. No pass or fail and no warnings | Premium |
@@ -329,7 +329,7 @@ Required subjects vary. Examples: Vermont lists reading and writing, math, histo
 
 The strongest fit is New York's quarterly report. Because the timeline already knows the plan, the app can summarize logged hours, material covered, and the percent of plan covered per subject. A family can use that summary when writing their own report; the app doesn't say whether the report meets New York's rules.
 
-> **Not legal advice (warning).** Laws change, and districts apply them differently. Each StateProfile should show its source link and last-verified date, every screen with state information should say to check the state's requirements, and hour totals and exports carry the neutral records note. The app describes them as a record that supports the family's own records, never as compliant or as meeting a requirement.
+> **Not legal advice (warning).** Laws change, and districts apply them differently. Each StateProfile should show its source link and last-verified date, every screen with state information should say to check the state's requirements, and hour totals and exports carry the Records wording ("Made for your state records. It doesn't guarantee your homeschool meets every state requirement; check your state's rules."). The app describes them as a record that supports the family's own records, never as compliant or as meeting a requirement.
 
 ## Free vs premium
 

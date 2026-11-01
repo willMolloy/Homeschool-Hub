@@ -9,7 +9,7 @@ export default async function ({ page, login, log, BASE }) {
   };
   await page.goto(`${BASE}/login`, { waitUntil: "networkidle0" }); await run("login");
   await login(); await page.waitForSelector("nav[aria-label=Main]"); await page.waitForSelector("h1"); await run("home");
-  for (const [name, path, ready] of [["track", "/track", "h1"], ["week", "/schedule?view=week", "h1"], ["year", "/schedule?view=year", "svg.tl-svg"], ["setup", "/setup", "h1"]]) {
+  for (const [name, path, ready] of [["records", "/records", "h1"], ["week", "/schedule?view=week", "h1"], ["year", "/schedule?view=year", "svg.tl-svg"], ["setup", "/setup", "h1"]]) {
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle0" }); await page.waitForSelector(ready); await new Promise((r) => setTimeout(r, 400));
     await run(name);
   }
