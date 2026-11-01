@@ -11,7 +11,10 @@
 4. N11: style the leftover native controls on set-up forms (radios in dark, clipped date and select text, the "Usual days" border); replace the word "effort" with the parent's words.
 5. N12: `/timeline?view=x` keeps Year; the old `/schedule` hub link goes to Home.
 6. N13: style the heavy-week line and drop the repeated child name.
-7. N14: Year uses the shared child switch (one child or Both) instead of its own chips.
+7. N14: Year uses the shared child switch instead of its own chips, and the shared switch changes everywhere (Will, 2026-11-01):
+   - The "Both" option is renamed **"All children"** (shown only when the family has 2+ children; it comes first).
+   - When "All children" plus every child's name fits on one line at the current width, show them as chips.
+   - When they don't fit (a big family, or a narrow phone), show one pill with the current choice ("All children ▾" or "Frank ▾") that opens a sheet listing All children and every child. No sideways-scrolling chip row, so no child is hidden off screen.
 
 ## Done when
 - Each item is fixed and has a test.
