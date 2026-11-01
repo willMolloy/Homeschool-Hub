@@ -113,7 +113,7 @@ function PrintSummary({ input }: { input: ExportInput }) {
     <div className="print-summary" aria-hidden="true">
       {input.childIds.map((id) => {
         const mine = exportEntries(input).filter((e) => e.childId === id);
-        const t = totalsFor(mine, coreOf);
+        const t = totalsFor(mine, coreOf, { from: input.start, to: input.end });
         const lines: [string, string][] = [];
         if (want("schoolDays")) lines.push(["School days", String(t.schoolDays)]);
         if (want("subjectHours")) for (const [sid, m] of [...t.bySubject].sort((a, b) => b[1] - a[1])) lines.push([input.subjects.find((s) => s.id === sid)?.name ?? "Subject", formatMinutes(m)]);

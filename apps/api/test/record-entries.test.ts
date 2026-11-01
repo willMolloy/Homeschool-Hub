@@ -51,7 +51,7 @@ describe.skipIf(!hasDb)("/api/log-entries (S9-07, integration)", () => {
     expect(made).toHaveLength(2);
     expect(made.map((e) => e.childId).sort()).toEqual([frank, margaret].sort());
     for (const e of made) {
-      expect(e).toEqual({ id: expect.any(String), childId: expect.any(String), ...WEEK, countsSchoolDay: true, schoolDays: 5, subjectMinutes: { [math]: 210, [reading]: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [] });
+      expect(e).toEqual({ id: expect.any(String), childId: expect.any(String), ...WEEK, countsSchoolDay: true, schoolDays: 5, countedDays: ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"], subjectMinutes: { [math]: 210, [reading]: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [] });
     }
     expect(new Set(made.map((e) => e.id)).size).toBe(2);
     expect((await pool.query("SELECT count(*)::int AS n FROM record_entry WHERE family_id = $1", [a.familyId])).rows[0].n).toBe(2);
@@ -139,7 +139,7 @@ describe.skipIf(!hasDb)("/api/log-entries (S9-07, integration)", () => {
       const e = (await req("POST", "/api/log-entries", { childIds: [frank], ...WEEK, subjectMinutes: { [math]: 60 }, notes: "kept", books: ["Heidi"], homeMinutes: 30 })).json()[0];
       const p = await req("PATCH", `/api/log-entries/${e.id}`, { subjectMinutes: { [math]: 90 }, endDate: "2026-11-04" });
       expect(p.statusCode, p.body).toBe(200);
-      expect(p.json()).toEqual({ ...e, subjectMinutes: { [math]: 90 }, endDate: "2026-11-04", schoolDays: 3 });
+      expect(p.json()).toEqual({ ...e, subjectMinutes: { [math]: 90 }, endDate: "2026-11-04", schoolDays: 3, countedDays: ["2026-11-02", "2026-11-03", "2026-11-04"] });
       expect((await req("PATCH", `/api/log-entries/${e.id}`, { countsSchoolDay: false })).json()).toMatchObject({ countsSchoolDay: false, schoolDays: 0, notes: "kept", books: ["Heidi"], homeMinutes: 30 });
       expect((await req("PATCH", `/api/log-entries/${e.id}`, { notes: null, homeMinutes: null })).json()).toMatchObject({ notes: null, homeMinutes: null, books: ["Heidi"] });
       expect((await req("PATCH", `/api/log-entries/${e.id}`, { totalMinutes: 99999 })).statusCode).toBe(400);

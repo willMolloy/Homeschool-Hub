@@ -61,8 +61,10 @@ export interface RecordEntry {
   startDate: string;
   endDate: string;
   countsSchoolDay: boolean;
-  /** How many days the entry counts (0 when the switch is off). */
+  /** How many days the entry counts (0 when the switch is off), from its dates and the calendar now. */
   schoolDays: number;
+  /** The days it counts, as dates (S9b-01). */
+  countedDays: string[];
   subjectMinutes: Record<string, number>;
   totalMinutes: number | null;
   homeMinutes: number | null;
@@ -76,8 +78,12 @@ export interface RecordTotals {
   from: string | null;
   to: string | null;
   childId: string | null;
+  /** Entries that overlap the range, and how many of them only partly (S9b-01). */
   entries: number;
+  partialEntries: number;
+  /** Distinct school days; under All children, the days any child did school. */
   schoolDays: number;
+  perChild: { childId: string; schoolDays: number }[];
   totalMinutes: number;
   coreMinutes: number;
   nonCoreMinutes: number;

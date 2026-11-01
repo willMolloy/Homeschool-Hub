@@ -15,7 +15,7 @@ import { checkRefs } from "../repos/refs";
 import {
   deleteEntry, insertEntry, listEntries, lockEntry, replaceEntry, stateOf, toJson, type RecordEntryRow, type RecordEntryState,
 } from "../repos/recordEntryRepo";
-import { calendarModel, daysCounted } from "../services/recordEntryService";
+import { calendarModel, countedDays, daysCounted } from "../services/recordEntryService";
 import { totalsOf } from "../services/recordTotals";
 import { recordUndo } from "../services/undoService";
 
@@ -83,15 +83,23 @@ const label = (s: { startDate: string; endDate: string }, who: string) =>
   `${who}'s log for ${s.startDate === s.endDate ? short(s.startDate) : `${short(s.startDate)} to ${short(s.endDate)}`}`;
 
 export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
-  app.get("/api/log-entries", async (req) => (await listEntries(app.db, req.familyId, parseBody(ListQuery, req.query))).map(toJson));
+  /** An entry as the API shows it: its days come from its dates and the calendar as it is now (S9b-01). */
+  const shown = (model: Awaited<ReturnType<typeof calendarModel>>, r: RecordEntryRow) => toJson(r, countedDays(model, r.child_id, r.start_date, r.end_date, r.counts_school_day));
+
+  app.get("/api/log-entries", async (req) => {
+    const rows = await listEntries(app.db, req.familyId, parseBody(ListQuery, req.query));
+    const model = await calendarModel(app.db, req.familyId);
+    return rows.map((r) => shown(model, r));
+  });
 
   /** S9-08: read-only totals for a range (by each entry's first day) and one child or all, from log entries only. */
   app.get("/api/records/totals", async (req) => {
     const q = parseBody(ListQuery, req.query);
-    const entries = await listEntries(app.db, req.familyId, q);
+    const model = await calendarModel(app.db, req.familyId);
+    const entries = (await listEntries(app.db, req.familyId, q)).map((r) => ({ ...r, days: countedDays(model, r.child_id, r.start_date, r.end_date, r.counts_school_day) }));
     const { rows } = await app.db.query<{ id: string; core: boolean }>("SELECT id, core FROM subject WHERE family_id = $1", [req.familyId]);
     const core = new Map(rows.map((r) => [r.id, r.core]));
-    return { from: q.from ?? null, to: q.to ?? null, childId: q.childId ?? null, ...totalsOf(entries, (id) => core.get(id) ?? false) };
+    return { from: q.from ?? null, to: q.to ?? null, childId: q.childId ?? null, ...totalsOf(entries, (id) => core.get(id) ?? false, { from: q.from, to: q.to }) };
   });
 
   app.post("/api/log-entries", async (req, reply) => {
@@ -103,6 +111,7 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
       totalMinutes: b.totalMinutes ?? null, homeMinutes: b.homeMinutes ?? null, awayMinutes: b.awayMinutes ?? null, notes: b.notes ?? null, books: b.books ?? [],
     };
     checkHours(base);
+    const model0 = await calendarModel(app.db, req.familyId);
     const rows = await withTransaction(app.db, async (tx) => {
       await checkRefs(tx, req.familyId, { childIds: b.childIds });
       await checkSubjects(tx, req.familyId, Object.keys(base.subjectMinutes));
@@ -113,7 +122,7 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
       }
       return made;
     });
-    return reply.code(201).send(rows.map(toJson));
+    return reply.code(201).send(rows.map((r) => shown(model0, r)));
   });
 
   app.patch<{ Params: { id: string } }>("/api/log-entries/:id", async (req) => {
@@ -144,7 +153,7 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
         const who = (await tx.query<{ name: string }>("SELECT name FROM child WHERE id = $1", [cur.child_id])).rows[0]?.name ?? "Child";
         await recordUndo(tx, req.familyId, `Changed ${label(before, who)}`, [{ op: "logEntry", id: cur.id, set: before }]);
       }
-      return toJson(after);
+      return shown(await calendarModel(tx, req.familyId), after);
     });
   });
 

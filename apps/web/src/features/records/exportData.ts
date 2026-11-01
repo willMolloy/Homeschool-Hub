@@ -41,24 +41,42 @@ export const entryMinutes = (e: RecordEntry): number => {
 
 export interface Totals { schoolDays: number; totalMinutes: number; coreMinutes: number; nonCoreMinutes: number; homeMinutes: number; awayMinutes: number; books: string[]; bySubject: Map<string, number> }
 const norm = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
+export interface Span { from?: string; to?: string }
+const within = (d: string, r: Span) => (!r.from || d >= r.from) && (!r.to || d <= r.to);
+const dayNo = (d: string) => Date.parse(`${d}T00:00:00Z`) / 86_400_000;
 
-/** The same sums as the API's totals, for the export's own rows. A family's totals show the most school days any one child logged. */
-export function totalsFor(entries: readonly RecordEntry[], coreOf: (id: string) => boolean): Totals {
-  const days = new Map<string, number>();
+/** The share of an entry's typed time inside the range (S9b-01): all of it when it fits, else its school days inside over all of its school days (calendar days when it has none). */
+export function shareInRange(e: RecordEntry, r: Span): number {
+  if ((!r.from || e.startDate >= r.from) && (!r.to || e.endDate <= r.to)) return 1;
+  if (e.countedDays.length > 0) return e.countedDays.filter((d) => within(d, r)).length / e.countedDays.length;
+  const lo = r.from && r.from > e.startDate ? r.from : e.startDate;
+  const hi = r.to && r.to < e.endDate ? r.to : e.endDate;
+  return hi < lo ? 0 : (dayNo(hi) - dayNo(lo) + 1) / (dayNo(e.endDate) - dayNo(e.startDate) + 1);
+}
+
+/** The same sums as the API's totals (apps/api services/recordTotals.ts), for the export's own rows: distinct school days, hours in proportion inside the range. */
+export function totalsFor(entries: readonly RecordEntry[], coreOf: (id: string) => boolean, range: Span = {}): Totals {
+  const days = new Set<string>();
   const books = new Map<string, string>();
   const t: Totals = { schoolDays: 0, totalMinutes: 0, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [], bySubject: new Map() };
   for (const e of [...entries].sort((a, b) => a.startDate.localeCompare(b.startDate))) {
-    days.set(e.childId, (days.get(e.childId) ?? 0) + e.schoolDays);
+    const share = shareInRange(e, range);
+    if (share <= 0) continue;
+    for (const d of e.countedDays) if (within(d, range)) days.add(d);
+    const part = (m: number) => Math.round(m * share);
+    let hours = 0;
     for (const [id, m] of Object.entries(e.subjectMinutes)) {
-      t.bySubject.set(id, (t.bySubject.get(id) ?? 0) + m);
-      if (coreOf(id)) t.coreMinutes += m; else t.nonCoreMinutes += m;
+      const p = part(m);
+      hours += p;
+      t.bySubject.set(id, (t.bySubject.get(id) ?? 0) + p);
+      if (coreOf(id)) t.coreMinutes += p; else t.nonCoreMinutes += p;
     }
-    t.totalMinutes += entryMinutes(e);
-    t.homeMinutes += e.homeMinutes ?? 0;
-    t.awayMinutes += e.awayMinutes ?? 0;
+    t.totalMinutes += Object.keys(e.subjectMinutes).length > 0 ? hours : part(e.totalMinutes ?? 0);
+    t.homeMinutes += part(e.homeMinutes ?? 0);
+    t.awayMinutes += part(e.awayMinutes ?? 0);
     for (const b of e.books) if (!books.has(norm(b))) books.set(norm(b), b);
   }
-  t.schoolDays = Math.max(0, ...days.values());
+  t.schoolDays = days.size;
   t.books = [...books.values()];
   return t;
 }
@@ -77,10 +95,10 @@ export interface ExportInput {
 
 export interface Table { header: string[]; rows: (string | number)[][] }
 
-/** The entries an export covers: first day in the dates, for the chosen children, oldest first (then by child name). */
+/** The entries an export covers: any that overlap the dates, for the chosen children, oldest first (then by child name). */
 export function exportEntries(i: ExportInput): RecordEntry[] {
   const name = (id: string) => i.children.find((c) => c.id === id)?.name ?? "";
-  return i.entries.filter((e) => e.startDate >= i.start && e.startDate <= i.end && i.childIds.includes(e.childId))
+  return i.entries.filter((e) => e.endDate >= i.start && e.startDate <= i.end && i.childIds.includes(e.childId))
     .sort((a, b) => a.startDate.localeCompare(b.startDate) || name(a.childId).localeCompare(name(b.childId)));
 }
 
@@ -96,7 +114,7 @@ export function buildTable(i: ExportInput): Table {
   type Row = { child: string; entry?: RecordEntry; totals: Totals };
   const rows: Row[] = i.mode === "entries"
     ? exportEntries(i).map((e) => ({ child: name(e.childId), entry: e, totals: totalsFor([e], coreOf) }))
-    : i.childIds.map((id) => ({ child: name(id), totals: totalsFor(exportEntries(i).filter((e) => e.childId === id), coreOf) }));
+    : i.childIds.map((id) => ({ child: name(id), totals: totalsFor(exportEntries(i).filter((e) => e.childId === id), coreOf, { from: i.start, to: i.end }) }));
   const cols: Col[] = [];
   if (i.mode === "entries") {
     cols.push({ head: "Date", cell: (r) => r.entry!.startDate, always: true });

@@ -5,9 +5,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FamilySettings, LogFields, RecordEntry, Subject } from "../src/api/types";
 import { NO_FIELDS } from "../src/features/records/logSetup";
-import { availableColumns, buildCsv, buildTable, csvCell, csvFileName, exportEntries, hoursText, totalsFor, type ExportInput } from "../src/features/records/exportData";
+import { availableColumns, shareInRange, buildCsv, buildTable, csvCell, csvFileName, exportEntries, hoursText, totalsFor, type ExportInput } from "../src/features/records/exportData";
 import { RECORDS_WORDING } from "../src/features/records/wording";
 import { fakeApi } from "./helpers/fake-api";
+import { daysOf } from "./helpers/entry-days";
 import { renderAt } from "./render";
 
 const KIDS = [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }, { id: "c2", name: "Margaret", color: null, sortOrder: 1, archived: false }];
@@ -16,7 +17,7 @@ const SUBJECTS: Subject[] = [
   { id: "art", name: "Art", color: null, sortOrder: 1, archived: false, defaultWeight: null, defaultWeekdays: null, core: false },
   { id: "bad", name: "=HYPERLINK(\"x\")", color: null, sortOrder: 2, archived: false, defaultWeight: null, defaultWeekdays: null },
 ];
-const e = (over: Partial<RecordEntry>): RecordEntry => ({ id: "e", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-02", countsSchoolDay: true, schoolDays: 1, subjectMinutes: {}, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
+const e = (over: Partial<RecordEntry>): RecordEntry => ({ id: "e", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-02", countsSchoolDay: true, schoolDays: 1, countedDays: daysOf(over.startDate ?? "2026-11-02", over.endDate ?? over.startDate ?? "2026-11-02", over.countsSchoolDay ?? true), subjectMinutes: {}, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
 const ENTRIES = [
   e({ id: "1", startDate: "2026-11-02", endDate: "2026-11-06", schoolDays: 5, subjectMinutes: { math: 210, art: 90 }, notes: "=HYPERLINK(\"http://x\",\"hi\")", books: ["Heidi"] }),
   e({ id: "2", childId: "c2", startDate: "2026-11-02", endDate: "2026-11-06", schoolDays: 5, subjectMinutes: { math: 120 }, homeMinutes: 60, notes: "plain, with comma" }),
@@ -118,8 +119,23 @@ function stub(fields = ALLF, entries = ENTRIES) {
   fakeApi.on("GET /api/children", 200, KIDS);
   fakeApi.on("GET /api/assignments", 200, [{ id: "a1", subjectId: "math", title: "Math 5", startDate: "2026-08-31", endDate: "2027-05-28", childIds: ["c1"], archived: false }]);
   fakeApi.on("GET /api/log-entries", 200, entries);
-  fakeApi.on("GET /api/records/totals", 200, { from: null, to: null, childId: null, entries: 1, schoolDays: 1, totalMinutes: 60, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [], bySubject: [] });
+  fakeApi.on("GET /api/records/totals", 200, { from: null, to: null, childId: null, entries: 1, partialEntries: 0, schoolDays: 1, perChild: [], totalMinutes: 60, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [], bySubject: [] });
 }
+
+describe("school days in the totals are real days (S9b-01)", () => {
+  it("two entries on one day count once, a part of a run counts only its days and the same share of its hours", () => {
+    const twice = [e({ id: "a", startDate: "2026-11-02" }), e({ id: "b", startDate: "2026-11-02", subjectMinutes: { math: 30 } })];
+    expect(totalsFor(twice, () => false).schoolDays).toBe(1);
+    const run = e({ startDate: "2026-11-02", endDate: "2026-11-06", subjectMinutes: { math: 600 } });
+    const t = totalsFor([run], (id) => id === "math", { from: "2026-11-04", to: "2026-11-05" });
+    expect([t.schoolDays, t.totalMinutes, t.coreMinutes]).toEqual([2, 240, 240]);
+    expect(shareInRange(run, { from: "2026-11-04", to: "2026-11-05" })).toBeCloseTo(0.4);
+  });
+  it("Totals rows cover the entries that overlap the dates", () => {
+    const t = buildTable(input({ mode: "totals", start: "2026-11-04", end: "2026-11-05", columns: ["schoolDays", "totalHours"], childIds: ["c1"] }));
+    expect(t.rows).toEqual([["Frank", 2, "2"]]);
+  });
+});
 
 describe("the export sheet", () => {
   let blobs: Blob[] = [];

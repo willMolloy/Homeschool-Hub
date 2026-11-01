@@ -10,6 +10,7 @@ import { rangeOptions } from "../src/features/records/ranges";
 import { bigNumbers } from "../src/features/records/Totals";
 import { RECORDS_WORDING } from "../src/features/records/wording";
 import { fakeApi } from "./helpers/fake-api";
+import { daysOf } from "./helpers/entry-days";
 import { renderAt } from "./render";
 
 const KIDS = [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }, { id: "c2", name: "Margaret", color: null, sortOrder: 1, archived: false }];
@@ -17,8 +18,8 @@ const sub = (id: string, name: string): Subject => ({ id, name, color: null, sor
 const SUBJECTS = [sub("math", "Math"), sub("read", "Reading")];
 const ASSIGNMENTS = [{ id: "a1", subjectId: "math", title: "Math 5", startDate: "2026-08-31", endDate: "2027-05-28", childIds: ["c1"], archived: false }];
 const NONE: ZoomViews = { hidden: [], custom: [] };
-const totals = (over: Partial<RecordTotals> = {}): RecordTotals => ({ from: null, to: null, childId: null, entries: 1, schoolDays: 5, totalMinutes: 330, coreMinutes: 210, nonCoreMinutes: 120, homeMinutes: 90, awayMinutes: 30, books: ["Heidi"], bySubject: [{ subjectId: "math", minutes: 210 }, { subjectId: "read", minutes: 120 }], ...over });
-const entry = (over: Partial<RecordEntry> = {}): RecordEntry => ({ id: "e1", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-06", countsSchoolDay: true, schoolDays: 5, subjectMinutes: { math: 210, read: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
+const totals = (over: Partial<RecordTotals> = {}): RecordTotals => ({ from: null, to: null, childId: null, entries: 1, partialEntries: 0, schoolDays: 5, perChild: [], totalMinutes: 330, coreMinutes: 210, nonCoreMinutes: 120, homeMinutes: 90, awayMinutes: 30, books: ["Heidi"], bySubject: [{ subjectId: "math", minutes: 210 }, { subjectId: "read", minutes: 120 }], ...over });
+const entry = (over: Partial<RecordEntry> = {}): RecordEntry => ({ id: "e1", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-06", countsSchoolDay: true, schoolDays: 5, countedDays: daysOf(over.startDate ?? "2026-11-02", over.endDate ?? "2026-11-06"), subjectMinutes: { math: 210, read: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
 const ALLF: LogFields = { subjectHours: true, coreSplit: true, totalHours: false, schoolDays: true, homeAway: true, notes: false, books: true };
 const setupOf = (fields: LogFields): LogSetup => ({ template: "custom", fields });
 const family = (logSetup: LogSetup, zoomViews: ZoomViews = NONE): FamilySettings => ({ name: "F", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false, zoomViews, logSetup });
@@ -122,8 +123,27 @@ describe("Records with entries", () => {
     stub({ ...NO_FIELDS, schoolDays: true });
     renderAt("/records");
     const nums = within(await screen.findByRole("group", { name: "Totals" }));
-    expect(nums.getAllByText(/school days|hours|books?/).map((e) => e.textContent)).toEqual(["school days"]);
+    expect(nums.getAllByText(/days|hours|books?/).map((e) => e.textContent)).toEqual(["days any child did school"]);
     expect(screen.queryByRole("region", { name: "Hours by subject" })).toBeNull();
+  });
+});
+
+describe("school days are real days (S9b-01)", () => {
+  it("one child says school days; All children says days any child did school, with each child's own count; a part entry says so", async () => {
+    stub(ALLF, [entry({ startDate: "2026-11-02", endDate: "2026-11-06" })]);
+    fakeApi.on("GET /api/records/totals", (_b, _p, q) => [200, totals({ childId: q.get("childId"), perChild: [{ childId: "c1", schoolDays: 4 }, { childId: "c2", schoolDays: 3 }], schoolDays: 5, partialEntries: 1 })]);
+    const user = userEvent.setup();
+    renderAt("/records");
+    const nums = within(await screen.findByRole("group", { name: "Totals" }));
+    expect(nums.getByText("days any child did school")).toBeInTheDocument();
+    expect(screen.getByText("Frank 4 days · Margaret 3 days")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Frank" }));
+    expect(await within(await screen.findByRole("group", { name: "Totals" })).findByText("school days")).toBeInTheDocument();
+    expect(screen.queryByText(/Frank 4 days/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Custom dates" }));
+    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-11-04" } });
+    fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-11-05" } });
+    expect(await screen.findByText("Part of an entry from Nov 2 to Nov 6")).toBeInTheDocument();
   });
 });
 

@@ -23,7 +23,7 @@ import { trackedWords } from "./logSetup";
 import { rangeOptions } from "./ranges";
 import { Totals } from "./Totals";
 import { RECORDS_WORDING } from "./wording";
-import { formatRangeYears } from "../../lib/dates";
+import { formatRangeYears, formatShort } from "../../lib/dates";
 import "./records.css";
 
 export function RecordsPage() {
@@ -66,7 +66,7 @@ export function RecordsPage() {
     );
   }
   const refresh = () => { entries.reload(); totals.reload(); };
-  const inRange = entries.data.filter((e) => range && e.startDate >= range.start && e.startDate <= range.end && (childId === null || e.childId === childId));
+  const inRange = entries.data.filter((e) => range && e.endDate >= range.start && e.startDate <= range.end && (childId === null || e.childId === childId));
   const nameOf = (id: string) => children.data!.find((c) => c.id === id)?.name ?? "Child";
   const remove = async (e: RecordEntry) => {
     setError(null);
@@ -96,7 +96,7 @@ export function RecordsPage() {
           <p className="range-note">{range ? formatRangeYears(range.start, range.end) : "Pick the first and last day."}</p>
           {range ? (
             <>
-              <Totals totals={totals.data} fields={setup.fields} subjects={subjects.data} />
+              <Totals totals={totals.data} fields={setup.fields} subjects={subjects.data} anyChild={childId === null && kids.length > 1} childName={nameOf} />
               {error ? <p className="form-error" role="alert">{error}</p> : null}
               {inRange.length === 0 ? <p className="records-lead">Nothing logged in these dates.</p> : (
                 <ul className="entry-list" aria-label="Log entries">
@@ -104,6 +104,7 @@ export function RecordsPage() {
                     <li key={e.id} className="entry-row">
                       <div className="entry-head">{dayWords(e)} · {nameOf(e.childId)}</div>
                       <p className="entry-sum">{summaryOf(e, subjects.data!)}</p>
+                      {range && (e.startDate < range.start || e.endDate > range.end) ? <p className="entry-part">Part of an entry from {formatShort(e.startDate)} to {formatShort(e.endDate)}</p> : null}
                       <div className="entry-actions">
                         <Button variant="quiet" aria-label={`Edit ${nameOf(e.childId)}, ${dayWords(e)}`} onClick={() => setLogging(e)}>Edit</Button>
                         <Button variant="quiet" aria-label={`Delete ${nameOf(e.childId)}, ${dayWords(e)}`} onClick={() => void remove(e)}>Delete</Button>

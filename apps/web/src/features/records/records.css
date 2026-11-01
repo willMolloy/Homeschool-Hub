@@ -66,3 +66,5 @@
   .print-page th { font-weight: 700; width: 38%; }
   .print-wording { margin-top: 18pt; font-size: 9pt; }
 }
+.per-child-days { margin: -8px 0 16px; color: var(--tl-muted-foreground); font-size: 0.875rem; }
+.entry-part { margin: 0 0 6px; font-size: 0.8125rem; font-style: italic; color: var(--tl-muted-foreground); }
