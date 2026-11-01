@@ -7,7 +7,7 @@ import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
 import { ALL_LABEL, ChildSwitch, chipsWidth } from "../src/features/week/ChildSwitch";
 import { ALL } from "../src/features/week/useChildChoice";
 import { fakeApi, EMPTY_WEEK } from "./helpers/fake-api";
-import { renderAt } from "./render";
+import { renderAt, renderTrack } from "./render";
 
 const KIDS = [
   { id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false },
@@ -34,15 +34,16 @@ describe("N7: a Week bar's name is its visible text", () => {
   });
 });
 
-describe("N9: Home says Nothing planned, not All done, for a child with nothing this week", () => {
-  it("shows it for every child of a family with children and no assignments", async () => {
+describe("N9 (S9-01): Home no longer has per-child progress, so it cannot say All done next to a check-in nudge", () => {
+  it("a family with children and no assignments sees neither line", async () => {
     fakeApi.on("GET /api/children", 200, KIDS);
     fakeApi.on("GET /api/subjects", 200, []);
     fakeApi.on("GET /api/assignments", 200, []);
     fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "x", to: "y", plans: [] });
     renderAt("/");
-    expect(await screen.findAllByText("Nothing planned")).toHaveLength(2);
+    expect(await within(await screen.findByRole("main")).findByRole("link", { name: "Records" })).toBeInTheDocument();
     expect(screen.queryByText("All done")).toBeNull();
+    expect(screen.queryByText("Nothing planned")).toBeNull();
   });
 });
 
@@ -55,7 +56,7 @@ describe("N10: after Not quite one line says what to do", () => {
     fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "x", from: "x", to: "y", plans: [] });
     fakeApi.on("GET /api/check-ins", 200, week);
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     expect(screen.queryByText(/Untick what didn't get done/)).toBeNull();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     expect(await screen.findByText("Untick what didn't get done, or tap a bar to update it.")).toBeInTheDocument();

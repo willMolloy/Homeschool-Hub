@@ -12,7 +12,7 @@ export interface AppShellProps {
   contentKey?: number;
 }
 
-/** S8-04: the page and the bottom bar (Home, Track work, Schedule: names and icons live in `nav.tsx`). No header: Home holds the logo and the family button. */
+/** S8-04: the page and the bottom bar (Home, Schedule, Records: names and icons live in `nav.tsx`). No header: Home holds the logo and the family button. */
 export function AppShell({ footer, banner, contentKey }: AppShellProps) {
   return (
     <div className="shell">

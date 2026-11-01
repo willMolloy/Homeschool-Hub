@@ -7,7 +7,7 @@ import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
 import type { CheckInItem, WeekCheckIn } from "../src/api/types";
 import { endChoices, shiftSchoolDays } from "../src/features/track/endDates";
 import { fakeApi } from "./helpers/fake-api";
-import { renderAt } from "./render";
+import { renderAt, renderTrack } from "./render";
 
 const item = (over: Partial<CheckInItem>): CheckInItem => ({
   assignmentId: "ti", childId: "c1", childName: "Frank", title: "Treasure Island", unitType: "pages",
@@ -62,7 +62,7 @@ beforeEach(() => { stub(); localStorage.clear(); });
 
 describe("Track work: the one question", () => {
   it("opens on last week's question, with the dates, and no bars until Not quite", async () => {
-    renderAt("/track");
+    renderTrack();
     const card = await screen.findByRole("region", { name: "Last week's check-in" });
     expect(within(card).getByRole("heading", { name: "Last week · 19 Oct – 25 Oct" })).toBeInTheDocument();
     expect(within(card).getByText("Did everything get done?")).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe("Track work: the one question", () => {
 
   it("Yes, all done checks in the week as planned with one tap, once", async () => {
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Yes, all done" }));
     expect(await screen.findByRole("status")).toHaveTextContent("Thanks!");
     expect(puts()).toHaveLength(1);
@@ -83,28 +83,28 @@ describe("Track work: the one question", () => {
 
   it("the card stays until answered: it is there on every visit, and Not quite does not answer it", async () => {
     const user = userEvent.setup();
-    const first = renderAt("/track");
+    const first = renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     expect(puts()).toHaveLength(0);
     first.unmount();
-    renderAt("/track");
+    renderTrack();
     expect(await screen.findByRole("region", { name: "Last week's check-in" })).toBeInTheDocument();
   });
 
   it("an answered week shows no question, and a week with nothing planned says so", async () => {
     stub({ ...WEEK, status: "reviewed" });
-    const first = renderAt("/track");
+    const first = renderTrack();
     await frankBars();
     expect(screen.queryByRole("button", { name: "Yes, all done" })).toBeNull();
     first.unmount();
     stub({ ...WEEK, items: [], status: null });
-    renderAt("/track");
+    renderTrack();
     expect(await screen.findByText(/Nothing was planned last week/)).toBeInTheDocument();
   });
 
   it("one child at a time: All children, Frank or Margaret", async () => {
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     await frankBars();
     expect(screen.queryByRole("region", { name: "Margaret's last week" })).toBeNull();
@@ -119,7 +119,7 @@ describe("Track work: the one question", () => {
 describe("Track work: the checks", () => {
   it("every bar starts checked (the plan assumed it was done); unchecking one is 'didn't get to it'", async () => {
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     const bars = await frankBars();
     for (const n of ["Treasure Island completed", "Math 5 completed"]) expect(bars.getByRole("button", { name: n })).toHaveAttribute("aria-pressed", "true");
@@ -134,7 +134,7 @@ describe("Track work: the checks", () => {
 
   it("Save check-in after Not quite with nothing changed saves the week as planned", async () => {
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     await user.click(await screen.findByRole("button", { name: "Save check-in" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
@@ -144,7 +144,7 @@ describe("Track work: the checks", () => {
   it("a 400 shows on its bar and the board stays", async () => {
     const user = userEvent.setup();
     fakeApi.on(PUT, 400, { error: "invalid_request", message: "items.0.position: can't be more than the total (270)." });
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     await user.click((await frankBars()).getByRole("button", { name: "Treasure Island completed" }));
     await user.click(screen.getByRole("button", { name: "Save check-in" }));
@@ -155,7 +155,7 @@ describe("Track work: the checks", () => {
   it("Add progress on something else adds a bar for it", async () => {
     const user = userEvent.setup();
     stub({ ...WEEK, addable: [item({ assignmentId: "sci", title: "Science 5", unitType: "lessons", plannedFrom: 22, plannedTo: 22, totalUnits: 100 })] });
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     await user.click(await screen.findByRole("button", { name: "Add progress on something else" }));
     await user.click(screen.getByRole("button", { name: "Frank — Science 5" }));
@@ -166,7 +166,7 @@ describe("Track work: the checks", () => {
 describe("Update status", () => {
   it("Fell behind, got to p. 38, move to the computed date: saves pushEndDate", async () => {
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     const sheet = within(await openBar(user, /Treasure Island pages 1–80/));
     expect(sheet.getByText("How did it go?")).toBeInTheDocument();
@@ -191,7 +191,7 @@ describe("Update status", () => {
 
   it("Keep is the default: the end stays and the remaining days get heavier", async () => {
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     const sheet = within(await openBar(user, /Treasure Island pages/));
     await user.click(sheet.getByRole("button", { name: "Fell behind" }));
@@ -204,7 +204,7 @@ describe("Update status", () => {
 
   it("Got ahead offers a lighter end, with an earlier date to move to", async () => {
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     const sheet = within(await openBar(user, /Treasure Island pages/));
     const got = sheet.getByRole("spinbutton", { name: "page reached" });
@@ -217,7 +217,7 @@ describe("Update status", () => {
 
   it("finishing sends no mode and asks nothing about the end date", async () => {
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     const sheet = within(await openBar(user, /Treasure Island pages/));
     const got = sheet.getByRole("spinbutton", { name: "page reached" });
@@ -233,7 +233,7 @@ describe("Update status", () => {
 
   it("As planned puts it back, − and + step, and Cancel changes nothing", async () => {
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     const sheet = within(await openBar(user, /Math 5 lessons 11–15/));
     await user.click(sheet.getByRole("button", { name: "One less" }));
@@ -251,7 +251,7 @@ describe("Update status", () => {
   it("a stored answer is prefilled when an answered week is reopened", async () => {
     const user = userEvent.setup();
     stub({ ...WEEK, status: "reviewed", items: [item({ actual: 40, mode: "pushEndDate" }), MATH, VIOLIN] });
-    renderAt("/track");
+    renderTrack();
     expect((await frankBars()).getByText("40 of 80 pp.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save check-in" })).toBeNull(); // nothing changed yet
     const sheet = within(await openBar(user, /Treasure Island pages/));
@@ -304,7 +304,7 @@ describe("a phone at 360 px (S7b re-test R1)", () => {
   });
   it("the check sits beside the title, in the same row of the bar", async () => {
     const user = userEvent.setup();
-    renderAt("/track");
+    renderTrack();
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     const bar = (await frankBars()).getByRole("button", { name: "Math 5 completed" }).closest("li")!;
     expect(bar.querySelector(".bar-title")).not.toBeNull();

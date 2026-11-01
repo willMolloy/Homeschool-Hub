@@ -1,9 +1,10 @@
 /**
  * S8-04: the app's tabs and Set up links, in one place, so DeeDee's choice of names and tabs changes here only.
- * (Decided by Will, 2026-10-31: Home, Track work, Schedule; Schedule holds a Week | Year switch.)
+ * S9-01 (Will, 2026-11-01): the two main jobs are Schedule and Records: Home, Schedule, Records. Schedule holds a Week | Year switch
+ * and the optional weekly check-in; Records is attendance, estimated hours and books.
  */
 import type { Icon } from "@phosphor-icons/react";
-import { CheckSquare, House, ListBullets } from "@phosphor-icons/react";
+import { House, ListBullets, Notebook } from "@phosphor-icons/react";
 
 export interface Tab {
   to: string;
@@ -15,8 +16,8 @@ export interface Tab {
 
 export const TABS: readonly Tab[] = [
   { to: "/", label: "Home", icon: House, end: true },
-  { to: "/track", label: "Track work", icon: CheckSquare },
   { to: "/schedule", label: "Schedule", icon: ListBullets },
+  { to: "/records", label: "Records", icon: Notebook },
 ];
 
 export interface SetupLink {
@@ -36,6 +37,8 @@ export const SETUP_LINKS: readonly SetupLink[] = [
 
 /** Old routes and where they land now (S8-04). A search string is kept. */
 export const REDIRECTS: readonly { from: string; to: string }[] = [
+  // S9-01: Track work is no longer a page; its check-in lives in Schedule · Week.
+  { from: "/track", to: "/schedule?view=week" },
   { from: "/timeline", to: "/schedule?view=year" },
   { from: "/kids", to: "/setup/children" },
   { from: "/subjects", to: "/setup/subjects" },

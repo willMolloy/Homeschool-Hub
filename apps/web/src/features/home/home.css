@@ -18,14 +18,6 @@
 .home-chevron { color: var(--tl-muted-foreground); flex: none; }
 .home-icon { width: 44px; height: 44px; border-radius: var(--tl-radius-bar); background: var(--tl-primary-soft); color: var(--tl-primary); display: inline-grid; place-items: center; flex: none; }
 .home-icon-small { width: 36px; height: 36px; }
-.home-progress { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-.home-progress:first-of-type { margin-top: 16px; }
-.home-kid { width: 68px; font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.home-track { flex: 1; height: 8px; border-radius: 99px; background: var(--tl-border); overflow: hidden; }
-.home-track i { display: block; height: 100%; border-radius: 99px; background: var(--tl-primary); transition: width var(--tl-motion) ease-out; }
-.home-left { font-size: 0.8125rem; color: var(--tl-muted-foreground); min-width: 4.2em; text-align: right; }
-.home-note { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 0.8125rem; }
-.home-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--tl-primary); flex: none; }
 .home-mini { position: relative; display: grid; gap: 4px; margin: 14px 0 4px; }
 .home-mini span { display: block; height: 8px; border-radius: 99px; }
 .home-today { position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: 2px; background: var(--tl-today); }

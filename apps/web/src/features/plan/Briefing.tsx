@@ -105,7 +105,7 @@ function writeKept(kept: Record<string, string>): void {
   } catch { /* the choice just isn't remembered */ }
 }
 
-/** `showNudge` false (Home): the "last week isn't checked in" line is Home's Track work card instead. */
+/** `showNudge` false (Home): the "last week isn't checked in" line is Home's own business. */
 export function Briefing({ weekStart, showNudge = true }: { weekStart: LocalDate; showNudge?: boolean }) {
   const assignments = useApi<Assignment[]>("/api/assignments");
   const children = useApi<Child[]>("/api/children");
@@ -163,7 +163,7 @@ function BriefingBody({ assignments, children, weekStart, nudge }: BodyProps) {
   return (
     <section className="briefing" aria-label="Weekly briefing">
       {groups.map((g) => <ChildLines key={g.childId} group={g} onKeep={keep} onMoved={invalidate} />)}
-      {nudge ? <p className="briefing-line"><Link to="/track">{NUDGE_TEXT}</Link></p> : null}
+      {nudge ? <p className="briefing-line"><Link to="/schedule?view=week">{NUDGE_TEXT}</Link></p> : null}
     </section>
   );
 }

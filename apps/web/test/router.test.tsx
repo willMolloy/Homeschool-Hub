@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { renderAt } from "./render";
 
 describe("routes", () => {
-  it.each([["/login", "Sign in"], ["/schedule", "Schedule"], ["/track", "Track work"], ["/setup", "Set up"], ["/setup/children", "Children"], ["/setup/subjects", "Subjects"]])("%s shows %s", async (path, name) => {
+  it.each([["/login", "Sign in"], ["/schedule", "Schedule"], ["/records", "Records"], ["/setup", "Set up"], ["/setup/children", "Children"], ["/setup/subjects", "Subjects"]])("%s shows %s", async (path, name) => {
     renderAt(path);
     // Several screens fetch before their title shows; give a loaded machine room (the gate runs suites in parallel).
     expect(await screen.findByRole("heading", { name }, { timeout: 5000 })).toBeInTheDocument();
@@ -17,11 +17,16 @@ describe("routes", () => {
   it.each([
     ["/kids", "/setup/children"], ["/subjects", "/setup/subjects"], ["/schedule/assignments", "/setup/assignments"],
     ["/schedule/days-off", "/setup/days-off"], ["/schedule/events", "/setup/events"], ["/schedule/settings", "/setup/settings"],
-    ["/timeline", "/schedule"], ["/timeline?child=c1&zoom=fall", "/schedule"],
+    ["/track", "/schedule"], ["/track?week=2026-10-19", "/schedule"], ["/timeline", "/schedule"], ["/timeline?child=c1&zoom=fall", "/schedule"],
   ])("old link %s lands on %s", async (from, to) => {
     const { router } = renderAt(from);
     await screen.findByRole("navigation", { name: "Main" });
     expect(router.state.location.pathname).toBe(to);
+    // S9-01: an old Track work link lands on Schedule · Week, keeping its query.
+    if (from.startsWith("/track")) {
+      expect(router.state.location.search).toContain("view=week");
+      if (from.includes("week=")) expect(router.state.location.search).toContain("week=2026-10-19");
+    }
     if (from.startsWith("/timeline")) {
       expect(router.state.location.search).toContain("view=year");
       if (from.includes("child=c1")) expect(router.state.location.search).toContain("child=c1");

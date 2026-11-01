@@ -14,7 +14,7 @@ import { KidsPage } from "./routes/KidsPage";
 import { LoginPage } from "./routes/LoginPage";
 import { NotFoundPage } from "./routes/NotFoundPage";
 import { SubjectsPage } from "./routes/SubjectsPage";
-import { TrackPage } from "./routes/TrackPage";
+import { RecordsPage } from "./features/records/RecordsPage";
 
 function Root() {
   return (
@@ -54,8 +54,8 @@ export const routes: RouteObject[] = [
         ),
         children: [
           { path: "/", element: <HomePage /> },
-          { path: "/track", element: <TrackPage /> },
           { path: "/schedule", element: <SchedulePage /> },
+          { path: "/records", element: <RecordsPage /> },
           { path: "/setup", element: <SetupPage /> },
           { path: "/setup/children", element: <KidsPage /> },
           { path: "/setup/subjects", element: <SubjectsPage /> },

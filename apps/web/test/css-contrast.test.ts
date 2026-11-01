@@ -23,8 +23,6 @@ const NON_TEXT = new Set([
   ".confirm-dialog::backdrop",
   ".sheet-backdrop",
   ".swatch-chip",
-  ".home-track i",
-  ".home-dot",
   ".home-today",
 ]);
 /** Translucent backgrounds, with the colour they sit on. */

@@ -223,23 +223,7 @@ describe("Weekly briefing on This Week (S4-09)", () => {
     stub([], { weeks: WEEKS_CHECKED, lastWeek: LAST_WEEK });
     renderAt("/schedule?view=week");
     const link = await screen.findByRole("link", { name: "Last week isn't checked in yet." });
-    expect(link).toHaveAttribute("href", "/track");
-  });
-
-  it("the nudge takes you to Track work, and goes once last week is confirmed there", async () => {
-    stub([], { weeks: WEEKS_CHECKED, lastWeek: LAST_WEEK });
-    fakeApi.on("PUT /api/check-ins/2026-10-19", () => {
-      fakeApi.on("GET /api/check-ins", 200, { ...LAST_WEEK, status: "reviewed" });
-      return [200, { ...LAST_WEEK, status: "reviewed", planChanged: false }];
-    });
-    const user = userEvent.setup();
-    const { router } = renderAt("/schedule?view=week");
-    await user.click(await screen.findByRole("link", { name: "Last week isn't checked in yet." }));
-    expect(router.state.location.pathname).toBe("/track");
-    await user.click(await screen.findByRole("button", { name: "Yes, all done" }));
-    await user.click(within(screen.getByRole("navigation", { name: "Main" })).getByRole("link", { name: "Schedule" }));
-    await screen.findAllByRole("heading", { name: /'s work$/ });
-    await waitFor(() => expect(screen.queryByRole("link", { name: "Last week isn't checked in yet." })).toBeNull());
+    expect(link).toHaveAttribute("href", "/schedule?view=week");
   });
 
   it("never nudges a family that has not checked in before, or when last week is done", async () => {
