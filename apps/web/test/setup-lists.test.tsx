@@ -34,6 +34,27 @@ describe("list rows", () => {
   });
 });
 
+describe("a subject's name always reads (S8b-05)", () => {
+  const roster = readFileSync("src/features/roster/roster.css", "utf8");
+  it("the name keeps at least 8rem and the row wraps so the pill goes under it on a phone", () => {
+    expect(roster).toMatch(/\.roster-row-btn \{ flex-wrap: wrap;/);
+    expect(roster).toMatch(/\.roster-row-btn \.roster-name \{ flex: 1 1 8rem; min-width: 8rem; \}/);
+    expect(roster).toMatch(/\.roster-row-btn \.tag \{ order: 2;[^}]*margin-left: 64px/);
+    expect(roster).toMatch(/\.roster-row-btn \.row-chevron \{ order: 1; \}/);
+  });
+  it("from 640 px the row is one line again", () => {
+    expect(roster).toMatch(/@media \(min-width: 640px\) \{\s*\.roster-row-btn \{ flex-wrap: nowrap;/);
+  });
+  it("a subject with a usual effort still lists its name and its pill", async () => {
+    withRoster();
+    fakeApi.on("GET /api/subjects", 200, [{ ...MATH, defaultWeight: { unitType: "lessons", weightPerUnit: 40 } }]);
+    renderAt("/setup/subjects");
+    const row = within(await screen.findByRole("list", { name: "Subjects" })).getAllByRole("listitem")[0]!;
+    expect(row.querySelector(".roster-name")!.textContent).toBe("Math");
+    expect(row.querySelector(".tag")).not.toBeNull();
+  });
+});
+
 describe("panels are sheets", () => {
   it.each(["Add several", "Import CSV", "Copy to a new year", "Copy to another child"])("%s opens in a sheet named for it, and Cancel closes it", async (label) => {
     withRoster();

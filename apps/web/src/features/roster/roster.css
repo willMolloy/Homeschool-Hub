@@ -240,3 +240,15 @@
 
 /* S8-08: a list row ends in a chevron (shared by the roster and schedule lists). */
 .row-chevron { flex: none; margin-left: auto; color: var(--tl-muted-foreground); align-self: center; }
+
+/* S8b-05: a subject's name always reads. On a phone the row wraps: dot, badge, name and chevron on the first line, the usual-effort and days pills under the name. The name keeps at least 8rem. From 640 px everything fits on one line again. */
+.roster-row-btn { flex-wrap: wrap; row-gap: 2px; padding-block: 6px; }
+.roster-row-btn .roster-name { flex: 1 1 8rem; min-width: 8rem; }
+.roster-row-btn .row-chevron { order: 1; }
+.roster-row-btn .tag { order: 2; flex: 0 1 auto; max-width: calc(100% - 64px); margin-left: 64px; }
+.roster-row-btn .tag + .tag { margin-left: 0; }
+@media (min-width: 640px) {
+  .roster-row-btn { flex-wrap: nowrap; padding-block: 0; }
+  .roster-row-btn .row-chevron { order: 0; }
+  .roster-row-btn .tag { order: 0; margin-left: 0; max-width: none; }
+}
