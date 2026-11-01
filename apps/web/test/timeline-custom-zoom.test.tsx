@@ -203,3 +203,35 @@ describe("a view with no plan, and an empty month (S7b-07)", () => {
     expect(within(form).getAllByText("Not in this year's dates")).toHaveLength(2);
   });
 });
+
+describe("a renamed and re-dated Fall or Spring (S9-06)", () => {
+  const OV = { fall: { name: "Term 1", start: "2026-08-17", end: "2026-10-30" } };
+  it("zoomRange follows the override's dates, clamped to the grid, and falls back to the whole grid with no overlap", () => {
+    const [a, b] = zoomRange(model, "fall", null, [], OV)!;
+    expect(model.dates[a]).toBe("2026-08-31");
+    expect(model.dates[b]).toBe("2026-10-30");
+    expect(zoomRange(model, "fall", null, [], { fall: { name: "X", start: "2030-01-01", end: "2030-02-01" } })).toEqual([0, last]);
+    expect(zoomRange(model, "spring", null, [], OV)).toEqual(zoomRange(model, "spring")); // untouched
+  });
+  it("labels it with the family's name and says when nothing is planned in it", () => {
+    expect(zoomLabel("fall", [], OV)).toBe("Term 1");
+    expect(zoomLabel("spring", [], OV)).toBe("Spring");
+    expect(viewWithoutPlan(model, "fall", [], OV)).toBeNull();
+    expect(viewWithoutPlan(model, "fall", [], { fall: { name: "Later", start: "2030-01-01", end: "2030-02-01" } })?.name).toBe("Later");
+  });
+  it("offers a dated Fall or Spring even on a grid with no New Year in it", () => {
+    const short = { dates: model.dates.slice(0, 40), today: model.today };
+    expect(visibleZooms(short)).toEqual(["year", "month"]);
+    expect(visibleZooms(short, { hidden: [], custom: [], overrides: OV })).toEqual(["year", "fall", "month"]);
+  });
+  it("the zoom row shows its name, and zooming to it draws just its dates", async () => {
+    stub({ hidden: [], custom: [], overrides: OV });
+    renderAt("/timeline");
+    await screen.findByRole("img", { name: "Year timeline" });
+    expect(row()).toEqual(["Year", "Term 1", "Spring", "This month"]);
+    await userEvent.click(within(screen.getByRole("group", { name: "Zoom" })).getByRole("button", { name: "Term 1" }));
+    const svg = await screen.findByRole("img", { name: "Term 1 timeline" });
+    const months = [...svg.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
+    expect(months).not.toContain("Nov");
+  });
+});

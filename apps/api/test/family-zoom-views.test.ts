@@ -132,4 +132,36 @@ describe.skipIf(!hasDb)("zoomViews on /api/family (S7-03, integration)", () => {
     expect(res.statusCode).toBe(400);
     expect((await get()).json().zoomViews).toEqual(EMPTY);
   });
+
+  // S9-06: Fall and Spring can be renamed and re-dated.
+  const ov = (over: object = {}) => ({ name: "Term 1", start: "2026-08-17", end: "2026-12-18", ...over });
+
+  it("S9-06: Fall and Spring round-trip a name and dates, a trimmed name, and a reset (no entry) goes back to the default", async () => {
+    const zoomViews = { hidden: [], custom: [], overrides: { fall: ov(), spring: ov({ name: "Term 2", start: "2027-01-04", end: "2027-05-28" }) } };
+    const res = await patch({ ...zoomViews, overrides: { ...zoomViews.overrides, fall: ov({ name: "  Term 1  " }) } });
+    expect(res.statusCode, res.body).toBe(200);
+    expect((await get()).json().zoomViews).toEqual(zoomViews);
+    expect((await patch({ hidden: [], custom: [] })).statusCode).toBe(200);
+    expect((await get()).json().zoomViews).toEqual(EMPTY);
+    expect((await patch({ hidden: [], custom: [], overrides: { spring: ov({ name: "Only spring" }) } })).statusCode).toBe(200);
+    expect((await get()).json().zoomViews.overrides).toEqual({ spring: ov({ name: "Only spring" }) });
+  });
+
+  it("S9-06: a renamed built-in still counts toward, and can be hidden like, any built-in", async () => {
+    expect((await patch({ hidden: ["fall"], custom: [], overrides: { fall: ov() } })).statusCode).toBe(200);
+  });
+
+  it("S9-06: bad names and dates on a built-in are refused with the same messages as a custom view", async () => {
+    await rejected({ hidden: [], custom: [], overrides: { fall: ov({ name: "  " }) } }, /Name is required/);
+    await rejected({ hidden: [], custom: [], overrides: { fall: ov({ name: "x".repeat(31) }) } }, /30 characters or fewer/);
+    await rejected({ hidden: [], custom: [], overrides: { fall: ov({ start: "2026-12-18", end: "2026-08-17" }) } }, /on or after the first day/);
+    await rejected({ hidden: [], custom: [], overrides: { fall: ov({ start: "2026-01-01", end: "2027-03-01" }) } }, /at most 400 days/);
+    await rejected({ hidden: [], custom: [], overrides: { fall: ov({ start: "2026-13-01" }) } }, /./);
+  });
+
+  it("S9-06: only Fall and Spring can be overridden, and no unknown fields", async () => {
+    await rejected({ hidden: [], custom: [], overrides: { month: ov() } }, /./);
+    await rejected({ hidden: [], custom: [], overrides: { fall: { ...ov(), extra: 1 } } }, /./);
+    await rejected({ hidden: [], custom: [], overrides: [] }, /./);
+  });
 });

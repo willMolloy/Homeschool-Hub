@@ -5,7 +5,7 @@
  * This month, and detail follows the *visible span*, not the preset: at DETAIL_SPAN_WEEKS or less the bars are
  * the daily, stepped ones with event strips; above it they are smooth curves with events hidden.
  */
-import type { CustomZoomView, ZoomViews } from "../../api/types";
+import type { BuiltInZoomOverrides, CustomZoomView, ZoomViews } from "../../api/types";
 import type { TimelineModel } from "./model";
 
 export const ZOOMS = ["year", "fall", "spring", "month"] as const;
@@ -64,14 +64,15 @@ export function defaultMonth(model: Pick<TimelineModel, "dates" | "today">): str
  * on the grid falls back to the whole grid; an empty grid gives null.
  */
 export function zoomRange(
-  model: Pick<TimelineModel, "dates" | "today">, zoom: Zoom, month?: string | null, custom: readonly CustomZoomView[] = [],
+  model: Pick<TimelineModel, "dates" | "today">, zoom: Zoom, month?: string | null, custom: readonly CustomZoomView[] = [], overrides: BuiltInZoomOverrides = {},
 ): [number, number] | null {
   const n = model.dates.length;
   if (n === 0) return null;
   if (zoom === "year") return [0, n - 1];
-  if (isCustomZoom(zoom)) {
-    // S7-04: the view's first to last day, clamped to the grid; no overlap (or an unknown view) shows the whole grid.
-    const view = custom.find((v) => customZoom(v.id) === zoom);
+  // S7-04: a view's first to last day, clamped to the grid; no overlap (or an unknown view) shows the whole grid.
+  // S9-06: a renamed and re-dated Fall or Spring works the same way.
+  const view = isCustomZoom(zoom) ? custom.find((v) => customZoom(v.id) === zoom) : zoom === "fall" || zoom === "spring" ? overrides[zoom] : undefined;
+  if (isCustomZoom(zoom) || view) {
     if (!view) return [0, n - 1];
     const a = model.dates.findIndex((d) => d >= view.start);
     let b = n - 1;
@@ -97,9 +98,11 @@ export function zoomRange(
  * S7b-07 (F3): the family's view when the zoom is that view and none of its days is on the grid (zoomRange then draws
  * the whole grid, which would look exactly like Year); otherwise null.
  */
-export function viewWithoutPlan(model: Pick<TimelineModel, "dates">, zoom: Zoom, custom: readonly CustomZoomView[] = []): CustomZoomView | null {
-  if (!isCustomZoom(zoom) || model.dates.length === 0) return null;
-  const view = custom.find((v) => customZoom(v.id) === zoom);
+export function viewWithoutPlan(
+  model: Pick<TimelineModel, "dates">, zoom: Zoom, custom: readonly CustomZoomView[] = [], overrides: BuiltInZoomOverrides = {},
+): { name: string; start: string; end: string } | null {
+  if (model.dates.length === 0) return null;
+  const view = isCustomZoom(zoom) ? custom.find((v) => customZoom(v.id) === zoom) : zoom === "fall" || zoom === "spring" ? overrides[zoom] : undefined;
   if (!view) return null;
   const overlaps = model.dates.some((d) => d >= view.start && d <= view.end);
   return overlaps ? null : view;
@@ -109,12 +112,24 @@ export function viewWithoutPlan(model: Pick<TimelineModel, "dates">, zoom: Zoom,
  * The presets worth offering. Fall and Spring only when the grid spans New Year (otherwise either half is the
  * whole grid again); This month whenever there is a grid.
  */
-export function availableZooms(model: Pick<TimelineModel, "dates">): Zoom[] {
+export function availableZooms(model: Pick<TimelineModel, "dates">, overrides: BuiltInZoomOverrides = {}): Zoom[] {
   const n = model.dates.length;
   if (n === 0) return ["year"];
   const newYear = `${Number(model.dates[0]!.slice(0, 4)) + 1}-01-01`;
   const split = model.dates.findIndex((d) => d >= newYear);
-  return split > 0 ? [...ZOOMS] : ["year", "month"];
+  if (split > 0) return [...ZOOMS];
+  // S9-06: a Fall or Spring the family has dated itself is offered even when the grid has no New Year in it.
+  return ["year", ...(overrides.fall ? ["fall" as const] : []), ...(overrides.spring ? ["spring" as const] : []), "month"];
+}
+
+/** S9-06: the default Fall and Spring dates of a grid that spans New Year (Fall to Dec 31, Spring from Jan 1), else null. */
+export function defaultHalves(model: Pick<TimelineModel, "dates">): { fall: { start: string; end: string }; spring: { start: string; end: string } } | null {
+  const n = model.dates.length;
+  if (n === 0) return null;
+  const year = Number(model.dates[0]!.slice(0, 4));
+  const split = model.dates.findIndex((d) => d >= `${year + 1}-01-01`);
+  if (split <= 0) return null;
+  return { fall: { start: model.dates[0]!, end: `${year}-12-31` }, spring: { start: `${year + 1}-01-01`, end: model.dates[n - 1]! } };
 }
 
 /**
@@ -122,13 +137,14 @@ export function availableZooms(model: Pick<TimelineModel, "dates">): Zoom[] {
  * Without a grid there is only Year.
  */
 export function visibleZooms(model: Pick<TimelineModel, "dates">, views?: ZoomViews | null): Zoom[] {
-  const builtIns = availableZooms(model).filter((z) => z === "year" || !views?.hidden.includes(z as ZoomViews["hidden"][number]));
+  const builtIns = availableZooms(model, views?.overrides).filter((z) => z === "year" || !views?.hidden.includes(z as ZoomViews["hidden"][number]));
   return model.dates.length === 0 ? builtIns : [...builtIns, ...(views?.custom ?? []).map((v) => customZoom(v.id))];
 }
 
 export const ZOOM_LABEL: Record<BuiltInZoom, string> = { year: "Year", fall: "Fall", spring: "Spring", month: "This month" };
 
 /** The words for a zoom: a built-in's name, or the family's own name for its view. */
-export function zoomLabel(zoom: Zoom, custom: readonly CustomZoomView[] = []): string {
+export function zoomLabel(zoom: Zoom, custom: readonly CustomZoomView[] = [], overrides: BuiltInZoomOverrides = {}): string {
+  if (zoom === "fall" || zoom === "spring") return overrides[zoom]?.name ?? ZOOM_LABEL[zoom];
   return isCustomZoom(zoom) ? custom.find((v) => customZoom(v.id) === zoom)?.name ?? ZOOM_LABEL.year : ZOOM_LABEL[zoom];
 }

@@ -129,7 +129,8 @@
 }
 /* S7-05: the zoom views sheet */
 .zoom-edit-list { list-style: none; margin: 0 0 12px; padding: 0; }
-.zoom-edit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
+.zoom-edit-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
+.zoom-edit-row .zoom-edit-view { flex-basis: 100%; margin-bottom: 4px; }
 /* S7b-07 (F1): the label is the whole row (44 px high, full width), so the label and its switch are one target. */
 .zoom-edit-row .choice { display: flex; align-items: center; gap: 10px; flex: 1; min-height: 44px; cursor: pointer; }
 .zoom-edit-row .choice input { width: 20px; height: 20px; flex: none; }

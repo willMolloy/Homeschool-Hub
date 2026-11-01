@@ -35,7 +35,11 @@ export interface CustomZoomView {
 export interface ZoomViews {
   hidden: ("fall" | "spring" | "month")[];
   custom: CustomZoomView[];
+  /** S9-06: Fall and Spring renamed and re-dated; no entry means the default name and dates. */
+  overrides?: BuiltInZoomOverrides;
 }
+export interface BuiltInZoomOverride { name: string; start: string; end: string }
+export type BuiltInZoomOverrides = { fall?: BuiltInZoomOverride; spring?: BuiltInZoomOverride };
 
 /** GET/PATCH /api/family */
 export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
