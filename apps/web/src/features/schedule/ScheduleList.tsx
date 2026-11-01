@@ -6,6 +6,8 @@
 import { useId, useRef, useState, type ReactNode } from "react";
 import { apiDelete, apiPatch } from "../../api/client";
 import { useApi } from "../../api/useApi";
+import { CaretRight } from "@phosphor-icons/react";
+import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import "../../ui/forms.css";
 import { saveError } from "./formBits";
@@ -228,15 +230,6 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
               extra: null,
               externalError: null,
             })
-          ) : openPanel && canAdd ? (
-            openPanel.render({
-              onSaved: (created) => {
-                setData((prev) => [...(prev ?? []), ...created]);
-                setPanel(null);
-                if (created[0]) focusRow(created[0].id);
-              },
-              onCancel: closePanel,
-            })
           ) : canAdd ? (
             <div className="schedule-actions">
               <button
@@ -287,16 +280,31 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
                     >
                       {renderCard(item)}
                       {item.archived ? <span className="tag">Archived</span> : null}
+                      <CaretRight className="row-chevron" size={20} weight="light" aria-hidden="true" />
                     </button>
                   )}
                 </li>
               ))}
             </ul>
-          ) : !adding && !panel ? (
+          ) : !adding ? (
             <p className="schedule-empty">{emptyText}</p>
           ) : null}
         </>
       )}
+
+      {/* S8-08: Add several, Import CSV, templates and the copy panels are sheets (a bottom sheet on phones). */}
+      <ResponsiveSheet open={Boolean(openPanel && canAdd)} onOpenChange={(o) => { if (!o) closePanel(); }} title={openPanel?.label ?? ""}>
+        {openPanel && canAdd
+          ? openPanel.render({
+            onSaved: (created) => {
+              setData((prev) => [...(prev ?? []), ...created]);
+              setPanel(null);
+              if (created[0]) focusRow(created[0].id);
+            },
+            onCancel: closePanel,
+          })
+          : null}
+      </ResponsiveSheet>
 
       {confirming ? (
         <ConfirmDialog

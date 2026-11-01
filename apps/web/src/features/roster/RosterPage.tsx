@@ -3,6 +3,7 @@
  * KidsPage and SubjectsPage are thin wrappers around this.
  */
 import { useId, useRef, useState, type ReactNode } from "react";
+import { CaretRight } from "@phosphor-icons/react";
 import { ApiError, apiPatch, apiPost } from "../../api/client";
 import { useApi } from "../../api/useApi";
 import { ColorDot } from "../../ui/ColorDot";
@@ -253,6 +254,7 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
                   <span className="roster-name">{item.name}</span>
                   {extension?.renderBadge?.(item)}
                   {item.archived ? <span className="tag">Archived</span> : null}
+                  <CaretRight className="row-chevron" size={20} weight="light" aria-hidden="true" />
                 </button>
               </li>
             ),

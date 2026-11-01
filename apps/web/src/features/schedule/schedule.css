@@ -167,7 +167,7 @@
   text-align: left;
   padding: 12px 14px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--tl-radius);
   background: var(--tl-card);
   font: inherit;
   color: inherit;
@@ -295,3 +295,5 @@
 /* S8-11: the chosen subject's badge beside the subject dropdown. */
 .subject-select-row { display: flex; align-items: center; gap: 10px; }
 .subject-select-row select { flex: 1; min-width: 0; }
+/* S8-08: the back link is the accent colour, not the browser's blue. */
+.schedule-back a { color: var(--tl-primary); text-decoration: none; }

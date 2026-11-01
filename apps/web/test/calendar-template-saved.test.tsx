@@ -187,7 +187,8 @@ describe("Use a saved template (S5-07)", () => {
     await choose(user, form);
     await user.click(within(form).getByRole("button", { name: "Delete this template" }));
     expect(writes()).toEqual([]);
-    const dialog = screen.getByRole("dialog");
+    // S8-08: the template panel is itself a sheet (a dialog), so the confirm is the one named for the delete.
+    const dialog = screen.getAllByRole("dialog").find((d) => d.matches("dialog.confirm-dialog"))!;
     await user.click(within(dialog).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(within(form).queryByRole("option", { name: "2026–27" })).toBeNull());
     expect(writes()).toEqual([{ method: "DELETE", path: `/api/calendar-templates/${SAVED.id}`, body: undefined }]);

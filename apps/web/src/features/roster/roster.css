@@ -22,14 +22,14 @@
   padding: 0;
   background: var(--tl-card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--tl-radius);
   overflow: hidden;
 }
 .roster-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 52px;
+  min-height: 56px;
   padding: 0 16px;
   border-top: 1px solid var(--line);
 }
@@ -153,7 +153,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 52px;
+  min-height: 56px;
   padding: 0 16px;
   border: 0;
   background: transparent;
@@ -237,3 +237,6 @@
   min-height: 44px;
   border-radius: 999px;
 }
+
+/* S8-08: a list row ends in a chevron (shared by the roster and schedule lists). */
+.row-chevron { flex: none; margin-left: auto; color: var(--tl-muted-foreground); align-self: center; }
