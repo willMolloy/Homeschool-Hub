@@ -14,7 +14,7 @@ Tickets: `docs/tickets/sprint-8-soft-paper/`. S8-10 (tester pass) is the tester'
 | S8-07 The Year timeline in Soft Paper | c604430 | `timeline/layout.ts` (`GUTTER_PX`, `BADGE_PX`, `LaneBadge`; `labels` and the name rows removed), `Timeline.tsx` (gutter, badges, popover, lane highlight, band outline), `timeline.css` (look, edit bar as a bottom sheet), `EditBar.tsx` (grab handle), `routes/TimelinePage.tsx` (passes subjects) |
 | S8-08 Set up screens and forms in Soft Paper | 6fc7688 | `schedule/ScheduleList.tsx` (panels in `ResponsiveSheet`, row chevron), `roster/RosterPage.tsx` (row chevron), `roster.css`, `schedule.css` |
 | S8-09 First-run checklist and empty states | 0e3a27f | `features/home/Checklist.tsx`, `HomePage.tsx`, `ui/EmptyState.tsx`, `week/WeekView.tsx`, `RosterPage.tsx`, `ScheduleList.tsx`, `TimelinePage.tsx` |
-| End of sprint: tap targets | (this commit) | `home.css` (the Home card links are 44 px high); the tap-target run below |
+| End of sprint: tap targets | 4d2973c | `home.css` (the Home card links are 44 px high); the tap-target run below |
 
 ## Decisions (conservative calls on ambiguous points)
 
@@ -87,3 +87,15 @@ Tickets: `docs/tickets/sprint-8-soft-paper/`. S8-10 (tester pass) is the tester'
 - **Fixed:** Home's two card links ("Track work", "Schedule") measured 112 x 25 and 88 x 25 (the whole card was already the target through a stretched link, but the link itself was small). They are now 44 px high.
 - **Known exception, by design:** the Year view's lane badges are 24 px wide (the narrow gutter of Will's mockup) and as tall as their lane (20 to 105 px). The script lists them (11 of the demo's lanes). They are secondary: the same lanes can be reached from the screen-reader lane list, a tap on a bar still works everywhere, and widening them would overlap the first bars or each other. Say if Will wants the gutter wider.
 - **Not run:** Events > Add event (the demo family cannot add events; needs a non-demo login via `TAP_EMAIL`), 320 px and the dark theme (the tester's pass, S8-10).
+
+# Sprint 8b: fixes from the Sprint 8 tester
+
+Tickets: `docs/tickets/sprint-8b-fixes/` (from `docs/reviews/sprint-8-verification.md`). S8b-08 (re-test) is the tester's.
+
+| Ticket | Commit | Notes |
+|--------|--------|-------|
+| S8b-01 Week bars show the real range | (this commit) | `week/weekBars.ts` (`plannedRange`) |
+
+## Decisions (Sprint 8b)
+
+- **S8b-01 the cause and the fix.** The engine's `plannedRangeForWeek` adds up the plan days before the week, but the Week view asks `/api/plan` for one week only, so every book started at 1. Each plan day carries its cumulative `position` from the assignment's start whatever range is asked, so `plannedRange` takes the start from the first working day's `position` minus its units and the end from the week's largest `position`. A test checks it equals the engine's own range over a whole plan (what Track work shows) for a mid-book, a new and a lesson-based assignment. No API change.

@@ -5,10 +5,10 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
-import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
+import { ENGINE_VERSION, plannedRangeForWeek, type ChildPlan } from "@hh/engine";
 import type { ScheduleEvent, Subject } from "../src/api/types";
 import { shownWeek } from "../src/features/plan/useShownWeek";
-import { barsFromPlans, eventLines, rangeWords } from "../src/features/week/weekBars";
+import { barsFromPlans, eventLines, plannedRange, rangeWords } from "../src/features/week/weekBars";
 import { shownChoice } from "../src/features/week/useChildChoice";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
@@ -139,6 +139,49 @@ describe("Schedule, Week view", () => {
     await user.click(screen.getByRole("button", { name: "Next week" }));
     expect(await screen.findByRole("heading", { level: 2, name: "Coming week" })).toBeInTheDocument();
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
+  });
+});
+
+describe("the range of a week (S8b-01)", () => {
+  /** What the API returns for a one-week request: the week's days only, each with its cumulative position from the start. */
+  const weekOnly = (p: ChildPlan): ChildPlan => ({ ...p, days: p.days.filter((d) => d.date >= "2026-10-26" && d.date <= "2026-11-01") });
+
+  it("a book already under way starts where it really is, from a plan that holds only that week", () => {
+    const midBook = plan("ti", "c1", "lit");
+    expect(plannedRange(weekOnly(midBook), "2026-10-26")).toEqual({ from: 119, to: 150, hasPlannedWork: true });
+    const look = { children: [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }], subjects: SUBJECTS, titleOf: () => "X", subjectOf: () => "lit" };
+    const [bar] = barsFromPlans([weekOnly(midBook)], "2026-10-26", look);
+    expect(rangeWords(bar!.unitType, bar!.from, bar!.to)).toBe("pages 120–150");
+  });
+
+  it("matches the engine's range over the whole plan (what Track work shows), for every kind of start", () => {
+    for (const p of [plan("a", "c1", "lit"), plan("b", "c1", "lit", { before: 0, week: 20 }), plan("c", "c1", "math", { unitType: "lessons", before: 30, week: 5 })]) {
+      const whole = plannedRangeForWeek(p, "2026-10-26");
+      const mine = plannedRange(weekOnly(p), "2026-10-26");
+      expect(mine.from).toBeCloseTo(whole.from, 6);
+      expect(mine.to).toBeCloseTo(whole.to, 6);
+      expect(mine.hasPlannedWork).toBe(whole.hasPlannedWork);
+    }
+  });
+
+  it("an assignment that starts this week starts at 1", () => {
+    const r = plannedRange(weekOnly(plan("n", "c1", "lit", { before: 0, week: 20 })), "2026-10-26");
+    expect(r.from).toBe(0);
+    expect(rangeWords("pages", r.from, r.to)).toBe("pages 1–20");
+  });
+
+  it("no work that week, no bar", () => {
+    expect(plannedRange(weekOnly(plan("i", "c1", "lit", { week: 0 })), "2026-10-26").hasPlannedWork).toBe(false);
+    expect(plannedRange({ ...plan("i", "c1", "lit"), days: [] }, "2026-10-26")).toEqual({ from: 0, to: 0, hasPlannedWork: false });
+  });
+
+  it("the Week view's bar for a mid-book assignment reads the same range as Track work for it", async () => {
+    // The stub plan holds only the week's days, as the API's trimmed answer does.
+    stub();
+    fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [weekOnly(PLANS[1]!)] });
+    renderAt("/schedule?view=week");
+    const frank = await work("Frank");
+    expect(within(frank).getByRole("button", { name: /^Treasure Island, pages 120–150/ })).toBeInTheDocument();
   });
 });
 

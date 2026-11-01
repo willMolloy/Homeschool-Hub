@@ -1,5 +1,5 @@
 /** S8-05: one bar per assignment for a week, in the family's words. Pure. */
-import { plannedRangeForWeek, type ChildPlan, type LocalDate, type UnitType } from "@hh/engine";
+import { addDays, EPS, type ChildPlan, type LocalDate, type UnitType } from "@hh/engine";
 import type { Child, CheckInItem, ScheduleEvent, Subject } from "../../api/types";
 import { UNIT_LABELS, unitNumber } from "../../components/unitLabels";
 
@@ -47,12 +47,27 @@ function sortBars(bars: WeekBarData[], l: Lookups): WeekBarData[] {
   return bars.sort((a, b) => rank(kids, a.childId) - rank(kids, b.childId) || rank(subs, a.subjectId) - rank(subs, b.subjectId) || a.title.localeCompare(b.title));
 }
 
+/**
+ * S8b-01: where the week starts and ends, in cumulative units, the same figures Track work gets from the check-in API
+ * (the engine's `plannedRangeForWeek`). That function adds up the days before the week, but the Week view asks the
+ * plan for one week only, so it would start every book at 1. Each day carries its cumulative `position` instead, which
+ * the engine counts from the assignment's start whatever range is asked for.
+ */
+export function plannedRange(plan: ChildPlan, weekStart: LocalDate): { from: number; to: number; hasPlannedWork: boolean } {
+  const end = addDays(weekStart, 6);
+  const days = plan.days.filter((d) => d.date >= weekStart && d.date <= end);
+  const first = days.find((d) => d.units > EPS);
+  if (!first) return { from: 0, to: 0, hasPlannedWork: false };
+  const to = Math.max(...days.map((d) => d.position));
+  return { from: first.position - first.units, to, hasPlannedWork: true };
+}
+
 /** The bars of a current or coming week, from the engine's plans: only assignments with work that week. */
 export function barsFromPlans(plans: readonly ChildPlan[], weekStart: LocalDate, l: Lookups): WeekBarData[] {
   const names = new Map(l.children.map((c) => [c.id, c.name]));
   const bars: WeekBarData[] = [];
   for (const p of plans) {
-    const r = plannedRangeForWeek(p, weekStart);
+    const r = plannedRange(p, weekStart);
     if (!r.hasPlannedWork || !names.has(p.childId)) continue;
     bars.push({ key: `${p.assignmentId}/${p.childId}`, assignmentId: p.assignmentId, childId: p.childId, childName: names.get(p.childId)!, subjectId: p.subjectId,
       title: l.titleOf(p.assignmentId), unitType: p.unitType, from: r.from, to: r.to, total: p.totalUnits });
