@@ -1,4 +1,5 @@
 /** T-08b: clean bars zoomed out, a solid selected bar with grips, the cursors, and live date fields while dragging. */
+import { parseDateInput } from "../src/lib/dates";
 import { readFileSync } from "node:fs";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -170,8 +171,8 @@ describe("on the page", () => {
 
   it("the date fields follow a drag live: the body moves both, an end only its own (item 4)", async () => {
     const { svg, stage, w, a, bar } = await selectWidest();
-    const start = () => (within(bar).getByLabelText("Start") as HTMLInputElement).value;
-    const end = () => (within(bar).getByLabelText("End") as HTMLInputElement).value;
+    const start = () => parseDateInput((within(bar).getByLabelText("Start") as HTMLInputElement).value) ?? "";
+    const end = () => parseDateInput((within(bar).getByLabelText("End") as HTMLInputElement).value) ?? "";
     const body = w.x0 + 30;
     fireEvent.pointerDown(svg, { ...mouse, clientX: body, clientY: w.y });
     fireEvent.pointerMove(stage, { ...mouse, clientX: body + 80, clientY: w.y });

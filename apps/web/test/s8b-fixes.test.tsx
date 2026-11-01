@@ -65,10 +65,10 @@ describe("N10: after Not quite one line says what to do", () => {
 
 describe("N11: the native bits of the set-up forms take the theme", () => {
   const forms = css("src/ui/forms.css");
-  it("radios and checkboxes use the accent, the roster forms' fieldsets have no default border, dates and selects keep their text", () => {
+  it("radios and checkboxes use the accent, the roster forms' fieldsets have no default border, the date field and selects keep their text", () => {
     expect(forms).toMatch(/input\[type="radio"\], input\[type="checkbox"\] \{ accent-color: var\(--tl-primary\); \}/);
     expect(forms).toMatch(/\.roster-form fieldset[^{]*\{ border: 0;/);
-    expect(forms).toMatch(/\.schedule-form input\[type="date"\] \{[^}]*padding-right: 6px/);
+    expect(css("src/ui/date-field.css")).toMatch(/\.date-field-box input\[type="text"\] \{[^}]*min-height: 44px[^}]*min-width: 0/);
     expect(forms).toMatch(/\.schedule-form select \{[^}]*text-overflow: ellipsis/);
     expect(forms).toMatch(/\.field-row:has\(select\) \{ grid-template-columns: 1fr; \}/);
   });

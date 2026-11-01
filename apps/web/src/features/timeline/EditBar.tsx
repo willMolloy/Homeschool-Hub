@@ -8,6 +8,7 @@
  */
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { datesError, type DateSpan, type Selection } from "./select";
+import { DateField } from "../../ui/DateField";
 
 export interface EditBarProps {
   selection: Selection;
@@ -59,9 +60,9 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
     setInvalid(bad);
     if (!bad) onSave(next);
   };
-  const onDate = (field: keyof DateSpan) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTyped({ for: shown, dates: { ...draft, [field]: e.target.value } });
-    if (ISO.test(e.target.value)) save({ startDate: s.startDate, endDate: s.endDate, [field]: e.target.value });
+  const onDate = (field: keyof DateSpan) => (value: string) => {
+    setTyped({ for: shown, dates: { ...draft, [field]: value } });
+    if (ISO.test(value)) save({ startDate: s.startDate, endDate: s.endDate, [field]: value });
   };
   const message = invalid ?? error;
 
@@ -77,8 +78,8 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
       </div>
       <div className="tl-edit-body">
         <div className="tl-edit-dates">
-          <label>Start <input type="date" value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
-          <label>End <input type="date" value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
+          <label>Start <DateField opens="up" value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
+          <label>End <DateField opens="up" value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
         </div>
         <div className="tl-edit-ends">
           <button type="button" className="btn btn-secondary" disabled={busy} onClick={onCopy}>Copy</button>

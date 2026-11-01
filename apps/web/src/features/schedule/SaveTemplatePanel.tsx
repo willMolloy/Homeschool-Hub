@@ -5,6 +5,7 @@ import { apiPost } from "../../api/client";
 import type { BlockedRange, CalendarTemplate } from "../../api/types";
 import { saveError, shortDate } from "./formBits";
 import { MAX_TEMPLATE_BREAKS, templateBreaksFrom } from "./templates";
+import { DateField } from "../../ui/DateField";
 
 /** Mirrors apps/api/src/routes/calendarTemplates.ts. */
 export const NAME_MAX = 60;
@@ -71,7 +72,7 @@ export function SaveTemplatePanel({ existing, onSaved, onCancel }: Props) {
       </div>
       <div className="field">
         <label htmlFor={ids.first}>First day of the year</label>
-        <input id={ids.first} type="date" value={first} onChange={(e) => setFirst(e.target.value)} />
+        <DateField id={ids.first} value={first} onChange={setFirst} />
       </div>
       {tried && problem ? <p className="field-error" role="alert">{problem}</p> : null}
       {picked ? (

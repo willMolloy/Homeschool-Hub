@@ -203,7 +203,7 @@ describe("Plan debug view", () => {
       renderAt("/schedule?view=week");
       await screen.findByRole("heading", { name: "Frank's work" });
       expect(screen.getByRole("heading", { level: 2, name: "This week" })).toBeInTheDocument();
-      expect(screen.getByText("2 Nov – 8 Nov")).toBeInTheDocument();
+      expect(screen.getByText("Nov 2 – Nov 8")).toBeInTheDocument();
       expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
       expect(fakeApi.calls.some((c) => c.path.includes("2026-12-14"))).toBe(false);
     });
@@ -227,12 +227,12 @@ describe("Plan debug view", () => {
     const switcher = screen.getByRole("group", { name: "Week" });
     expect(screen.getByRole("heading", { level: 2, name: "This week" })).toBeInTheDocument();
     await user.click(within(switcher).getByRole("button", { name: "Next week" }));
-    expect(await screen.findByText("2 Nov – 8 Nov")).toBeInTheDocument();
+    expect(await screen.findByText("Nov 2 – Nov 8")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Coming week" })).toBeInTheDocument();
     expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
     await user.click(within(switcher).getByRole("button", { name: "Previous week" }));
     await user.click(within(switcher).getByRole("button", { name: "Previous week" }));
-    expect(await screen.findByText("19 Oct – 25 Oct")).toBeInTheDocument();
+    expect(await screen.findByText("Oct 19 – Oct 25")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Last week" })).toBeInTheDocument();
     renderAt("/schedule?view=week&week=2026-10-26&asOf=2026-10-19&debug=1");
     await screen.findAllByRole("table", { name: "Frank" });

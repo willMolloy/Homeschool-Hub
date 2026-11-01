@@ -1,27 +1,21 @@
 /** S8-04: the plain facts Home shows, as pure functions of the plans and assignments the API already made. */
 import { addDays, toDayNumber, type ChildPlan, type LocalDate } from "@hh/engine";
 import type { Assignment } from "../../api/types";
-
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+import { formatShort, formatSpan, formatWeekday } from "../../lib/dates";
 
 /** "Good morning" until noon, "Good afternoon" until 5 pm, then "Good evening". */
 export function greetingFor(hour: number): string {
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
-/** "Saturday 31 October" for a YYYY-MM-DD date (locale-free, so it is the same everywhere). */
-export function longDate(date: LocalDate): string {
-  const d = new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10))));
-  return `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
-}
+/** "Saturday, Oct 31" (US style, S9-04). */
+export const longDate = (date: LocalDate): string => formatWeekday(date);
 
-/** "26 Oct" */
-export const dayMonth = (date: LocalDate): string => `${Number(date.slice(8, 10))} ${SHORT[Number(date.slice(5, 7)) - 1]}`;
+/** "Oct 26" */
+export const dayMonth = (date: LocalDate): string => formatShort(date);
 
-/** "26 Oct – 1 Nov" for a week. */
-export const weekSpan = (weekStart: LocalDate): string => `${dayMonth(weekStart)} – ${dayMonth(addDays(weekStart, 6))}`;
+/** "Oct 26 – Nov 1" for a week. */
+export const weekSpan = (weekStart: LocalDate): string => formatSpan(weekStart, addDays(weekStart, 6));
 
 /**
  * "Week N of M" from the span of the family's live assignments (the app stores no school-year dates), only while

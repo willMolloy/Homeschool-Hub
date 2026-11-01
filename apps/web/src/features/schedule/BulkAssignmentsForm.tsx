@@ -14,6 +14,7 @@ import { bulkSaveError, ChildPicker, dateRangeError, parsePositive, WeekdayPicke
 import type { Lookups } from "./lookups";
 import { SubjectSelect } from "./SubjectSelect";
 import { useWeekdayChoice } from "./useWeekdayChoice";
+import { DateField } from "../../ui/DateField";
 
 const START_ROWS = 3;
 
@@ -116,11 +117,11 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
       <div className="field-row">
         <div className="field">
           <label htmlFor={ids.start}>Start</label>
-          <input id={ids.start} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} aria-invalid={errors.dates ? true : undefined} />
+          <DateField id={ids.start} value={startDate} onChange={setStartDate} aria-invalid={errors.dates ? true : undefined} />
         </div>
         <div className="field">
           <label htmlFor={ids.end}>End</label>
-          <input id={ids.end} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} aria-invalid={errors.dates ? true : undefined} />
+          <DateField id={ids.end} value={endDate} onChange={setEndDate} aria-invalid={errors.dates ? true : undefined} />
           {errors.dates ? <p className="field-error" role="alert">{errors.dates}</p> : null}
         </div>
       </div>
@@ -185,11 +186,11 @@ function BulkRow({ n, row, shared, errors, canRemove, onChange, onRemove }: RowP
       <div className="field-row">
         <div className="field">
           <label htmlFor={`${id}-start`}>Start</label>
-          <input id={`${id}-start`} type="date" value={row.start ?? shared.start} onChange={(e) => onChange({ start: e.target.value })} aria-invalid={errors?.dates ? true : undefined} />
+          <DateField id={`${id}-start`} value={row.start ?? shared.start} onChange={(v) => onChange({ start: v })} aria-invalid={errors?.dates ? true : undefined} />
         </div>
         <div className="field">
           <label htmlFor={`${id}-end`}>End</label>
-          <input id={`${id}-end`} type="date" value={row.end ?? shared.end} onChange={(e) => onChange({ end: e.target.value })} aria-invalid={errors?.dates ? true : undefined} />
+          <DateField id={`${id}-end`} value={row.end ?? shared.end} onChange={(v) => onChange({ end: v })} aria-invalid={errors?.dates ? true : undefined} />
           {errors?.dates ? <p className="field-error" role="alert">{errors.dates}</p> : null}
         </div>
       </div>

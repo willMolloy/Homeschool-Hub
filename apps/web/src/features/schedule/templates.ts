@@ -45,7 +45,7 @@ export function leaveOutExisting(planned: PlannedBreak[], existing: BlockedRange
   return { add, skipped: planned.length - add.length };
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+import { MONTH_SHORT as MONTHS } from "../../lib/dates";
 const md = (d: string) => `${MONTHS[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8, 10))}`;
 
 /** "Nov 26–27", "Dec 24 – Jan 1", "Nov 4". No year: the preview is for one school year. */

@@ -64,7 +64,7 @@ describe("Track work: the one question", () => {
   it("opens on last week's question, with the dates, and no bars until Not quite", async () => {
     renderTrack();
     const card = await screen.findByRole("region", { name: "Last week's check-in" });
-    expect(within(card).getByRole("heading", { name: "Last week · 19 Oct – 25 Oct" })).toBeInTheDocument();
+    expect(within(card).getByRole("heading", { name: "Last week · Oct 19 – Oct 25" })).toBeInTheDocument();
     expect(within(card).getByText("Did everything get done?")).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: "Yes, all done" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Frank's last week" })).toBeNull();
@@ -174,11 +174,11 @@ describe("Update status", () => {
     const got = sheet.getByRole("spinbutton", { name: "page reached" });
     await user.clear(got);
     await user.type(got, "38");
-    // 42 pages behind at 10 a day is 4 school days: Tue 1 Dec moves to Mon 7 Dec.
+    // 42 pages behind at 10 a day is 4 school days: Tue Dec 1 moves to Mon Dec 7.
     expect(sheet.getByText("What about the end date?")).toBeInTheDocument();
-    expect(sheet.getByText(/Keep 1 Dec/)).toBeInTheDocument();
+    expect(sheet.getByText(/Keep Dec 1/)).toBeInTheDocument();
     expect(sheet.getByText("The remaining days get a little heavier")).toBeInTheDocument();
-    await user.click(sheet.getByRole("radio", { name: /Move to 7 Dec/ }));
+    await user.click(sheet.getByRole("radio", { name: /Move to Dec 7/ }));
     expect(sheet.getByText("Keep the same pace")).toBeInTheDocument();
     await user.click(sheet.getByRole("button", { name: "Save" }));
     const bars = await frankBars();
@@ -195,7 +195,7 @@ describe("Update status", () => {
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     const sheet = within(await openBar(user, /Treasure Island pages/));
     await user.click(sheet.getByRole("button", { name: "Fell behind" }));
-    expect(sheet.getByRole("radio", { name: /Keep 1 Dec/ })).toBeChecked();
+    expect(sheet.getByRole("radio", { name: /Keep Dec 1/ })).toBeChecked();
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await user.click(screen.getByRole("button", { name: "Save check-in" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
@@ -212,7 +212,7 @@ describe("Update status", () => {
     await user.type(got, "100");
     expect(sheet.getByRole("button", { name: "Got ahead" })).toHaveAttribute("aria-pressed", "true");
     expect(sheet.getByText("The remaining days get a little lighter")).toBeInTheDocument();
-    expect(sheet.getByRole("radio", { name: /Move to 27 Nov/ })).toBeInTheDocument(); // 20 pages ahead is 2 school days earlier
+    expect(sheet.getByRole("radio", { name: /Move to Nov 27/ })).toBeInTheDocument(); // 20 pages ahead is 2 school days earlier
   });
 
   it("finishing sends no mode and asks nothing about the end date", async () => {

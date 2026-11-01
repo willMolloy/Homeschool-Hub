@@ -8,6 +8,7 @@ import { ChildPicker, dateRange, saveError, sameSet, shortDate, spanDays, Weekda
 import { EventPreviewList, useEventPreview } from "./EventPreview";
 import { WithLookups, type Lookups } from "./lookups";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
+import { DateField } from "../../ui/DateField";
 
 /** Mirrors apps/api/src/routes/events.ts and scheduleLimits.ts. */
 export const LIMITS = { name: 120 } as const;
@@ -213,11 +214,11 @@ function EventForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlo
       <div className="field-row">
         <div className="field">
           <label htmlFor={ids.start}>Starts (optional)</label>
-          <input id={ids.start} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} {...inv(errors.dates, ids.end)} />
+          <DateField clearable id={ids.start} value={startDate} onChange={setStartDate} {...inv(errors.dates, ids.end)} />
         </div>
         <div className="field">
           <label htmlFor={ids.end}>Ends (optional)</label>
-          <input id={ids.end} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} {...inv(errors.dates, ids.end)} />
+          <DateField clearable id={ids.end} value={endDate} onChange={setEndDate} {...inv(errors.dates, ids.end)} />
           {errors.dates ? <p id={`${ids.end}-err`} className="field-error" role="alert">{errors.dates}</p> : null}
         </div>
       </div>

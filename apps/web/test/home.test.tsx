@@ -44,7 +44,7 @@ describe("Home", () => {
     renderAt("/");
     expect(await screen.findByText("Homeschool Hub")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Good (morning|afternoon|evening)$/);
-    expect(await screen.findByText(/Wednesday 28 October · Week 9 of 39/)).toBeInTheDocument();
+    expect(await screen.findByText(/Wednesday, Oct 28 · Week 9 of 39/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Family and settings" })).toHaveTextContent("D");
   });
 
@@ -62,7 +62,7 @@ describe("Home", () => {
   it("Schedule: the tiny timeline and the finish line (late work says about when)", async () => {
     renderAt("/");
     const card = (await findInMain("Schedule")).closest(".card") as HTMLElement;
-    expect(await within(card).findByText(/finishing about 8 Dec/)).toBeInTheDocument();
+    expect(await within(card).findByText(/finishing about Dec 8/)).toBeInTheDocument();
     expect(card.querySelector(".home-mini")).not.toBeNull();
     expect(within(screen.getByRole("main")).getByRole("link", { name: "Schedule" })).toHaveAttribute("href", "/schedule");
   });
@@ -70,7 +70,7 @@ describe("Home", () => {
   it("Schedule: on track when nothing moved", async () => {
     stub({ plans: [FRANK] });
     renderAt("/");
-    expect(await screen.findByText(/on track to finish 1 Dec/)).toBeInTheDocument();
+    expect(await screen.findByText(/on track to finish Dec 1/)).toBeInTheDocument();
   });
 
   it("shows the briefing line when something needs attention, and none otherwise", async () => {
@@ -186,8 +186,8 @@ describe("Home's facts", () => {
     expect([greetingFor(6), greetingFor(12), greetingFor(16), greetingFor(17), greetingFor(23)]).toEqual(["Good morning", "Good afternoon", "Good afternoon", "Good evening", "Good evening"]);
   });
   it("says dates in words", () => {
-    expect(longDate("2026-10-31")).toBe("Saturday 31 October");
-    expect(weekSpan("2026-10-26")).toBe("26 Oct – 1 Nov");
+    expect(longDate("2026-10-31")).toBe("Saturday, Oct 31");
+    expect(weekSpan("2026-10-26")).toBe("Oct 26 – Nov 1");
   });
   it("week N of M comes from the span of the live assignments, only while today is inside it", () => {
     const a = (s: string, e: string, archived = false) => ({ startDate: s, endDate: e, archived }) as never;

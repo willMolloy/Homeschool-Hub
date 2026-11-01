@@ -11,6 +11,7 @@ import { saveError } from "../schedule/formBits";
 import { HIDEABLE_ZOOMS, LIMIT_TEXT, MAX_VISIBLE_ZOOMS, MAX_ZOOM_NAME, newViewId, viewProblem, visibleCount } from "./zoomViews";
 import "../../ui/forms.css";
 import "../schedule/schedule.css";
+import { DateField } from "../../ui/DateField";
 
 const BUILT_IN_NAME: Record<ZoomViews["hidden"][number], string> = { fall: "Fall", spring: "Spring", month: "This month" };
 
@@ -137,11 +138,11 @@ function ViewRow({ view, first, last, problem, onChange, onMove, onDelete }: Row
       <div className="field-row">
         <div className="field">
           <label htmlFor={`${id}-start`}>First day</label>
-          <input id={`${id}-start`} type="date" value={view.start} onChange={(e) => onChange({ start: e.target.value })} />
+          <DateField id={`${id}-start`} value={view.start} onChange={(v) => onChange({ start: v })} />
         </div>
         <div className="field">
           <label htmlFor={`${id}-end`}>Last day</label>
-          <input id={`${id}-end`} type="date" value={view.end} onChange={(e) => onChange({ end: e.target.value })} />
+          <DateField id={`${id}-end`} value={view.end} onChange={(v) => onChange({ end: v })} />
         </div>
       </div>
       {problem ? <p className="field-error" role="alert">{problem}</p> : null}

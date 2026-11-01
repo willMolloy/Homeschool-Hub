@@ -63,7 +63,7 @@ describe("Schedule, Week view", () => {
     renderAt("/schedule?view=week");
     await work("Frank");
     expect(screen.getByRole("heading", { level: 2, name: "This week" })).toBeInTheDocument();
-    expect(screen.getByText("26 Oct – 1 Nov")).toBeInTheDocument();
+    expect(screen.getByText("Oct 26 – Nov 1")).toBeInTheDocument();
     const steps = screen.getByRole("group", { name: "Week" });
     expect(within(steps).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["Previous week", "Next week"]);
     expect(screen.getByRole("main").textContent).not.toMatch(/thickness|effort|\d+\.\d/i);
