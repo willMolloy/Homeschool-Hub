@@ -14,6 +14,12 @@ What we built in Sprint 8 read the earlier answer ("Track work/schedule") as *ch
 
 This moves Records from "optional module" into the core (ROADMAP, "Optional modules" #1) and replaces Track work as a tab.
 
+## Re-shape (Will, 2026-11-01, later the same day)
+
+"'Did everything get done this week' doesn't make sense to me because it's a record keeping card. Parents may do this every day, week or month. The point is it will allow them to log when they can to keep records and export as csv." CSV: the parent ticks which data to export and picks a date range; no empty or unneeded columns; all data is still kept. "Hours must be manually typed in." Printable summary: yes.
+
+So the weekly check-in becomes **logging inside Records**, done whenever the parent likes (a day, a week, a month). **On hold, to be rewritten once Will answers the logging questions:** S9-02, S9-03, S9-07, S9-08. **Building now:** S9-01 (with /records as a placeholder), S9-04, S9-05 (without the check-in item), S9-06. Then S9-09 and S9-10 after the rewrite.
+
 ## Tickets
 
 Build in order, one commit per ticket, each with `bash scripts/check.sh` green. Progress in `docs/progress/sprint-9.md`.
