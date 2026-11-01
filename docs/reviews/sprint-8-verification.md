@@ -214,3 +214,59 @@ Checked in the browser on the new screens:
 - A real phone or Safari (Chromium only). The device colour scheme was emulated by the browser, not set on a device.
 - Print, very large text sizes, and the install prompt.
 - Whether the service worker keeps working offline: it has no offline cache by design.
+
+---
+
+# Re-test (S8b-08)
+
+Re-test of N1 to N14 after Sprint 8b (commits 17604d9..4f3a886), by the same tester agent (so the same independence note applies). Date: 2026-11-01. Head 4f3a886. No source or test files were changed; this section and six screenshots (`docs/reviews/sprint-8/retest-*.png`) are the only additions. Scratch database `hh_s8b_dev` (dropped), API and Vite on 127.0.0.1 only.
+
+## Result: PASS. All three High findings and all Medium findings are fixed; the gate is ALL GREEN; 2 new Low observations
+
+- `bash scripts/check.sh`: **ALL GREEN**. Counts from the gate's log: **1007 api** (68 files), **1030 web** (79 files), **123 db** (19 files), **420 engine** (29 files), and 420 engine in each of the 7 `test:tz` zones.
+- Browser checks at 320, 360, 390 and 1280 px in light and dark, on a copy of the demo family, a second copy, a family with 6 children, a family with one child and an empty family. All 11 screens at all four widths in both themes: no sideways scroll (88 page loads, 0 overflow). Text contrast on every screen in both themes (my script, all text nodes against their real backgrounds): nothing under 4.5:1 (lowest 4.86 in light, 5.98 in dark, as before).
+- `tap-targets` at 360 light, 360 dark, 320 light and 320 dark (non-demo family, so Events > Add event is measured too): each reports exactly the 11 known Year badges at 24 px wide and nothing else; every badge is now at least 32 px tall (the four that were 20 to 23 px are 32 px). "Events > Add event" measured clean ("event preview list shown: true").
+- Smoke scenarios with `scripts/smoke/seed-second-family.ts` (`smoke@example.com`, `empty@example.com`; `SMOKE_EMAIL` set): **22 of 23 exited 0 in one batch** (including `axe-2a`, now clean, `track`, `kids-list`, `subjects-list`); the four `tap-targets` runs above are the 23rd scenario. `s2a-13-settings` timed out at sign-in in the batch and **passed when run again on its own** (all its steps and screenshots). The cause is the login limit (the API allows 10 sign-ins a minute; my own parallel browser checks used some). See N16.
+
+## Per finding
+
+| # | Was | Re-test | Evidence |
+|---|---|---|---|
+| N1 | High | **Fixed** | Schedule Week now starts mid-book and matches Track work. This week: The Hobbit chapters 13-16 (last week on Track work: 10-13), Math 5 lessons 35-39 (31-35), History spine 30-34 (25-30), Science 5 26-30 (22-26), A Child's Garden of Verses pages 61-80 (41-60). Stepping on: Hobbit 16-19, then "chapter 19" (the last one); Math 5 39-44, 44-48. The Week's "Last week" (19-25 Oct) shows the same bars as Track work. A new family's first week still starts at 1. The same at 320 dark. One quirk: the boundary number is shared (last week ends at 35, this week starts at 35) because ranges round outward; that is the engine's own rule and Track work does the same, so not a defect. |
+| N2 | High | **Fixed** | The popover shows the whole name ("Literature · Frank", 121 x 27 px) for all 11 badges at 320, 360, 390 and 1280, light and dark; none is clipped and none runs off the screen edge (`retest-year-popover-360-dark.png`). |
+| N3 | High | **Fixed** | At 1280 x 800 (light and dark), 1024, 768, 640, 390, 360 and 320 the edit bar's bottom is exactly the tab bar's top, nothing covers Start, End, Copy or More, and a mouse click (or tap) on More opens "Update time estimate / Reset to original" (`retest-edit-bar-1280-dark.png`). |
+| N4 | Medium | **Fixed** | One colour per subject on Set up (badge), Week bars and Year badges, in both themes (read from the computed backgrounds): Literature lilac, Math mint, History honey, Science sky, Music butter, in light and in dark, identical in the three places. Art is mint like Math (it was green before; the nearest swatch is mint). See N15. |
+| N5 | Medium | **Fixed** | Every subject name on Set up is whole at 320, 360, 390 and 1280; Math's "about 40 min a lesson" pill sits under its name on phones (`retest-subjects-320-dark.png`). |
+| N6 | Medium | **Fixed** | 22 of 23 scenarios in one batch, the 23rd on its own (above); see N16 for the one flake. |
+| N7 | Low | **Fixed** | A Week bar's accessible name is its visible text ("Treasure Island pages 1-43", no `aria-label`); `axe-2a` passes on Week and every set-up screen. |
+| N8 | Low | **Fixed** | Every badge is at least 32 px tall and 24 px wide, gaps 2 to 4 px (none overlap), at all four widths. With the same simulated fingertip as before (385 taps, 10 px sideways and 12 px up and down), 98 percent hit the badge aimed at (was 89), none hit a wrong lane; the four small badges went from 22 or 23 of 35 to 33 of 35. The gutter did not need widening. |
+| N9 | Low | **Fixed** | Home's Track work card says "Nothing planned" for a child with no work this week. |
+| N10 | Low | **Fixed** | After "Not quite": "Untick what didn't get done, or tap a bar to update it." |
+| N11 | Low | **Mostly fixed** | In dark: radios now take the fern accent (rgb 156,203,184) on Family settings, the event form and "Who it's for"; the "Usual days" and other fieldsets have no border; the Subject form says "Usual time (optional)" (no "effort"); long select choices end in an ellipsis ("Use default (Norm...") instead of being cut mid-letter (`r11` shots in the scratchpad). Left: a date field at 360 px still shows "mm/dd/yyy" with the last letter under the calendar icon, and the select text is shortened by an ellipsis. Cosmetic; I would not spend a ticket on it. |
+| N12 | Low | **Fixed; the new rule is sensible** | `/timeline?view=x&foo=bar` -> `/schedule?view=year&foo=bar` (Year wins). `/timeline?zoom=month` keeps its query. Known set-up routes still redirect with their query (`/schedule/assignments?q=hobbit&x=1` -> `/setup/assignments?q=hobbit&x=1`, days-off, events, settings; `/kids`, `/subjects`). `/schedule`, `/schedule?view=year&x=2` and `/schedule/` stay the Schedule. Any other `/schedule/...` address (for example `/schedule/foo?x=1`) goes Home, dropping the query. That is a good call: `/schedule` cannot be both the new tab and the old hub, an unknown sub-address has no screen to land on, and Home is the one place that is always right. The only old address that lands somewhere else than before is a bare `/schedule` (old hub, now the Schedule), which cannot be told apart. `/plan` and `/nonsense` still show "Page not found", as before. |
+| N13 | Low | **Fixed** | "This is a heavy week for Solo." sits in a soft accent card with no bare name line above it (`retest-heavy-week-360.png`). |
+| N14 | Low | **Fixed, works as Will asked** | See below. |
+
+## N14: the shared child switch
+
+- **Same switch on Week, Track work and Year** (the same `child-switch` element and options on all three, at 320, 360, 390 and 1280, light and dark), with no sideways scroll on any of them.
+- **Two children** (All children, Frank, Margaret): chips at every width from 320 up, "All children" first. Week and Track work open on Frank, Year on All children (the developer's recorded defaults); once a choice is made it is shared: choosing Cecilia in Week's sheet shows Cecilia in Track work's and Year's pill, Year narrows to Cecilia's one subject badge, and choosing All children on Year puts Week on "All children" with every child's work grouped under their name.
+- **Six children** (Frank, Margaret, Alexandra, Bartholomew, Cecilia, Dominic): chips at 1280 (all seven options on one line); at 320, 360 and 390 a single 44 px pill ("Frank ▾", 93 px wide) that opens a bottom sheet "Whose work?" with All children first, then each child, as 52 px rows, a check on the current one, and a 44 px close button; Esc and the close button close it. Nothing scrolls sideways (the switch is not scrollable, the page width equals the window at every width). (`retest-child-sheet-360-dark.png`)
+- **One child and no child:** no switch at all on any of the three screens.
+
+## New findings
+
+- **N15 (Low, S8b-04):** two subjects can share a colour. Because a subject's colour is now its stored hue's nearest swatch, Art (an off-palette green) and Math are both mint on Set up, Week and Year (`r8b-year-360-l.png` in the scratchpad). They are told apart by their icons (calculator and palette), which is what Will chose them for, and there are only eight swatches, so this is expected; mention it if a family wonders why two subjects match.
+- **N16 (Low, S8b-06):** the smoke runner has no spacing between sign-ins, and the API allows 10 per minute, so a batch (or a batch plus other browser work) can fail a scenario at sign-in: `s2a-13-settings` did once and passed alone. Adding a short pause to `flow.mjs`'s login, or running the scenarios with a pause between them, would make a batch repeatable.
+
+## What Will should look at first (updated)
+
+1. **The family-switch sheet with many children** (`retest-child-sheet-360-dark.png`): this is the new thing you asked for, and it works.
+2. **Schedule, Week** next to **Track work** (`retest-week-360-light.png`): the numbers now agree.
+3. **Year**: tap a badge for the name (`retest-year-popover-360-dark.png`); on a laptop select a bar and use More (`retest-edit-bar-1280-dark.png`).
+4. **Set up, Subjects** at 320 (`retest-subjects-320-dark.png`) and a week with a heavy-week note (`retest-heavy-week-360.png`).
+
+## Not re-tested
+
+- A real phone or Safari (Chromium only), print, and very large text sizes (as before).
+- The 7b "Update time estimate" preselected chip, and the undo, late-line and week-adjustment flows beyond what the smoke scenarios cover; I did not change anything there and they passed in the first pass.
