@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { renderAt } from "./render";
 
@@ -21,7 +21,7 @@ describe("routes", () => {
   ])("old link %s lands on %s", async (from, to) => {
     const { router } = renderAt(from);
     await screen.findByRole("navigation", { name: "Main" });
-    expect(router.state.location.pathname).toBe(to);
+    await waitFor(() => expect(router.state.location.pathname).toBe(to)); // a redirect can land a tick after the shell shows (flaked under a loaded gate)
     // S9-01: an old Track work link lands on Schedule · Week, keeping its query.
     if (from.startsWith("/track")) {
       expect(router.state.location.search).toContain("view=week");

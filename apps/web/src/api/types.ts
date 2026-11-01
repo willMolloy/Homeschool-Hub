@@ -71,6 +71,22 @@ export interface RecordEntry {
   books: string[];
 }
 
+/** S9-08: GET /api/records/totals, from log entries only. */
+export interface RecordTotals {
+  from: string | null;
+  to: string | null;
+  childId: string | null;
+  entries: number;
+  schoolDays: number;
+  totalMinutes: number;
+  coreMinutes: number;
+  nonCoreMinutes: number;
+  homeMinutes: number;
+  awayMinutes: number;
+  books: string[];
+  bySubject: { subjectId: string; minutes: number }[];
+}
+
 /** GET/PATCH /api/family */
 export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */

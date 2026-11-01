@@ -22,6 +22,8 @@ function stub(setup: LogSetup, entries: RecordEntry[] = [], kids = KIDS) {
   fakeApi.on("GET /api/subjects", 200, SUBJECTS);
   fakeApi.on("GET /api/children", 200, kids);
   fakeApi.on("GET /api/log-entries", 200, entries);
+  fakeApi.on("GET /api/assignments", 200, []);
+  fakeApi.on("GET /api/records/totals", 200, { from: null, to: null, childId: null, entries: 0, schoolDays: 0, totalMinutes: 0, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [], bySubject: [] });
   fakeApi.on("POST /api/log-entries", 201, []);
   fakeApi.on("PATCH /api/log-entries/e1", 200, entry());
   fakeApi.on("DELETE /api/log-entries/e1", 204);
@@ -207,11 +209,11 @@ describe("the entries list", () => {
     await waitFor(() => expect(fakeApi.calls.some((c) => c.method === "GET" && c.path === "/api/undo")).toBe(true)); // the undo bar is asked what to offer
   });
 
-  it("logging never calls the plan, and no log request is a plan change except edit and delete", async () => {
+  it("logging never calls the plan or writes the schedule (Records only reads assignments, for the year's dates), and no log request is a plan change except edit and delete", async () => {
     stub(DETAILED, [entry()]);
     const user = userEvent.setup();
     renderAt("/records");
     await user.click(await screen.findByRole("button", { name: "Log" }));
-    expect(fakeApi.calls.some((c) => c.path.startsWith("/api/plan") || c.path.startsWith("/api/assignments") || c.path.startsWith("/api/check-ins"))).toBe(false);
+    expect(fakeApi.calls.some((c) => c.path.startsWith("/api/plan") || c.path.startsWith("/api/check-ins") || (c.method !== "GET" && c.path.startsWith("/api/assignments")))).toBe(false);
   });
 });

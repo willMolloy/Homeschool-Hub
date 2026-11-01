@@ -16,6 +16,7 @@ import {
   deleteEntry, insertEntry, listEntries, lockEntry, replaceEntry, stateOf, toJson, type RecordEntryRow, type RecordEntryState,
 } from "../repos/recordEntryRepo";
 import { calendarModel, daysCounted } from "../services/recordEntryService";
+import { totalsOf } from "../services/recordTotals";
 import { recordUndo } from "../services/undoService";
 
 export const MAX_ENTRY_DAYS = 366;
@@ -83,6 +84,15 @@ const label = (s: { startDate: string; endDate: string }, who: string) =>
 
 export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/log-entries", async (req) => (await listEntries(app.db, req.familyId, parseBody(ListQuery, req.query))).map(toJson));
+
+  /** S9-08: read-only totals for a range (by each entry's first day) and one child or all, from log entries only. */
+  app.get("/api/records/totals", async (req) => {
+    const q = parseBody(ListQuery, req.query);
+    const entries = await listEntries(app.db, req.familyId, q);
+    const { rows } = await app.db.query<{ id: string; core: boolean }>("SELECT id, core FROM subject WHERE family_id = $1", [req.familyId]);
+    const core = new Map(rows.map((r) => [r.id, r.core]));
+    return { from: q.from ?? null, to: q.to ?? null, childId: q.childId ?? null, ...totalsOf(entries, (id) => core.get(id) ?? false) };
+  });
 
   app.post("/api/log-entries", async (req, reply) => {
     const b = parseBody(CreateBody, req.body);

@@ -32,3 +32,20 @@
 .entry-head { font-weight: 700; overflow-wrap: anywhere; }
 .entry-sum { margin: 2px 0 6px; color: var(--tl-muted-foreground); font-size: 0.875rem; overflow-wrap: anywhere; }
 .entry-actions { display: flex; gap: 4px; }
+
+/* S9-08: range picker, big numbers, hours by subject. */
+.range-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.range-dates { margin: 0 0 12px; }
+.range-note { margin: 0 0 14px; color: var(--tl-muted-foreground); font-size: 0.875rem; }
+.big-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 8px; margin: 0 0 18px; }
+.big-number { padding: 12px 14px; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); display: flex; flex-direction: column; }
+.big-number strong { font-family: var(--tl-font-display); font-weight: 600; font-size: 1.6rem; line-height: 1.2; overflow-wrap: anywhere; }
+.big-number span { color: var(--tl-muted-foreground); font-size: 0.875rem; }
+.by-subject { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; }
+.by-subject li { display: grid; grid-template-columns: minmax(0, 7rem) 1fr auto; align-items: center; gap: 10px; min-height: 28px; }
+.by-name { overflow-wrap: anywhere; font-weight: 600; }
+.by-bar { height: 12px; border-radius: 99px; background: var(--tl-border); overflow: hidden; display: block; }
+.by-bar i { display: block; height: 100%; border-radius: 99px; background: var(--c); box-shadow: inset 2px 0 0 var(--cs); }
+.by-hours { font-variant-numeric: tabular-nums; font-size: 0.9rem; }
+.records-wording { margin: 18px 0 0; color: var(--tl-muted-foreground); font-size: 0.8125rem; }
+.records-lead .btn-link { min-height: 44px; }

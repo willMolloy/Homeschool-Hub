@@ -20,6 +20,8 @@ function stub(logSetup: LogSetup | null = null, subjects: Subject[] = SUBJECTS) 
   fakeApi.on("GET /api/subjects", 200, subjects);
   fakeApi.on("GET /api/children", 200, []);
   fakeApi.on("GET /api/log-entries", 200, []);
+  fakeApi.on("GET /api/assignments", 200, []);
+  fakeApi.on("GET /api/records/totals", 200, { from: null, to: null, childId: null, entries: 0, schoolDays: 0, totalMinutes: 0, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [], bySubject: [] });
   for (const s of subjects) fakeApi.on(`PATCH /api/subjects/${s.id}`, (b) => [200, { ...s, ...(b as object) }]);
 }
 const open = async () => {
