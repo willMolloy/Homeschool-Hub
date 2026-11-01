@@ -1,0 +1,31 @@
+/* S8-05: This week as pastel bars. */
+.week-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 4px; }
+.week-head h2 { margin: 0; font-size: 1.35rem; }
+.week-dates { margin: 0 0 12px; color: var(--tl-muted-foreground); font-size: 0.875rem; }
+.week-step-row { display: flex; gap: 8px; }
+.round-btn { width: 44px; height: 44px; border-radius: 999px; border: 0; background: var(--tl-secondary); color: var(--tl-foreground); display: grid; place-items: center; font: inherit; font-size: 1.15rem; cursor: pointer; }
+.round-btn:disabled { opacity: 0.5; cursor: default; }
+.week-section { margin: 20px 4px 10px; font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tl-muted-foreground); font-family: var(--tl-font); }
+.bars { list-style: none; margin: 0; padding: 0; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 62px; box-sizing: border-box; margin-bottom: 10px; padding: 8px 10px 8px 0;
+  border-radius: var(--tl-radius-bar); background: var(--c); border-left: var(--tl-rule) solid var(--cs); color: var(--tl-foreground); }
+.bar-body { flex: 1; min-width: 0; min-height: 46px; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 2px 0 2px 16px; box-sizing: border-box;
+  border: 0; background: none; color: inherit; font: inherit; text-align: left; }
+button.bar-body { cursor: pointer; }
+.bar-title { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 1rem; overflow-wrap: anywhere; }
+.bar-icon { flex: none; color: var(--cs); }
+.bar-amount, .bar-state { font-size: 0.875rem; color: color-mix(in srgb, var(--tl-foreground) calc(var(--tl-bar-secondary-opacity) * 100%), transparent); }
+.bar-state { font-weight: 600; }
+.bar-check { flex: none; width: 44px; height: 44px; border-radius: 999px; border: 2px solid var(--cs); background: transparent; color: var(--tl-background);
+  display: grid; place-items: center; cursor: pointer; transition: background-color var(--tl-motion) ease-out; }
+.bar-check[aria-pressed="true"] { background: var(--cs); }
+.bar-check:disabled { opacity: 0.5; cursor: default; }
+.week-event { margin: 4px 4px 0; font-size: 0.875rem; color: var(--tl-muted-foreground); }
+.week-empty { margin: 8px 4px; color: var(--tl-muted-foreground); }
+.week-card { margin-bottom: 16px; }
+.week-card h3 { font-family: var(--tl-font-display); font-weight: 600; font-size: 1.1rem; margin: 0 0 2px; }
+.week-card p { margin: 0; color: var(--tl-muted-foreground); font-size: 0.875rem; }
+.week-card .btn-row { margin-top: 14px; }
+.week-card .btn-row .btn { flex: 1; }
+@media (prefers-reduced-motion: reduce) { .bar-check { transition: none; } }
+.bar-error { flex: 1 0 100%; margin: 0; padding: 0 0 4px 16px; color: var(--tl-foreground); font-size: 0.875rem; font-weight: 600; }

@@ -1,16 +1,16 @@
 /**
- * T-03b: This Week — one week switcher in the header, and a "Make an adjustment" sheet per student (Drawer on
- * phones, Dialog wider) that edits that child's rows of the finished week. Ports S2b-27's past-week editing.
+ * S8-05: Schedule's Week view as pastel bars (the T-03b "Make an adjustment" buttons and the per-student check-in
+ * sheet are gone: a bar opens the adjustment, and a finished week is checked in on Track work, S8-06).
  */
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
-import type { CheckInItem, PastWeek, WeekCheckIn } from "../src/api/types";
+import type { CheckInItem, ScheduleEvent, Subject, WeekCheckIn } from "../src/api/types";
 import { forChild, withOtherChildren } from "../src/features/checkin/childWeek";
-import { LATER_NOTE, laterCheckInsExist, sheetTitle } from "../src/features/checkin/ChildAdjustment";
 import { shownWeek } from "../src/features/plan/useShownWeek";
-import { choose, rowFor, step } from "./helpers/checkin";
+import { barsFromPlans, eventLines, rangeWords } from "../src/features/week/weekBars";
+import { shownChoice } from "../src/features/week/useChildChoice";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
@@ -22,237 +22,168 @@ const TI = item({});
 const MATH = item({ assignmentId: "math", title: "Math 5", unitType: "lessons", plannedFrom: 10, plannedTo: 15, totalUnits: 120 });
 const VIOLIN_M = item({ assignmentId: "violin", childId: "c2", childName: "Margaret", title: "Violin", unitType: "minutes", plannedFrom: 600, plannedTo: 750, totalUnits: 3000, actual: 700, mode: "pushEndDate" });
 const OCT19: WeekCheckIn = { weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, items: [TI, MATH, VIOLIN_M], addable: [] };
-const OCT12: WeekCheckIn = { weekStart: "2026-10-12", weekEnd: "2026-10-18", status: "skipped", items: [item({ actual: 60, mode: "keepEndDate" })], addable: [] };
-const WEEKS: PastWeek[] = [
-  { weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, hasCheckIns: true },
-  { weekStart: "2026-10-12", weekEnd: "2026-10-18", status: "skipped", hasCheckIns: true },
+/** A plan for the week of Mon 2026-10-26: `before` units done in earlier weeks, then `week` units spread over Mon and Tue. */
+const plan = (assignmentId: string, childId: string, subjectId: string, over: Partial<ChildPlan> & { before?: number; week?: number } = {}): ChildPlan => {
+  const { before = 119, week = 31, ...rest } = over;
+  const days = [
+    ...(before > 0 ? [{ date: "2026-10-20", capacity: 1, schoolDay: true, units: before, thickness: before, kind: "planned" as const, position: before }] : []),
+    ...["2026-10-26", "2026-10-27"].map((date, k) => ({ date, capacity: 1, schoolDay: true, units: week / 2, thickness: week / 2, kind: "planned" as const, position: before + (week / 2) * (k + 1) })),
+  ];
+  return {
+    engineVersion: ENGINE_VERSION, assignmentId, childId, subjectId, unitType: "pages", weightPerUnit: 1,
+    weightSource: "assignment", weekdays: null, weekdaysSource: "default", totalUnits: 270, doneUnits: 0, remainingUnits: 270, baseRate: 10, rate: 10,
+    plannedEnd: "2026-12-01", end: "2026-12-01", mode: null, unplacedUnits: 0, noCapacity: false, complete: false,
+    checkInWeeks: [], adjustedWeeks: [], weekdaysFrom: null, previousWeekdays: null, warnings: [], days, ...rest,
+  } as ChildPlan;
+};
+const SUBJECTS: Subject[] = [
+  { id: "lit", name: "Literature", color: null, sortOrder: 0, archived: false, defaultWeight: null, defaultWeekdays: null },
+  { id: "math", name: "Math", color: null, sortOrder: 1, archived: false, defaultWeight: null, defaultWeekdays: null },
 ];
-const puts = () => fakeApi.calls.filter((c) => c.method === "PUT");
+const PLANS = [
+  plan("math", "c1", "math", { unitType: "lessons", before: 30, week: 5, totalUnits: 120 }),
+  plan("ti", "c1", "lit"),
+  plan("violin", "c2", "math", { unitType: "minutes", before: 600, week: 150, totalUnits: 3000 }),
+];
+const CO_OP: ScheduleEvent = { id: "e1", name: "Co-op", weekdays: [2], startDate: null, endDate: null, capacityFraction: 0, defaultRule: "skip", subjectRules: {}, childIds: [], archived: false } as ScheduleEvent;
 
-const plan = (assignmentId: string, childId: string, subjectId: string): ChildPlan => ({
-  engineVersion: ENGINE_VERSION, assignmentId, childId, subjectId, unitType: "pages", weightPerUnit: 1,
-  weightSource: "assignment", weekdays: null, weekdaysSource: "default", totalUnits: 100, doneUnits: 0, remainingUnits: 100, baseRate: 10, rate: 10,
-  plannedEnd: "2026-12-01", end: "2026-12-01", mode: null, unplacedUnits: 0, noCapacity: false, complete: false,
-  checkInWeeks: [], adjustedWeeks: [], weekdaysFrom: null, previousWeekdays: null, warnings: [],
-  days: ["2026-10-26", "2026-10-27"].map((date) => ({ date, capacity: 1, schoolDay: true, units: 10, thickness: 10, kind: "planned" as const, position: 10 })),
-});
-
-function stub(weeks: WeekCheckIn[] = [OCT19, OCT12]) {
-  fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [plan("ti", "c1", "lit")] });
+function stub(plans: ChildPlan[] = PLANS, events: ScheduleEvent[] = [CO_OP]) {
+  fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans });
   fakeApi.on("GET /api/children", 200, [
     { id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false },
     { id: "c2", name: "Margaret", color: null, sortOrder: 1, archived: false },
     { id: "c3", name: "Old Kid", color: null, sortOrder: 2, archived: true },
   ]);
-  fakeApi.on("GET /api/subjects", 200, [
-    { id: "lit", name: "Literature", color: null, sortOrder: 0, archived: false },
-    { id: "math", name: "Math", color: null, sortOrder: 1, archived: false },
-  ]);
+  fakeApi.on("GET /api/subjects", 200, SUBJECTS);
   fakeApi.on("GET /api/assignments", 200, [
     { id: "ti", subjectId: "lit", title: "Treasure Island" },
     { id: "math", subjectId: "math", title: "Math 5" },
+    { id: "violin", subjectId: "math", title: "Violin" },
   ]);
-  fakeApi.on("GET /api/check-ins/weeks", 200, { weeks: WEEKS });
-  for (const w of weeks) {
-    fakeApi.on(`GET /api/check-ins?weekStart=${w.weekStart}`, 200, w);
-    fakeApi.on(`PUT /api/check-ins/${w.weekStart}`, (body) => {
-      const b = body as { status: "reviewed"; items: { assignmentId: string; childId: string; position: number; mode: string | null }[] };
-      const items = w.items.map((i) => {
-        const s = b.items.find((x) => x.assignmentId === i.assignmentId && x.childId === i.childId);
-        return { ...i, actual: s?.position ?? null, mode: (s?.mode ?? null) as CheckInItem["mode"] };
-      });
-      return [200, { ...w, status: b.status, items, planChanged: true }];
-    });
-  }
+  fakeApi.on("GET /api/events", 200, events);
+  fakeApi.on("GET /api/week-overrides", 200, { overrides: [] });
 }
+const work = (name: string) => screen.findByRole("region", { name: `${name}'s work` });
 
-function phone(matches: boolean) {
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    matches, media: query, onchange: null,
-    addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
-  }));
-}
-afterEach(() => vi.unstubAllGlobals());
+describe("Schedule, Week view", () => {
+  beforeEach(() => { stub(); localStorage.clear(); });
 
-// S6-03: on the current or a coming week the button sets that week's amounts (week-adjustment.test.tsx); the check-in
-// sheet is for a finished week, so these tests open it on last week.
-async function openSheet(name = "Frank", path = "/schedule?view=week&week=2026-10-19") {
-  renderAt(path);
-  await userEvent.click(await screen.findByRole("button", { name: `Make an adjustment for ${name}` }));
-  return screen.findByRole("dialog");
-}
-
-describe("This Week header", () => {
-  it("has the title and one week switcher; no Prev/Next bar, past-week list, or debug extras", async () => {
-    stub();
+  it("has the title, the dates, previous and next week, and no engine numbers", async () => {
     renderAt("/schedule?view=week");
-    await screen.findByRole("button", { name: "Make an adjustment for Frank" });
-    expect(screen.getByRole("heading", { level: 1, name: "Schedule" })).toBeInTheDocument();
-    const switcher = screen.getByRole("group", { name: "Week" });
-    expect(within(switcher).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["Previous week", "Next week"]);
-    expect(switcher).toHaveTextContent("This week");
-    expect(screen.queryByRole("button", { name: "Review a past week" })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Prev week/ })).toBeNull();
-    expect(screen.queryByText(/Debug view|Plan as of|Week of/)).toBeNull();
+    await work("Frank");
+    expect(screen.getByRole("heading", { level: 2, name: "This week" })).toBeInTheDocument();
+    expect(screen.getByText("26 Oct – 1 Nov")).toBeInTheDocument();
+    const steps = screen.getByRole("group", { name: "Week" });
+    expect(within(steps).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["Previous week", "Next week"]);
+    expect(screen.getByRole("main").textContent).not.toMatch(/thickness|effort|\d+\.\d/i);
   });
 
-  it("has no \"Missed a day?\" control: missed work is reported through the weekly check-in (S6-04)", async () => {
-    stub();
-    fakeApi.on("GET /api/check-ins", 200, OCT19);
+  it("shows one bar per assignment in lane order, with the week's range in the family's units and an accessible name", async () => {
     renderAt("/schedule?view=week");
-    await screen.findByRole("button", { name: "Make an adjustment for Frank" });
-    expect(screen.queryByRole("button", { name: /Missed a day/ })).toBeNull();
-    expect(screen.queryByText(/Missed a day/)).toBeNull();
-    // The weekly check-in is still there for it.
-    expect(await screen.findByRole("region", { name: /How did last week go\?/ })).toBeInTheDocument();
+    const frank = await work("Frank");
+    const bars = within(frank).getAllByRole("listitem");
+    // Literature before Math, as the subjects are ordered.
+    expect(bars.map((b) => b.querySelector(".bar-title")!.textContent)).toEqual(["Treasure Island", "Math 5"]);
+    expect(within(frank).getByRole("button", { name: "Treasure Island, pages 120–150" })).toBeInTheDocument();
+    expect(within(frank).getByRole("button", { name: "Math 5, lessons 31–35" })).toBeInTheDocument();
+    // The subject's pastel and strong rule come from the tokens.
+    expect(bars[0]!.getAttribute("style")).toMatch(/--c: var\(--tl-subject-\d\);.*--cs: var\(--tl-subject-\d-strong\)/);
+    expect(within(frank).queryByRole("button", { name: /completed/ })).toBeNull(); // no check mid-week
   });
 
-  it("shownWeek: the sheet edits the shown week once it's over, otherwise last week", () => {
+  it("one child at a time: Frank, Margaret or Both; the choice is remembered on this device", async () => {
+    const user = userEvent.setup();
+    const first = renderAt("/schedule?view=week");
+    await work("Frank");
+    const seg = screen.getByRole("group", { name: "Child" });
+    expect(within(seg).getAllByRole("button").map((b) => b.textContent)).toEqual(["Frank", "Margaret", "Both"]);
+    expect(within(seg).getByRole("button", { name: "Frank" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("region", { name: "Margaret's work" })).toBeNull();
+    await user.click(within(seg).getByRole("button", { name: "Margaret" }));
+    const margaret = await work("Margaret");
+    expect(within(margaret).getByRole("button", { name: "Violin, 150 minutes" })).toBeInTheDocument();
+    await user.click(within(seg).getByRole("button", { name: "Both" }));
+    await work("Frank");
+    await work("Margaret");
+    expect(localStorage.getItem("hh.child")).toBe("both");
+    first.unmount();
+    renderAt("/schedule?view=week");
+    await work("Frank");
+    await work("Margaret");
+    expect(screen.queryByRole("region", { name: "Old Kid's work" })).toBeNull();
+  });
+
+  it("a single child has no switch", async () => {
+    fakeApi.on("GET /api/children", 200, [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }]);
+    renderAt("/schedule?view=week");
+    await work("Frank");
+    expect(screen.queryByRole("group", { name: "Child" })).toBeNull();
+  });
+
+  it("a child with nothing that week says so; events are one quiet line each", async () => {
+    stub([PLANS[1]!]);
+    const user = userEvent.setup();
+    renderAt("/schedule?view=week");
+    await user.click(await screen.findByRole("button", { name: "Margaret" }));
+    const margaret = await work("Margaret");
+    expect(within(margaret).getByText("Nothing planned this week.")).toBeInTheDocument();
+    expect(within(margaret).getByText("Tue · Co-op")).toBeInTheDocument();
+  });
+
+  it("tapping a bar opens that child's week adjustment", async () => {
+    const user = userEvent.setup();
+    renderAt("/schedule?view=week");
+    await user.click(await screen.findByRole("button", { name: "Treasure Island, pages 120–150" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText(/Frank · This week · Oct 26 – Nov 1/)).toBeInTheDocument();
+    expect(await within(sheet).findByRole("group", { name: "Amount this week for Treasure Island" })).toBeInTheDocument();
+  });
+
+  it("the previous and next buttons move a week", async () => {
+    const user = userEvent.setup();
+    renderAt("/schedule?view=week");
+    await work("Frank");
+    await user.click(screen.getByRole("button", { name: "Next week" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Coming week" })).toBeInTheDocument();
+    expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
+  });
+});
+
+describe("week bars (pure)", () => {
+  it("says ranges in the family's words", () => {
+    expect(rangeWords("pages", 119, 150)).toBe("pages 120–150");
+    expect(rangeWords("pages", 119, 120)).toBe("page 120");
+    expect(rangeWords("lessons", 30.2, 35)).toBe("lessons 31–35");
+    expect(rangeWords("chapters", 8, 9)).toBe("chapter 9");
+    expect(rangeWords("minutes", 600, 750)).toBe("150 minutes");
+    expect(rangeWords("pages", 119.99, 150.01)).toBe("pages 120–151");
+  });
+  it("only assignments with work that week get a bar", () => {
+    const look = { children: [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }], subjects: SUBJECTS, titleOf: () => "X", subjectOf: () => "lit" };
+    const idle = plan("idle", "c1", "lit", { week: 0, before: 10 });
+    expect(barsFromPlans([idle, plan("ti", "c1", "lit")], "2026-10-26", look).map((b) => b.assignmentId)).toEqual(["ti"]);
+  });
+  it("events: only those in the week, for that child or the whole family, with their days", () => {
+    const e = (over: Partial<ScheduleEvent>) => ({ ...CO_OP, ...over }) as ScheduleEvent;
+    const lines = eventLines([e({}), e({ id: "e2", name: "Piano", weekdays: [1, 3], childIds: ["c2"] }), e({ id: "e3", name: "Old", startDate: "2026-01-01", endDate: "2026-02-01" }), e({ id: "e4", archived: true })], "2026-10-26", "2026-11-01", "c1");
+    expect(lines).toEqual([{ key: "e1", text: "Tue · Co-op" }]);
+  });
+  it("the shown choice: a saved child that exists, Both only with several children, else the first", () => {
+    const kids = [{ id: "a", name: "A", color: null, sortOrder: 0, archived: false }, { id: "b", name: "B", color: null, sortOrder: 1, archived: false }];
+    expect(shownChoice(kids, "b")).toBe("b");
+    expect(shownChoice(kids, "both")).toBe("both");
+    expect(shownChoice(kids, "gone")).toBe("a");
+    expect(shownChoice(kids.slice(0, 1), "both")).toBe("a");
+    expect(shownChoice([], "a")).toBeNull();
+  });
+});
+
+describe("shownWeek", () => {
+  it("shownWeek: the check-in week is the shown week once it's over, otherwise last week", () => {
     expect(shownWeek(null, "2026-10-28", "mon")).toEqual({ weekStart: "2026-10-26", weekEnd: "2026-11-01", currentWeekStart: "2026-10-26", checkInWeekStart: "2026-10-19" });
     expect(shownWeek("2026-10-14", "2026-10-28", "mon").checkInWeekStart).toBe("2026-10-12");
     expect(shownWeek("2026-11-04", "2026-10-28", "mon").checkInWeekStart).toBe("2026-10-19");
     expect(shownWeek("nonsense", "2026-10-28", "mon").weekStart).toBe("2026-10-26");
-  });
-});
-
-describe("Make an adjustment", () => {
-  it("one button per active student, nothing opened or fetched until tapped", async () => {
-    stub();
-    renderAt("/schedule?view=week");
-    expect(await screen.findByRole("button", { name: "Make an adjustment for Frank" })).toHaveTextContent("Make an adjustment");
-    expect(screen.getByRole("button", { name: "Make an adjustment for Margaret" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Old Kid/ })).toBeNull();
-    // Beside the student's name (S6b-01: no table below it any more).
-    const frank = screen.getByRole("button", { name: "Make an adjustment for Frank" });
-    expect(frank.closest(".plan-child-head")).toHaveTextContent(/^Frank/);
-    expect(screen.queryByRole("table")).toBeNull();
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(fakeApi.calls.some((c) => c.path.startsWith("/api/check-ins?weekStart="))).toBe(false);
-  });
-
-  it("wide screens get a Dialog, phones a Drawer; both titled with the child and Last week · its dates (T-09)", async () => {
-    stub();
-    phone(false);
-    const dialog = await openSheet();
-    expect(dialog).toHaveAttribute("data-sheet", "dialog");
-    expect(dialog).toHaveAccessibleName("Frank · Last week · Oct 19–25");
-    await userEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  });
-
-  it("phones get the Drawer", async () => {
-    stub();
-    phone(true);
-    const drawer = await openSheet("Margaret");
-    expect(drawer).toHaveAttribute("data-sheet", "drawer");
-    expect(drawer).toHaveAccessibleName("Margaret · Last week · Oct 19–25");
-  });
-
-  it("shows only that child's rows, in the same calm rows as the card, each tinted with its subject's pastel", async () => {
-    stub();
-    const sheet = await openSheet();
-    expect(fakeApi.calls.map((c) => c.path)).toContain("/api/check-ins?weekStart=2026-10-19");
-    const toggles = await within(sheet).findAllByRole("button", { expanded: false });
-    expect(toggles.map((t) => t.textContent)).toEqual(["Treasure Islandpp. 1–80✓As planned", "Math 5Lessons 11–15✓As planned"]);
-    expect(within(sheet).queryByText(/Violin/)).toBeNull();
-    expect(within(sheet).queryByRole("group", { name: "Child" })).toBeNull();
-    const rows = within(sheet).getAllByRole("listitem");
-    expect(rows.map((r) => r.style.getPropertyValue("--checkin-row-tint"))).toEqual(["var(--tl-subject-1-pastel)", "var(--tl-subject-2-pastel)"]);
-    // No prompt buttons or card header in the sheet, just Save (edit mode: re-saving unchanged is allowed).
-    expect(within(sheet).queryByRole("button", { name: "Skip" })).toBeNull();
-    expect(within(sheet).queryByRole("button", { name: "Looks right" })).toBeNull();
-    expect(within(sheet).getByRole("button", { name: "Save" })).toBeEnabled();
-  });
-
-  it("saving sends this child's change and keeps the other children's stored rows (the PUT replaces the week)", async () => {
-    stub();
-    const sheet = await openSheet();
-    await within(sheet).findByRole("list");
-    const ti = await rowFor(sheet, "Treasure Island");
-    await choose(ti, "Less");
-    await step(ti, "One less", 14);
-    expect(ti.querySelector(".checkin-row-state")).toHaveTextContent("65 of 80 pp.");
-    await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
-    expect(puts().at(-1)).toMatchObject({
-      path: "/api/check-ins/2026-10-19",
-      body: { status: "reviewed", items: [
-        { assignmentId: "ti", childId: "c1", position: 65, mode: "keepEndDate" },
-        { assignmentId: "violin", childId: "c2", position: 700, mode: "pushEndDate" },
-      ] },
-    });
-    expect(await within(sheet).findByRole("status")).toHaveTextContent("Thanks — plan updated");
-    expect(fakeApi.bodyKeyViolations).toEqual([]);
-  });
-
-  it("a save from the sheet refreshes last week's prompt on the page (it goes once the week is reviewed)", async () => {
-    stub();
-    let home: WeekCheckIn = OCT19;
-    fakeApi.on("GET /api/check-ins", () => [200, home]);
-    fakeApi.on(`PUT /api/check-ins/${OCT19.weekStart}`, () => {
-      home = { ...OCT19, status: "reviewed" };
-      return [200, { ...home, planChanged: true }];
-    });
-    renderAt("/schedule?view=week&week=2026-10-19");
-    expect(await screen.findByRole("region", { name: /How did last week go\?/ })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Make an adjustment for Frank" }));
-    const sheet = await screen.findByRole("dialog");
-    await userEvent.click(await within(sheet).findByRole("button", { name: "Save" }));
-    await waitFor(() => expect(screen.queryByRole("region", { name: /How did last week go\?/ })).toBeNull());
-  });
-
-  it("a past shown week is adjusted as itself, prefilled and keeping its stored mode; a skipped week saves as reviewed", async () => {
-    stub();
-    const sheet = await openSheet("Frank", "/schedule?view=week&week=2026-10-14");
-    expect(sheet).toHaveAccessibleName("Frank · Oct 12–18");
-    await within(sheet).findByRole("list");
-    expect(within(sheet).queryByText(/skipped/)).toBeNull();
-    const ti = await rowFor(sheet, "Treasure Island");
-    expect(ti.querySelector(".checkin-row-state")).toHaveTextContent("60 of 80 pp.");
-    await step(ti, "One more", 10);
-    await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
-    expect(puts().at(-1)).toMatchObject({
-      path: "/api/check-ins/2026-10-12",
-      body: { status: "reviewed", items: [{ assignmentId: "ti", position: 70, mode: "keepEndDate" }] },
-    });
-  });
-
-  it("Undo on a stored row removes it from the week on Save", async () => {
-    stub();
-    const sheet = await openSheet("Frank", "/schedule?view=week&week=2026-10-14");
-    await within(sheet).findByRole("list");
-    await userEvent.click(within(sheet).getByRole("button", { name: "Undo Treasure Island for Frank" }));
-    await userEvent.click(within(sheet).getByRole("button", { name: "Save" }));
-    expect(puts().at(-1)).toMatchObject({ path: "/api/check-ins/2026-10-12", body: { status: "reviewed", items: [] } });
-  });
-
-  it("sheetTitle says Last week only for last week", () => {
-    expect(sheetTitle("Frank", "2026-10-19", "2026-10-25", true)).toBe("Frank · Last week · Oct 19–25");
-    expect(sheetTitle("Frank", "2026-10-12", "2026-10-18", false)).toBe("Frank · Oct 12–18");
-  });
-
-  it("the later-check-ins note shows only when a later week has check-ins", async () => {
-    stub();
-    const older = await openSheet("Frank", "/schedule?view=week&week=2026-10-14");
-    expect(await within(older).findByText(LATER_NOTE)).toBeInTheDocument();
-    expect(laterCheckInsExist(WEEKS, "2026-10-19")).toBe(false);
-    expect(laterCheckInsExist(WEEKS, "2026-10-12")).toBe(true);
-  });
-
-  it("no note for last week when nothing later has check-ins", async () => {
-    stub();
-    const sheet = await openSheet();
-    await within(sheet).findAllByRole("button", { expanded: false });
-    await waitFor(() => expect(fakeApi.calls.some((c) => c.path === "/api/check-ins/weeks")).toBe(true));
-    expect(within(sheet).queryByText(LATER_NOTE)).toBeNull();
-  });
-
-  it("a child with nothing planned this week still gets the button", async () => {
-    stub();
-    fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [] });
-    renderAt("/schedule?view=week");
-    expect(await screen.findByText("Nothing planned this week.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Make an adjustment for Frank" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Make an adjustment for Margaret" })).toBeInTheDocument();
   });
 });
 

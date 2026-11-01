@@ -30,7 +30,7 @@ const puts = () => fakeApi.calls.filter((c) => c.method === "PUT");
 async function showCard(week: WeekCheckIn = WEEK) {
   fakeApi.on("GET /api/check-ins", 200, week);
   fakeApi.on(PUT, (body) => [200, { ...week, status: (body as { status: string }).status, planChanged: true }]);
-  renderAt("/schedule?view=week");
+  renderAt("/track");
   return screen.findByRole("region", { name: "How did last week go?" });
 }
 
@@ -94,10 +94,10 @@ describe("the default: everything went as planned", () => {
     ["nothing was planned", () => fakeApi.on("GET /api/check-ins", 200, EMPTY_WEEK)],
     ["nothing was planned, even with addable pairs", () => fakeApi.on("GET /api/check-ins", 200, { ...EMPTY_WEEK, addable: [item({ plannedTo: 0 })] })],
     ["the request fails", () => fakeApi.on("GET /api/check-ins", 500, { error: "internal" })],
-  ])("hidden when %s, and the plan still renders", async (_n, arrange) => {
+  ])("hidden when %s, and the page still renders", async (_n, arrange) => {
     arrange();
-    renderAt("/schedule?view=week");
-    expect(await screen.findByRole("heading", { name: "Schedule" })).toBeInTheDocument();
+    renderAt("/track");
+    expect(await screen.findByRole("heading", { name: "Track work" })).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 20));
     expect(card()).toBeNull();
     expect(fakeApi.calls.some((c) => c.path === "/api/check-ins")).toBe(true);
@@ -145,7 +145,7 @@ describe("adjusting a row", () => {
     expect(within(c).getByRole("button", { name: "Looks right" })).toBeInTheDocument();
   });
 
-  it("Save PUTs, then refetches the plan in place, then thanks and goes after ~3 s", async () => {
+  it("Save PUTs, then thanks and goes after ~3 s", async () => {
     const c = await showCard();
     await choose(await rowFor(c, "Treasure Island"), "More");
     const before = fakeApi.calls.length;
@@ -155,8 +155,7 @@ describe("adjusting a row", () => {
       expect(await screen.findByRole("status")).toHaveTextContent("Thanks — plan updated");
       const after = fakeApi.calls.slice(before).map((x) => `${x.method} ${x.path.split("?")[0]}`);
       expect(after.indexOf("PUT /api/check-ins/2026-10-19")).toBe(0);
-      expect(after.indexOf("GET /api/plan")).toBeGreaterThan(0);
-      expect(screen.getByRole("heading", { name: "Schedule" })).toBeInTheDocument(); // no page reload
+      expect(screen.getByRole("heading", { name: "Track work" })).toBeInTheDocument(); // no page reload
       await act(async () => { vi.advanceTimersByTime(THANKS_MS + 10); });
       expect(screen.queryByRole("status")).toBeNull();
       expect(card()).toBeNull();

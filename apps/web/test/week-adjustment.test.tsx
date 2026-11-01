@@ -51,7 +51,10 @@ function stub(overrides: object[] = []) {
 
 async function openSheet(path = "/schedule?view=week", name = "Frank") {
   renderAt(path);
-  await userEvent.click(await screen.findByRole("button", { name: `Make an adjustment for ${name}` }));
+  // S8-05: a bar opens its child's adjustment (it used to be a "Make an adjustment" button per student).
+  if (name !== "Frank") await userEvent.click(await screen.findByRole("button", { name }));
+  const bars = await screen.findByRole("region", { name: `${name}'s work` });
+  await userEvent.click(within(bars).getAllByRole("button")[0]!);
   const sheet = await screen.findByRole("dialog");
   await within(sheet).findByRole("list");
   return sheet;
@@ -208,19 +211,6 @@ describe("This Week adjustment (other weeks)", () => {
     expect(within(sheet).getByRole("button", { name: "Save" })).toBeDisabled();
     await userEvent.click(within(stepper(sheet, "Violin")).getByRole("button", { name: "One less" }));
     expect(within(stepper(sheet, "Violin")).getByRole("status")).toHaveTextContent(/^85 minutes$/);
-  });
-
-  it("a past week still uses the check-in sheet", async () => {
-    stub();
-    fakeApi.on("GET /api/check-ins/weeks", 200, { weeks: [] });
-    fakeApi.on("GET /api/check-ins?weekStart=2026-10-19", 200, {
-      weekStart: "2026-10-19", weekEnd: "2026-10-25", status: null, addable: [],
-      items: [{ assignmentId: "ti", childId: "c1", childName: "Frank", title: "Treasure Island", unitType: "pages", plannedFrom: 0, plannedTo: 80, totalUnits: 270, actual: null, mode: null }],
-    });
-    const sheet = await openSheet("/schedule?view=week&week=2026-10-19");
-    expect(sheet).toHaveAccessibleName("Frank · Last week · Oct 19–25");
-    expect(await within(sheet).findByRole("button", { name: "Save" })).toBeEnabled();
-    expect(fakeApi.calls.some((c) => c.path.startsWith("/api/week-overrides"))).toBe(false);
   });
 });
 

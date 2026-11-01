@@ -222,15 +222,19 @@ describe("Weekly briefing on This Week (S4-09)", () => {
     expect(link).toHaveAttribute("href", "/track");
   });
 
-  it("the nudge goes once last week is confirmed from the card", async () => {
+  it("the nudge takes you to Track work, and goes once last week is confirmed there", async () => {
     stub([], { weeks: WEEKS_CHECKED, lastWeek: LAST_WEEK });
     fakeApi.on("PUT /api/check-ins/2026-10-19", () => {
       fakeApi.on("GET /api/check-ins", 200, { ...LAST_WEEK, status: "reviewed" });
       return [200, { ...LAST_WEEK, status: "reviewed", planChanged: false }];
     });
-    renderAt("/schedule?view=week");
-    await screen.findByRole("link", { name: "Last week isn't checked in yet." });
-    await userEvent.click(screen.getByRole("button", { name: "Looks right" }));
+    const user = userEvent.setup();
+    const { router } = renderAt("/schedule?view=week");
+    await user.click(await screen.findByRole("link", { name: "Last week isn't checked in yet." }));
+    expect(router.state.location.pathname).toBe("/track");
+    await user.click(await screen.findByRole("button", { name: "Looks right" }));
+    await user.click(within(screen.getByRole("navigation", { name: "Main" })).getByRole("link", { name: "Schedule" }));
+    await screen.findAllByRole("heading", { name: /'s work$/ });
     await waitFor(() => expect(screen.queryByRole("link", { name: "Last week isn't checked in yet." })).toBeNull());
   });
 
@@ -238,7 +242,7 @@ describe("Weekly briefing on This Week (S4-09)", () => {
     stub([], { weeks: { weeks: [] }, lastWeek: LAST_WEEK });
     renderAt("/schedule?view=week");
     await screen.findByRole("group", { name: "Week" });
-    await screen.findByText(/How did last week go\?|Last week/);
+    await briefingFetched();
     expect(screen.queryByText("Last week isn't checked in yet.")).toBeNull();
     expect(region()).toBeNull();
   });
@@ -268,7 +272,7 @@ describe("Weekly briefing on This Week (S4-09)", () => {
   it("a clean plan shows no briefing at all", async () => {
     stub([onPacePlan()]);
     renderAt("/schedule?view=week");
-    await screen.findAllByRole("button", { name: /^Make an adjustment for/ });
+    await screen.findAllByRole("heading", { name: /'s work$/ });
     await briefingFetched();
     expect(region()).toBeNull();
   });
@@ -277,7 +281,7 @@ describe("Weekly briefing on This Week (S4-09)", () => {
     stub([slowPlan()]);
     fakeApi.on("GET /api/assignments", 500, { error: "boom" });
     renderAt("/schedule?view=week");
-    await screen.findAllByRole("button", { name: /^Make an adjustment for/ });
+    await screen.findAllByRole("heading", { name: /'s work$/ });
     expect(region()).toBeNull();
   });
 
