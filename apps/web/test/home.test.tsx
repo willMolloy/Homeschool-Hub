@@ -115,6 +115,15 @@ describe("Home", () => {
   });
 });
 
+describe("tap targets (the end-of-sprint run at 360 px)", () => {
+  it("the Track work and Schedule card links are 44 px high, and the whole card is the target", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync("src/features/home/home.css", "utf8");
+    expect(css).toMatch(/\.home-card-link \{[^}]*min-height: 44px/);
+    expect(css).toMatch(/\.home-card-link::after \{[^}]*inset: 0/);
+  });
+});
+
 describe("Set up", () => {
   it("lists every set-up screen with a one-line description, from the shared config", async () => {
     renderAt("/setup");
