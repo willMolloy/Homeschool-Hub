@@ -96,3 +96,14 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* S8b-07 (N11): the native bits of the set-up forms take the theme. */
+input[type="radio"], input[type="checkbox"] { accent-color: var(--tl-primary); }
+.roster-form fieldset, .roster-form .choice-list { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+.roster-form legend { font-weight: 600; font-size: 0.95rem; margin-bottom: 6px; padding: 0; }
+/* Dates and selects keep their whole text at 360 px: less side padding, and a select may show a long choice in full. */
+.schedule-form input[type="date"] { padding-left: 8px; padding-right: 6px; min-width: 0; }
+.schedule-form select { text-overflow: ellipsis; padding-right: 28px; min-width: 0; }
+@media (max-width: 480px) {
+  .field-row:has(select) { grid-template-columns: 1fr; }
+}

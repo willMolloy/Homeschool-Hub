@@ -16,7 +16,7 @@ const subjectExtension: RosterExtension<Subject, SubjectValues> = {
     <>
       {item.defaultWeekdays ? <span className="tag tag-weight" title="Usual days">{weekdayRanges(item.defaultWeekdays)}</span> : null}
       {item.defaultWeight ? (
-        <span className="tag tag-weight" title="Usual effort">{usualEffortText(item.defaultWeight.unitType, item.defaultWeight.weightPerUnit)}</span>
+        <span className="tag tag-weight" title="Usual time">{usualEffortText(item.defaultWeight.unitType, item.defaultWeight.weightPerUnit)}</span>
       ) : null}
     </>
   ),

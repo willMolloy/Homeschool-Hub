@@ -75,8 +75,8 @@ describe("Schedule, Week view", () => {
     const bars = within(frank).getAllByRole("listitem");
     // Literature before Math, as the subjects are ordered.
     expect(bars.map((b) => b.querySelector(".bar-title")!.textContent)).toEqual(["Treasure Island", "Math 5"]);
-    expect(within(frank).getByRole("button", { name: "Treasure Island, pages 120–150" })).toBeInTheDocument();
-    expect(within(frank).getByRole("button", { name: "Math 5, lessons 31–35" })).toBeInTheDocument();
+    expect(within(frank).getByRole("button", { name: "Treasure Island pages 120–150" })).toBeInTheDocument();
+    expect(within(frank).getByRole("button", { name: "Math 5 lessons 31–35" })).toBeInTheDocument();
     // The subject's pastel and strong rule come from the tokens.
     expect(bars[0]!.getAttribute("style")).toMatch(/--c: var\(--tl-subject-\d\);.*--cs: var\(--tl-subject-\d-strong\)/);
     expect(within(frank).queryByRole("button", { name: /completed/ })).toBeNull(); // no check mid-week
@@ -84,21 +84,21 @@ describe("Schedule, Week view", () => {
     for (const b of bars) expect(b.querySelector(".bar-title .subject-glyph")).not.toBeNull();
   });
 
-  it("one child at a time: Frank, Margaret or Both; the choice is remembered on this device", async () => {
+  it("one child at a time: All children, Frank or Margaret; the choice is remembered on this device", async () => {
     const user = userEvent.setup();
     const first = renderAt("/schedule?view=week");
     await work("Frank");
     const seg = screen.getByRole("group", { name: "Child" });
-    expect(within(seg).getAllByRole("button").map((b) => b.textContent)).toEqual(["Frank", "Margaret", "Both"]);
+    expect(within(seg).getAllByRole("button").map((b) => b.textContent)).toEqual(["All children", "Frank", "Margaret"]);
     expect(within(seg).getByRole("button", { name: "Frank" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByRole("region", { name: "Margaret's work" })).toBeNull();
     await user.click(within(seg).getByRole("button", { name: "Margaret" }));
     const margaret = await work("Margaret");
-    expect(within(margaret).getByRole("button", { name: "Violin, 150 minutes" })).toBeInTheDocument();
-    await user.click(within(seg).getByRole("button", { name: "Both" }));
+    expect(within(margaret).getByRole("button", { name: "Violin 150 minutes" })).toBeInTheDocument();
+    await user.click(within(seg).getByRole("button", { name: "All children" }));
     await work("Frank");
     await work("Margaret");
-    expect(localStorage.getItem("hh.child")).toBe("both");
+    expect(localStorage.getItem("hh.child")).toBe("all");
     first.unmount();
     renderAt("/schedule?view=week");
     await work("Frank");
@@ -126,7 +126,7 @@ describe("Schedule, Week view", () => {
   it("tapping a bar opens that child's week adjustment", async () => {
     const user = userEvent.setup();
     renderAt("/schedule?view=week");
-    await user.click(await screen.findByRole("button", { name: "Treasure Island, pages 120–150" }));
+    await user.click(await screen.findByRole("button", { name: "Treasure Island pages 120–150" }));
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText(/Frank · This week · Oct 26 – Nov 1/)).toBeInTheDocument();
     expect(await within(sheet).findByRole("group", { name: "Amount this week for Treasure Island" })).toBeInTheDocument();
@@ -181,7 +181,7 @@ describe("the range of a week (S8b-01)", () => {
     fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [weekOnly(PLANS[1]!)] });
     renderAt("/schedule?view=week");
     const frank = await work("Frank");
-    expect(within(frank).getByRole("button", { name: /^Treasure Island, pages 120–150/ })).toBeInTheDocument();
+    expect(within(frank).getByRole("button", { name: /^Treasure Island pages 120–150/ })).toBeInTheDocument();
   });
 });
 
@@ -207,7 +207,7 @@ describe("week bars (pure)", () => {
   it("the shown choice: a saved child that exists, Both only with several children, else the first", () => {
     const kids = [{ id: "a", name: "A", color: null, sortOrder: 0, archived: false }, { id: "b", name: "B", color: null, sortOrder: 1, archived: false }];
     expect(shownChoice(kids, "b")).toBe("b");
-    expect(shownChoice(kids, "both")).toBe("both");
+    expect(shownChoice(kids, "both")).toBe("all");
     expect(shownChoice(kids, "gone")).toBe("a");
     expect(shownChoice(kids.slice(0, 1), "both")).toBe("a");
     expect(shownChoice([], "a")).toBeNull();

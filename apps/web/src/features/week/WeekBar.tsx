@@ -24,15 +24,16 @@ export function WeekBar({ bar, slot, onOpen, check, state, icon, error }: WeekBa
   const style = { "--c": `var(--tl-subject-${slot})`, "--cs": `var(--tl-subject-${slot}-strong)` } as CSSProperties;
   const text = (
     <>
-      <span className="bar-title">{icon}<span>{bar.title}</span></span>
-      <span className="bar-amount">{range}</span>
+      <span className="bar-title">{icon}<span>{bar.title}</span></span>{" "}
+      <span className="bar-amount">{range}</span>{" "}
       {state ? <span className="bar-state">{state}</span> : null}
     </>
   );
   return (
+    // S8b-07 (N7): the body button has no aria-label: its name is its visible text, so a voice-control user can say what they see (WCAG 2.5.3).
     <li className="bar" style={style}>
       {onOpen ? (
-        <button type="button" className="bar-body" aria-label={`${bar.title}, ${range}${state ? `, ${state}` : ""}`} onClick={onOpen}>{text}</button>
+        <button type="button" className="bar-body" onClick={onOpen}>{text}</button>
       ) : (
         <div className="bar-body">{text}</div>
       )}

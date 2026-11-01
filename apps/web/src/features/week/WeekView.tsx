@@ -1,6 +1,6 @@
 /**
  * S8-05: Schedule's Week view. This week's planned work as pastel bars, one per assignment, with a child switch
- * (Frank / Margaret / Both). A current or coming week opens its adjustment from a bar (S6-03); a finished week is the
+ * (All children / Frank / Margaret). A current or coming week opens its adjustment from a bar (S6-03); a finished week is the
  * check-in board, so a bar there opens Update status (S8-06). Nothing on the page is a number the family didn't enter.
  */
 import { useState } from "react";
@@ -11,7 +11,7 @@ import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import type { ScheduleEvent } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
-import { Segmented } from "../../ui/components";
+import { ChildSwitch } from "./ChildSwitch";
 import { weekRangeText } from "../checkin/checkinText";
 import { Briefing } from "../plan/Briefing";
 import { PlanRefreshProvider } from "../plan/planRefresh";
@@ -24,7 +24,7 @@ import { PastWeek } from "../track/PastWeek";
 import { SubjectGlyph } from "../subjects/SubjectIcon";
 import { WeekBar, WeekBars } from "./WeekBar";
 import { barsFromPlans, eventLines } from "./weekBars";
-import { BOTH, useChildChoice } from "./useChildChoice";
+import { ALL, useChildChoice } from "./useChildChoice";
 import { useWeekLookups } from "./useWeekLookups";
 
 /** "Frank · This week · Oct 26 – Nov 1", or "Frank · Nov 2 – 8" for a coming week (S6-03). */
@@ -57,10 +57,7 @@ function Week() {
         </div>
       </div>
       <p className="week-dates" aria-live="polite">{weekSpan(week.weekStart)}</p>
-      {look.activeChildren.length > 1 && choice ? (
-        <Segmented label="Child" value={choice} onChange={setChoice}
-          options={[...look.activeChildren.map((c) => ({ value: c.id, label: c.name })), { value: BOTH, label: "Both" }]} />
-      ) : null}
+      <ChildSwitch kids={look.activeChildren} value={choice} onChange={setChoice} />
       {!past && <Briefing weekStart={week.weekStart} />}
       {past ? <PastWeek weekStart={week.weekStart} choice={choice} look={look} /> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} />}
       {debug ? <PlanDebugView weekStart={week.weekStart} debug={debug} /> : null}
@@ -91,7 +88,7 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look }: { weekStart:
       action={<Link className="btn" to="/setup/assignments">Add your first assignment</Link>} />;
   }
   const bars = barsFromPlans(plans, weekStart, look);
-  const kids = choice === BOTH ? look.activeChildren : look.activeChildren.filter((c) => c.id === choice);
+  const kids = choice === ALL ? look.activeChildren : look.activeChildren.filter((c) => c.id === choice);
   const current = weekStart === currentWeekStart;
   const weekEnd = addDays(weekStart, 6);
   return (

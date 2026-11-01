@@ -204,9 +204,9 @@ describe("Home's facts", () => {
     expect(weekOfSpan([], "2026-10-28")).toBeNull();
   });
   it("a child's week: the share behind today and the assignments with work left", () => {
-    expect(weekGlance([FRANK], "c1", "2026-10-26", "2026-10-28")).toEqual({ progress: 0.4, left: 1 });
-    expect(weekGlance([FRANK], "c1", "2026-10-26", "2026-11-02")).toEqual({ progress: 1, left: 0 });
-    expect(weekGlance([FRANK], "c2", "2026-10-26", "2026-10-28")).toEqual({ progress: 0, left: 0 });
+    expect(weekGlance([FRANK], "c1", "2026-10-26", "2026-10-28")).toEqual({ progress: 0.4, left: 1, planned: true });
+    expect(weekGlance([FRANK], "c1", "2026-10-26", "2026-11-02")).toEqual({ progress: 1, left: 0, planned: true });
+    expect(weekGlance([FRANK], "c2", "2026-10-26", "2026-10-28")).toEqual({ progress: 0, left: 0, planned: false });
   });
   it("the finish: the latest end of open work, and whether it is still the planned one", () => {
     expect(finishGlance([FRANK])).toEqual({ date: "2026-12-01", onTrack: true });

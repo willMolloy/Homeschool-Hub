@@ -33,8 +33,9 @@ function LoginRoute() {
 function Redirect({ to }: { to: string }) {
   const { search } = useLocation();
   const [path, own = ""] = to.split("?");
-  const merged = new URLSearchParams(own);
-  new URLSearchParams(search).forEach((v, k) => merged.set(k, v));
+  // The old link's own query is kept, but what the redirect says (view=year) wins over a stray `view=` of the old link.
+  const merged = new URLSearchParams(search);
+  new URLSearchParams(own).forEach((v, k) => merged.set(k, v));
   const query = merged.toString();
   return <Navigate to={query ? `${path}?${query}` : path!} replace />;
 }
@@ -63,6 +64,8 @@ export const routes: RouteObject[] = [
           { path: "/setup/events", element: <EventsPage /> },
           { path: "/setup/settings", element: <FamilySettingsPage /> },
           ...REDIRECTS.map((r) => ({ path: r.from, element: <Redirect to={r.to} /> })),
+          // The old Schedule hub's other addresses go Home (`/schedule` itself is the Schedule tab).
+          { path: "/schedule/*", element: <Navigate to="/" replace /> },
         ],
       },
       { path: "*", element: <NotFoundPage /> },

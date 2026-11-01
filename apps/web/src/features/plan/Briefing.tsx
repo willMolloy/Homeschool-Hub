@@ -174,7 +174,8 @@ function ChildLines({ group, onKeep, onMoved }: { group: ChildBriefing; onKeep: 
   const shown = hidden > 0 ? group.lines.slice(0, SHOWN) : group.lines;
   return (
     <div className="briefing-child">
-      <p className="briefing-name">{group.childName}</p>
+      {/* S8b-07 (N13): the child's name heads the lines only when a line does not already say it ("…heavy week for Frank."). */}
+      {group.lines.every((l) => l.text.includes(group.childName)) ? null : <p className="briefing-name">{group.childName}</p>}
       <ul className="briefing-lines" aria-label={`Briefing for ${group.childName}`}>
         {shown.map((l) => <li key={l.key}>{l.text}{l.action ? <LateButtons action={l.action} onKeep={onKeep} onMoved={onMoved} /> : null}</li>)}
       </ul>

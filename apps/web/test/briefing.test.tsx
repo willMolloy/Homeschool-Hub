@@ -1,4 +1,5 @@
 /** S4-09: the weekly briefing on This Week (briefingLines.ts, Briefing.tsx). */
+import { readFileSync } from "node:fs";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -208,6 +209,9 @@ describe("Weekly briefing on This Week (S4-09)", () => {
     stub(plans);
     const { unmount } = renderAt("/schedule?view=week");
     expect(await screen.findByText("This is a heavy week for Frank.")).toBeInTheDocument();
+    // S8b-07 (N13): the line already says whose week it is, so there is no bare name above it; it sits on a soft card.
+    expect(document.querySelector(".briefing-name")).toBeNull();
+    expect(readFileSync("src/features/plan/plan.css", "utf8")).toMatch(/\.briefing-child \{[^}]*border-radius: var\(--tl-radius\)[^}]*background: var\(--tl-primary-soft\)/);
     unmount();
     renderAt("/schedule?view=week&week=2026-11-02");
     await briefingFetched();

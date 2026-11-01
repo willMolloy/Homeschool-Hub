@@ -5,15 +5,19 @@
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Segmented, Card, Button } from "../ui/components";
+import { Card, Button } from "../ui/components";
+import { ChildSwitch } from "../features/week/ChildSwitch";
 import { useWeekCheckIn } from "../features/checkin/useLastWeekCheckIn";
 import { PlanRefreshProvider } from "../features/plan/planRefresh";
 import { useWeekPlans } from "../features/plan/useWeekPlans";
 import { weekSpan } from "../features/home/homeSummary";
 import { CheckInBoard } from "../features/track/CheckInBoard";
-import { BOTH, useChildChoice } from "../features/week/useChildChoice";
+import { useChildChoice } from "../features/week/useChildChoice";
 import { useWeekLookups } from "../features/week/useWeekLookups";
 import "../features/week/week.css";
+
+/** After "Not quite": what to do with the bars. */
+export const NOT_QUITE_HINT = "Untick what didn't get done, or tap a bar to update it.";
 
 export function TrackPage() {
   return (
@@ -39,10 +43,7 @@ function Track() {
     <div className="track">
       <h1>Track work</h1>
       <p className="week-dates">Last week · {weekSpan(week.weekStart)}</p>
-      {look.activeChildren.length > 1 && choice ? (
-        <Segmented label="Child" value={choice} onChange={setChoice}
-          options={[...look.activeChildren.map((c) => ({ value: c.id, label: c.name })), { value: BOTH, label: "Both" }]} />
-      ) : null}
+      <ChildSwitch kids={look.activeChildren} value={choice} onChange={setChoice} />
       {unanswered && !notQuite ? (
         <Card className="week-card" role="region" aria-label="Last week's check-in">
           <h3>Last week · {weekSpan(week.weekStart)}</h3>
@@ -59,7 +60,7 @@ function Track() {
       ) : null}
       {(!unanswered || notQuite) && (hadWork || week.addable.length > 0) ? (
         <CheckInBoard key={`${week.weekStart}/${week.status ?? ""}`} week={week} choice={choice} look={look} plans={plans}
-          busy={state.busy} error={state.error} itemErrors={state.itemErrors} save={state.save} alwaysSave={unanswered} whenText="last week" />
+          busy={state.busy} error={state.error} itemErrors={state.itemErrors} save={state.save} alwaysSave={unanswered} hint={unanswered ? NOT_QUITE_HINT : undefined} whenText="last week" />
       ) : null}
       {state.thanks ? <p className="checkin-thanks" role="status">{state.thanks}</p> : null}
     </div>

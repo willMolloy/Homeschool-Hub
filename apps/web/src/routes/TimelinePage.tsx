@@ -46,9 +46,9 @@ import { availableZooms, defaultMonth, gridMonths, viewWithoutPlan, visibleZooms
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
 import { EditZoomViewsSheet } from "../features/timeline/EditZoomViews";
-import { ChildFilter } from "../features/timeline/ChildFilter";
-import { filterChildren, forChild, shownChild } from "../features/timeline/childView";
-import { useChildParam } from "../features/timeline/useChildParam";
+import { ChildSwitch } from "../features/week/ChildSwitch";
+import { ALL, useChildChoice } from "../features/week/useChildChoice";
+import { filterChildren, forChild } from "../features/timeline/childView";
 import "../features/timeline/timeline.css";
 
 /** Width used before anything can be measured (the smallest phone we design for). */
@@ -64,8 +64,9 @@ const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: Layou
 export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects, zoomViews, setZoomViews } = useTimelineData();
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
-  const [childParam, setChild] = useChildParam();
-  const childId = shownChild(childParam, childList);
+  // S8b-07: the same child switch as Week and Track work (one child, or All children), remembered on this device.
+  const [choice, setChoice] = useChildChoice(childList, "all");
+  const childId = choice === null || choice === ALL ? null : choice;
   const model = useMemo(() => (family ? forChild(family, childId) : undefined), [family, childId]);
   // T-08: while a bar is dragged, the picture draws from a preview model (that assignment over its new dates).
   const [preview, setPreview] = useState<DragPreview | null>(null);
@@ -165,7 +166,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
     closeAdd();
     addAssignment(created);
     const next = afterAdd(created, { childId, zoom: shownZoom, month, months });
-    if (next.showAllChildren) setChild(null);
+    if (next.showAllChildren) setChoice(ALL);
     if (next.month) setMonth(next.month);
     select(null);
     setFlashId(created.id);
@@ -181,7 +182,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
         {!failed && !loading && model && <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />}
         {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews)} onEdit={() => setEditingViews(true)} />}
       </header>
-      {ready && <ChildFilter childList={childList} value={childId} onChange={setChild} />}
+      {ready && <ChildSwitch kids={childList} value={choice} onChange={setChoice} />}
       {(ready || calendar) && shownZoom === "month" && month && <MonthNav months={months} value={month} onChange={setMonth} />}
       <div ref={ref} className="timeline-bleed">
         {failed ? (

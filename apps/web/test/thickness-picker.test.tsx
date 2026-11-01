@@ -146,7 +146,7 @@ describe("ThicknessPicker", () => {
 
   it("each preset label gives its minutes a unit (\"Light · 15 min a lesson\"; S6b-13, S7-17)", () => {
     render(<Host unitType="lessons" />);
-    const group = screen.getByRole("group", { name: "Usual effort" });
+    const group = screen.getByRole("group", { name: "Usual time" });
     expect(within(group).getByRole("radio", { name: "Light · 15 min a lesson" })).toBeInTheDocument();
     expect(within(group).getByRole("radio", { name: "Very heavy · 60 min a lesson" }).closest("label")).toHaveTextContent(/^Very heavy · 60 min a lesson$/);
   });
@@ -155,7 +155,7 @@ describe("ThicknessPicker", () => {
     const spy = vi.fn();
     render(<Host spy={spy} />);
     const user = userEvent.setup();
-    const group = screen.getByRole("group", { name: "Usual effort" });
+    const group = screen.getByRole("group", { name: "Usual time" });
     await user.click(within(group).getByRole("radio", { name: "None" }));
     await user.keyboard("{ArrowRight}");
     expect(within(group).getByRole("radio", { name: /^Light/ })).toBeChecked();

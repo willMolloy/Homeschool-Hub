@@ -39,7 +39,7 @@ export function DefaultWeightSection({ value, onChange, note, error, onValidityC
   const [startOpen] = useState(value.weightPerUnit != null);
   return (
     <details className="default-weight" open={startOpen || undefined}>
-      <summary>Usual effort (optional)</summary>
+      <summary>Usual time (optional)</summary>
       <p className="hint">
         For subjects where pages don't tell the story, like math lessons or practice minutes. New assignments in this subject start here.
       </p>
@@ -55,7 +55,7 @@ export function DefaultWeightSection({ value, onChange, note, error, onValidityC
         unitType={value.unitType}
         value={value.weightPerUnit}
         onChange={(w) => onChange({ ...value, weightPerUnit: w })}
-        legend="Usual effort"
+        legend="Usual time"
         onValidityChange={onValidityChange}
       />
       {note}

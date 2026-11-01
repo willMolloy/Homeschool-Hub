@@ -49,7 +49,7 @@ describe("Subject usual effort", () => {
     await user.click(screen.getByRole("button", { name: "Add subject" }));
     const form = screen.getByRole("form", { name: "Add subject" });
     await user.type(within(form).getByLabelText("Name"), "Latin");
-    await user.click(within(form).getByText("Usual effort (optional)"));
+    await user.click(within(form).getByText("Usual time (optional)"));
     expect(within(form).getByText(/pages don't tell the story/)).toBeInTheDocument();
     expect(within(form).getByLabelText("Usually measured in")).toHaveValue("lessons");
     await user.click(within(form).getByRole("radio", { name: /^Heavy/ }));
@@ -75,7 +75,7 @@ describe("Subject usual effort", () => {
     const user = await setup();
     await user.click(screen.getByRole("button", { name: "Add subject" }));
     const form = screen.getByRole("form", { name: "Add subject" });
-    await user.click(within(form).getByText("Usual effort (optional)"));
+    await user.click(within(form).getByText("Usual time (optional)"));
     await user.click(within(form).getByRole("radio", { name: /^Very heavy/ }));
     expect(within(form).getByRole("radio", { name: /^Very heavy/ })).toBeChecked();
     await user.selectOptions(within(form).getByLabelText("Usually measured in"), "minutes");
@@ -200,7 +200,7 @@ describe("Subject usual effort", () => {
     fakeApi.on("PATCH /api/subjects/s2", 400, { error: "invalid_request", message: "defaultWeight.weightPerUnit: Too big: expected number to be <=100" });
     await user.click(screen.getByRole("button", { name: "Reading" }));
     const form = screen.getByRole("form", { name: "Edit Reading" });
-    await user.click(within(form).getByText("Usual effort (optional)"));
+    await user.click(within(form).getByText("Usual time (optional)"));
     await user.click(within(form).getByRole("radio", { name: /^Normal/ }));
     await user.click(within(form).getByRole("button", { name: "Save" }));
     const alert = await within(form).findByText("Too big: expected number to be <=100");
@@ -230,10 +230,10 @@ describe("Kids form", () => {
     await screen.findByRole("list", { name: "Children" });
     await user.click(screen.getByRole("button", { name: "Ada" }));
     const form = screen.getByRole("form", { name: "Edit Ada" });
-    expect(within(form).queryByText(/Usual effort/)).toBeNull();
+    expect(within(form).queryByText(/Usual time/)).toBeNull();
     expect(within(form).queryByRole("radio", { name: "None" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await user.click(screen.getByRole("button", { name: "Add child" }));
-    expect(within(screen.getByRole("form", { name: "Add child" })).queryByText(/Usual effort/)).toBeNull();
+    expect(within(screen.getByRole("form", { name: "Add child" })).queryByText(/Usual time/)).toBeNull();
   });
 });

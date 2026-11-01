@@ -30,7 +30,7 @@ export interface ThicknessPickerProps {
 /** The caption while the Custom entry can't be previewed (S2c-03). */
 export const INVALID_CAPTION = "Enter the minutes to see the preview";
 
-export function ThicknessPicker({ unitType, value, onChange, legend = "Usual effort", onValidityChange }: ThicknessPickerProps) {
+export function ThicknessPicker({ unitType, value, onChange, legend = "Usual time", onValidityChange }: ThicknessPickerProps) {
   const name = useId();
   const customId = useId();
   const errId = useId();
@@ -99,7 +99,7 @@ export function ThicknessPicker({ unitType, value, onChange, legend = "Usual eff
       ) : null}
       <div className="thickness-preview">
         <div className="thickness-bar thickness-reference" data-testid="reference-bar" style={{ height: `${thicknessToPx(REFERENCE_THICKNESS)}px` }}
-          role="img" aria-label="20 pages a day at the usual effort" />
+          role="img" aria-label="20 pages a day at the usual time" />
         <div className="thickness-bar thickness-chosen" data-testid="preview-bar" style={{ height: `${thicknessToPx(thickness)}px` }}
           role="img" aria-label={`${TYPICAL_DAY[unitType].text} a day, ${usualEffortText(unitType, value)}`} />
       </div>

@@ -151,10 +151,11 @@ describe("adding an assignment from the timeline", () => {
   it("switches the child filter to All when it would hide the new bar", async () => {
     stubSample();
     stubCreate();
-    const { user, sheet, router } = await openForm("/timeline?child=frank");
+    localStorage.setItem("hh.child", "frank"); // S8b-07: the shared child switch (it was ?child= on the page)
+    const { user, sheet } = await openForm("/timeline");
     await fillEssentials(user, sheet);
     await user.click(within(sheet).getByRole("button", { name: "Add" }));
-    await waitFor(() => expect(router.state.location.search).not.toContain("child=frank"));
+    await waitFor(() => expect(localStorage.getItem("hh.child")).toBe("all"));
     await waitFor(() => expect(document.querySelector('path.tl-band[data-assignment="new1"]')).not.toBeNull());
   });
 

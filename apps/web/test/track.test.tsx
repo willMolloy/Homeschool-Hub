@@ -102,15 +102,15 @@ describe("Track work: the one question", () => {
     expect(await screen.findByText(/Nothing was planned last week/)).toBeInTheDocument();
   });
 
-  it("one child at a time: Frank, Margaret or Both", async () => {
+  it("one child at a time: All children, Frank or Margaret", async () => {
     const user = userEvent.setup();
     renderAt("/track");
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     await frankBars();
     expect(screen.queryByRole("region", { name: "Margaret's last week" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Margaret" }));
-    expect(within(await screen.findByRole("region", { name: "Margaret's last week" })).getByRole("button", { name: /Violin, 150 minutes/ })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Both" }));
+    expect(within(await screen.findByRole("region", { name: "Margaret's last week" })).getByRole("button", { name: /Violin 150 minutes/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "All children" }));
     await frankBars();
     await screen.findByRole("region", { name: "Margaret's last week" });
   });
@@ -123,7 +123,7 @@ describe("Track work: the checks", () => {
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
     const bars = await frankBars();
     for (const n of ["Treasure Island completed", "Math 5 completed"]) expect(bars.getByRole("button", { name: n })).toHaveAttribute("aria-pressed", "true");
-    expect(bars.getByRole("button", { name: /Treasure Island, pages 1–80/ })).toBeInTheDocument();
+    expect(bars.getByRole("button", { name: /Treasure Island pages 1–80/ })).toBeInTheDocument();
     await user.click(bars.getByRole("button", { name: "Treasure Island completed" }));
     expect(bars.getByRole("button", { name: "Treasure Island completed" })).toHaveAttribute("aria-pressed", "false");
     expect(bars.getByText("Missed")).toBeInTheDocument();
@@ -168,7 +168,7 @@ describe("Update status", () => {
     const user = userEvent.setup();
     renderAt("/track");
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
-    const sheet = within(await openBar(user, /Treasure Island, pages 1–80/));
+    const sheet = within(await openBar(user, /Treasure Island pages 1–80/));
     expect(sheet.getByText("How did it go?")).toBeInTheDocument();
     await user.click(sheet.getByRole("button", { name: "Fell behind" }));
     const got = sheet.getByRole("spinbutton", { name: "page reached" });
@@ -193,7 +193,7 @@ describe("Update status", () => {
     const user = userEvent.setup();
     renderAt("/track");
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
-    const sheet = within(await openBar(user, /Treasure Island, pages/));
+    const sheet = within(await openBar(user, /Treasure Island pages/));
     await user.click(sheet.getByRole("button", { name: "Fell behind" }));
     expect(sheet.getByRole("radio", { name: /Keep 1 Dec/ })).toBeChecked();
     await user.click(sheet.getByRole("button", { name: "Save" }));
@@ -206,7 +206,7 @@ describe("Update status", () => {
     const user = userEvent.setup();
     renderAt("/track");
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
-    const sheet = within(await openBar(user, /Treasure Island, pages/));
+    const sheet = within(await openBar(user, /Treasure Island pages/));
     const got = sheet.getByRole("spinbutton", { name: "page reached" });
     await user.clear(got);
     await user.type(got, "100");
@@ -219,7 +219,7 @@ describe("Update status", () => {
     const user = userEvent.setup();
     renderAt("/track");
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
-    const sheet = within(await openBar(user, /Treasure Island, pages/));
+    const sheet = within(await openBar(user, /Treasure Island pages/));
     const got = sheet.getByRole("spinbutton", { name: "page reached" });
     await user.clear(got);
     await user.type(got, "270");
@@ -235,7 +235,7 @@ describe("Update status", () => {
     const user = userEvent.setup();
     renderAt("/track");
     await user.click(await screen.findByRole("button", { name: "Not quite" }));
-    const sheet = within(await openBar(user, /Math 5, lessons 11–15/));
+    const sheet = within(await openBar(user, /Math 5 lessons 11–15/));
     await user.click(sheet.getByRole("button", { name: "One less" }));
     expect(sheet.getByRole("button", { name: "Fell behind" })).toHaveAttribute("aria-pressed", "true");
     await user.click(sheet.getByRole("button", { name: "One more" }));
@@ -254,7 +254,7 @@ describe("Update status", () => {
     renderAt("/track");
     expect((await frankBars()).getByText("40 of 80 pp.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save check-in" })).toBeNull(); // nothing changed yet
-    const sheet = within(await openBar(user, /Treasure Island, pages/));
+    const sheet = within(await openBar(user, /Treasure Island pages/));
     expect(sheet.getByRole("radio", { name: /Move to/ })).toBeChecked();
     await user.click(sheet.getByRole("button", { name: "As planned" }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
@@ -271,7 +271,7 @@ describe("a finished week on Schedule", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "Last week" })).toBeInTheDocument();
     const bars = within(await screen.findByRole("region", { name: "Frank's week" }));
     expect(bars.getByRole("button", { name: "Treasure Island completed" })).toBeInTheDocument();
-    await user.click(bars.getByRole("button", { name: /Treasure Island, pages 1–80/ }));
+    await user.click(bars.getByRole("button", { name: /Treasure Island pages 1–80/ }));
     expect(await screen.findByText("How did it go?")).toBeInTheDocument();
   });
 });

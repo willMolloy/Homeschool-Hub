@@ -42,6 +42,8 @@ export interface WeekGlance {
   progress: number;
   /** Assignments with planned work today or later this week. */
   left: number;
+  /** Whether anything at all is planned for this child this week (false: say "Nothing planned", never "All done"). */
+  planned: boolean;
 }
 
 /** One child's week: how much of it is behind them and how many assignments still have work in it. */
@@ -61,7 +63,7 @@ export function weekGlance(plans: readonly ChildPlan[], childId: string, weekSta
     }
     if (later) left += 1;
   }
-  return { progress: total > 0 ? before / total : 0, left };
+  return { progress: total > 0 ? before / total : 0, left, planned: total > 0 };
 }
 
 /** The latest finish across work that is not done, and whether it is still the planned one. */

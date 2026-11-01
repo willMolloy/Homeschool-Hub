@@ -77,7 +77,7 @@ function Home() {
             <div className="home-progress" key={k.id}>
               <span className="home-kid">{k.name}</span>
               <span className="home-track" aria-hidden="true"><i style={{ width: `${Math.round(g.progress * 100)}%` }} /></span>
-              <span className="home-left">{g.left === 0 ? "All done" : `${g.left} left`}</span>
+              <span className="home-left">{!g.planned ? "Nothing planned" : g.left === 0 ? "All done" : `${g.left} left`}</span>
             </div>
           );
         })}

@@ -16,3 +16,4 @@
 .status-end small { display: block; color: var(--tl-muted-foreground); font-size: 0.8125rem; margin-top: 2px; }
 .status-actions { margin-top: 20px; }
 .status-actions .btn { flex: 1; }
+.board-hint { margin: 0 0 4px; color: var(--tl-muted-foreground); font-size: 0.9rem; }

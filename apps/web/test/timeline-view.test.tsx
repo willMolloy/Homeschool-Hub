@@ -125,7 +125,7 @@ describe("the Year timeline page", () => {
     // S8-07: the lane badges in the gutter are buttons too (one per lane, named for the subject); they are counted on their own.
     const visible = within(main).getAllByRole("button").filter((b) => !b.closest(".sr-only") && !b.classList.contains("tl-badge"));
     expect(main.querySelectorAll("button.tl-badge").length).toBeGreaterThan(3);
-    expect(visible.map((b) => b.textContent)).toEqual(["+ Add assignment", "Year", "Fall", "Spring", "This month", "Edit", "All", "Frank", "Margaret"]);
+    expect(visible.map((b) => b.textContent)).toEqual(["+ Add assignment", "Year", "Fall", "Spring", "This month", "Edit", "All children", "Frank", "Margaret"]);
     expect(within(main).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Schedule"]); // the page title; Week | Year is a pair of tabs, not buttons
     // Below the title: the picture, and the lane list that only screen readers get. Nothing else.
     const bleed = main.querySelector(".timeline-bleed")!;

@@ -265,7 +265,7 @@ describe("Plan debug view", () => {
       { id: "c4", name: "Old Kid", color: null, sortOrder: 3, archived: true },
     ]);
     renderAt("/schedule?view=week&week=2026-10-28");
-    await userEvent.setup().click(await screen.findByRole("button", { name: "Both" }));
+    await userEvent.setup().click(await screen.findByRole("button", { name: "All children" }));
     const ada = await screen.findByRole("region", { name: "Ada's work" });
     expect(within(ada).getByText("Nothing planned this week.")).toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Ada" })).not.toBeInTheDocument();

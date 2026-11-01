@@ -13,7 +13,7 @@ import { DEFAULT_MODE, itemKey, rowOutcome, storedAnswers } from "../checkin/abs
 import { compactText } from "../checkin/amount";
 import { SubjectGlyph } from "../subjects/SubjectIcon";
 import { WeekBar, WeekBars } from "../week/WeekBar";
-import { BOTH } from "../week/useChildChoice";
+import { ALL } from "../week/useChildChoice";
 import type { WeekLookups } from "../week/useWeekLookups";
 import { UpdateStatusSheet } from "./UpdateStatusSheet";
 import "../week/week.css";
@@ -21,7 +21,7 @@ import "./track.css";
 
 export interface CheckInBoardProps {
   week: WeekCheckIn;
-  /** The child shown, or Both (every child's bars, grouped). */
+  /** The child shown, or All children (every child's bars, grouped). */
   choice: string | null;
   look: WeekLookups;
   plans: readonly ChildPlan[] | undefined;
@@ -31,11 +31,13 @@ export interface CheckInBoardProps {
   save: (body: SaveWeekBody) => Promise<SaveWeekResponse | null>;
   /** "Not quite" on a week not yet answered: Save is offered even before anything changed. */
   alwaysSave?: boolean;
+  /** One line above the bars saying what to do (after "Not quite"). */
+  hint?: string;
   /** "last week" in "pages 120–150 last week". */
   whenText: string;
 }
 
-export function CheckInBoard({ week, choice, look, plans, busy, error, itemErrors, save, alwaysSave = false, whenText }: CheckInBoardProps) {
+export function CheckInBoard({ week, choice, look, plans, busy, error, itemErrors, save, alwaysSave = false, hint, whenText }: CheckInBoardProps) {
   const stored = useMemo(() => storedAnswers(week.items), [week.items]);
   const [positions, setPositions] = useState<Record<string, number>>(stored.positions);
   const [modes, setModes] = useState<Record<string, OverrideMode>>(stored.modes);
@@ -55,8 +57,8 @@ export function CheckInBoard({ week, choice, look, plans, busy, error, itemError
   const dirty = snap(rows, positionOf, modeOf) !== initial;
   const planOf = (i: CheckInItem) => plans?.find((p) => p.assignmentId === i.assignmentId && p.childId === i.childId);
 
-  const kids = choice === BOTH ? look.activeChildren : look.activeChildren.filter((c) => c.id === choice);
-  const notAdded = week.addable.filter((a) => !added.includes(itemKey(a)) && (choice === BOTH || a.childId === choice));
+  const kids = choice === ALL ? look.activeChildren : look.activeChildren.filter((c) => c.id === choice);
+  const notAdded = week.addable.filter((a) => !added.includes(itemKey(a)) && (choice === ALL || a.childId === choice));
 
   const toggle = (i: CheckInItem) => {
     const k = itemKey(i);
@@ -70,6 +72,7 @@ export function CheckInBoard({ week, choice, look, plans, busy, error, itemError
 
   return (
     <div className="board">
+      {hint ? <p className="board-hint">{hint}</p> : null}
       {kids.map((k) => {
         const mine = rows.filter((i) => i.childId === k.id);
         return (
