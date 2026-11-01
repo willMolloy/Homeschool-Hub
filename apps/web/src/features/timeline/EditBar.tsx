@@ -67,6 +67,7 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
 
   return (
     <section ref={ref} className="tl-edit" aria-label={`Edit ${s.title}`}>
+      <div className="tl-edit-grab" aria-hidden="true" />
       <div className="tl-edit-head">
         <div className="tl-edit-name">
           <p className="tl-edit-title">{s.title}</p>

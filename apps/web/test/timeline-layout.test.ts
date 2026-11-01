@@ -4,7 +4,7 @@ import { MAX_BAR_PX, PX_PER_THICKNESS, SOFT_CAP_KNEE_PX, softCapPx, thicknessToP
 import { buildDayGrid } from "../src/features/timeline/grid";
 import { MIN_TAP_PX, hitTest, tapBox } from "../src/features/timeline/hit";
 import {
-  AXIS_HEIGHT_PX, DAY_LABEL_CLEAR_PX, SMOOTH_DEADBAND_PX, smoothColumns, LABEL_ROW_PX, LANE_GAP_PX, MONTH_LABEL_CLEAR_PX, MIN_BAND_PX, SIDE_PAD_PX, SUBJECT_GAP_PX, bandHeight, layoutTimeline, type TimelineLayout,
+  AXIS_HEIGHT_PX, DAY_LABEL_CLEAR_PX, SMOOTH_DEADBAND_PX, smoothColumns, BADGE_PX, GUTTER_PX, LANE_GAP_PX, MONTH_LABEL_CLEAR_PX, MIN_BAND_PX, SIDE_PAD_PX, SUBJECT_GAP_PX, bandHeight, layoutTimeline, type TimelineLayout,
 } from "../src/features/timeline/layout";
 import { buildTimelineModel, type TimelineAssignment, type TimelineModel } from "../src/features/timeline/model";
 import { drawnExtent, packRows } from "../src/features/timeline/rows";
@@ -144,37 +144,47 @@ describe("rows, centerlines and spacing", () => {
 });
 
 describe("horizontal room", () => {
-  it.each(WIDTHS)("at %i px the plot spans the width less a small side padding (no label column)", (width) => {
+  it.each(WIDTHS)("at %i px the plot spans the width less the narrow badge gutter and a small side padding (no name column)", (width) => {
     const l = layoutTimeline(sample, { zoom: "year", width });
-    expect(l.plot.x).toBe(SIDE_PAD_PX);
-    expect(l.plot.width).toBe(width - 2 * SIDE_PAD_PX);
-    expect(l.plot.width / width).toBeGreaterThan(0.97);
+    expect(GUTTER_PX).toBe(24);
+    expect(l.plot.x).toBe(GUTTER_PX + SIDE_PAD_PX);
+    expect(l.plot.width).toBe(width - GUTTER_PX - 2 * SIDE_PAD_PX);
+    expect(l.plot.width / width).toBeGreaterThan(0.85);
     expect("labelWidth" in l).toBe(false);
   });
 
-  it("labels sit on their own line above the rows, at the plot's left edge", () => {
+  it("S8-07: one round badge per lane sits in the gutter, centred on its lane, and no lane is shorter than its badge", () => {
     const l = layoutTimeline(sample, { zoom: "year", width: 360 });
-    for (const label of l.labels) {
-      const first = rowsOf(l, label.laneKey)[0]!;
-      expect(label.x).toBe(SIDE_PAD_PX);
-      expect(label.height).toBe(LABEL_ROW_PX);
-      expect(label.y + label.height).toBe(first.y - first.labelLane);
+    expect(l.badges).toHaveLength(sample.lanes.flatMap((s) => s.children).length);
+    for (const b of l.badges) {
+      expect(b.cx).toBe(GUTTER_PX / 2);
+      expect(b.bottom - b.top).toBeGreaterThanOrEqual(BADGE_PX);
+      expect(b.cy).toBeCloseTo((b.top + b.bottom) / 2, 5);
+      const rows = rowsOf(l, b.laneKey);
+      expect(rows[0]!.y - rows[0]!.labelLane).toBeGreaterThanOrEqual(b.top);
+      expect(rows.at(-1)!.y + rows.at(-1)!.height).toBeLessThanOrEqual(b.bottom);
     }
+    for (let i = 1; i < l.badges.length; i++) expect(l.badges[i]!.top).toBeGreaterThanOrEqual(l.badges[i - 1]!.bottom);
   });
 
-  it("names the subject once, and a child only when the family has more than one", () => {
+  it("a badge's text names the subject, and the child only when the family has more than one", () => {
     const two = layoutTimeline(sample, { zoom: "year", width: 360 });
-    expect(two.labels.slice(0, 2).map((x) => x.text)).toEqual(["Literature · Frank", "Margaret"]);
+    expect(two.badges.slice(0, 2).map((x) => x.text)).toEqual(["Literature · Frank", "Literature · Margaret"]);
     const one = layoutTimeline(synth([["a", 0, 9, 3]]), { zoom: "year", width: 360 });
-    expect(one.labels.map((x) => x.text)).toEqual(["Math"]);
+    expect(one.badges.map((x) => x.text)).toEqual(["Math"]);
     const both = layoutTimeline(synth([["a", 0, 9, 3]], 2), { zoom: "year", width: 360 });
-    expect(both.labels.map((x) => x.text)).toEqual(["Math · Frank", "Margaret"]);
+    expect(both.badges.map((x) => x.text)).toEqual(["Math · Frank", "Math · Margaret"]);
   });
 
-  it("shows only the essentials: one label line per child, no extra text", () => {
+  it("there are no name rows: lanes sit as close as the bars within them", () => {
     const l = layoutTimeline(sample, { zoom: "year", width: 1280 });
-    expect(l.labels).toHaveLength(sample.lanes.flatMap((s) => s.children).length);
-    expect(Object.keys(l.labels[0]!).sort()).toEqual(["height", "laneKey", "text", "x", "y"]);
+    expect("labels" in l).toBe(false);
+    for (const b of l.badges) {
+      const rows = rowsOf(l, b.laneKey);
+      const content = rows.reduce((n, r, i) => n + r.labelLane + r.height + (i > 0 ? LANE_GAP_PX : 0), 0);
+      // The only space above a lane's first row is the centring of a lane shorter than its badge.
+      expect(rows[0]!.y - rows[0]!.labelLane - b.top).toBeCloseTo(Math.max(0, (BADGE_PX - content) / 2), 5);
+    }
   });
 });
 
@@ -330,13 +340,12 @@ describe("axis labels and the Today line (S7-19)", () => {
     expect(dropped.length).toBeGreaterThan(0);
   });
 
-  it("the Today line starts below the first lane's name row, and at the axis with no lanes", () => {
+  it("the Today line starts just under the axis (S8-07: there are no lane name rows to start below)", () => {
     const l = layoutTimeline(sample, { zoom: "year", width: 1280 });
     expect(l.todayX).not.toBeNull();
-    expect(l.todayTop).toBe(l.labels[0]!.y + LABEL_ROW_PX);
-    expect(l.todayTop).toBeGreaterThan(l.labels[0]!.y);
+    expect(l.todayTop).toBe(AXIS_HEIGHT_PX - 4);
     const empty = layoutTimeline({ ...sample, lanes: [] }, { zoom: "year", width: 1280 });
-    expect(empty.labels).toHaveLength(0);
+    expect(empty.badges).toHaveLength(0);
     expect(empty.todayTop).toBeLessThan(AXIS_HEIGHT_PX);
   });
 });

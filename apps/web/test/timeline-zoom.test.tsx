@@ -99,7 +99,7 @@ describe("zoom presets", () => {
     expect(document.querySelector(".tl-entering svg")).toHaveAccessibleName("Fall timeline");
     expect(screen.getAllByRole("img")).toHaveLength(1);
     await waitFor(() => expect(document.querySelector(".tl-leaving")).toBeNull());
-    expect(document.querySelectorAll(".tl-stage svg")).toHaveLength(1);
+    expect(document.querySelectorAll(".tl-stage svg.tl-svg")).toHaveLength(1);
   });
 
   it("changes instantly with reduced motion: no fade", async () => {

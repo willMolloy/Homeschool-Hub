@@ -192,7 +192,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
           <p aria-busy="true">Loading…</p>
         ) : empty ? (
           <>
-            <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`} />
+            <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`} subjects={subjects} />
             <p className="tl-empty">Nothing planned yet.</p>
           </>
         ) : (
@@ -201,12 +201,12 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
             {noPlanView && <p className="tl-empty" role="status">Nothing planned in {noPlanView.name} yet.</p>}
             <div ref={stage} className="tl-stage" data-drag-ready={BAR_DRAG_ENABLED && selection ? "" : undefined} {...(BAR_DRAG_ENABLED ? drag : {})}>
               <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
-                <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`}
+                <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`} subjects={subjects}
                   selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} grips={BAR_DRAG_ENABLED} />
               </div>
               {leavingLayout && (
                 <div className="tl-leaving" aria-hidden="true" onAnimationEnd={settle}>
-                  <Timeline layout={leavingLayout} label="" selectedId={selection ? selectedId : null} grips={BAR_DRAG_ENABLED} />
+                  <Timeline layout={leavingLayout} label="" subjects={subjects} selectedId={selection ? selectedId : null} grips={BAR_DRAG_ENABLED} />
                 </div>
               )}
             </div>

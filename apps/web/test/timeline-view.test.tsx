@@ -79,9 +79,11 @@ describe("the Year timeline page", () => {
     expect(paths.length).toBe(expected.bands.filter((b) => b.d).length);
     expect(paths.length).toBeGreaterThan(10);
     for (const p of paths) expect((p as SVGPathElement).style.fill).toMatch(/^var\(--tl-subject-\d+(-light|-dark)?\)$/);
-    const labels = [...svg.querySelectorAll("text.tl-lane-label")].map((t) => t.textContent);
-    expect(labels).toEqual(["All subjects", ...expected.labels.map((l) => l.text)]);
-    expect(labels).toContain("Literature · Frank");
+    // S8-07: no names on the picture: each lane has a badge in the gutter, named for its subject (and child).
+    expect(svg.querySelectorAll("text.tl-lane-label")).toHaveLength(0);
+    const badges = [...svg.closest(".tl-wrap")!.querySelectorAll("button.tl-badge")].map((b) => b.getAttribute("aria-label"));
+    expect(badges).toEqual(expected.badges.map((b) => b.text));
+    expect(badges).toContain("Literature · Frank");
     expect(svg.querySelector("path.tl-totals")).not.toBeNull();
   });
 
@@ -120,13 +122,15 @@ describe("the Year timeline page", () => {
     await openTimeline();
     const main = screen.getByRole("main");
     // The visible buttons: add (T-10), the presets and the quiet Edit that ends the row (S7-05), then the child chips (T-07c). (T-07: the lanes list's pick buttons are visually hidden until focused.)
-    const visible = within(main).getAllByRole("button").filter((b) => !b.closest(".sr-only"));
+    // S8-07: the lane badges in the gutter are buttons too (one per lane, named for the subject); they are counted on their own.
+    const visible = within(main).getAllByRole("button").filter((b) => !b.closest(".sr-only") && !b.classList.contains("tl-badge"));
+    expect(main.querySelectorAll("button.tl-badge").length).toBeGreaterThan(3);
     expect(visible.map((b) => b.textContent)).toEqual(["+ Add assignment", "Year", "Fall", "Spring", "This month", "Edit", "All", "Frank", "Margaret"]);
     expect(within(main).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Schedule"]); // the page title; Week | Year is a pair of tabs, not buttons
     // Below the title: the picture, and the lane list that only screen readers get. Nothing else.
     const bleed = main.querySelector(".timeline-bleed")!;
     expect([...bleed.children].map((e) => `${e.tagName.toLowerCase()}.${e.getAttribute("class")}`)).toEqual(["div.tl-stage", "ul.sr-only tl-lanes-list"]);
-    expect(bleed.querySelectorAll("svg")).toHaveLength(1);
+    expect(bleed.querySelectorAll("svg.tl-svg")).toHaveLength(1);
   });
 
   it("S6b-09: with nothing planned it still draws the calendar (months, today) with one quiet line and Add assignment", async () => {

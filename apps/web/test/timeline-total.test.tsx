@@ -43,23 +43,24 @@ describe("pinned above the lanes", () => {
   it.each([360, 1280])("at %i px it sits under the axis and events, above every lane, never overlapping one", (width) => {
     for (const zoom of availableZooms(model)) {
       const l = layoutTimeline(model, { zoom, width });
-      expect(l.totals.labelY).toBeGreaterThanOrEqual(Math.max(...l.events.map((e) => e.y + e.height)));
+      expect(l.totals.y).toBeGreaterThanOrEqual(Math.max(...l.events.map((e) => e.y + e.height)));
       expect(l.totals.y + l.totals.height).toBeLessThan(l.lanesTop);
       for (const r of l.rows) expect(r.y).toBeGreaterThanOrEqual(l.lanesTop);
-      for (const lab of l.labels) expect(lab.y).toBeGreaterThanOrEqual(l.totals.y + l.totals.height);
+      for (const lab of l.badges) expect(lab.top).toBeGreaterThanOrEqual(l.totals.y + l.totals.height);
     }
   });
 });
 
 describe("drawing", () => {
-  it("renders at every zoom: one grey path labelled All subjects, first, with no other text", () => {
+  it("renders at every zoom: one soft path for All subjects, first, with a chart icon in the gutter and no text on the picture (S8-07)", () => {
     for (const zoom of availableZooms(model)) {
       const { container, unmount } = render(<Timeline layout={layoutTimeline(model, { zoom, width: 1280 })} label="t" />);
       const totals = container.querySelectorAll("path.tl-totals");
       expect(totals).toHaveLength(1);
       expect(totals[0]!.getAttribute("d")).not.toBe("");
-      expect(container.querySelector("text.tl-lane-label")!.textContent).toBe(TOTALS_LABEL);
-      expect([...container.querySelectorAll("text")].filter((t) => t.textContent === TOTALS_LABEL)).toHaveLength(1);
+      expect(container.querySelector("text.tl-lane-label")).toBeNull();
+      expect(container.querySelector(".tl-total-icon")).toHaveAttribute("title", TOTALS_LABEL);
+      expect(container.querySelectorAll(".tl-total-icon svg")).toHaveLength(1);
       unmount();
     }
   });
