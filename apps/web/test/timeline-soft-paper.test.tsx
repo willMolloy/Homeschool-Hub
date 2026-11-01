@@ -132,6 +132,21 @@ describe("the look", () => {
   });
 });
 
+describe("the edit bar clears the tab bar at every width (S8b-03)", () => {
+  const shell = readFileSync("src/layout/app-shell.css", "utf8");
+  const undo = readFileSync("src/features/undo/undo.css", "utf8");
+  it("one variable holds the tab bar's height, and the nav, the edit bar and the undo bar all use it", () => {
+    expect(shell).toMatch(/:root \{\s*--tab-bar-height: 70px;/);
+    expect(shell).toMatch(/\.shell-nav \{[^}]*height: calc\(var\(--tab-bar-height\)/);
+    expect(rule(".tl-edit")).toMatch(/bottom: calc\(var\(--tab-bar-height, 70px\) \+ env\(safe-area-inset-bottom\)\)/);
+    expect(undo).toMatch(/bottom: calc\(var\(--tab-bar-height, 70px\)/);
+  });
+  it("there is no desktop override that drops the edit bar to the bottom edge, behind the tab bar", () => {
+    expect(css).not.toMatch(/min-width: 640px\)\s*\{\s*\.tl-edit \{ bottom: 0/);
+    expect(css).not.toMatch(/\.tl-edit \{ bottom:/);
+  });
+});
+
 describe("Timeline on its own", () => {
   it("draws badges from the subjects it is given, and the letter for one it doesn't know", () => {
     const model = buildTimelineModel(sampleInput({ today: DEMO_ME.today, events: [] }));

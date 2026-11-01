@@ -2,7 +2,7 @@
    timeline's edit bar while that is open (the timeline sets --edit-bar-height). */
 .undo-bar {
   position: fixed; left: 50%; transform: translateX(-50%); z-index: 11;
-  bottom: calc(49px + env(safe-area-inset-bottom) + var(--edit-bar-height, 0px) + 8px);
+  bottom: calc(var(--tab-bar-height, 70px) + env(safe-area-inset-bottom) + var(--edit-bar-height, 0px) + 8px);
   display: flex; align-items: center; gap: 4px;
   width: max-content; max-width: calc(100vw - 32px); box-sizing: border-box;
   padding: 2px 4px 2px 16px; border-radius: 24px;

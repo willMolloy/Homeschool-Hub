@@ -1,4 +1,8 @@
 /* App shell (S8-04). Mobile first: the page, then a bottom bar of three tabs with icons and labels. */
+/* S8b-03: the tab bar's height, in one place: the edit bar, the undo bar and the page padding all clear it by this. */
+:root {
+  --tab-bar-height: 70px;
+}
 .shell {
   min-height: 100vh;
   min-height: 100dvh;
@@ -18,7 +22,7 @@
 }
 /* Keep fields that get focus or are scrolled to from hiding under the tab bar. */
 html {
-  scroll-padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  scroll-padding-bottom: calc(var(--tab-bar-height) + 14px + env(safe-area-inset-bottom));
 }
 .shell-main {
   flex: 1;
@@ -36,10 +40,10 @@ html {
   text-align: center;
   padding: 12px 16px;
   /* keep clear of the bottom bar */
-  padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--tab-bar-height) + 14px + env(safe-area-inset-bottom));
 }
 .shell-footer:empty {
-  padding: 0 0 calc(84px + env(safe-area-inset-bottom));
+  padding: 0 0 calc(var(--tab-bar-height) + 14px + env(safe-area-inset-bottom));
 }
 .shell-nav {
   position: fixed;
@@ -49,12 +53,16 @@ html {
   z-index: 10;
   background: var(--tl-card);
   border-top: 1px solid var(--line);
+  box-sizing: border-box;
+  height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
 }
 .shell-nav ul {
   list-style: none;
   margin: 0 auto;
   padding: 8px 12px 10px;
+  height: var(--tab-bar-height);
+  box-sizing: border-box;
   max-width: 560px;
   display: flex;
 }

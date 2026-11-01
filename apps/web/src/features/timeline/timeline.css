@@ -61,7 +61,7 @@
 /* T-07e / S8-07: the edit bar is a bottom sheet in the Soft Paper style (above the tab bar), fixed to the bottom of the viewport. Not modal. */
 .tl-edit {
   position: fixed; left: 0; right: 0; z-index: 9;
-  bottom: calc(70px + env(safe-area-inset-bottom));
+  bottom: calc(var(--tab-bar-height, 70px) + env(safe-area-inset-bottom));
   max-width: 960px; margin: 0 auto; box-sizing: border-box;
   padding: 6px 20px 12px; background: var(--tl-card); border-radius: var(--tl-radius-sheet) var(--tl-radius-sheet) 0 0;
   box-shadow: var(--tl-sheet-shadow); border-top: 1px solid var(--tl-border);
@@ -85,9 +85,6 @@
 .tl-more-menu button { min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px; background: none; font: inherit; color: var(--tl-foreground, inherit); text-align: left; cursor: pointer; }
 .tl-more-menu button:hover:not(:disabled) { background: var(--tl-secondary); }
 .tl-more-menu button:disabled { opacity: 0.5; cursor: default; }
-@media (min-width: 640px) {
-  .tl-edit { bottom: 0; }
-}
 /* S6b-05: on phones the bar is the name and close on top, then the two dates sharing one row and Copy with More
    under them. Nothing scrolls sideways (this replaces S5-08's scrolling row). */
 @media (max-width: 480px) {
