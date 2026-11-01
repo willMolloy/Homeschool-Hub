@@ -1,17 +1,17 @@
 export default async function ({ page, shot, login, log, BASE }) {
-  await page.goto(`${BASE}/schedule/assignments`, { waitUntil: "networkidle0" });
+  await page.goto(`${BASE}/setup/assignments`, { waitUntil: "networkidle0" });
   await login();
-  await page.waitForFunction(() => location.pathname === "/schedule/assignments", { timeout: 5000 });
+  await page.waitForFunction(() => location.pathname === "/setup/assignments", { timeout: 5000 });
   await page.waitForSelector(".schedule-list, .schedule-empty");
   log("cards:", await page.$$eval(".schedule-card", (c) => c.length), "sw", await page.evaluate(() => document.documentElement.scrollWidth));
   await shot("s2a-14-assignments-list-360");
   const planText = async () => {
-    await page.goto(`${BASE}/?week=2026-11-02`, { waitUntil: "networkidle0" });
+    await page.goto(`${BASE}/schedule?view=week&week=2026-11-02&debug=1`, { waitUntil: "networkidle0" });
     await page.waitForSelector("table");
     return page.$eval("table", (t) => t.innerText);
   };
   const before = await planText();
-  await page.goto(`${BASE}/schedule/assignments`, { waitUntil: "networkidle0" });
+  await page.goto(`${BASE}/setup/assignments`, { waitUntil: "networkidle0" });
   await page.waitForSelector(".schedule-list");
   // Add one through the form.
   await page.click(".schedule-actions .btn");
@@ -43,7 +43,7 @@ export default async function ({ page, shot, login, log, BASE }) {
   log("after:", JSON.stringify(after.split("\n").slice(0, 4)));
   await shot("s2a-14-plan-after-add-360");
   // Archive it again so the demo data is unchanged.
-  await page.goto(`${BASE}/schedule/assignments`, { waitUntil: "networkidle0" });
+  await page.goto(`${BASE}/setup/assignments`, { waitUntil: "networkidle0" });
   await page.waitForSelector(".schedule-list");
   const btns = await page.$$(".schedule-card-btn");
   for (const b of btns) if ((await b.evaluate((e) => e.textContent)).includes("Smoke test assignment")) { await b.click(); break; }

@@ -1,5 +1,5 @@
 export default async function ({ page, shot, login, log, BASE }) {
-  await page.goto(`${BASE}/kids`, { waitUntil: "networkidle0" });
+  await page.goto(`${BASE}/setup/children?debug=1`, { waitUntil: "networkidle0" });
   await login();
   await page.waitForSelector(".shell-footer span");
   log("footer:", await page.$eval(".shell-footer", (e) => e.textContent), "banner:", !!(await page.$(".shell-banner")));

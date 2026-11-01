@@ -12,12 +12,13 @@ export default async function ({ page, login, log, BASE }) {
     const sw = await page.evaluate(() => document.documentElement.scrollWidth);
     log(where, r.length ? r : "clean", "sw", sw);
   };
-  await page.goto(`${BASE}/schedule`, { waitUntil: "networkidle0" });
-  await login(); await page.waitForFunction(() => location.pathname === "/schedule"); await page.waitForSelector("h1");
+  await page.goto(`${BASE}/setup`, { waitUntil: "networkidle0" });
+  await login(process.env.SMOKE_EMAIL); // a family that is not the demo (the demo cannot add events): see README, "Smoke login" await page.waitForFunction(() => location.pathname === "/setup"); await page.waitForSelector("h1");
   for (const w of [360, 1280]) {
     await page.setViewport({ width: w, height: 800 });
-    await page.goto(`${BASE}/schedule`, { waitUntil: "networkidle0" }); await run(`${w} hub`);
-    await page.goto(`${BASE}/schedule/settings`, { waitUntil: "networkidle0" }); await page.waitForSelector("form"); await run(`${w} settings`);
+    await page.goto(`${BASE}/setup`, { waitUntil: "networkidle0" }); await run(`${w} set up`);
+    await page.goto(`${BASE}/schedule?view=week`, { waitUntil: "networkidle0" }); await page.waitForSelector(".bar"); await run(`${w} week`);
+    await page.goto(`${BASE}/setup/settings`, { waitUntil: "networkidle0" }); await page.waitForSelector("form"); await run(`${w} settings`);
     for (const p of ["assignments", "days-off", "events"]) {
       await page.goto(`${BASE}/schedule/${p}`, { waitUntil: "networkidle0" }); await page.waitForSelector(".schedule-list, .schedule-empty");
       await run(`${w} ${p}`);

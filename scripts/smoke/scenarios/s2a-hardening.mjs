@@ -18,17 +18,17 @@ export default async function ({ page, shot, login, log, BASE }) {
   const goneCard = (t) => page.waitForFunction((t) => ![...document.querySelectorAll(".card-title")].some((e) => e.textContent === t), { timeout: 5000 }, t);
   const go = async (p, sel = ".schedule-list, .schedule-empty") => { await page.goto(`${BASE}${p}`, { waitUntil: "networkidle0" }); await page.waitForSelector(sel); };
   const WEEK = "2026-11-16";
-  const plan = async () => { await go(`/?week=${WEEK}`, "table"); return page.$$eval("table", (ts) => ts.map((t) => t.innerText)); };
+  const plan = async () => { await go(`/schedule?view=week&week=${WEEK}&debug=1`, "table"); return page.$$eval("table", (ts) => ts.map((t) => t.innerText)); };
   const totals = (tables) => tables.map((t) => t.split("\n").filter((l) => l.startsWith("Total")).slice(-1)[0]?.replace(/\t+/g, " "));
 
   await page.goto(`${BASE}/schedule`, { waitUntil: "networkidle0" });
-  await login();
+  await login(process.env.SMOKE_EMAIL); // a family that is not the demo (the demo cannot add events): see README, "Smoke login"
   await page.waitForFunction(() => location.pathname === "/schedule");
   await page.waitForSelector(".schedule-hub, h1");
   await S("1-hub"); log("hub sw", await sw());
 
   // Settings: open, check values, save with no change ("Nothing to save.").
-  await go("/schedule/settings", "form");
+  await go("/setup/settings", "form");
   await click("form button[type=submit]");
   await page.waitForFunction(() => /Nothing to save|Saved/.test(document.body.innerText), { timeout: 5000 });
   log("settings status:", await page.$eval(".form-status", (e) => e.textContent).catch(() => "?"), "sw", await sw());
@@ -39,7 +39,7 @@ export default async function ({ page, shot, login, log, BASE }) {
 
   // Assignment: 10 lessons Nov 16–20 for the first child.
   const A = `Hardening assignment ${tag}`;
-  await go("/schedule/assignments");
+  await go("/setup/assignments");
   await click(".schedule-actions .btn");
   let form = "form[aria-label='Add assignment']";
   await page.waitForSelector(form);
@@ -58,7 +58,7 @@ export default async function ({ page, shot, login, log, BASE }) {
 
   // Days off: Monday Nov 16, whole family.
   const D = `Hardening day off ${tag}`;
-  await go("/schedule/days-off");
+  await go("/setup/days-off");
   await click(".schedule-actions .btn");
   form = "form[aria-label='Add days off']";
   await page.waitForSelector(form);
@@ -73,7 +73,7 @@ export default async function ({ page, shot, login, log, BASE }) {
 
   // Event: Wednesday, skip by default, whole family.
   const E = `Hardening event ${tag}`;
-  await go("/schedule/events");
+  await go("/setup/events");
   await click(".schedule-actions .btn");
   form = "form[aria-label='Add event']";
   await page.waitForSelector(form);
@@ -98,9 +98,9 @@ export default async function ({ page, shot, login, log, BASE }) {
     await page.click("dialog[open] .btn-danger, dialog[open] button.btn:not(.btn-secondary)");
     await goneCard(title);
   };
-  await removeCard("/schedule/events", E);
-  await removeCard("/schedule/days-off", D);
-  await removeCard("/schedule/assignments", A);
+  await removeCard("/setup/events", E);
+  await removeCard("/setup/days-off", D);
+  await removeCard("/setup/assignments", A);
   const p4 = await plan();
   log("plan restored:", JSON.stringify(p4) === JSON.stringify(p0));
   log("errors:", errs.length ? errs : "none");

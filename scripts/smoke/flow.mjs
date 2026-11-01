@@ -23,11 +23,20 @@ async function login(email = "demo@example.com", password = "demo-password") {
   await page.type("#login-password", password);
   await page.click("button[type=submit]");
 }
+// S8b-06: Sign out is behind the family button on Home (S8-04).
+async function signOut() {
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle0" });
+  await page.click("button[aria-label='Family and settings']");
+  await page.waitForSelector("[role=dialog]");
+  await new Promise((r) => setTimeout(r, 500)); // the sheet slides in
+  const [btn] = await page.$$("xpath/.//button[normalize-space()='Sign out']");
+  await btn.evaluate((b) => b.click());
+}
 const h1 = () => page.$eval("h1", (e) => e.textContent).catch(() => null);
 try {
   await page.setViewport({ width: 360, height: 740 });
   const s = await import(`./scenarios/${scenario}.mjs`);
-  await s.default({ page, shot, login, h1, log, BASE });
+  await s.default({ page, shot, login, signOut, h1, log, BASE });
 } finally {
   await browser.close();
 }
