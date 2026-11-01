@@ -15,7 +15,7 @@ export default async function ({ page, shot, login, log, BASE }) {
   log("today:", await page.$eval(".week-dates", (e) => e.textContent), JSON.stringify((await read())[0]));
   await shot("s1-36-plan-debug-today-360");
   await page.click("button[aria-label='Next week']");
-  await page.waitForFunction(() => document.querySelector(".week-dates")?.textContent.includes("2 Nov"));
+  await page.waitForFunction(() => document.querySelector(".week-dates")?.textContent.includes("Nov 2"));
   await page.waitForSelector("table.plan-debug-table");
   log("next:", await page.$eval(".week-dates", (e) => e.textContent));
 }

@@ -79,7 +79,8 @@ Tickets: `docs/tickets/sprint-9b-fixes/`; report: `docs/reviews/sprint-9-verific
 |--------|--------|-------|
 | S9b-01 School days are real days | d329548 | API `recordTotals.ts` (distinct days, union, shares), `recordEntryService.countedDays`, `recordEntryRepo` (overlap, `countedDays`), `recordEntries.ts`; web `Totals.tsx`, `RecordsPage.tsx`, `exportData.ts`, `ExportSheet.tsx` |
 | S9b-02 A typed book is never dropped | 400a1d9 | `LogEntryForm.tsx` |
-| S9b-03 Home never says "on track" beside a late line | (this commit) | `HomeBriefing.tsx` (`ScheduleSubtitle`), `HomePage.tsx` |
+| S9b-03 Home never says "on track" beside a late line | 308339d | `HomeBriefing.tsx` (`ScheduleSubtitle`), `HomePage.tsx` |
+| S9b-04 Smoke scenarios use the new date field | (this commit) | `scripts/smoke/common.mjs` (`typeDates`, `usDate`), `s2a-14-assignments`, `s2a-15-days-off`, `s2a-hardening`, `plan-debug` |
 
 ### Decisions (9b)
 
@@ -88,4 +89,5 @@ Tickets: `docs/tickets/sprint-9b-fixes/`; report: `docs/reviews/sprint-9-verific
 - **S9b-01 changed test expectations.** API `record-totals.test`: the "by first day" check (a Nov 10-12 range showed 0 entries) now shows Frank's Nov 9-11 run as 1 part entry, 2 days and 40 of its 60 minutes; the pure tests are rewritten for distinct days, union and shares (the old "most any one child logged" case is gone, by design). `record-entries.test`: the exact entry shape gains `countedDays`. Web: entry and totals fixtures gain `countedDays`, `partialEntries`, `perChild` (new helper `test/helpers/entry-days.ts`); the days-only test expects the label "days any child did school" under All children. New tests cover the tester's three cases at the API, the Records page and the export.
 - **S9b-02 add on Save.** A title left in the Book title box is added to the books on Save (the first of the ticket's two choices), so nothing typed is dropped. Test expectations: none changed, but `timeline-add.test` ("on save, closes, draws...") flaked twice under a loaded gate because it took the first POST, which could be the pace count's POST /api/plan/pace; it now takes the POST to /api/assignments (same expectation, no longer racy).
 - **S9b-03 the card follows the pill.** The Schedule card's second line says "N running late" (late and stalled lines from the same briefing the pill uses, after Keep) and otherwise keeps the finish line, so "on track" never sits beside a late line. Test expectations: none changed.
+- **S9b-04 scenarios type like a parent.** A shared `typeDates` helper selects each DateField's box, types the US date ("Nov 2, 2026") and tabs out; the three Add-form scenarios use it, and `plan-debug` looks for "Nov 2". The date boxes are text inputs now, so the assignment and hardening scenarios' "first text and number boxes" selectors skip them (`:not([placeholder='Choose a date'])`); that was why "Total is required" appeared. All 23 scenarios exit 0 against the dev servers on 127.0.0.1 with the seeded second family (`SMOKE_EMAIL=smoke@example.com`). Test expectations: none changed.
 
