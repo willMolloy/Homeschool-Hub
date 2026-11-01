@@ -45,6 +45,7 @@ import { useZoomFade } from "../features/timeline/useZoomFade";
 import { availableZooms, defaultHalves, defaultMonth, gridMonths, viewWithoutPlan, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
+import { UpdateStatusFlow } from "../features/status/UpdateStatusFlow";
 import { EditZoomViewsSheet } from "../features/timeline/EditZoomViews";
 import { ChildSwitch } from "../features/week/ChildSwitch";
 import { ALL, useChildChoice } from "../features/week/useChildChoice";
@@ -127,6 +128,9 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   // S7b-02: "Update time estimate" opens a sheet for the selected assignment, at its own pace (its days, else the subject's, else every school day).
   const { schoolDays } = useMe();
   const [estimating, setEstimating] = useState<string | null>(null);
+  // S9-02: Update status from the edit bar's More.
+  const [statusing, setStatusing] = useState<string | null>(null);
+  const statusAssignment = assignments.find((a) => a.id === statusing);
   const estimated = assignments.find((a) => a.id === estimating);
   const estimatedSubject = estimated ? subjects.find((s) => s.id === estimated.subjectId) : undefined;
   const estimatedDays = estimated ? estimated.weekdays ?? estimatedSubject?.defaultWeekdays ?? schoolDays : null;
@@ -221,7 +225,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
               <>
                 <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />
                 <EditBar ref={keep.ref} selection={selection}
-                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)}
+                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)} onUpdateStatus={() => setStatusing(selection.assignmentId)}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
               </>
             )}
@@ -233,6 +237,10 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
           onConfirm={() => void confirmReset()} onCancel={() => setResetting(null)}>
           <p>Its dates, effort and days go back, and its week adjustments are removed. You can undo this right after.</p>
         </ConfirmDialog>
+      )}
+      {statusAssignment && (
+        <UpdateStatusFlow assignmentId={statusAssignment.id} title={statusAssignment.title} onClose={() => setStatusing(null)} onSaved={reload}
+          childId={childId && statusAssignment.childIds.includes(childId) ? childId : statusAssignment.childIds.length === 1 ? statusAssignment.childIds[0]! : null} />
       )}
       <UpdateEstimateSheet assignment={estimated} subject={estimatedSubject} pace={estimatedPace}
         childNames={estimated ? estimated.childIds.map((id) => children.find((c) => c.id === id)?.name ?? "").filter(Boolean) : []}

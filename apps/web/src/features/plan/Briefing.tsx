@@ -5,13 +5,11 @@
  * need more than the shown week).
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { addDays, toDayNumber, type ChildPlan, type LocalDate, type Weekday } from "@hh/engine";
 import { ApiError, apiGet, apiPatch } from "../../api/client";
-import type { Assignment, Child, PastWeek, PlanResponse } from "../../api/types";
+import type { Assignment, Child, PlanResponse } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useMe } from "../../auth/AuthProvider";
-import { useLastWeekCheckIn } from "../checkin/useLastWeekCheckIn";
 import { shortDate } from "../schedule/formBits";
 import { buildBriefing, type BriefingLine, type ChildBriefing, type LateAction } from "./briefingLines";
 import { usePlanRefresh } from "./planRefresh";
@@ -21,7 +19,6 @@ import "./plan.css";
 const MAX_SPAN = 400;
 /** Lines shown per child before "and N more". */
 const SHOWN = 3;
-export const NUDGE_TEXT = "Last week isn't checked in yet.";
 
 export interface DateRange {
   from: LocalDate;
@@ -105,29 +102,18 @@ function writeKept(kept: Record<string, string>): void {
   } catch { /* the choice just isn't remembered */ }
 }
 
-/** The Week view's briefing: every child's lines, and the check-in nudge. (Home shows one line instead: `HomeBriefing`.) */
+/** The Week view's briefing: every child's lines, only when something needs attention. (Home shows one line instead: `HomeBriefing`.) */
 export function Briefing({ weekStart }: { weekStart: LocalDate }) {
   const assignments = useApi<Assignment[]>("/api/assignments");
   const children = useApi<Child[]>("/api/children");
-  const weeks = useApi<{ weeks: PastWeek[] }>("/api/check-ins/weeks");
-  const lastWeek = useLastWeekCheckIn();
-  const { checkInsVersion } = usePlanRefresh();
-  const reloadWeeks = weeks.reload;
-  useEffect(() => {
-    if (checkInsVersion > 0) reloadWeeks();
-  }, [checkInsVersion, reloadWeeks]);
   if (!assignments.data || !children.data) return null;
-  // Never shown to a family that has not checked in before.
-  const checkedInBefore = (weeks.data?.weeks ?? []).some((w) => w.status === "reviewed" || w.hasCheckIns);
-  const nudge = checkedInBefore && lastWeek.week !== null;
-  return <BriefingBody assignments={assignments.data} children={children.data} weekStart={weekStart} nudge={nudge} />;
+  return <BriefingBody assignments={assignments.data} children={children.data} weekStart={weekStart} />;
 }
 
 interface BodyProps {
   assignments: Assignment[];
   children: Child[];
   weekStart: LocalDate;
-  nudge: boolean;
 }
 
 /**
@@ -164,15 +150,14 @@ export function useBriefingGroups(assignments: Assignment[], children: Child[], 
   return { groups, keep };
 }
 
-function BriefingBody({ assignments, children, weekStart, nudge }: BodyProps) {
+function BriefingBody({ assignments, children, weekStart }: BodyProps) {
   const { groups = [], keep } = useBriefingGroups(assignments, children, weekStart);
   const { invalidate } = usePlanRefresh();
 
-  if (groups.length === 0 && !nudge) return null;
+  if (groups.length === 0) return null;
   return (
     <section className="briefing" aria-label="Weekly briefing">
       {groups.map((g) => <ChildLines key={g.childId} group={g} onKeep={keep} onMoved={invalidate} />)}
-      {nudge ? <p className="briefing-line"><Link to="/schedule?view=week">{NUDGE_TEXT}</Link></p> : null}
     </section>
   );
 }

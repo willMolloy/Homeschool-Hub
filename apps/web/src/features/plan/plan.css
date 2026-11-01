@@ -42,15 +42,12 @@
 .briefing-child { margin: 0 0 10px; padding: 12px 16px; border-radius: var(--tl-radius); background: var(--tl-primary-soft); }
 .briefing-name { margin: 0; font-weight: 600; }
 .briefing-lines { margin: 2px 0 0; padding: 0; list-style: none; overflow-wrap: anywhere; }
-.briefing-line { margin: 0 0 8px; overflow-wrap: anywhere; }
-.briefing-line a { display: inline-block; min-height: 44px; line-height: 44px; }
 .briefing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 4px; }
 .briefing-actions .btn { min-height: 44px; }
 .briefing-error { color: var(--danger); }
 .briefing-lines li { margin-bottom: 8px; }
 .briefing-more { min-height: 44px; padding: 0; border: 0; background: none; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }
-.briefing-line a { color: var(--tl-primary); font-weight: 600; }
-.briefing-child .briefing-line a, .briefing-child .briefing-more { color: var(--tl-primary); }
+.briefing-child .briefing-more { color: var(--tl-primary); }
 .briefing-lines li:last-child { margin-bottom: 0; }
 
 /* S9-05: Home's one briefing line: a soft pill, the line, and one 44 px action. */

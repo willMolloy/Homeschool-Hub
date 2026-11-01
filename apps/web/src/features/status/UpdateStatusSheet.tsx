@@ -1,5 +1,5 @@
 /**
- * S8-06: "Update status" for one bar of a finished week: How did it go? (As planned / Got ahead / Fell behind),
+ * S8-06 / S9-02: "Update status" for one bar (from Schedule · Week, or the Year edit bar's More), against the last finished week (or the week being looked at): How did it go? (As planned / Got ahead / Fell behind),
  * "They got to {page}" with a − and +, and, when the plan moved, "What about the end date?" with the two dates worked
  * out. Cancel or Save; Save hands the position and the choice to the board, which sends the week once.
  */
@@ -14,6 +14,8 @@ import { stepOf } from "../checkin/amount";
 import { dayMonth } from "../home/homeSummary";
 import { rangeWords } from "../week/weekBars";
 import { endChoices, type EndChoices } from "./endDates";
+import "../checkin/checkin.css";
+import "./status.css";
 import { useMe } from "../../auth/AuthProvider";
 import type { ChildPlan } from "@hh/engine";
 
@@ -27,6 +29,9 @@ export interface UpdateStatusProps {
   whenText: string;
   onSave: (position: number, mode: OverrideMode | null) => void;
   onClose: () => void;
+  /** While the save is on its way, and what went wrong (the sheet stays open to try again). */
+  busy?: boolean;
+  error?: string | null;
 }
 
 type Way = "asPlanned" | "ahead" | "behind";
@@ -44,7 +49,7 @@ const wayOf = (item: CheckInItem, position: number): Way => {
   return o === "asPlanned" ? "asPlanned" : o === "behind" ? "behind" : "ahead";
 };
 
-export function UpdateStatusSheet({ item, position, mode, plan, whenText, onSave, onClose }: UpdateStatusProps) {
+export function UpdateStatusSheet({ item, position, mode, plan, whenText, onSave, onClose, busy = false, error = null }: UpdateStatusProps) {
   const me = useMe();
   const [pos, setPosition] = useState(position);
   /** The number box's own text, so a half-typed number is not rewritten under the finger. */
@@ -102,9 +107,10 @@ export function UpdateStatusSheet({ item, position, mode, plan, whenText, onSave
             </div>
           </>
         ) : null}
+        {error ? <p className="checkin-error" role="alert">{error}</p> : null}
         <div className="btn-row status-actions">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button onClick={save}>Save</Button>
+          <Button disabled={busy} onClick={save}>Save</Button>
         </div>
       </div>
     </ResponsiveSheet>

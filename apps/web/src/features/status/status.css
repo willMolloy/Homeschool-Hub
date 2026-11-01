@@ -1,5 +1,4 @@
-/* S8-06: Track work and Update status. */
-.board-save { margin: 8px 0 0; }
+/* S8-06 / S9-02: Update status and a finished week. */
 .status-sheet { padding: 0 2px 4px; }
 .status-sub { margin: 0; color: var(--tl-muted-foreground); font-size: 0.875rem; }
 .status-label { font-family: var(--tl-font); font-size: 0.95rem; font-weight: 700; margin: 18px 0 10px; }
@@ -16,4 +15,3 @@
 .status-end small { display: block; color: var(--tl-muted-foreground); font-size: 0.8125rem; margin-top: 2px; }
 .status-actions { margin-top: 20px; }
 .status-actions .btn { flex: 1; }
-.board-hint { margin: 0 0 4px; color: var(--tl-muted-foreground); font-size: 0.9rem; }
