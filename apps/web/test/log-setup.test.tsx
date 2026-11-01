@@ -18,6 +18,8 @@ function stub(logSetup: LogSetup | null = null, subjects: Subject[] = SUBJECTS) 
   fakeApi.on("GET /api/family", () => [200, family]);
   fakeApi.on("PATCH /api/family", (b) => { family = { ...family, ...(b as object) }; return [200, family]; });
   fakeApi.on("GET /api/subjects", 200, subjects);
+  fakeApi.on("GET /api/children", 200, []);
+  fakeApi.on("GET /api/log-entries", 200, []);
   for (const s of subjects) fakeApi.on(`PATCH /api/subjects/${s.id}`, (b) => [200, { ...s, ...(b as object) }]);
 }
 const open = async () => {

@@ -10,6 +10,7 @@ import { HttpError } from "../http/errors";
 import { checkDatesKeepLatestCheckIn } from "../http/checkInDates";
 import { lockAssignment, updateAssignment, type AssignmentRow } from "../repos/assignmentRepo";
 import { replaceLinks } from "../repos/sql";
+import { deleteEntry, insertEntry, lockEntry, replaceEntry, type RecordEntryState } from "../repos/recordEntryRepo";
 
 export interface AssignmentState {
   subjectId: string; title: string; unitType: UnitType; totalUnits: number; weightPerUnit: number | null;
@@ -25,6 +26,8 @@ export type UndoStep =
   | { op: "assignment"; id: string; set: AssignmentState }
   | { op: "blockedRange"; id: string; set: BlockedRangeState | null }
   | { op: "weekOverride"; id: string; set: WeekOverrideState | null }
+  /** S9-07: a log entry; `set` is what to put back, or null for "this entry should not exist". Never touches the plan. */
+  | { op: "logEntry"; id: string; set: RecordEntryState | null }
   /** S7b-11: assignments a copy created; undone by deleting exactly these (refused once any has a check-in). */
   | { op: "assignmentsCreated"; ids: string[] }
   /** weight_choice rows the change appended (S2b-07), taken back so an undone nudge doesn't steer the next suggestion. */
@@ -116,6 +119,17 @@ async function applyStep(tx: Tx, familyId: string, step: UndoStep): Promise<void
          ON CONFLICT (id) DO UPDATE SET planned_units = EXCLUDED.planned_units, mode = EXCLUDED.mode, updated_at = EXCLUDED.updated_at
            WHERE week_override.family_id = EXCLUDED.family_id`,
         [step.id, familyId, s.assignmentId, s.childId, s.weekStart, s.plannedUnits, s.mode, s.createdAt, s.updatedAt]);
+      return;
+    }
+    case "logEntry": {
+      if (step.set === null) {
+        const cur = await lockEntry(tx, familyId, step.id);
+        if (!cur) throw new Stale();
+        await deleteEntry(tx, familyId, step.id);
+        return;
+      }
+      if (await lockEntry(tx, familyId, step.id)) await replaceEntry(tx, familyId, step.id, step.set);
+      else await insertEntry(tx, familyId, step.set, step.id);
       return;
     }
     case "assignmentsCreated": {

@@ -34,6 +34,8 @@ const PLAN_CHANGES: readonly (readonly [string, RegExp])[] = [
   ["DELETE", /^\/api\/blocked-ranges\/[^/]+$/],
   ["PUT", /^\/api\/week-overrides(\/batch)?$/], // S7b-01: the batch is one undo entry too
   ["DELETE", /^\/api\/week-overrides\/[^/]+$/],
+  ["PATCH", /^\/api\/log-entries\/[^/]+$/], // S9-07: an edit or delete of a log entry is undoable (it never changes the plan)
+  ["DELETE", /^\/api\/log-entries\/[^/]+$/],
 ];
 const planChangeListeners = new Set<() => void>();
 

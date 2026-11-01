@@ -54,6 +54,23 @@ export interface LogFields {
 export type LogTemplate = "hoursBySubject" | "coreNonCore" | "daysAttended" | "daysAndHours" | "detailed" | "custom";
 export interface LogSetup { template: LogTemplate; fields: LogFields }
 
+/** S9-07: one log entry, typed by the parent: one child, a day or a run of days. Minutes are whole minutes. */
+export interface RecordEntry {
+  id: string;
+  childId: string;
+  startDate: string;
+  endDate: string;
+  countsSchoolDay: boolean;
+  /** How many days the entry counts (0 when the switch is off). */
+  schoolDays: number;
+  subjectMinutes: Record<string, number>;
+  totalMinutes: number | null;
+  homeMinutes: number | null;
+  awayMinutes: number | null;
+  notes: string | null;
+  books: string[];
+}
+
 /** GET/PATCH /api/family */
 export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */

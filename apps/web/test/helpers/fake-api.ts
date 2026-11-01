@@ -48,6 +48,8 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/blocked-ranges/bulk": ["blockedRanges"],
   "POST /api/calendar-templates": ["name", "breaks"],
   "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone", "zoomViews", "logSetup"],
+  "POST /api/log-entries": ["childIds", "startDate", "endDate", "countsSchoolDay", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
+  "PATCH /api/log-entries/:id": ["startDate", "endDate", "countsSchoolDay", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
   "POST /api/children": ["name", "color"],
   "PATCH /api/children/:id": ROSTER_PATCH,
   "POST /api/subjects": ["name", "color", "defaultWeight", "defaultWeekdays", "icon", "core"],
