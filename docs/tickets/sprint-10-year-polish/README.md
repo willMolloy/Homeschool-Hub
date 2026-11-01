@@ -2,8 +2,8 @@
 
 > **Status: approved to build after Sprint 9** (Will, 2026-11-01: "Sure" to a Year polish sprint after Sprint 9; "See what you can get done on sprint 9 and 10"). Built from the UX expert's mockup: `docs/design/mockups/year-polish.html` (PNGs beside it) and `docs/design/year-polish-notes.md` (measurements). Source review: `docs/design/ux-review-current.md` (improvements 4 and 5, Year drift).
 
-**Coordinator defaults on the UX expert's questions (Will can overrule):**
-1. An assignment shared by two children shows under **each** child's group (no "Together" group; no data change).
+**Decisions on the UX expert's questions:** 2 and 3 approved by Will (2026-11-01).
+1. **Decided by Will (2026-11-01): a "Together" group.** Under All children, an assignment shared by two or more children shows once, in a Together group at the top, with the children's initials on the bar; with one child selected it appears in that child's lanes. Each child's load ribbon still counts it. No data change.
 2. Bars run **through** breaks with the break drawn as a wash over them.
 3. "All children" stays first in the shared switch (already decided).
 
