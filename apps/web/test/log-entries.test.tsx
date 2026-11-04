@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { FamilySettings, LogSetup, RecordEntry, Subject } from "../src/api/types";
 import { boxesFor, formatMinutes, summaryOf, toMinutes } from "../src/features/records/entryText";
 import { NO_FIELDS } from "../src/features/records/logSetup";
+import { partInRange } from "../src/features/records/share";
 import { fakeApi, runDaysFor } from "./helpers/fake-api";
 import { renderAt } from "./render";
 import { withCovered } from "./helpers/recordEntry";
@@ -258,6 +259,15 @@ describe("S9b-07: ticking the days of a run", () => {
     await user.click(form.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(calls("POST")).toHaveLength(1));
     expect((calls("POST")[0]!.body as { days: string[] }).days).toEqual(MON_SAT);
+  });
+
+  it("S10-10b L4: a row cut by the range names only the ticked days inside it", () => {
+    const TUE_SAT = ["2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14"];
+    const e = entry({ startDate: "2026-11-09", endDate: "2026-11-15", days: TUE_SAT, schoolDays: 5, subjectMinutes: {} });
+    expect(summaryOf(e, [])).toBe("5 school days, Tue–Sat");
+    expect(summaryOf(partInRange(e, "2026-11-01", "2026-11-10")!, [])).toBe("1 school day, Tue");
+    expect(summaryOf(partInRange(e, "2026-11-12", "2026-11-30")!, [])).toBe("3 school days, Thu–Sat");
+    expect(summaryOf(partInRange(e, "2026-11-15", "2026-11-30")!, [])).toBe("0 school days");
   });
 
   it("S10-10b M1: every chip's accessible name starts with the text it shows (WCAG 2.5.3 Label in Name)", async () => {

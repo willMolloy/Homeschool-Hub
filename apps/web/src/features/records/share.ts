@@ -14,7 +14,7 @@ export const overlaps = (e: Pick<RecordEntry, "startDate" | "endDate">, start: s
 const scaled = (m: number, f: number): number => (f === 1 ? m : Math.round(m * f));
 const scaledOrNull = (m: number | null, f: number): number | null => (m === null ? null : scaled(m, f));
 
-/** The entry clipped to the range (dates, covered days, school days and hours), or null when none of it is inside. */
+/** The entry clipped to the range (dates, covered and ticked days, school days and hours), or null when none of it is inside. */
 export function partInRange(e: RecordEntry, start: string, end: string): EntryPart | null {
   if (!overlaps(e, start, end)) return null;
   const from = start > e.startDate ? start : e.startDate;
@@ -29,6 +29,8 @@ export function partInRange(e: RecordEntry, start: string, end: string): EntryPa
     startDate: from,
     endDate: to,
     coveredDays: days,
+    // S10-10b (L4): the ticked days inside the range too, so a clipped row names its own days ("1 school day, Tue")
+    days: e.days ? e.days.filter((d) => d >= from && d <= to) : null,
     schoolDays: e.countsSchoolDay ? days.length : 0,
     subjectMinutes: Object.fromEntries(Object.entries(e.subjectMinutes).map(([id, m]) => [id, scaled(m, f)])),
     totalMinutes: scaledOrNull(e.totalMinutes, f),
