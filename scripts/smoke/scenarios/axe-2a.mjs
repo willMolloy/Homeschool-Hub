@@ -5,7 +5,13 @@ export default async function ({ page, login, log, BASE }) {
   page.on("console", (m) => { if (m.type() === "error") errs.push(m.text()); });
   page.on("requestfailed", (r) => errs.push("REQFAIL " + r.url()));
   page.on("response", (r) => { if (r.status() >= 400 && !r.url().endsWith("/api/me")) errs.push(`${r.status()} ${r.url()}`); });
+  // S10-19 (L7): measure a settled page. A check taken while a button or an error line is still fading in reads the colours
+  // part-way (one contrast hit on Add assignment's submit at 1280 that never came back), so wait for running animations
+  // and transitions to finish first (endless ones, such as a spinner, are left out).
+  const settled = () => page.waitForFunction(() => document.getAnimations()
+    .every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity), { timeout: 5000 });
   const run = async (where) => {
+    await settled();
     await page.evaluate(AXE);
     const r = await page.evaluate(async () => (await window.axe.run(document, { resultTypes: ["violations"] })).violations
       .map((v) => `${v.impact} ${v.id}: ${v.help} [${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}]`));

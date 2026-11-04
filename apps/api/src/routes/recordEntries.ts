@@ -9,13 +9,13 @@ import { z } from "zod";
 import { withTransaction } from "../db";
 import { short } from "../http/checkInDates";
 import { HttpError } from "../http/errors";
-import { checkDateOrder, IdList, LocalDate } from "../http/scheduleLimits";
+import { checkDateOrder, CommaList, IdList, LocalDate } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
 import { checkRefs } from "../repos/refs";
 import {
   deleteEntry, insertEntry, listEntries, lockEntry, replaceEntry, stateOf, toJson, type RecordEntryRow, type RecordEntryState,
 } from "../repos/recordEntryRepo";
-import { calendarModel, coveredDays, daysCounted } from "../services/recordEntryService";
+import { calendarModel, coveredDays, daysCounted, runDays } from "../services/recordEntryService";
 import { totalsOf } from "../services/recordTotals";
 import { recordUndo } from "../services/undoService";
 
@@ -34,6 +34,9 @@ const Notes = z.string("Notes must be text.").trim().max(MAX_NOTES, `Notes can b
 const Books = z.array(z.string("Book titles must be text.").trim().min(1, "A book needs a title.").max(MAX_BOOK_TITLE, `Titles can be up to ${MAX_BOOK_TITLE} characters.`).refine(NoNul, "Titles can't contain a NUL character."))
   .max(MAX_BOOKS, `At most ${MAX_BOOKS} books in one entry.`);
 
+/** S9b-07: the days a run counts, as ticked (null = the school calendar's days). Checked against the dates in `resolveDays`. */
+const Days = z.array(LocalDate, "days must be a list of dates.").max(MAX_ENTRY_DAYS, `At most ${MAX_ENTRY_DAYS} days.`).nullable();
+
 const Typed = {
   subjectMinutes: SubjectMinutes.optional(),
   totalMinutes: Minutes.nullable().optional(),
@@ -48,16 +51,36 @@ const CreateBody = z.strictObject({
   startDate: LocalDate,
   endDate: LocalDate.optional(),
   countsSchoolDay: z.boolean("countsSchoolDay must be true or false.").optional(),
+  days: Days.optional(),
   ...Typed,
 });
 const PatchBody = z
-  .strictObject({ startDate: LocalDate.optional(), endDate: LocalDate.optional(), countsSchoolDay: z.boolean("countsSchoolDay must be true or false.").optional(), ...Typed })
+  .strictObject({ startDate: LocalDate.optional(), endDate: LocalDate.optional(), countsSchoolDay: z.boolean("countsSchoolDay must be true or false.").optional(), days: Days.optional(), ...Typed })
   .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.");
 const ListQuery = z.strictObject({
   from: LocalDate.optional(),
   to: LocalDate.optional(),
   childId: z.string("childId must be one id.").regex(UUID_RE, "childId must be a UUID.").transform((s) => s.toLowerCase()).optional(),
 });
+
+const RunDaysQuery = z.strictObject({
+  from: LocalDate,
+  to: LocalDate,
+  childIds: CommaList.pipe(IdList(20)).optional().transform((ids) => ids ?? []),
+});
+
+/**
+ * S9b-07: a run's ticked days, sorted and distinct; null for none sent. Only a run of dates carries them (a single day counts
+ * itself), each must be inside the run, and with the switch on at least one must be ticked.
+ */
+function resolveDays(start: string, end: string, days: readonly string[] | null, counts: boolean): string[] | null {
+  if (days === null) return null;
+  if (start === end) throw new HttpError(400, "invalid_days", "Ticked days are for a run of dates; a single day counts itself.");
+  if (days.some((d) => d < start || d > end)) throw new HttpError(400, "invalid_days", "Each ticked day must be inside the entry's dates.");
+  const out = [...new Set(days)].sort();
+  if (counts && out.length === 0) throw new HttpError(400, "invalid_days", "Tick at least one day, or turn off \"Count as a school day\".");
+  return out;
+}
 
 const notFound = () => new HttpError(404, "not_found", "No such log entry.");
 
@@ -84,13 +107,21 @@ const label = (s: { startDate: string; endDate: string }, who: string) =>
 
 type Model = Awaited<ReturnType<typeof calendarModel>>;
 /** S9b-01: an entry's covered days come from its dates and the calendar as it is now. */
-const coveredOf = (model: Model) => (r: RecordEntryRow) => coveredDays(model, r.child_id, r.start_date, r.end_date);
+const coveredOf = (model: Model) => (r: RecordEntryRow) => coveredDays(model, r.child_id, r.start_date, r.end_date, r.days);
 const jsonWith = (model: Model) => (r: RecordEntryRow) => toJson(r, coveredOf(model)(r));
 
 export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/log-entries", async (req) => {
     const rows = await listEntries(app.db, req.familyId, parseBody(ListQuery, req.query));
     return rows.length === 0 ? [] : rows.map(jsonWith(await calendarModel(app.db, req.familyId)));
+  });
+
+  /** S9b-07: what the log form needs to tick a run's days (the family's school weekdays, the run's school days and days off). */
+  app.get("/api/log-entries/run-days", async (req) => {
+    const q = parseBody(RunDaysQuery, req.query);
+    checkDateOrder(q.from, q.to, MAX_ENTRY_DAYS);
+    if (q.childIds.length > 0) await checkRefs(app.db, req.familyId, { childIds: q.childIds });
+    return runDays(app.db, req.familyId, q.childIds, q.from, q.to);
   });
 
   /** S9-08, S9b-01: read-only totals for a range (each entry's days inside it) and one child or all, from log entries only. */
@@ -110,6 +141,7 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
     const base = {
       startDate: b.startDate, endDate, countsSchoolDay: b.countsSchoolDay ?? true, subjectMinutes: b.subjectMinutes ?? {},
       totalMinutes: b.totalMinutes ?? null, homeMinutes: b.homeMinutes ?? null, awayMinutes: b.awayMinutes ?? null, notes: b.notes ?? null, books: b.books ?? [],
+      days: resolveDays(b.startDate, endDate, b.days ?? null, b.countsSchoolDay ?? true),
     };
     checkHours(base);
     const { rows, model } = await withTransaction(app.db, async (tx) => {
@@ -118,7 +150,7 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
       const model = await calendarModel(tx, req.familyId);
       const made: RecordEntryRow[] = [];
       for (const childId of b.childIds) {
-        made.push(await insertEntry(tx, req.familyId, { ...base, childId, schoolDays: daysCounted(model, childId, b.startDate, endDate, base.countsSchoolDay) }));
+        made.push(await insertEntry(tx, req.familyId, { ...base, childId, schoolDays: daysCounted(model, childId, b.startDate, endDate, base.countsSchoolDay, base.days) }));
       }
       return { rows: made, model };
     });
@@ -145,10 +177,14 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
         books: p.books ?? before.books,
       };
       checkDateOrder(next.startDate, next.endDate, MAX_ENTRY_DAYS);
+      // S9b-07: ticked days sent are checked against the new dates; new dates without days go back to the school calendar's days
+      const datesMoved = next.startDate !== before.startDate || next.endDate !== before.endDate;
+      next.days = p.days !== undefined ? resolveDays(next.startDate, next.endDate, p.days, next.countsSchoolDay)
+        : datesMoved ? null : (before.days ?? null);
       checkHours(next);
       await checkSubjects(tx, req.familyId, Object.keys(p.subjectMinutes ?? {}));
       const model = await calendarModel(tx, req.familyId);
-      next.schoolDays = daysCounted(model, next.childId, next.startDate, next.endDate, next.countsSchoolDay);
+      next.schoolDays = daysCounted(model, next.childId, next.startDate, next.endDate, next.countsSchoolDay, next.days);
       const after = await replaceEntry(tx, req.familyId, cur.id, next);
       if (JSON.stringify(before) !== JSON.stringify(stateOf(after))) {
         const who = (await tx.query<{ name: string }>("SELECT name FROM child WHERE id = $1", [cur.child_id])).rows[0]?.name ?? "Child";

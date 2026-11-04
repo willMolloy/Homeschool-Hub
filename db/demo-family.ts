@@ -24,7 +24,7 @@ export const DEMO_FAMILY: SeedFamily = {
   calendar: { weekStart: "mon", schoolDays: [1, 2, 3, 4, 5] },
   subjectWeights: [{ subjectId: "math", unitType: "lessons", weightPerUnit: 20 }],
   children: SEED_CHILDREN,
-  subjects: [...SEED_SUBJECTS, { key: "art", name: "Art", color: "#5c8a2f" }],
+  subjects: [...SEED_SUBJECTS, { key: "art", name: "Art", color: "#b0482f" }],
   assignments: [
     // Frank's reading: back-to-back sprints, pages then chapters.
     A("aesop", "Aesop's Fables", "lit", ["frank"], "pages", 120, "2026-08-31", "2026-09-11"),

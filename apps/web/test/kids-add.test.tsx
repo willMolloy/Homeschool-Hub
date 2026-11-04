@@ -33,7 +33,7 @@ describe("Add child", () => {
     fakeApi.on("POST /api/children", (body) => [201, { id: "c9", sortOrder: 0, archived: false, ...(body as object) }]);
     const user = await openAdd();
     await user.type(screen.getByLabelText("Name"), "Ada");
-    await user.click(screen.getByRole("radio", { name: "Purple" }));
+    await user.click(screen.getByRole("radio", { name: "Lilac" }));
     await user.click(screen.getByRole("button", { name: "Add" }));
     await screen.findByText("Ada");
     expect(fakeApi.calls.at(-1)?.body).toEqual({ name: "Ada", color: "#7a5cc2" });

@@ -127,3 +127,7 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--tl-primary); }
 @media (max-width: 480px) {
   .field-row:has(select) { grid-template-columns: 1fr; }
 }
+
+/* S10-16: forms, stand-alone button rows and segmented controls are at most --form-max (480 px) wide, at the column's
+   start under the page heading. One column, labels above; only a start / end date pair sits side by side (.field-row). */
+form, .btn-row, .schedule-actions, .segmented { max-width: var(--form-max, 480px); box-sizing: border-box; }

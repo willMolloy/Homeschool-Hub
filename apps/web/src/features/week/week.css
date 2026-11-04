@@ -1,8 +1,23 @@
 /* S8-05: This week as pastel bars. */
-.week-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 4px; }
-.week-head h2 { margin: 0; font-size: 1.35rem; }
-.week-dates { margin: 0 0 12px; color: var(--tl-muted-foreground); font-size: 0.875rem; }
-.week-step-row { display: flex; gap: 8px; }
+/* S10-13: the week group (‹ range ›) at the end of Schedule's Week | Year row. The word sits over the range on a phone,
+   beside it ("This week · Oct 26 – Nov 1") from 600 px, and is only spoken under 360 px. */
+.week-step-row { display: flex; align-items: center; gap: 0; min-width: 0; }
+.week-step-row .round-btn { flex: none; }
+.week-range { display: flex; flex-direction: column; align-items: center; min-width: 0; text-align: center; line-height: 1.2; font-size: 0.8125rem; }
+.week-word { color: var(--tl-muted-foreground); font-size: 0.75rem; white-space: nowrap; }
+.week-sep { display: none; }
+.week-dates { font-weight: 600; white-space: nowrap; }
+@media (min-width: 600px) {
+  .week-step-row { gap: 4px; }
+  .week-range { flex-direction: row; align-items: baseline; padding: 0 4px; font-size: 0.875rem; }
+  .week-word { font-size: inherit; }
+  .week-sep { display: inline; }
+}
+@media (max-width: 359.98px) {
+  .week-range { font-size: 0.75rem; }
+  .week-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .round-btn { width: 44px; height: 44px; border-radius: 999px; border: 0; background: var(--tl-secondary); color: var(--tl-foreground); display: grid; place-items: center; font: inherit; font-size: 1.15rem; cursor: pointer; }
 .round-btn:disabled { opacity: 0.5; cursor: default; }
 .week-section { margin: 20px 4px 10px; font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tl-muted-foreground); font-family: var(--tl-font); }
@@ -28,6 +43,8 @@ button.bar-body { cursor: pointer; }
 /* S8b-07: the child switch: chips, or one pill that opens a list when the names do not fit one line. */
 .child-switch { margin: 0 0 16px; }
 .child-switch .segmented { margin: 0; }
+/* S10-16 (R3): a name never wraps inside its chip ("All chil-/dren"); when the chips don't fit, ChildSwitch shows the pill. */
+.child-switch .segmented button { white-space: nowrap; }
 .child-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--tl-secondary); color: var(--tl-foreground); font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
 .child-options { display: grid; gap: 6px; }
 .child-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 0 16px; border: 0; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }

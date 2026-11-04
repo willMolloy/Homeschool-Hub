@@ -10,7 +10,7 @@ import { ColorDot } from "../../ui/ColorDot";
 import { BackToSetup } from "../setup/SetupPage";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import "../../ui/forms.css";
-import { nextUnusedColor } from "./palette";
+import { nextUnusedColor, usedByNames } from "./palette";
 import { RosterForm, type RosterFormProps, type RosterValues } from "./RosterForm";
 import "./roster.css";
 
@@ -37,7 +37,7 @@ export interface RosterExtension<T extends RosterItem, V extends RosterValues> {
   renderForm: (props: RosterFormSlotProps<T, V>) => ReactNode;
   /** Shown after the name on a row, e.g. a chip. */
   renderBadge?: (item: T) => ReactNode;
-  /** S8-11: shown between the colour dot and the name (the subject's icon). */
+  /** S8-11: shown before the name (the subject's icon); S10-12: it replaces the colour dot. */
   renderLead?: (item: T, all: readonly T[]) => ReactNode;
 }
 
@@ -172,6 +172,7 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
       initial: initialFor(null, { name: "", color: nextUnusedColor(items.filter((i) => !i.archived).map((i) => i.color)) }),
       onSave: create,
       onCancel: closeAdd,
+      usedBy: usedByNames(items),
       item: null,
     })
   ) : (
@@ -195,8 +196,9 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
       <BackToSetup />
       <div className="roster-head">
         <h1>{title}</h1>
+        {/* S10-12: a switch, the whole label a 44 px target. */}
         <label className="roster-toggle" htmlFor={toggleId}>
-          <input id={toggleId} type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+          <input id={toggleId} type="checkbox" role="switch" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
           Show archived
         </label>
       </div>
@@ -226,6 +228,7 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
                   initial: initialFor(item, { name: item.name, color: item.color }),
                   onSave: (v) => save(item, v),
                   onCancel: () => closeEdit(item.id),
+                  usedBy: usedByNames(items, item.id),
                   externalError: archiving ? null : actionError,
                   item,
                   extra: item.archived ? (
@@ -249,8 +252,8 @@ export function RosterPage<T extends RosterItem = RosterItem, V extends RosterVa
             ) : (
               <li key={item.id} className={`roster-row${item.archived ? " is-archived" : ""}`}>
                 <button type="button" className="roster-row-btn" data-row-id={item.id} onClick={() => openEdit(item.id)}>
-                  <ColorDot color={item.color} />
-                  {extension?.renderLead?.(item, items)}
+                  {/* S10-12: a subject's icon badge carries its colour, so only rows without one (children) keep the dot. */}
+                  {extension?.renderLead ? extension.renderLead(item, items) : <ColorDot color={item.color} />}
                   <span className="roster-name">{item.name}</span>
                   {extension?.renderBadge?.(item)}
                   {item.archived ? <span className="tag">Archived</span> : null}

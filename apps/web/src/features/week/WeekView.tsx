@@ -5,6 +5,7 @@
  * Nothing on the page is a number the family didn't enter.
  */
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../../ui/EmptyState";
 import { addDays } from "@hh/engine";
@@ -33,15 +34,16 @@ import { useWeekLookups } from "./useWeekLookups";
 export const aheadTitle = (childName: string, weekStart: string, weekEnd: string, current: boolean) =>
   `${childName} · ${current ? "This week · " : ""}${weekRangeText(weekStart, weekEnd)}`;
 
-export function WeekView() {
+/** S10-13: `headSlot` is the spot at the end of Schedule's Week | Year row; the week group (‹ range ›) goes there. */
+export function WeekView({ headSlot = null }: { headSlot?: HTMLElement | null }) {
   return (
     <PlanRefreshProvider>
-      <Week />
+      <Week headSlot={headSlot} />
     </PlanRefreshProvider>
   );
 }
 
-function Week() {
+function Week({ headSlot }: { headSlot: HTMLElement | null }) {
   const week = useShownWeek();
   const look = useWeekLookups();
   const [choice, setChoice] = useChildChoice(look.activeChildren);
@@ -49,16 +51,22 @@ function Week() {
   const debug = useDebugFlag();
   const title = week.weekStart === week.currentWeekStart ? "This week"
     : week.weekStart === addDays(week.currentWeekStart, -7) ? "Last week" : week.weekStart < week.currentWeekStart ? "Earlier week" : "Coming week";
+  // S10-13: one row with the Week | Year switch: ‹, the range with its word ("This week") as a small muted label, ›.
+  // Under 360 px the word is only spoken (it stays in the live region); the heading stays for screen readers.
+  const group = (
+    <div className="week-step-row" role="group" aria-label="Week">
+      <button type="button" className="round-btn" aria-label="Previous week" onClick={() => week.go(addDays(week.weekStart, -7))}><CaretLeft size={20} weight="light" aria-hidden="true" /></button>
+      <span className="week-range" aria-live="polite">
+        <span className="week-word">{title}<span className="week-sep" aria-hidden="true">{"\u00a0·\u00a0"}</span></span>
+        <span className="week-dates">{weekSpan(week.weekStart)}</span>
+      </span>
+      <button type="button" className="round-btn" aria-label="Next week" onClick={() => week.go(addDays(week.weekStart, 7))}><CaretRight size={20} weight="light" aria-hidden="true" /></button>
+    </div>
+  );
   return (
     <div className="week">
-      <div className="week-head">
-        <h2>{title}</h2>
-        <div className="week-step-row" role="group" aria-label="Week">
-          <button type="button" className="round-btn" aria-label="Previous week" onClick={() => week.go(addDays(week.weekStart, -7))}><CaretLeft size={20} weight="light" aria-hidden="true" /></button>
-          <button type="button" className="round-btn" aria-label="Next week" onClick={() => week.go(addDays(week.weekStart, 7))}><CaretRight size={20} weight="light" aria-hidden="true" /></button>
-        </div>
-      </div>
-      <p className="week-dates" aria-live="polite">{weekSpan(week.weekStart)}</p>
+      <h2 className="sr-only">{title}</h2>
+      {headSlot ? createPortal(group, headSlot) : group}
       <ChildSwitch kids={look.activeChildren} value={choice} onChange={setChoice} />
       {!past && <Briefing weekStart={week.weekStart} />}
       {past ? <PastWeek weekStart={week.weekStart} choice={choice} look={look} /> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} />}

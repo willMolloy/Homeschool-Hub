@@ -2,8 +2,10 @@
  * S8b-07 (Will): the one child switch of the week, track and year screens. "All children" comes first and is offered only
  * with two or more children. When every name fits on one line they are chips; when they don't, there is one pill showing
  * the current choice ("All children ▾") that opens a sheet listing all the options, so nothing scrolls sideways.
+ * S10-16 (R3): a chip's name never wraps inside it. The width estimate decides first; if the drawn chips still overflow
+ * the row (the estimate was short, e.g. "All children" at 320 px or three children at 390), the pill is used at that width.
  */
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { CaretDown, Check } from "@phosphor-icons/react";
 import type { Child } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
@@ -39,7 +41,14 @@ function Switch({ kids, value, onChange }: ChildSwitchProps & { value: string })
   const measure = useMeasureText();
   const { ref, width } = useElementWidth<HTMLDivElement>(100000);
   const options = [{ value: ALL, label: ALL_LABEL }, ...kids.map((c) => ({ value: c.id, label: c.name }))];
-  const fits = chipsWidth(options.map((o) => o.label), measure) <= width;
+  // S10-16 (R3): the width at which the drawn chips were seen to overflow; it counts only while the width is the same.
+  const [overAt, setOverAt] = useState<number | null>(null);
+  const fits = chipsWidth(options.map((o) => o.label), measure) <= width && overAt !== width;
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!fits || !el) return;
+    if (el.scrollWidth > el.clientWidth + 0.5) setOverAt(width);
+  });
   const current = options.find((o) => o.value === value) ?? options[0]!;
   return (
     <div ref={ref} className="child-switch">

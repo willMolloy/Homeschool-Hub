@@ -5,6 +5,9 @@
  * S6b-05: only Start, End, Copy and a quiet "More" show; More holds Update time estimate and Reset to original. The
  * week-step buttons and the session's date-only Reset are gone (date pickers, dragging, Undo and Reset to original
  * cover them).
+ * S10-18: `panel` (840 px and up) draws the same content as a 360 px side panel on the right, no backdrop, the timeline
+ * narrowed beside it. It stays open while other bars are picked; opening it moves focus to its heading (the page returns
+ * focus when it closes). The phone and tablet bottom bar is unchanged.
  */
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { Clock } from "@phosphor-icons/react";
@@ -27,14 +30,24 @@ export interface EditBarProps {
   onClose: () => void;
   /** S10-06: "About 20 pages a day · 40 min" (rounded), or null while it isn't known. */
   pace?: string | null;
+  /** S10-18: a side panel (840 px and up) rather than a bottom bar. */
+  panel?: boolean;
 }
+
+/** S10-18: the width from which the edit sheet is a side panel (DeeDee, 2026-11-03). */
+export const EDIT_PANEL_QUERY = "(min-width: 840px)";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose, pace = null }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose, pace = null, panel = false }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
   const [more, setMore] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  // S10-18: the panel takes focus once, when it opens (it stays mounted while other bars are picked).
+  useEffect(() => {
+    if (panel) headingRef.current?.focus();
+  }, [panel]);
   // Esc closes the open menu first, then the bar; a tap outside the menu closes it.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -72,11 +85,11 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
   const message = invalid ?? error;
 
   return (
-    <section ref={ref} className="tl-edit" aria-label={`Edit ${s.title}`}>
+    <section ref={ref} className="tl-edit" aria-label={`Edit ${s.title}`} data-panel={panel ? "" : undefined}>
       <div className="tl-edit-grab" aria-hidden="true" />
       <div className="tl-edit-head">
         <div className="tl-edit-name">
-          <p className="tl-edit-title">{s.title}</p>
+          <h2 ref={headingRef} className="tl-edit-title" tabIndex={-1}>{s.title}</h2>
           <p className="tl-edit-sub">{s.subtitle}</p>
         </div>
         <button type="button" className="tl-edit-close" aria-label="Close" onClick={onClose}>×</button>
@@ -84,8 +97,8 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
       <div className="tl-edit-body">
         {/* S10-06 (mockup frame 2): the dates are tiles, each the shared DateField under a small label. */}
         <div className="tl-edit-dates">
-          <label className="tl-tile"><span className="tl-tile-label">Start</span><DateField className="tl-tile-field" opens="up" value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
-          <label className="tl-tile"><span className="tl-tile-label">End</span><DateField className="tl-tile-field" opens="up" value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
+          <label className="tl-tile"><span className="tl-tile-label">Start</span><DateField className="tl-tile-field" opens={panel ? "down" : "up"} value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
+          <label className="tl-tile"><span className="tl-tile-label">End</span><DateField className="tl-tile-field" opens={panel ? "down" : "up"} value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
         </div>
         {pace ? <p className="tl-pace" data-pace><Clock size={18} weight="regular" aria-hidden="true" />{pace}</p> : null}
         <div className="tl-edit-ends">

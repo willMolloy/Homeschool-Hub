@@ -31,9 +31,13 @@
 /* S9b-05 (N9): placeholder text ends in "…" before the icon instead of running into it. */
 .date-field-box input[type="text"]::placeholder { text-overflow: ellipsis; }
 /* S9b-05 (N9): on a phone under 360 px the calendar is the screen's width less 4 px a side (DateField sets its left), with no
-   side padding, so each of the 7 day cells is at least 44 px wide (320 px: (312 - 2) / 7 = 44.3). Two dates side by side stack. */
+   side padding, so each of the 7 day cells is at least 44 px wide (320 px: (312 - 2) / 7 = 44.3). */
 @media (max-width: 359px) {
   .date-cal { width: calc(100vw - 8px); padding: 8px 0; }
   .date-cal-head, .date-cal-foot { padding: 0 4px; }
+}
+/* S10-19 (L10): a start / end pair of date fields stacks under 480 px (as a pair with a select does, forms.css): side by side at
+   360-390 each box is ~150 px and clips "Dec 30, 2026" and the "Choose a date" placeholder. */
+@media (max-width: 479px) {
   .field-row:has(.date-field) { grid-template-columns: 1fr; }
 }

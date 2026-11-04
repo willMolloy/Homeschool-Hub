@@ -18,11 +18,17 @@
 .tl-zoom[data-more="end"] { mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
 .tl-zoom[data-more="start"] { mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
 .tl-zoom[data-more="both"] { mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+/* S10-19 (R4): a caret over the faded edge says there is more to scroll to; it takes no space and no taps. */
+.tl-zoom-row { position: relative; }
+.tl-zoom-more { position: absolute; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.tl-zoom-more-start { left: 0; }
+.tl-zoom-more-end { right: 0; }
+.tl-zoom-row[data-edit] .tl-zoom-more-end { right: 48px; }
 /* T-05c: phones get the presets as one compact row under the title. */
 @media (max-width: 639px) {
   .timeline-page-header .tl-zoom-row { flex: 1 0 100%; }
   .tl-zoom { flex: 1 1 auto; justify-content: space-between; }
-  .tl-zoom button { padding: 0 10px; }
+  .tl-zoom button { padding: 0 10px; max-width: 7.5rem; }
 }
 /* T-05: crossfade between zooms (keep in step with FADE_MS in useZoomFade.ts). */
 .tl-stage { position: relative; }
@@ -70,7 +76,7 @@
 .tl-lane-pick { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; min-height: 44px; }
 /* T-07e / S8-07: the edit bar is a bottom sheet in the Soft Paper style (above the tab bar), fixed to the bottom of the viewport. Not modal. */
 .tl-edit {
-  position: fixed; left: 0; right: 0; z-index: var(--z-edit);
+  position: fixed; left: var(--rail-width, 0px); right: 0; z-index: var(--z-edit);
   bottom: calc(var(--tab-bar-height, 70px) + env(safe-area-inset-bottom));
   max-width: 960px; margin: 0 auto; box-sizing: border-box;
   padding: 6px 20px 12px; background: var(--tl-card); border-radius: var(--tl-radius-sheet) var(--tl-radius-sheet) 0 0;
@@ -182,3 +188,25 @@
 .tl-group-avatar > span { display: grid; place-items: center; border-radius: 999px; background: var(--tl-primary-soft); color: var(--tl-primary); font-size: 12px; font-weight: 800; }
 .tl-group-name { position: absolute; top: 50%; transform: translateY(-50%); font-weight: 800; color: var(--tl-foreground); white-space: nowrap;
   text-shadow: 0 0 2px var(--tl-background), 0 0 2px var(--tl-background), 0 0 3px var(--tl-background); }
+
+/* S10-18: from 840 px the edit sheet is a 360 px panel on the right: full height, no backdrop, not modal. The page
+   (the timeline included, which re-lays out to its new width) narrows beside it; the undo bar centres in what's left. */
+:root { --edit-panel-width: 360px; }
+.tl-svg:focus { outline: none; }
+.tl-svg:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: 2px; }
+.tl-edit-title:focus { outline: none; }
+.tl-edit-title:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: 2px; border-radius: 4px; }
+@media (min-width: 840px) {
+  .tl-edit[data-panel] {
+    top: 0; bottom: 0; left: auto; right: 0; width: var(--edit-panel-width); max-width: none; margin: 0;
+    padding: max(28px, env(safe-area-inset-top)) 20px 20px; overflow-y: auto;
+    border-radius: 0; border-top: 0; border-left: 1px solid var(--tl-border); box-shadow: none;
+  }
+  .tl-edit[data-panel] .tl-edit-grab { display: none; }
+  .tl-edit[data-panel] .tl-edit-title { white-space: normal; overflow-wrap: anywhere; }
+  .tl-edit[data-panel] .tl-edit-close { margin: -8px -12px 0 0; }
+  .tl-edit[data-panel] .tl-tile .date-field .date-field-box input[type="text"] { font-size: 0.94rem; }
+  .tl-edit[data-panel] .tl-more-menu { bottom: auto; top: calc(100% + 4px); }
+  .shell-main:has(.tl-edit[data-panel]) { padding-right: calc(var(--edit-panel-width) + var(--page-pad)); }
+  body:has(.tl-edit[data-panel]) .undo-bar { left: calc(50% + (var(--rail-width, 0px) - var(--edit-panel-width)) / 2); max-width: calc(100vw - var(--rail-width, 0px) - var(--edit-panel-width) - 32px); }
+}

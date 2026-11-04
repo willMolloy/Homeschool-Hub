@@ -3,6 +3,7 @@
 // Sign-in is the demo login unless TAP_EMAIL / TAP_PASSWORD are set; the demo family cannot add events, so use a non-demo
 // family to also measure the event form and its "What changes" list.
 // Inline text links inside a sentence are exempt; a checkbox or radio inside a label is measured as its label.
+// S10-19 (L6): so is the date box inside a Year date tile (`.tl-tile`, a 60 px label: a tap anywhere on it reaches the box).
 const MIN = 44;
 // S7-12: the viewport width, 360 unless TAP_WIDTH says otherwise (a whole number of pixels from 280 to 1600).
 const WIDTH = Number(process.env.TAP_WIDTH ?? 360);
@@ -24,6 +25,7 @@ function undersized(min) {
     if (el.closest("[aria-hidden=true]") || el.closest("[inert]")) continue;
     let target = el;
     if (el.matches("input[type=checkbox], input[type=radio]")) target = el.closest("label") ?? el;
+    else if (el.matches("input") && el.closest("label.tl-tile")) target = el.closest("label.tl-tile");
     const r = target.getBoundingClientRect(), cs = getComputedStyle(target);
     if (!visible(r, cs)) continue;
     if (el.matches("a")) {

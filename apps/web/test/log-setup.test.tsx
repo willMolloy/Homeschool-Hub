@@ -50,6 +50,8 @@ describe("the helpers (pure)", () => {
   it("says what is tracked in the parent's words", () => {
     expect(trackedWords({ ...NO_FIELDS, subjectHours: true, schoolDays: true, notes: true })).toBe("Hours by subject, school days and notes");
     expect(trackedWords({ ...NO_FIELDS, subjectHours: true, coreSplit: true })).toBe("Core and non-core hours");
+    // S10-19 (R5): inside a sentence ("Your log tracks school days.") it stays lowercase
+    expect(trackedWords({ ...NO_FIELDS, schoolDays: true }, true)).toBe("school days");
     expect(setupOf({ ...NO_FIELDS, schoolDays: true })).toEqual({ template: "daysAttended", fields: { ...NO_FIELDS, schoolDays: true } });
   });
 });
@@ -105,7 +107,7 @@ describe("Log setup for a new family", () => {
     expect(patches("/api/subjects/art")).toHaveLength(0);
     expect(patches("/api/subjects/hist")).toHaveLength(0);
     expect(await screen.findByRole("heading", { level: 1, name: "Records" })).toBeInTheDocument();
-    expect(screen.getByText("Core and non-core hours")).toBeInTheDocument();
+    expect(screen.getByText("core and non-core hours")).toBeInTheDocument();
   });
 
   it("without core and non-core hours, no subject is written", async () => {
@@ -141,7 +143,8 @@ describe("changing the setup later", () => {
   it("a family with a setup sees what it tracks, and Change log setup opens the form on it", async () => {
     stub(SETUP, [sub("math", "Math", true), sub("art", "Art")]);
     const user = await open();
-    expect(await screen.findByText("Core and non-core hours")).toBeInTheDocument();
+    // S10-19 (R5): lowercase inside the sentence
+    expect((await screen.findByText("core and non-core hours")).closest("p")!.textContent).toMatch(/^Your log tracks core and non-core hours\./);
     expect(screen.queryByRole("heading", { name: "Set up your log" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Change log setup" }));
     expect(screen.getByRole("radio", { name: /Core and non-core hours/ })).toBeChecked();

@@ -2,6 +2,8 @@
  * S8-04: /schedule, with a Week | Year switch. Week is this week's plan (S8-05); Year is the timeline (S8-07).
  * The choice is in `?view=` and remembered on this device (`hh.schedule.view`; storage may be blocked).
  * S10-08: the title row holds the Year view's "+" (Add assignment), at the row's end.
+ * S10-16: `data-view` lets the shell drop its column cap for Year, which uses the full width.
+ * S10-13: the Week | Year switch shares its row with Week's ‹ range › group (`viewSlot`, filled by WeekView).
  */
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -36,14 +38,18 @@ export function SchedulePage() {
     }, { replace: true });
   };
   const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
+  const [viewSlot, setViewSlot] = useState<HTMLElement | null>(null);
   return (
-    <section className="schedule-page">
+    <section className="schedule-page" data-view={view}>
       <div className="schedule-title-row">
         <h1>Schedule</h1>
         <span ref={setTitleSlot} className="schedule-title-actions" />
       </div>
-      <Segmented as="tabs" label="View" value={view} onChange={choose} options={[{ value: "week", label: "Week" }, { value: "year", label: "Year" }]} />
-      {view === "week" ? <WeekView /> : <TimelinePage embedded titleSlot={titleSlot} />}
+      <div className="schedule-view-row">
+        <Segmented as="tabs" label="View" value={view} onChange={choose} options={[{ value: "week", label: "Week" }, { value: "year", label: "Year" }]} />
+        <span ref={setViewSlot} className="schedule-view-actions" />
+      </div>
+      {view === "week" ? <WeekView headSlot={viewSlot} /> : <TimelinePage embedded titleSlot={titleSlot} />}
     </section>
   );
 }

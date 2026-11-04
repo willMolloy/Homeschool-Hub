@@ -5,10 +5,13 @@
  * S6b-08: the subject dropdown also offers common subjects and "New subject…" (SubjectSelect).
  * S10-07: `look="sheet"` (the Year view's Add sheet) uses the app's own controls: a subject picker sheet, child chips, date
  * tiles and soft day chips. What it saves is the same.
+ * S10-16 (L5): the sheet also preselects the first subject (as mocked) and picks the unit with chips, not a native select.
+ * Every form is one column: Unit and Total are stacked; only Start / End sit side by side.
  * S7-01 / S7-02: "Copy to a new year" and "Copy to another child" (CopyPanels). S3a-04: "Add several" enters a subject's books in one form. S3a-06: "Import CSV" does it from a file.
  */
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { UNIT_TYPES, minutesPerDayFromWeight, weightFromMinutesPerDay, weightPerUnitOf } from "@hh/engine";
+import { Check } from "@phosphor-icons/react";
 import { apiPatch, apiPost, onPlanChange } from "../../api/client";
 import { useApi } from "../../api/useApi";
 import type { Assignment, PlanResponse, Subject, UnitType, WeightSuggestion } from "../../api/types";
@@ -125,7 +128,8 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   // S3a-01: a copy opens the Add form (item null) prefilled from `initial`.
   const start = item ?? initial ?? null;
   const activeSubjects = l.subjects.filter((s) => !s.archived || s.id === start?.subjectId);
-  const [subjectId, setSubjectId] = useState(start?.subjectId ?? (activeSubjects.length === 1 ? activeSubjects[0]!.id : ""));
+  // S10-16 (L5): the Add sheet opens on the first subject, as mocked; the page form still asks unless there is only one.
+  const [subjectId, setSubjectId] = useState(start?.subjectId ?? (activeSubjects.length === 1 || (sheet && activeSubjects.length > 0) ? activeSubjects[0]!.id : ""));
   const [title, setTitle] = useState(start?.title ?? "");
   const [unitType, setUnitType] = useState<UnitType>(start?.unitType ?? "lessons");
   const [totalUnits, setTotalUnits] = useState(start ? String(start.totalUnits) : "");
@@ -333,17 +337,28 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
           </button>
         </div>
       ) : null}
-      <div className="field-row">
-        {field(ids.unit, "Unit", undefined,
+      {sheet ? (
+        <fieldset className="choice-list unit-chips-field">
+          <legend>Unit</legend>
+          <div className="kid-chips" role="radiogroup" aria-label="Unit">
+            {UNIT_TYPES.map((u) => (
+              <label key={u} className={`kid-chip unit-chip${u === unitType ? " is-on" : ""}`}>
+                <input type="radio" name={ids.unit} value={u} checked={u === unitType} onChange={() => changeUnit(u)} />
+                {unitTitle(u)}
+                {u === unitType ? <Check className="kid-chip-tick" size={16} weight="bold" aria-hidden="true" /> : null}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : field(ids.unit, "Unit", undefined,
           <select id={ids.unit} value={unitType} onChange={(e) => changeUnit(e.target.value as UnitType)}>
             {UNIT_TYPES.map((u) => (
               <option key={u} value={u}>{unitTitle(u)}</option>
             ))}
           </select>)}
-        {field(ids.total, "Total", errors.totalUnits,
+      {field(ids.total, "Total", errors.totalUnits,
           <input id={ids.total} type="number" inputMode="decimal" min="0" step="any" value={totalUnits}
             onChange={(e) => setTotalUnits(e.target.value)} {...inv(errors.totalUnits, ids.total)} />)}
-      </div>
       {/* S6b-07: one quiet line for a pace that looks like a typo; it never blocks Save. */}
       {pace !== null && paceLooksHigh(pace, unitType) ? <p className="hint pace-note" role="note">{paceNoteText(pace, unitType)}</p> : null}
       <EffortField id={ids.effort} unitType={unitType} pace={pace} paceNote={paceNote} pick={pick} onPick={setPick} baseMinutes={baseMinutes}

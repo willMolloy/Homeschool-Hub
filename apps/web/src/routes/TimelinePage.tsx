@@ -22,7 +22,7 @@ import { copyOfAssignment } from "../features/schedule/copyAssignment";
 import { makeLookups } from "../features/schedule/lookups";
 import type { Draft } from "../features/schedule/ScheduleList";
 import { afterAdd } from "../features/timeline/afterAdd";
-import { EditBar } from "../features/timeline/EditBar";
+import { EDIT_PANEL_QUERY, EditBar } from "../features/timeline/EditBar";
 import { UpdateEstimateSheet } from "../features/timeline/UpdateEstimate";
 import { paceLine, unitsPerCapacityDay, unitsPerDay } from "../features/schedule/effort";
 import { minutesPerDayFromWeight, weightPerUnitOf } from "@hh/engine";
@@ -48,6 +48,7 @@ import { useZoomFade } from "../features/timeline/useZoomFade";
 import { availableZooms, defaultMonth, gridMonths, viewWithoutPlan, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { createPortal } from "react-dom";
+import { useMediaQuery } from "../lib/useMediaQuery";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
 import { UpdateStatusFlow } from "../features/status/UpdateStatusFlow";
 import { EditZoomViewsSheet } from "../features/timeline/EditZoomViews";
@@ -113,13 +114,19 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
   const edit = useAssignmentEdit(applyAssignment);
   const picked = model && selectedId ? selectionFor(model, assignments, selectedId) : null;
   const selection = picked && preview?.assignmentId === picked.assignmentId ? { ...picked, ...preview.span } : picked;
+  // S10-18: from 840 px the edit sheet is a side panel. Where focus was when it opened decides where it goes back to.
+  const panel = useMediaQuery(EDIT_PANEL_QUERY);
+  const opener = useRef<{ id: string; fromList: boolean } | null>(null);
   const select = (id: string | null) => {
+    if (id && !(picked && selectedId)) opener.current = { id, fromList: !!document.activeElement?.closest(".tl-lanes-list") };
+    else if (id && opener.current) opener.current.id = id;
     setSelectedId(id);
     edit.clearError();
   };
   const pick = (x: number, y: number) => select(layout ? (grabSelected(layout, selectedId, x, y)?.band ?? hitTest(layout, x, y))?.assignmentId ?? null : null);
   const stage = useRef<HTMLDivElement>(null);
-  const keep = useKeepAbove<HTMLElement>(selection ? selectedId : null,
+  // The side panel covers no bar, so only the bottom bar keeps the selection above itself.
+  const keep = useKeepAbove<HTMLElement>(selection && !panel ? selectedId : null,
     (id) => [...(stage.current?.querySelectorAll(`:scope > :not(.tl-leaving) path[data-assignment="${id}"]`) ?? [])]);
   const drag = useBarDrag({
     stage, layout, model, zoom: shownZoom, selectedId: selection ? selectedId : null,
@@ -127,8 +134,23 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
     onSelect: select, onPreview: setPreview, onCommit: edit.save,
   });
   const closeEdit = useCallback(() => setSelectedId(null), []);
-  // S6-08: the undo bar rides above the edit bar while it is open.
-  const barHeight = selection ? keep.height : 0;
+  // S10-18: when the panel closes (Esc, ×, or a click on empty timeline), focus goes back to the bar that was selected:
+  // its button in the lanes list when the panel was opened from there, else the timeline picture it was picked on.
+  const openId = selection ? selectedId : null;
+  useEffect(() => {
+    if (openId || !opener.current) return;
+    const was = opener.current;
+    opener.current = null;
+    if (!panel) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && !active.closest(".tl-svg")) return;
+    const root = stage.current?.parentElement;
+    const back = (was.fromList ? root?.querySelector<HTMLElement>(`.tl-lane-pick[data-assignment="${CSS.escape(was.id)}"]`) : null)
+      ?? stage.current?.querySelector<HTMLElement | SVGElement>(":scope > :not(.tl-leaving) .tl-svg");
+    back?.focus();
+  }, [openId, panel]);
+  // S6-08: the undo bar rides above the edit bar while it is open (not beside the side panel).
+  const barHeight = selection && !panel ? keep.height : 0;
   useEffect(() => {
     document.documentElement.style.setProperty("--edit-bar-height", `${barHeight}px`);
     return () => { document.documentElement.style.removeProperty("--edit-bar-height"); };
@@ -246,8 +268,8 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
             <TimelineLanesList model={model} onSelect={select} />
             {selection && (
               <>
-                <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />
-                <EditBar ref={keep.ref} selection={selection} pace={selectedPace}
+                {panel ? null : <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />}
+                <EditBar ref={keep.ref} selection={selection} pace={selectedPace} panel={panel}
                   busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)} onUpdateStatus={() => setStatusing(selection.assignmentId)}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
               </>

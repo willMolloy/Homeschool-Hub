@@ -17,11 +17,9 @@
 .home-sub { font-size: 0.875rem; color: var(--tl-muted-foreground); }
 .home-chevron { color: var(--tl-muted-foreground); flex: none; }
 .home-icon { width: 44px; height: 44px; border-radius: var(--tl-radius-bar); background: var(--tl-primary-soft); color: var(--tl-primary); display: inline-grid; place-items: center; flex: none; }
-.home-icon-small { width: 36px; height: 36px; }
 .home-mini { position: relative; display: grid; gap: 4px; margin: 14px 0 4px; }
 .home-mini span { display: block; height: 8px; border-radius: 99px; }
 .home-today { position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: 2px; background: var(--tl-today); }
-.home-setup { padding: 8px 18px; margin-bottom: 14px; }
 .home-signout { margin-top: 12px; }
 
 /* Setup list and the Schedule page (S8-04). */
@@ -34,6 +32,14 @@
 .schedule-page .schedule-title-row h1 { margin: 0; }
 .schedule-title-actions { display: flex; align-items: center; gap: 4px; }
 .schedule-title-actions:empty { display: none; }
+/* S10-13: the Week | Year switch and, in Week, the ‹ range › group share one row. */
+.schedule-view-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 16px; }
+.schedule-view-row .segmented { margin: 0; flex: none; }
+.schedule-view-row .segmented button { padding: 0 10px; }
+@media (min-width: 600px) { .schedule-view-row .segmented button { padding: 0 14px; } }
+@media (max-width: 359.98px) { .schedule-view-row { gap: 4px; } .schedule-view-row .segmented button { padding: 0 6px; } }
+.schedule-view-actions { display: flex; min-width: 0; margin-left: auto; }
+.schedule-view-actions:empty { display: none; }
 
 /* S8-09: the getting-started checklist and the empty states. */
 .home-checklist h2 { margin: 0; font-size: 1.25rem; }
@@ -49,3 +55,11 @@
 .empty-state p { margin: 0; }
 .empty-state .hint { margin-top: 4px; }
 .empty-state .btn { margin-top: 14px; }
+
+/* S10-17: two panes from 840 px (HOME_PANES_QUERY): the wide one flexible (at least 480 px), the narrow one 320–360 px,
+   24 px apart. The header, greeting and date span the top. Under 840 px Home is one column.
+   Beside the 80 px rail, 840 px leaves 712 px of column, less than 480 + 24 + 320; so the narrow pane keeps 320 px and the
+   wide one takes the rest (368 px at 840) until there is room for 480 (from about 952 px). */
+.home-panes { display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, calc(100% - 504px), 360px); gap: 24px; align-items: start; }
+.home-pane { min-width: 0; }
+.home-pane > :last-child { margin-bottom: 0; }

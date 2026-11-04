@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FamilySettings, LogFields, RecordEntry, Subject } from "../src/api/types";
 import { NO_FIELDS } from "../src/features/records/logSetup";
-import { availableColumns, buildCsv, buildTable, csvBlob, csvCell, csvFileName, exportEntries, hoursText, totalsFor, type ExportInput } from "../src/features/records/exportData";
+import { PER_ENTRY_DAYS_NOTE, availableColumns, buildCsv, buildTable, csvBlob, csvCell, csvFileName, exportEntries, hoursText, totalsFor, type ExportInput } from "../src/features/records/exportData";
 import { RECORDS_WORDING } from "../src/features/records/wording";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
@@ -62,6 +62,7 @@ describe("the CSV", () => {
     const csv = buildCsv(input({ columns: ["lastDay", "schoolDays", "coreSplit"] }));
     expect(lines(csv)).toEqual([
       RECORDS_WORDING,
+      csvCell(PER_ENTRY_DAYS_NOTE),
       "Date,Last day,Child,School days,Core hours,Non-core hours",
       "2026-11-02,2026-11-06,Frank,5,3.5,1.5",
       "2026-12-14,,Frank,1,1,",
@@ -130,6 +131,23 @@ describe("the CSV", () => {
     expect(exportEntries(input({ entries: [run] }))[0]).toBe(run);
   });
 
+  it("S10-19 (R1): an Each entry file with School days says, under the wording, that the column is per entry and where the real count is", () => {
+    expect(PER_ENTRY_DAYS_NOTE).toBe("School days are per entry; a day in two entries is in both rows. For the real count, use the Totals export.");
+    expect(lines(buildCsv(input({ columns: ["schoolDays"] })))[1]).toBe(`"${PER_ENTRY_DAYS_NOTE}"`);
+    // not without School days, and not in Totals (which counts each day once)
+    expect(buildCsv(input({ columns: ["subjectHours"] }))).not.toContain(PER_ENTRY_DAYS_NOTE);
+    expect(buildCsv(input({ mode: "totals", columns: ["schoolDays"] }))).not.toContain(PER_ENTRY_DAYS_NOTE);
+  });
+
+  it("S10-19 (R2): a row clipped to the dates says which longer entry it is part of; whole rows leave it empty, and with none clipped the column is gone", () => {
+    const run = e({ id: "r", startDate: "2026-11-16", endDate: "2026-11-20", schoolDays: 5, subjectMinutes: { math: 300 } });
+    const one = e({ id: "o", startDate: "2026-11-23", endDate: "2026-11-23", schoolDays: 1, subjectMinutes: { math: 60 } });
+    const t = buildTable(input({ entries: [run, one], columns: ["lastDay", "schoolDays"], start: "2026-11-18", end: "2026-11-30" }));
+    expect(t.header).toEqual(["Date", "Last day", "Part of", "Child", "School days"]);
+    expect(t.rows).toEqual([["2026-11-18", "2026-11-20", "an entry from Nov 16 to Nov 20", "Frank", 3], ["2026-11-23", "", "", "Frank", 1]]);
+    expect(buildTable(input({ entries: [run, one], columns: ["schoolDays"] })).header).toEqual(["Date", "Child", "School days"]);
+  });
+
   it("S9b-05 (N6): Last day is only there when ticked, and only in Each entry; Totals rows start with the dates they cover", () => {
     expect(buildTable(input({ columns: ["schoolDays"] })).header).toEqual(["Date", "Child", "School days"]);
     expect(buildTable(input({ columns: ["lastDay", "schoolDays"] })).header).toEqual(["Date", "Last day", "Child", "School days"]);
@@ -192,7 +210,7 @@ describe("the export sheet", () => {
     await user.click(form.getByRole("button", { name: "Download CSV" }));
     expect(clicked).toEqual(["records-2026-08-31-to-2027-05-28.csv"]);
     const text = await readBlob(blobs[0]!);
-    expect(lines(text)).toEqual([RECORDS_WORDING, "Date,Last day,Child,School days,Core hours,Non-core hours", "2026-11-02,2026-11-06,Frank,5,3.5,1.5", "2026-12-14,,Frank,1,1,"]);
+    expect(lines(text)).toEqual([RECORDS_WORDING, csvCell(PER_ENTRY_DAYS_NOTE), "Date,Last day,Child,School days,Core hours,Non-core hours", "2026-11-02,2026-11-06,Frank,5,3.5,1.5", "2026-12-14,,Frank,1,1,"]);
   });
 
   it("dates, children and Totals are the parent's to change", async () => {

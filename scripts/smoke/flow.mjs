@@ -17,11 +17,26 @@ async function shot(name, width = 360, height = 740) {
   await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });
   log("saved", `${OUT}/${name}.png`);
 }
+// S10-19 (R7): the API allows 10 sign-ins a minute (routes/auth.ts), and a full run signs in once or more per scenario, so a
+// later scenario can get 429 "Too many attempts" and sit on /login until its own wait times out. When that happens, wait out
+// the API's Retry-After and sign in again, instead of failing on a redirect that never comes.
 async function login(email = "demo@example.com", password = "demo-password") {
-  await page.waitForSelector("#login-email");
-  await page.type("#login-email", email);
-  await page.type("#login-password", password);
-  await page.click("button[type=submit]");
+  for (let attempt = 1; ; attempt++) {
+    await page.waitForSelector("#login-email");
+    // select what a refused try left in the boxes, so typing replaces it (setting .value would not reach React's state)
+    await page.$eval("#login-email", (i) => i.select());
+    await page.type("#login-email", email);
+    await page.$eval("#login-password", (i) => i.select());
+    await page.type("#login-password", password);
+    const answer = page.waitForResponse((r) => r.url().endsWith("/api/auth/login") && r.request().method() === "POST", { timeout: 15000 });
+    await page.click("button[type=submit]");
+    const res = await answer;
+    if (res.status() !== 429) return;
+    if (attempt === 3) throw new Error("sign-in still rate-limited (429) after 2 waits");
+    const wait = Math.min(Number(res.headers()["retry-after"]) || 60, 65);
+    log(`sign-in rate-limited (429), waiting ${wait} s (attempt ${attempt})`);
+    await new Promise((r) => setTimeout(r, (wait + 1) * 1000));
+  }
 }
 // S8b-06: Sign out is behind the family button on Home (S8-04).
 async function signOut() {

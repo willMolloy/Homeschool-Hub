@@ -1,4 +1,5 @@
 import { useId, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { Check } from "@phosphor-icons/react";
 import { ApiError } from "../../api/client";
 import { PALETTE, PALETTE_NAMES, swatchColor } from "./palette";
 
@@ -25,6 +26,8 @@ export interface RosterFormProps {
   blocked?: boolean;
   /** S8-11: told on every keystroke, so a field of the host (the subject icon) can follow the name. */
   onNameChange?: (name: string) => void;
+  /** S10-12: who else already uses each swatch (see `usedByNames`), so its name says "Mint, used by Math". */
+  usedBy?: Readonly<Record<string, string>>;
 }
 
 /** Server messages look like "name: Name is required." — the field is already obvious here. */
@@ -32,7 +35,7 @@ function cleanMessage(m: string): string {
   return m.replace(/^[a-zA-Z.]+: /, "");
 }
 
-export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extra, externalError, children, blocked = false, onNameChange }: RosterFormProps) {
+export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extra, externalError, children, blocked = false, onNameChange, usedBy = {} }: RosterFormProps) {
   const [name, setName] = useState(initial.name);
   const [color, setColor] = useState<string | null>(initial.color);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -88,14 +91,21 @@ export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extr
         />
         {fieldError ? <p id={errId} className="field-error" role="alert">{fieldError}</p> : null}
       </div>
+      {/* S10-12: twelve small swatches with 44 px targets; the chosen one has a tick, and a colour in use says by whom. */}
       <fieldset className="swatches">
         <legend>Color</legend>
-        {PALETTE.map((c) => (
-          <label key={c} className="swatch" title={PALETTE_NAMES[c]}>
-            <input type="radio" name="color" value={c} checked={color === c} onChange={() => setColor(c)} aria-label={PALETTE_NAMES[c]} />
-            <span className="swatch-chip" style={{ background: swatchColor(c) ?? c }} aria-hidden="true" />
-          </label>
-        ))}
+        {PALETTE.map((c) => {
+          const name = usedBy[c] ? `${PALETTE_NAMES[c]}, used by ${usedBy[c]}` : PALETTE_NAMES[c];
+          const chosen = color?.toLowerCase() === c;
+          return (
+            <label key={c} className="swatch" title={name}>
+              <input type="radio" name="color" value={c} checked={chosen} onChange={() => setColor(c)} aria-label={name} />
+              <span className={`swatch-chip${usedBy[c] ? " is-used" : ""}`} style={{ background: swatchColor(c) ?? c }} aria-hidden="true">
+                {chosen ? <Check size={14} weight="bold" /> : null}
+              </span>
+            </label>
+          );
+        })}
       </fieldset>
       {children}
       <div className="btn-row">

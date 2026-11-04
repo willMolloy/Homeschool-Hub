@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest";
 import { renderAt } from "./render";
 
 describe("AppShell", () => {
-  it("shows the three tabs, in order, with icons and labels; the active one has aria-current=page", async () => {
+  it("shows the four tabs, in order, with icons and labels; the active one has aria-current=page", async () => {
     renderAt("/records");
     const nav = await screen.findByRole("navigation", { name: "Main" });
     const links = within(nav).getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual(["Home", "Schedule", "Records"]);
+    expect(links.map((l) => l.textContent)).toEqual(["Home", "Schedule", "Records", "Set up"]);
     for (const l of links) expect(l.querySelector("svg")).not.toBeNull();
     expect(within(nav).getByRole("link", { name: "Records" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current");
@@ -48,7 +48,7 @@ describe("AppShell", () => {
       await user.tab();
       reached.push(document.activeElement?.textContent ?? "");
     }
-    expect(reached).toEqual(expect.arrayContaining(["Home", "Schedule", "Records"]));
+    expect(reached).toEqual(expect.arrayContaining(["Home", "Schedule", "Records", "Set up"]));
   });
 
   it("there is no header bar and no Sign out button outside Home", async () => {

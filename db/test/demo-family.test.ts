@@ -20,6 +20,11 @@ describe("the demo family", () => {
     for (const x of F.assignments) expect(keys.has(x.subjectId), x.id).toBe(true);
   });
 
+  it("S10-11: gives every subject its own colour, Art coral", () => {
+    expect(F.subjects.find((x) => x.key === "art")!.color).toBe("#b0482f");
+    expect(new Set(F.subjects.map((x) => x.color.toLowerCase())).size).toBe(F.subjects.length);
+  });
+
   it("reads Treasure Island in three weeks, then starts The Hobbit straight after", () => {
     expect(days(a("ti").start, a("ti").end)).toBe(18);
     expect(days(a("ti").end, a("hobbit").start)).toBe(3); // Friday → Monday

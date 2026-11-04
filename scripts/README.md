@@ -27,7 +27,7 @@ Tap targets (S5-09): `node flow.mjs tap-targets` signs in, visits Home, Records,
 **Scenarios on the Soft Paper screens (S8b-06).** Every scenario in `smoke/scenarios/` runs against the dev servers (`npm run demo`, 127.0.0.1). Routes follow Sprint 8 (`/setup/...`, `/schedule?view=week|year`, `/records`; the plan table needs `&debug=1`) and Sign out is the `signOut()` helper (the family button on Home). Dates are typed into the DateField as US text ("Nov 2, 2026") with `fillDates()` in `common.mjs`, which also checks the field shows that date (S9b-04). `records.mjs` covers Home (Schedule and Records), Records (Log setup, the log form, Export), Update status from a Week bar and the child switch (read-only; it replaced `track.mjs` when the Track work page went in S9-02). Scenarios that write need a family that is not the demo one, and two scenarios need an empty family: seed both once per `npm run demo` with
 ```bash
 DATABASE_URL=postgres://hh:hh@localhost:5432/hh_dev npx tsx scripts/smoke/seed-second-family.ts
-SMOKE_EMAIL=smoke@example.com node flow.mjs s2a-16-events      # also s2a-hardening, axe-2a, s2a-13-settings, s2a-17
+SMOKE_EMAIL=smoke@example.com node flow.mjs s2a-16-events      # also s2a-hardening, axe-2a, axe-log, s2a-13-settings, s2a-17
 ```
 `kids-list` and `subjects-list` log in as `empty@example.com` (same demo password). Retired in S8b-06: `peek`, `tester-probe` (one-off probes of the old Plan page), `s2b-screens` (the weekly check-in card is gone; `records.mjs` now covers its successor, Update status), `tester-odd` and `tester2-odd` (they need hand-seeded odd-data families that are not in the repo; the API side is covered by `apps/api/test/tester2.schedule.test.ts`).
 

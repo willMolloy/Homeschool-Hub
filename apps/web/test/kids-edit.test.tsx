@@ -47,7 +47,7 @@ describe("Edit child", () => {
   it("recolor sends only the color", async () => {
     const user = await setup();
     await user.click(screen.getByRole("button", { name: "Margaret" }));
-    await user.click(screen.getByRole("radio", { name: "Green" }));
+    await user.click(screen.getByRole("radio", { name: "Mint" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
     await screen.findByRole("button", { name: "Margaret" });
     expect(fakeApi.calls.at(-1)?.body).toEqual({ color: "#2f8f6f" });

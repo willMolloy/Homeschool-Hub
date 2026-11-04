@@ -79,10 +79,13 @@ describe("Home", () => {
     expect(screen.queryByRole("region", { name: "Needs you" })).toBeNull();
   });
 
-  it("has a Set up row that opens the list", async () => {
+  it("S10-09: has no Set up row; Set up is in the bar or rail and opens the list", async () => {
     const user = userEvent.setup();
     const { router } = renderAt("/");
-    await user.click(await within(await screen.findByRole("main")).findByRole("link", { name: /Set up/ }));
+    const main = await screen.findByRole("main");
+    await within(main).findByRole("link", { name: "Records" });
+    expect(within(main).queryByRole("link", { name: /Set up/ })).toBeNull();
+    await user.click(within(screen.getByRole("navigation", { name: "Main" })).getByRole("link", { name: "Set up" }));
     expect(router.state.location.pathname).toBe("/setup");
   });
 
@@ -130,12 +133,12 @@ describe("Set up", () => {
   it("a set-up screen links back to the list", async () => {
     const user = userEvent.setup();
     const { router } = renderAt("/setup/days-off");
-    await user.click(await screen.findByRole("link", { name: "‹ Set up" }));
+    await user.click(within(await screen.findByRole("main")).getByRole("link", { name: "Set up" }));
     expect(router.state.location.pathname).toBe("/setup");
   });
 
   it("the tab set and names live in one config", () => {
-    expect(TABS.map((t) => t.label)).toEqual(["Home", "Schedule", "Records"]);
+    expect(TABS.map((t) => t.label)).toEqual(["Home", "Schedule", "Records", "Set up"]);
   });
 });
 

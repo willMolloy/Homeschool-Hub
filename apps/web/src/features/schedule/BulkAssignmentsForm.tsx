@@ -165,7 +165,8 @@ function BulkRow({ n, row, shared, errors, canRemove, onChange, onRemove }: RowP
   const id = useId();
   return (
     <div className="bulk-row" role="group" aria-label={`Row ${n}`}>
-    <div className="field-row">
+    {/* S10-16: one column (Title, then Total, then the row's buttons); only Start / End sit side by side. */}
+    <div className="bulk-row-fields">
       <div className="field">
         <label htmlFor={`${id}-title`}>Title</label>
         <input id={`${id}-title`} type="text" value={row.title} autoComplete="off" onChange={(e) => onChange({ title: e.target.value })}
@@ -178,9 +179,11 @@ function BulkRow({ n, row, shared, errors, canRemove, onChange, onRemove }: RowP
           aria-invalid={errors?.total ? true : undefined} aria-describedby={errors?.total ? `${id}-total-err` : undefined} />
         {errors?.total ? <p id={`${id}-total-err`} className="field-error" role="alert">{errors.total}</p> : null}
       </div>
+      <div className="btn-row">
       <button className="btn btn-secondary" type="button" aria-expanded={row.open} aria-label={`Dates for row ${n}`}
         onClick={() => onChange(row.open ? { open: false, start: undefined, end: undefined } : { open: true })}>Dates</button>
       {canRemove ? <button className="btn btn-secondary" type="button" aria-label={`Remove row ${n}`} onClick={onRemove}>Remove</button> : null}
+      </div>
     </div>
     {row.open ? (
       <div className="field-row">

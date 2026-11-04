@@ -2,9 +2,11 @@
  * S8-04: the app's tabs and Set up links, in one place, so DeeDee's choice of names and tabs changes here only.
  * S9-01 (Will, 2026-11-01): the two main jobs are Schedule and Records: Home, Schedule, Records. Schedule holds a Week | Year switch
  * and the optional weekly check-in; Records is attendance, estimated hours and books.
+ * S10-09 (DeeDee, 2026-11-03): Set up joins them, so the bottom bar (under 600 px) and the rail (600 px and up) hold the same
+ * four items; Home's Set up row is gone (2026-11-04). Set up is active on /setup and every /setup/* screen.
  */
 import type { Icon } from "@phosphor-icons/react";
-import { House, ListBullets, Notebook } from "@phosphor-icons/react";
+import { House, ListBullets, Notebook, SlidersHorizontal } from "@phosphor-icons/react";
 
 export interface Tab {
   to: string;
@@ -18,6 +20,7 @@ export const TABS: readonly Tab[] = [
   { to: "/", label: "Home", icon: House, end: true },
   { to: "/schedule", label: "Schedule", icon: ListBullets },
   { to: "/records", label: "Records", icon: Notebook },
+  { to: "/setup", label: "Set up", icon: SlidersHorizontal },
 ];
 
 export interface SetupLink {
