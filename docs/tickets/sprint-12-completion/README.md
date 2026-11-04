@@ -19,4 +19,7 @@ Build in order, one commit per ticket, gate ALL GREEN, push after each. Progress
 | 5 | [S12-05 — The needs-you dot](S12-05-needs-you-dot.md) | S |
 | 6 | [S12-06 — Change an answer](S12-06-change-an-answer.md) | XS |
 | 7 | [S12-07 — Docs and a smoke scenario](S12-07-docs-and-smoke.md) | XS |
-| 8 | [S12-08 — Tester pass](S12-08-tester-pass.md) | S |
+| 8 | [S12-09 — Sprint 11 leftovers](S12-09-sprint-11-leftovers.md) | XS |
+| 9 | [S12-08 — Tester pass](S12-08-tester-pass.md) | S |
+
+**Added after the Sprint 11 re-test (2026-11-05):** S12-09 carries the open Lows N7–N9 from `docs/reviews/sprint-11-verification.md`; build it before S12-08.
