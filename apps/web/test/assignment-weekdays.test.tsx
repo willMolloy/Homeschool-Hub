@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import type { Assignment, Subject } from "../src/api/types";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
-import { FRANK, MATH, READING, patchMerging, rowId, withRoster, writes } from "./helpers/schedule-fixtures";
+import { FRANK, MATH, READING, patchMerging, rowId, withRoster, writePosts, writes } from "./helpers/schedule-fixtures";
 import { SAMPLE_ASSIGNMENTS, SAMPLE_BLOCKED, SAMPLE_CHILDREN, SAMPLE_EVENTS, SAMPLE_SUBJECTS, samplePlans } from "./helpers/timeline-fixtures";
 import { renderAt } from "./render";
 
@@ -313,8 +313,8 @@ describe("Copies from the timeline (S4-07)", () => {
     await userEvent.click(within(bar).getByRole("button", { name: "Copy" }));
     const dialog = await screen.findByRole("dialog", { name: "Add assignment" });
     await userEvent.click(within(dialog).getByRole("button", { name: "Add" }));
-    await waitFor(() => expect(fakeApi.calls.filter((c) => c.method === "POST")).toHaveLength(1));
-    return fakeApi.calls.find((c) => c.method === "POST")!.body;
+    await waitFor(() => expect(writePosts()).toHaveLength(1));
+    return writePosts()[0]!.body;
   }
 
   it("a copy of a Mon/Wed assignment posts [1,3]", async () => {

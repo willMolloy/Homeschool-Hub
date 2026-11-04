@@ -7,6 +7,7 @@ import { addDays, ENGINE_VERSION, type LocalDate } from "@hh/engine";
 import type { Assignment } from "../src/api/types";
 import { changedDates, datesError } from "../src/features/timeline/select";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
+import { writePosts, writes } from "./helpers/schedule-fixtures";
 import {
   SAMPLE_ASSIGNMENTS, SAMPLE_BLOCKED, SAMPLE_CHILDREN, SAMPLE_EVENTS, SAMPLE_SUBJECTS, samplePlans,
 } from "./helpers/timeline-fixtures";
@@ -201,7 +202,7 @@ describe("Copy in the edit bar (S3a-02)", () => {
     expect(within(dialog).getByLabelText("End")).toHaveValue(formatDate(a.endDate));
     await userEvent.click(within(dialog).getByRole("button", { name: "Add" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    const posts = fakeApi.calls.filter((c) => c.method === "POST");
+    const posts = writePosts();
     expect(posts).toHaveLength(1);
     expect(posts[0]!.body).toMatchObject({ subjectId: a.subjectId, title: `${a.title} (copy)`, childIds: a.childIds, startDate: a.startDate, endDate: a.endDate });
     expect(patches()).toHaveLength(0);
@@ -236,7 +237,7 @@ describe("Copy in the edit bar (S3a-02)", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(within(await sheet()).getByText(a.title)).toBeInTheDocument();
-    expect(fakeApi.calls.filter((c) => c.method !== "GET")).toEqual([]);
+    expect(writes()).toEqual([]);
   });
 
   it("the header's + Add assignment after a cancelled copy opens an empty form", async () => {
@@ -262,5 +263,20 @@ describe("the edit bar's order on phones (S5-08, S6b-05)", () => {
     expect(order.indexOf("Start")).toBeLessThan(order.indexOf("End"));
     expect(order.indexOf("End")).toBeLessThan(order.indexOf("Copy"));
     expect(order.indexOf("Copy")).toBeLessThan(order.indexOf("More"));
+  });
+});
+
+describe("what counts as a write in these tests (S10-19 partial, L9)", () => {
+  it("never the read-only pace or preview POSTs, whenever they land and whatever their query", () => {
+    fakeApi.reset();
+    fakeApi.calls.push(
+      { method: "POST", path: "/api/plan/pace", body: {} },
+      { method: "POST", path: "/api/plan/pace?x=1", body: {} },
+      { method: "POST", path: "/api/plan/preview-event", body: {} },
+      { method: "POST", path: "/api/assignments", body: { title: "t" } },
+      { method: "PATCH", path: "/api/assignments/a1", body: {} },
+    );
+    expect(writes().map((c) => c.path)).toEqual(["/api/assignments", "/api/assignments/a1"]);
+    expect(writePosts().map((c) => c.path)).toEqual(["/api/assignments"]);
   });
 });
