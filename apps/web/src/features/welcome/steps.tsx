@@ -1,6 +1,9 @@
-/** S11-01: the six steps, in order. Each is built in its own ticket (S11-02 to S11-05); until then a step is its question and Continue. */
+/** S11-01: the six steps, in order. Each is built in its own ticket (S11-02 to S11-05); steps not built yet are their question and Continue. */
 import type { ComponentType } from "react";
 import { Button } from "../../ui/components";
+import { ChildrenStep } from "./ChildrenStep";
+import { DaysStep } from "./DaysStep";
+import { FamilyStep } from "./FamilyStep";
 import { StepHeading, useStep } from "./stepContext";
 
 function placeholder(title: string): ComponentType {
@@ -16,9 +19,9 @@ function placeholder(title: string): ComponentType {
 }
 
 export const STEP_BODIES: Record<number, ComponentType> = {
-  1: placeholder("Your family"),
-  2: placeholder("Your children"),
-  3: placeholder("School days"),
+  1: FamilyStep,
+  2: ChildrenStep,
+  3: DaysStep,
   4: placeholder("Your school year"),
   5: placeholder("Breaks"),
   6: placeholder("Subjects"),

@@ -21,3 +21,10 @@
 .welcome-title { font-family: var(--tl-font-display); font-weight: 600; font-size: 1.5rem; line-height: 1.25; margin: 0 0 16px; outline: none; }
 .welcome-lead { margin: 0 0 16px; color: var(--tl-muted-foreground); }
 .welcome-card .btn-row { margin-top: 8px; }
+.welcome-label { margin: 0 0 6px; font-weight: 600; font-size: 0.95rem; }
+.welcome-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 8px; }
+.welcome-list:empty { display: none; }
+.welcome-list li { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 700; overflow-wrap: anywhere; }
+/* The question above is the day chips' label, so the fieldset keeps its legend for screen readers but draws no box. */
+.welcome-card .day-picker { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+.welcome-card .day-picker legend { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
