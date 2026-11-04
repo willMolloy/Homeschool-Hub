@@ -1,8 +1,8 @@
 /**
  * S8-09, reworked in S11-05: the reminders on Home for a family that has not finished setting up. A row is there only while
  * its job is open: "Set your school year" and "Add your breaks" while the family has put them off in the setup flow ("I'll set
- * this later", "I'll get back to you on this"; each opens that step on its own), and "Add your children" / "Add subjects" if
- * there are somehow none. There is no row for books and lessons: a new family may want to look around first (Will, 2026-11-05).
+ * this later", "I'll get back to you on this"; each opens that step on its own), and "Add your children" if there are somehow
+ * none. Skipping the subjects leaves no reminder (S11b-03: Skip means "we don't need this"; only "later" choices do). There is no row for books and lessons: a new family may want to look around first (Will, 2026-11-05).
  * The list goes when nothing is left, and can be hidden (S11b-02: kept on the family, not on the browser; the school year and the
  * other jobs stay in Set up).
  */
@@ -20,12 +20,11 @@ export interface ChecklistStep {
   to: string;
 }
 
-export function checklistSteps(counts: { children: number; subjects: number }, deferred: readonly SetupDeferral[] = []): ChecklistStep[] {
+export function checklistSteps(counts: { children: number }, deferred: readonly SetupDeferral[] = []): ChecklistStep[] {
   return [
     ...(deferred.includes("year") ? [{ key: "year", label: "Set your school year", to: "/welcome?only=year" }] : []),
     ...(deferred.includes("breaks") ? [{ key: "breaks", label: "Add your breaks", to: "/welcome?only=breaks" }] : []),
     ...(counts.children === 0 ? [{ key: "children", label: "Add your children", to: "/setup/children" }] : []),
-    ...(counts.subjects === 0 ? [{ key: "subjects", label: "Add subjects", to: "/setup/subjects" }] : []),
   ];
 }
 

@@ -54,9 +54,9 @@ function Home() {
 
   const wide = useMediaQuery(HOME_PANES_QUERY);
   const briefing = <HomeBriefing weekStart={currentWeekStart} onLate={setLate} />;
-  // S8-09: only once both lists have answered, so it never flashes for a family that has set up. S11-05: reminders only.
-  const checklist = children.data && subjects.data ? (
-    <Checklist steps={checklistSteps({ children: kids.length, subjects: subjects.data.filter((s) => !s.archived).length }, me.setupDeferred ?? [])} />
+  // S8-09: only once the children list has answered, so it never flashes for a family that has set up. S11-05: reminders only.
+  const checklist = children.data ? (
+    <Checklist steps={checklistSteps({ children: kids.length }, me.setupDeferred ?? [])} />
   ) : null;
   const schedule = (
     <Card className="home-card">

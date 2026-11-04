@@ -79,7 +79,7 @@ function BreaksForm({ saved }: { saved: { start: string; end: string } | null })
         <ul className="welcome-list" aria-label="Breaks you added">
           {own.map((b, i) => (
             <li key={`${b.start}/${b.end}/${b.label}`}>
-              <span>{b.label}: {breakDates(b.start, b.end)}</span>
+              <span className="welcome-list-name">{b.label}: {breakDates(b.start, b.end)}</span>
               <button type="button" className="btn btn-quiet" aria-label={`Remove ${b.label}`} onClick={() => setOwn((l) => l.filter((_, j) => j !== i))}>Remove</button>
             </li>
           ))}

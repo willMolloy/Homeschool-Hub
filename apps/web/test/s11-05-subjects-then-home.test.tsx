@@ -130,13 +130,12 @@ describe("You're all set, then Home", () => {
     expect(screen.queryByRole("region", { name: "Getting started" })).toBeNull();
   });
 
-  it("both put off: the school year and the breaks, nothing about assignments", async () => {
+  it("both put off and the subjects skipped: the school year and the breaks, nothing about subjects or assignments (S11b-03)", async () => {
     const f = newFamily({ setupStep: 6, setupDeferred: ["year", "breaks"] });
     const { user } = await atSubjects(f);
     await user.click(screen.getByRole("button", { name: "Skip" }));
     await user.click(await screen.findByRole("button", { name: "Go to Home" }));
     const list = within(await screen.findByRole("region", { name: "Getting started" }));
-    // Skipping the subjects leaves none, so that row is there too (the one empty list the ticket keeps).
-    expect(list.getAllByRole("link").map((l) => l.textContent)).toEqual(["Set your school year", "Add your breaks", "Add subjects"]);
+    expect(list.getAllByRole("link").map((l) => l.textContent)).toEqual(["Set your school year", "Add your breaks"]);
   });
 });

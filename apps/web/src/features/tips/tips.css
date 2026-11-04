@@ -15,10 +15,10 @@
 }
 .tip[data-arrow="up"]::before { top: -6px; left: var(--tip-arrow-at); box-shadow: -1px -1px 0 var(--tl-border); }
 .tip[data-arrow="left"]::before { left: -6px; top: var(--tip-arrow-at); box-shadow: -1px 1px 0 var(--tl-border); }
-/* Over the timeline: placed at a point, above the bars. */
-.tl-wrap > .tip { position: absolute; z-index: calc(var(--z-raised, 2) + 1); }
 /* In the edit sheet: in the flow, full width of the sheet. */
 .tip-inline { width: auto; max-width: none; margin: 0 0 12px; }
+/* Above the Year picture (S11b-03): in the flow, so it covers nothing; the picture runs edge to edge, so the bubble is inset. */
+.tip-top { margin: 4px var(--page-pad, 20px) 10px; }
 @media (prefers-reduced-motion: no-preference) {
   .tip { animation: tip-in 160ms ease-out; }
   @keyframes tip-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }

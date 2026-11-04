@@ -57,6 +57,7 @@ import { ALL, useChildChoice } from "../features/week/useChildChoice";
 import { filterChildren, forChild } from "../features/timeline/childView";
 import { useTips } from "../features/tips/useTips";
 import { TIP_TEXT } from "../features/tips/tips";
+import { TipBubble } from "../features/tips/TipBubble";
 import "../features/timeline/timeline.css";
 
 /** Width used before anything can be measured (the smallest phone we design for). */
@@ -264,11 +265,12 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
           <>
             {/* S7b-07 (F3): a view in dates with no plan would otherwise look exactly like Year. */}
             {noPlanView && <p className="tl-empty" role="status">Nothing planned in {noPlanView.name} yet.</p>}
+            {/* S11b-03 (N5): the bars and icons hints sit above the picture, never over a bar, label or icon, at any width. */}
+            {tip === "bars" || tip === "icons" ? <TipBubble className="tip-inline tip-top" text={TIP_TEXT[tip]} onGotIt={() => void markSeen(tip)} /> : null}
             <div ref={stage} className="tl-stage" data-drag-ready={BAR_DRAG_ENABLED && selection ? "" : undefined} {...(BAR_DRAG_ENABLED ? drag : {})}>
               <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
                 <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews, viewOverrides)} timeline`} subjects={subjects}
-                  selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} grips={BAR_DRAG_ENABLED}
-                  tip={tip === "bars" || tip === "icons" ? { id: tip, text: TIP_TEXT[tip], onGotIt: () => void markSeen(tip) } : null} />
+                  selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} grips={BAR_DRAG_ENABLED} />
               </div>
               {leavingLayout && (
                 <div className="tl-leaving" aria-hidden="true" onAnimationEnd={settle}>

@@ -73,8 +73,9 @@ describe("the first time Year has bars", () => {
     gotIt.focus();
     expect(gotIt).toHaveFocus();
     expect(document.querySelector("[role=dialog], .sheet-backdrop, dialog[open]")).toBeNull();
-    // The bubble sits inside the timeline, under a bar, and does not take the picture's place.
-    expect(bubble.closest(".tl-wrap")).not.toBeNull();
+    // S11b-03 (N5): the bubble is in the flow above the picture, so it covers no bar, label or icon.
+    expect(bubble.closest(".tl-wrap")).toBeNull();
+    expect(bubble.nextElementSibling?.classList.contains("tl-stage")).toBe(true);
   });
 
   it("Got it saves it on the family; the icons hint follows, alone, then nothing; a reload shows none", async () => {

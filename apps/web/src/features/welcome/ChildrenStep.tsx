@@ -66,7 +66,7 @@ export function ChildrenStep() {
       {children.error ? <p className="form-error" role="alert">Couldn't load your children. Try again in a moment.</p> : null}
       <ul className="welcome-list" aria-label="Your children" aria-live="polite">
         {have.map((c) => (
-          <li key={c.id}><ColorDot color={c.color} /><span>{c.name}</span></li>
+          <li key={c.id}><ColorDot color={c.color} /><span className="welcome-list-name">{c.name}</span></li>
         ))}
       </ul>
       <Field ref={input} label={have.length === 0 ? "Child's name" : "Another child's name"} type="text" value={name} maxLength={80} autoComplete="off" error={error}

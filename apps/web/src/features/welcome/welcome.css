@@ -8,7 +8,8 @@
   padding: max(20px, env(safe-area-inset-top)) var(--page-pad, 20px) max(24px, env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
-.welcome-top { margin-bottom: 20px; }
+.welcome-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 20px; }
+.welcome-top .btn { padding-left: 8px; padding-right: 8px; }
 .welcome-progress { margin-bottom: 8px; }
 .welcome-step { margin: 0 0 6px; font-size: 0.875rem; font-weight: 600; color: var(--tl-muted-foreground); }
 .welcome-bar { height: 8px; border-radius: 999px; background: var(--tl-secondary); overflow: hidden; }
@@ -47,7 +48,8 @@
 /* S11-04: the breaks step. */
 .welcome-holidays { margin: 0 0 12px; padding: 0; border: 0; min-width: 0; }
 .welcome-holidays legend { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; padding: 0; }
-.welcome-list li > span { flex: 1; min-width: 0; }
+.welcome-list-name { flex: 1; min-width: 0; }
+.color-dot { flex: none; }
 .welcome-more { margin: 0 0 12px; }
 .welcome-own { margin: 0 0 12px; padding: 12px; border: 1px solid var(--tl-border); border-radius: 12px; }
 .welcome-stack { flex-direction: column; align-items: stretch; margin-top: 12px; }

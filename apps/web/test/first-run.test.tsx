@@ -23,24 +23,24 @@ const checklist = () => screen.findByRole("region", { name: "Getting started" })
 beforeEach(() => localStorage.clear());
 
 describe("the getting-started checklist", () => {
-  it("a family with no children and no subjects sees two reminders, each opening the right screen; no books or breaks row", async () => {
+  it("a family with no children sees one reminder, opening the right screen; no subjects, books or breaks row", async () => {
     family();
     renderAt("/");
     const list = within(await checklist());
     const links = list.getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual(["Add your children", "Add subjects"]);
-    expect(links.map((l) => l.getAttribute("href"))).toEqual(["/setup/children", "/setup/subjects"]);
+    expect(links.map((l) => l.textContent)).toEqual(["Add your children"]);
+    expect(links.map((l) => l.getAttribute("href"))).toEqual(["/setup/children"]);
     expect(list.queryByText("Done")).toBeNull();
-    expect(list.queryByText(/books and lessons|breaks/i)).toBeNull();
+    expect(list.queryByText(/books and lessons|breaks|subjects/i)).toBeNull();
   });
 
   it("a reminder goes as its data appears, and the list goes when none is left", async () => {
-    family({ children: [KID] });
+    family();
     const first = renderAt("/");
     const list = within(await checklist());
-    expect(list.getAllByRole("link").map((l) => l.textContent)).toEqual(["Add subjects"]);
+    expect(list.getAllByRole("link").map((l) => l.textContent)).toEqual(["Add your children"]);
     first.unmount();
-    family({ children: [KID], subjects: [SUBJECT] });
+    family({ children: [KID] });
     renderAt("/");
     await screen.findByRole("button", { name: "Family and settings" });
     await screen.findByText(/on track|This week and your year/);
@@ -57,11 +57,11 @@ describe("the getting-started checklist", () => {
     ]);
   });
 
-  it("checklistSteps: reminders for what was put off, plus children and subjects only when there are none; never books and lessons", () => {
-    expect(checklistSteps({ children: 0, subjects: 0 }).map((s) => s.key)).toEqual(["children", "subjects"]);
-    expect(checklistSteps({ children: 1, subjects: 2 })).toEqual([]);
-    expect(checklistSteps({ children: 1, subjects: 2 }, ["breaks"]).map((s) => s.key)).toEqual(["breaks"]);
-    expect(checklistSteps({ children: 0, subjects: 1 }, ["year", "breaks"]).map((s) => s.key)).toEqual(["year", "breaks", "children"]);
+  it("checklistSteps: reminders for what was put off, plus children only when there are none; never subjects, books or lessons", () => {
+    expect(checklistSteps({ children: 0 }).map((s) => s.key)).toEqual(["children"]);
+    expect(checklistSteps({ children: 1 })).toEqual([]);
+    expect(checklistSteps({ children: 1 }, ["breaks"]).map((s) => s.key)).toEqual(["breaks"]);
+    expect(checklistSteps({ children: 0 }, ["year", "breaks"]).map((s) => s.key)).toEqual(["year", "breaks", "children"]);
   });
 
   it("can be hidden, which is saved on the family (not the browser), so it stays hidden for that family only", async () => {
@@ -90,7 +90,7 @@ describe("the getting-started checklist", () => {
 
   it("does not guess while a list has not answered", async () => {
     family();
-    fakeApi.on("GET /api/subjects", 500, { error: "boom" });
+    fakeApi.on("GET /api/children", 500, { error: "boom" });
     renderAt("/");
     await screen.findByText("This week and your year");
     expect(screen.queryByRole("region", { name: "Getting started" })).toBeNull();
@@ -100,9 +100,9 @@ describe("the getting-started checklist", () => {
     family();
     const user = userEvent.setup();
     const { router } = renderAt("/");
-    await user.click(within(await checklist()).getByRole("link", { name: "Add subjects" }));
-    expect(router.state.location.pathname).toBe("/setup/subjects");
-    expect(await screen.findByRole("group", { name: "Add common subjects" })).toBeInTheDocument();
+    await user.click(within(await checklist()).getByRole("link", { name: "Add your children" }));
+    expect(router.state.location.pathname).toBe("/setup/children");
+    expect(await screen.findByText("No children yet.")).toBeInTheDocument();
   });
 });
 

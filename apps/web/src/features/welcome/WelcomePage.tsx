@@ -22,7 +22,7 @@ import "./welcome.css";
 
 export function WelcomePage() {
   const me = useMe();
-  const { refresh } = useAuth();
+  const { refresh, signOut } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(() => Math.min(SETUP_STEPS, Math.max(1, me.setupStep)));
   const [allSet, setAllSet] = useState(false);
@@ -63,6 +63,14 @@ export function WelcomePage() {
     if (await save({ setupStep: step - 1 })) setStep(step - 1);
   };
 
+  // N6 (S11b-03): a way out on every step, for a shared device or the wrong login; signing out leaves the step where it is.
+  const header = (
+    <header className="welcome-top">
+      <Logo />
+      <button type="button" className="btn btn-quiet" onClick={() => void signOut().then(() => navigate("/login", { replace: true }))}>Sign out</button>
+    </header>
+  );
+
   const finishLater = () => {
     setSetupLater();
     navigate("/", { replace: true });
@@ -100,7 +108,7 @@ export function WelcomePage() {
   if (allSet) {
     return (
       <main className="welcome">
-        <header className="welcome-top"><Logo /></header>
+        {header}
         <Card className="welcome-card">
           <StepHeading>You're all set</StepHeading>
           <p className="welcome-lead">Anything you skipped is waiting in Set up whenever you want it.</p>
@@ -114,7 +122,7 @@ export function WelcomePage() {
   const api: StepApi = { step, only: false, next, busy, fail: setError };
   return (
     <main className="welcome">
-      <header className="welcome-top"><Logo /></header>
+      {header}
       <div className="welcome-progress">
         <p className="welcome-step">Step {step} of {SETUP_STEPS}</p>
         <div className="welcome-bar" role="progressbar" aria-label="Setup progress" aria-valuemin={1} aria-valuemax={SETUP_STEPS} aria-valuenow={step} aria-valuetext={`Step ${step} of ${SETUP_STEPS}`}>
