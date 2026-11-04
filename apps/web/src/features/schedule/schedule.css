@@ -5,9 +5,11 @@
 .schedule-back {
   margin: 0 0 8px;
 }
+/* S10-14: "‹ Set up" and "‹ Home" are at least 44 × 44 px (the short word alone is narrower). */
 .schedule-back a {
   display: inline-block;
   min-height: 44px;
+  min-width: 44px;
   line-height: 44px;
   font-weight: 600;
 }
