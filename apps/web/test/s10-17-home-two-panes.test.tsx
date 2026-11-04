@@ -6,7 +6,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ENGINE_VERSION, planAll, type Assignment as EngineAssignment, type ChildPlan, type ProgressCheckIn } from "@hh/engine";
 import { HOME_PANES_QUERY } from "../src/features/home/HomePage";
-import { fakeApi } from "./helpers/fake-api";
+import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
 const CALENDAR = { weekStart: "mon" as const, schoolDays: [1, 2, 3, 4, 5] as ChildPlan["weekdays"] & number[] };
@@ -26,8 +26,8 @@ function stub() {
   fakeApi.on("GET /api/assignments", 200, [
     { id: "ti", subjectId: "lit", title: "Treasure Island", startDate: "2026-09-07", endDate: "2026-12-18", childIds: ["c1"], archived: false },
   ]);
-  // No breaks yet, so the getting-started checklist shows; Treasure Island runs late, so the briefing shows.
-  fakeApi.on("GET /api/blocked-ranges", 200, []);
+  // The family put its breaks off in the setup flow (S11-05), so the getting-started checklist shows; Treasure Island runs late, so the briefing shows.
+  fakeApi.on("GET /api/me", 200, { ...DEMO_ME, setupDeferred: ["breaks"] });
   fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-08-01", to: "2027-06-30", plans: [slowPlan()] });
 }
 

@@ -1,24 +1,11 @@
-/** S11-01: the six steps, in order. Each is built in its own ticket (S11-02 to S11-05); steps not built yet are their question and Continue. */
+/** S11-01: the six steps of the setup flow, in order (S11-02 to S11-05 built them). */
 import type { ComponentType } from "react";
-import { Button } from "../../ui/components";
+import { BreaksStep } from "./BreaksStep";
 import { ChildrenStep } from "./ChildrenStep";
 import { DaysStep } from "./DaysStep";
 import { FamilyStep } from "./FamilyStep";
+import { SubjectsStep } from "./SubjectsStep";
 import { YearStep } from "./YearStep";
-import { BreaksStep } from "./BreaksStep";
-import { StepHeading, useStep } from "./stepContext";
-
-function placeholder(title: string): ComponentType {
-  return function Step() {
-    const { next, busy } = useStep();
-    return (
-      <>
-        <StepHeading>{title}</StepHeading>
-        <div className="btn-row"><Button disabled={busy} onClick={() => void next()}>Continue</Button></div>
-      </>
-    );
-  };
-}
 
 export const STEP_BODIES: Record<number, ComponentType> = {
   1: FamilyStep,
@@ -26,5 +13,5 @@ export const STEP_BODIES: Record<number, ComponentType> = {
   3: DaysStep,
   4: YearStep,
   5: BreaksStep,
-  6: placeholder("Subjects"),
+  6: SubjectsStep,
 };

@@ -52,3 +52,10 @@
 .welcome-own { margin: 0 0 12px; padding: 12px; border: 1px solid var(--tl-border); border-radius: 12px; }
 .welcome-stack { flex-direction: column; align-items: stretch; margin-top: 12px; }
 .welcome-stack .btn { width: 100%; }
+
+/* S11-05: the subjects step. */
+.welcome-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.welcome-chips .chip { max-width: 100%; }
+.welcome-inline { display: flex; gap: 8px; align-items: stretch; }
+.welcome-inline input { flex: 1; min-width: 0; }
+.welcome-own-subject { margin: 0; }

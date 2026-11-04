@@ -1,5 +1,6 @@
 /** A brand-new family for the setup-flow tests: PATCH /api/family changes what GET /api/me and /api/family say, as the real API does. */
 import type { BlockedRange, Child, SetupDeferral, Subject } from "../../src/api/types";
+import { defaultIconFor } from "../../src/features/subjects/icons";
 import { DEMO_ME, fakeApi } from "./fake-api";
 
 export interface NewFamily {
@@ -42,6 +43,13 @@ export function newFamily(over: Partial<NewFamily["me"]> = {}): NewFamily {
     return [201, c];
   });
   fakeApi.on("GET /api/subjects", () => [200, f.subjects]);
+  // As the API does: a subject created without an icon gets the one its name suggests.
+  fakeApi.on("POST /api/subjects", (body) => {
+    const b = body as { name: string; color?: string; icon?: string };
+    const sub: Subject = { id: `s${f.subjects.length + 1}`, name: b.name, color: b.color ?? null, sortOrder: f.subjects.length, archived: false, defaultWeight: null, defaultWeekdays: null, icon: b.icon ?? defaultIconFor(b.name) };
+    f.subjects.push(sub);
+    return [201, sub];
+  });
   fakeApi.on("GET /api/blocked-ranges", () => [200, f.blocked]);
   fakeApi.on("GET /api/assignments", 200, []);
   fakeApi.on("GET /api/events", 200, []);

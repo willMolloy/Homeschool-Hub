@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CaretRight, ListBullets, Notebook } from "@phosphor-icons/react";
-import type { Assignment, BlockedRange, Child, Subject } from "../../api/types";
+import type { Assignment, Child, Subject } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useAuth, useMe } from "../../auth/AuthProvider";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
@@ -45,7 +45,6 @@ function Home() {
   const children = useApi<Child[]>("/api/children");
   const assignments = useApi<Assignment[]>("/api/assignments");
   const subjects = useApi<Subject[]>("/api/subjects");
-  const blocked = useApi<BlockedRange[]>("/api/blocked-ranges");
   const plans = useWeekPlans(currentWeekStart);
   const live = (assignments.data ?? []).filter((a) => !a.archived);
   const kids = (children.data ?? []).filter((c) => !c.archived);
@@ -55,11 +54,9 @@ function Home() {
 
   const wide = useMediaQuery(HOME_PANES_QUERY);
   const briefing = <HomeBriefing weekStart={currentWeekStart} onLate={setLate} />;
-  // S8-09: only once all four lists have answered, so it never flashes for a family that has set up.
-  const checklist = children.data && subjects.data && assignments.data && blocked.data ? (
-    <Checklist steps={checklistSteps({
-      children: kids.length, subjects: subjects.data.filter((s) => !s.archived).length, assignments: live.length, breaks: blocked.data.length,
-    }, me.setupDeferred ?? [])} />
+  // S8-09: only once both lists have answered, so it never flashes for a family that has set up. S11-05: reminders only.
+  const checklist = children.data && subjects.data ? (
+    <Checklist steps={checklistSteps({ children: kids.length, subjects: subjects.data.filter((s) => !s.archived).length }, me.setupDeferred ?? [])} />
   ) : null;
   const schedule = (
     <Card className="home-card">

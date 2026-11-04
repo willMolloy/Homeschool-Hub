@@ -165,7 +165,7 @@ describe("Finish later and resuming", () => {
     const user = userEvent.setup();
     const { router } = renderAt("/welcome");
     await screen.findByText("Step 6 of 6");
-    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Skip" }));
     expect(await screen.findByRole("heading", { name: "You're all set" })).toBeInTheDocument();
     expect(patches()).toEqual([{ setupDone: true }]);
     expect(state.setupDone).toBe(true);
