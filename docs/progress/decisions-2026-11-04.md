@@ -1,8 +1,12 @@
-# New decisions, 2026-11-04 (Will)
+# New decisions, 2026-11-04 and 2026-11-05 (Will)
+
+> **Order of work (2026-11-05):** Sprint 11 first run (setup flow + one-time Schedule hints), Sprint 12 accounts and hosting fixes (discuss with Will first), Sprint 13 completion question + needs-you dot, Sprint 14 printable sheets + term in review, then the end-to-end run and hosting; the calendar feed after hosting. Details: ROADMAP.md, "Order of work after Sprint 10".
+>
+> **First run (2026-11-05):** a six-step setup flow on a new family's first login (family, children (required), school days, school year and terms, breaks with Add / I'll get back to you / Skip, subjects). No first-assignment step or prompt. Logging setup stays in Records. Three one-time hints on Schedule instead of a tour.
 
 For every agent picking up work: read this with `HANDOFF.md`. Full detail is in [../ROADMAP.md](../ROADMAP.md), sections "Planned next, after Sprint 10", "Optional modules → Later" and "Not planned now". None of this changes Sprint 10; it is the queue after it.
 
-## Planned next, after Sprint 10 (in order; tickets to be written then)
+## The features (order: see the note at the top)
 1. **Completion question.** When an assignment's end date passes, Home shows "Did Frank finish Treasure Island?" with **Yes, finished / Not yet / We stopped**. Not yet opens a date picker to move the end; the question returns at the new end. Only the parent's answer marks an assignment finished.
 2. **The "needs you" dot.** A small fern-accent dot on the Home tab (and rail) while something needs the parent's *answer* (for now, completion questions only). Passive warnings stay in the briefing line without the dot.
 3. **Printable work sheets, weekly and daily, a parent feature.** "Print sheets" on Schedule · Week; pick a week or a day and one, several or **All children** (one page per child). Work only: subject, assignment, range; paper checkboxes and a notes line. No minutes. No family overview page for now.
@@ -18,5 +22,5 @@ For every agent picking up work: read this with `HANDOFF.md`. Full detail is in 
 - A student view, child logins or a per-child app link (the parent prints sheets instead).
 - Daily checkbox grids as the main screen, gamification, AI tutors, built-in lessons, community messaging, compliance claims.
 
-## Already queued
-- **S9b-07** (day chips on a multi-day log entry) is in Sprint 10b, as Grok's Sprint 10 README already says.
+## Done since
+- **S9b-07** (day chips on a multi-day log entry) shipped in Sprint 10b (PR #6).
