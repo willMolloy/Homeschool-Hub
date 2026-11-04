@@ -29,4 +29,4 @@ The "Each entry" CSV can't be misread next to the totals, one sentence reads pro
 
 ## Out of scope
 - Changing how school days are counted (S9b-01 settled it).
-- R3, R4 and R6: those are layout checks, for the S10-10 tester (see the README).
+- R3, R4 and R6: those are layout checks, for the S10-10a and S10-10b testers (see the README).

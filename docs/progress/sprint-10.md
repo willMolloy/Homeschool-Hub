@@ -1,8 +1,8 @@
 # Sprint 10 progress: Year polish
 
-Tickets: `docs/tickets/sprint-10-year-polish/`. S10-10 (tester pass) is the tester's. Mockups: `docs/design/mockups/year-polish*`; DeeDee's 2026-11-03 decisions in the README win where they differ. Screens are in `screens/sprint-10/`.
+Tickets: `docs/tickets/sprint-10-year-polish/`. **Split on 2026-11-04 (DeeDee):** this branch (`hh2/sprint-10`) is Sprint 10a, the Year view (S10-01 to S10-08, S10-04b, S10-04c, S10-15). Building stops after S10-08; S10-10a (tester pass) is the tester's. Sprint 10b (S10-09, S10-11 to S10-14, S10-16 to S10-19, S9b-07, S10-10b) gets its own branch off `main` after 10a merges. Mockups: `docs/design/mockups/year-polish*`; DeeDee's 2026-11-03 decisions in the README win where they differ. Screens are in `screens/sprint-10/`.
 
-**Build order (README):** S10-01, S10-02, S10-15, S10-03, S10-04, S10-04b, S10-04c, S10-05, S10-06, S10-07, S10-08, S10-11, S10-12, S10-13, S10-09, S10-14, S10-16, S10-17, S10-18, S10-19. Slip order if time runs out: S10-17 and S10-18 (and S10-19), then S10-16; S10-09 and S10-14 stay together.
+**10a build order (README):** S10-01, S10-02, S10-15, S10-03, S10-04, S10-04b, S10-04c, S10-05, S10-06, S10-07, S10-08, then S10-10a (tester).
 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
