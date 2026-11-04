@@ -3,6 +3,7 @@
  * in a ResponsiveSheet: a bottom sheet on phones, a panel along the right edge on wider screens. S10-07: in its "sheet" look
  * (subject picker, child chips, date tiles, soft day chips).
  */
+import { Plus } from "@phosphor-icons/react";
 import type { Assignment } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { AssignmentForm } from "../schedule/AssignmentsPage";
@@ -11,8 +12,14 @@ import type { Lookups } from "../schedule/lookups";
 import "../../ui/forms.css";
 import "../schedule/schedule.css";
 
+/** S10-08: a round "+" (named "Add assignment"); wide screens also show the words, as in the desktop mockup. */
 export function AddAssignmentButton({ onClick }: { onClick: () => void }) {
-  return <button type="button" className="tl-add-btn" onClick={onClick}>+ Add assignment</button>;
+  return (
+    <button type="button" className="tl-add-btn" aria-label="Add assignment" onClick={onClick}>
+      <Plus size={20} weight="bold" aria-hidden="true" />
+      <span className="tl-add-words" aria-hidden="true">Add assignment</span>
+    </button>
+  );
 }
 
 interface SheetProps {

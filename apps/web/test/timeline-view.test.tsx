@@ -128,7 +128,8 @@ describe("the Year timeline page", () => {
     // S8-07: the lane badges in the gutter are buttons too (one per lane, named for the subject); they are counted on their own.
     const visible = within(main).getAllByRole("button").filter((b) => !b.closest(".sr-only") && !b.classList.contains("tl-badge"));
     expect(main.querySelectorAll("button.tl-badge").length).toBeGreaterThan(3);
-    expect(visible.map((b) => b.textContent)).toEqual(["+ Add assignment", "Year", "Fall", "Spring", "This month", "Edit", "All children", "Frank", "Margaret"]);
+    expect(visible.map((b) => b.textContent)).toEqual(["Add assignment", "Year", "Fall", "Spring", "This month", "", // S10-08: the "+" and the pencil are icons
+      "All children", "Frank", "Margaret"]);
     expect(within(main).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Schedule"]); // the page title; Week | Year is a pair of tabs, not buttons
     // Below the title: the picture, and the lane list that only screen readers get. Nothing else.
     const bleed = main.querySelector(".timeline-bleed")!;
@@ -146,7 +147,7 @@ describe("the Year timeline page", () => {
     expect(months.length).toBeGreaterThan(2);
     expect(svg.querySelectorAll("text.tl-lane-label")).toHaveLength(0);
     expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Add assignment" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add assignment" })).toBeInTheDocument();
     // The plan is still fetched for the school year (nothing to fetch for, but the range is one rule).
     expect(plansPath()).toEqual(["/api/plan?from=2026-07-27&to=2027-07-04"]);
   });

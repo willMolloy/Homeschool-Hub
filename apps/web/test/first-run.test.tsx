@@ -120,8 +120,8 @@ describe("empty states: one friendly line and the one button that fixes it", () 
     family({ children: [KID], subjects: [SUBJECT] });
     renderAt("/schedule?view=year");
     expect(await screen.findByText("Nothing planned yet.")).toBeInTheDocument();
-    expect(screen.getByText(/Tap \+ Add assignment above/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Add assignment" })).toBeInTheDocument();
+    expect(screen.getByText(/Tap \+ above to add an assignment/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add assignment" })).toBeInTheDocument();
   });
 
   it.each([

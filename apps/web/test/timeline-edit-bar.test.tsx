@@ -246,7 +246,7 @@ describe("Copy in the edit bar (S3a-02)", () => {
     await userEvent.click(within(await sheet()).getByRole("button", { name: "Copy" }));
     await userEvent.click(within(await screen.findByRole("dialog", { name: "Add assignment" })).getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    await userEvent.click(screen.getByRole("button", { name: "+ Add assignment" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add assignment" }));
     expect(within(await screen.findByRole("dialog", { name: "Add assignment" })).getByLabelText("Title")).toHaveValue("");
   });
 });

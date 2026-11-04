@@ -24,7 +24,7 @@ type User = ReturnType<typeof userEvent.setup>;
 async function openSheet(user: User) {
   renderAt("/timeline");
   await screen.findByRole("img", { name: "Year timeline" });
-  await user.click(screen.getByRole("button", { name: "+ Add assignment" }));
+  await user.click(screen.getByRole("button", { name: "Add assignment" }));
   return screen.findByRole("dialog", { name: "Add assignment" });
 }
 

@@ -52,7 +52,7 @@ async function openForm(path = "/timeline") {
   const user = userEvent.setup();
   const r = renderAt(path);
   await screen.findByRole("img", { name: "Year timeline" });
-  await user.click(screen.getByRole("button", { name: "+ Add assignment" }));
+  await user.click(screen.getByRole("button", { name: "Add assignment" }));
   const sheet = await screen.findByRole("dialog", { name: "Add assignment" });
   return { ...r, user, sheet };
 }
@@ -148,7 +148,7 @@ describe("adding an assignment from the timeline", () => {
       return b!;
     });
     expect(band).toHaveClass("tl-flash");
-    expect(screen.getByRole("button", { name: "+ Add assignment" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add assignment" })).toBeInTheDocument();
   });
 
   it("switches the child filter to All when it would hide the new bar", async () => {

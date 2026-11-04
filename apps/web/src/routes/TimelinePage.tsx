@@ -47,6 +47,7 @@ import { useTimelineData } from "../features/timeline/useTimelineData";
 import { useZoomFade } from "../features/timeline/useZoomFade";
 import { availableZooms, defaultMonth, gridMonths, viewWithoutPlan, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
+import { createPortal } from "react-dom";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
 import { UpdateStatusFlow } from "../features/status/UpdateStatusFlow";
 import { EditZoomViewsSheet } from "../features/timeline/EditZoomViews";
@@ -64,8 +65,9 @@ interface LayoutArgs { width: number; measureText: MeasureText; month: string | 
 const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: LayoutArgs) =>
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
-/** `embedded`: inside Schedule (S8-04), which owns the page title. */
-export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
+/** `embedded`: inside Schedule (S8-04), which owns the page title. S10-08: `titleSlot` is the spot in Schedule's
+ *  title row where the "+" goes (rendered there through a portal; the add state stays here). */
+export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?: boolean; titleSlot?: HTMLElement | null }) {
   const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects, zoomViews, setZoomViews } = useTimelineData();
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
   // S8b-07: the same child switch as Week and Track work (one child, or All children), remembered on this device.
@@ -203,7 +205,10 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
     <>
       <header className="timeline-page-header">
         {embedded ? null : <h1>Timeline</h1>}
-        {!failed && !loading && model && <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />}
+        {!failed && !loading && model && (() => {
+          const add = <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />;
+          return embedded && titleSlot ? createPortal(add, titleSlot) : add;
+        })()}
         {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews, viewOverrides)} onEdit={() => setEditingViews(true)} />}
       </header>
       {ready && <ChildSwitch kids={childList} value={choice} onChange={setChoice} />}
@@ -219,7 +224,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
           <>
             <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews, viewOverrides)} timeline`} subjects={subjects} />
             <p className="tl-empty">Nothing planned yet.</p>
-            <p className="tl-empty tl-empty-hint">Tap + Add assignment above and your books and lessons appear here.</p>
+            <p className="tl-empty tl-empty-hint">Tap + above to add an assignment, and your books and lessons appear here.</p>
           </>
         ) : (
           <>

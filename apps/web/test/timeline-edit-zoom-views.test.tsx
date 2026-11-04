@@ -40,7 +40,7 @@ async function open(zoomViews?: ZoomViews) {
 // hidden: true, because the rest of the page is inert while the sheet is open.
 const row = () => within(screen.getByRole("group", { name: "Zoom", hidden: true })).getAllByRole("button", { hidden: true }).map((b) => b.textContent);
 async function edit(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "Edit zoom views" }));
+  await user.click(screen.getByRole("button", { name: "Edit views" }));
   return screen.findByRole("form", { name: "Zoom views" });
 }
 const sent = () => writes().map((w) => w.body);
@@ -76,14 +76,13 @@ describe("the helpers (S7-05)", () => {
 });
 
 describe("the Edit button (S7-05)", () => {
-  it("is a quiet Edit at the end of the zoom row, outside the toggle group, and 44 px", async () => {
+  it("is a quiet pencil at the end of the zoom row, outside the toggle group, and 44 px (S10-08)", async () => {
     await open();
-    const edit = screen.getByRole("button", { name: "Edit zoom views" });
-    expect(edit).toHaveTextContent("Edit");
+    const edit = screen.getByRole("button", { name: "Edit views" });
+    expect(edit.querySelector("svg")).not.toBeNull(); // S10-08: the pencil, no words
     expect(edit.nextElementSibling).toBeNull();
     expect(edit.previousElementSibling).toBe(screen.getByRole("group", { name: "Zoom" }));
     expect(within(screen.getByRole("group", { name: "Zoom" })).queryByText("Edit")).toBeNull();
-    expect(edit.querySelector("svg, img")).toBeNull();
     const { readFileSync } = await import("node:fs");
     expect(readFileSync("src/features/timeline/timeline.css", "utf8")).toMatch(/\.tl-zoom-edit \{[^}]*min-height: 44px/);
   });
@@ -91,7 +90,7 @@ describe("the Edit button (S7-05)", () => {
   it("is still there when every built-in is hidden and no views exist, so they can come back", async () => {
     await open({ hidden: ["fall", "spring", "month"], custom: [] });
     expect(screen.queryByRole("group", { name: "Zoom" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Edit zoom views" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit views" })).toBeInTheDocument();
   });
 });
 

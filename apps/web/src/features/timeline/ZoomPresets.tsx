@@ -4,7 +4,9 @@
  * S7-05: `onEdit` adds a quiet Edit at the end of the row (outside the toggle group), shown even when only Year is left.
  * S9b-05 (N11): when the row scrolls, the edge with more presets past it fades out (data-more), so a cut-off chip reads as
  * "scroll for more"; a very long view name ends in "…" (its full name stays the button's name and its tooltip).
+ * S10-08: Edit is a pencil, "Edit views", pinned at the row's end (outside the scrolling group, so it stays put while the chips scroll).
  */
+import { PencilSimple } from "@phosphor-icons/react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { zoomLabel, type Zoom } from "./zoom";
 
@@ -49,7 +51,7 @@ export function ZoomPresets({ zooms, value, onChange, labelOf = (z) => zoomLabel
           ))}
         </div>
       ) : null}
-      {onEdit ? <button type="button" className="tl-zoom-edit" aria-label="Edit zoom views" onClick={onEdit}>Edit</button> : null}
+      {onEdit ? <button type="button" className="tl-zoom-edit" aria-label="Edit views" title="Edit views" onClick={onEdit}><PencilSimple size={20} aria-hidden="true" /></button> : null}
     </div>
   );
 }

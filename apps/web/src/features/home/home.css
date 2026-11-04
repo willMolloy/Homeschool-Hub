@@ -29,6 +29,11 @@
 .setup-list ul { list-style: none; margin: 0; padding: 0; }
 .setup-list li + li { border-top: 1px solid var(--tl-border); }
 .schedule-page h1 { margin-bottom: 12px; }
+/* S10-08: the title row: "Schedule", and the Year view's "+" at its end. */
+.schedule-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; margin-bottom: 12px; }
+.schedule-page .schedule-title-row h1 { margin: 0; }
+.schedule-title-actions { display: flex; align-items: center; gap: 4px; }
+.schedule-title-actions:empty { display: none; }
 
 /* S8-09: the getting-started checklist and the empty states. */
 .home-checklist h2 { margin: 0; font-size: 1.25rem; }
