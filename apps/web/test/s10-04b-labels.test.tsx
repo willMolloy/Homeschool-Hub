@@ -81,3 +81,32 @@ describe("drawing labels (S10-04b)", () => {
     for (const t of outside) expect(t).toHaveAttribute("dominant-baseline", "central");
   });
 });
+
+describe("a stopped bar always says Stopped (S13-00, N1)", () => {
+  const bounds = { left: 40, right: 300 };
+  const stopped = (piece: BandColumn[], limit: number, b = bounds) => placePieceNames("Black Beauty · Stopped", [piece], 50, false, perChar, [limit], b);
+  it("keeps the full name with the word when it fits", () => {
+    expect(stopped([col(60, 120)], 300)[0]).toMatchObject({ text: "Black Beauty · Stopped" });
+  });
+  it("a stub too short for the name (a cut name would lose the word) shows 'Stopped' outside it", () => {
+    // 45 px piece: the full name is 22 px + padding inside; the cut name has no word. Outside, "Black Beauty · Stopped" is 22 px and fits too, so block it.
+    const n = stopped([col(60, 70)], 70 + OUTSIDE_GAP_PX + 8)!;
+    expect(n).toHaveLength(1);
+    expect(n[0]).toMatchObject({ text: "Stopped", outside: true, x: 70 + OUTSIDE_GAP_PX });
+  });
+  it("when the next bar is close, 'Stopped' still goes right of the stub, up to the plot's edge", () => {
+    const n = stopped([col(60, 70)], 72);
+    expect(n[0]).toMatchObject({ text: "Stopped", outside: true });
+  });
+  it("at the plot's right edge it goes to the left of the stub", () => {
+    const n = stopped([col(290, 298)], 300);
+    expect(n[0]).toMatchObject({ text: "Stopped", outside: true });
+    expect(n[0]!.x + n[0]!.width).toBeLessThanOrEqual(290);
+  });
+  it("is never a bare stub: a thin bar (no room inside) also gets the word", () => {
+    expect(stopped([col(60, 64, 4)], 64 + 1)).toHaveLength(1);
+  });
+  it("open and finished bars are untouched by this rule", () => {
+    expect(placePieceNames("Treasure Island", [[col(0, 18)]], 50, false, perChar, [30])).toEqual([]);
+  });
+});

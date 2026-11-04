@@ -16,4 +16,5 @@
 // 0.11.0: a keepEndDate week adjustment only re-spreads the weeks after it; earlier weeks keep their amounts (S7b-09).
 // 0.12.0: a keepEndDate adjustment in the last week pulls the rest back only into the days from today, else the end moves later (S7b-18).
 // 0.13.0: an assignment the parent said had ended is closed at its endedOn (S12-04): finished keeps its days to the planned end, stopped ends at endedOn; neither forecasts, leaves unplaced work or warns; ChildPlan.endedAs, endedOn.
-export const ENGINE_VERSION = "0.13.0";
+// 0.14.0: an assignment finished before its planned end ends at endedOn (S13-00): the work after that day is no longer planned. Finished on or after the planned end is unchanged.
+export const ENGINE_VERSION = "0.14.0";

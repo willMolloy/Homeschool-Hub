@@ -71,7 +71,7 @@ describe("the bars (S12-04)", () => {
   };
   /** The sample plan with one assignment closed, as the engine would answer. */
   function planChildAs(p: ChildPlan, endedAs: "finished" | "stopped", endedOn: string): ChildPlan {
-    return { ...p, endedAs, endedOn, complete: endedAs === "finished", warnings: [], days: endedAs === "stopped" ? p.days.filter((d) => d.date <= endedOn) : p.days };
+    return { ...p, endedAs, endedOn, complete: endedAs === "finished", warnings: [], days: p.days.filter((d) => d.date <= endedOn) };
   }
   const wide = (plansIn: ChildPlan[]) => layoutTimeline(buildTimelineModel(sampleInput({ plans: plansIn })), { zoom: "year", width: 1280 });
 
@@ -95,6 +95,14 @@ describe("the bars (S12-04)", () => {
     const right = (l: ReturnType<typeof wide>) => Math.max(...l.bands.filter((b) => b.assignmentId === "heidi").flatMap((b) => b.runs.map((r) => r.x1)));
     expect(right(closed)).toBeLessThan(right(open));
     for (const b of closed.bands.filter((x) => x.assignmentId === "heidi")) expect(b.ended).toBe("stopped");
+  });
+  it("at 320 px every stopped bar is named, and its name says Stopped (S13-00)", () => {
+    for (const stopOn of ["2027-01-06", "2027-01-15", "2027-02-26"]) {
+      const l = layoutTimeline(buildTimelineModel(sampleInput({ plans: ended("heidi", "stopped", stopOn) })), { zoom: "year", width: 320 });
+      const mine = l.names.filter((n) => n.assignmentId === "heidi");
+      expect(mine.length, stopOn).toBeGreaterThan(0);
+      expect(mine.some((n) => n.text.endsWith("Stopped")), stopOn).toBe(true);
+    }
   });
   it("an open family's layout is exactly as before (no ended fields)", () => {
     const l = wide(samplePlans());
@@ -163,8 +171,8 @@ describe("the Year view (S12-04)", () => {
 });
 
 describe("the plan (S12-04)", () => {
-  it("is engine 0.13.0 and an ended plan is closed as the engine says", () => {
-    expect(ENGINE_VERSION).toBe("0.13.0");
+  it("is engine 0.14.0 and an ended plan is closed as the engine says", () => {
+    expect(ENGINE_VERSION).toBe("0.14.0");
     expect(planChild({ ...BOOK, endedAs: "stopped", endedOn: "2026-10-02" }, "c1", { calendar: CAL, asOf: "2026-11-04" })).toMatchObject({ endedAs: "stopped", complete: false, warnings: [] });
   });
 });

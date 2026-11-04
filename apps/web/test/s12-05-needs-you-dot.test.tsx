@@ -90,7 +90,6 @@ describe("the needs-you dot (S12-05)", () => {
     await waitFor(() => expect(homeName()).toBe("Home, 2 things need you"));
     await user.click(await screen.findByRole("button", { name: "Answer them" }));
     await user.click(await screen.findByRole("button", { name: "Yes, finished: Aesop" }));
-    await user.click(await screen.findByRole("button", { name: "Save" }));
     await waitFor(() => expect(homeName()).toBe("Home, 1 thing needs you"));
     await user.click(await screen.findByRole("button", { name: "We stopped: Treasure Island" }));
     await user.click(await screen.findByRole("button", { name: "Save" }));

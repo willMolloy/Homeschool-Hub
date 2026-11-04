@@ -1,9 +1,10 @@
 /**
- * S12-04: an assignment the parent said had ended is closed at `endedOn`. The plan is made as before (so a finished
- * bar keeps its place), then closed here:
+ * S12-04: an assignment the parent said had ended is closed at `endedOn`. The plan is made as before, then closed here:
  *
  * - **finished** (Yes, finished): done by the parent's word. The days stay as planned up to the planned end (a push that ran past it
- *   is cut); there is nothing left, no forecast, no unplaced work and no warnings. `complete` is true.
+ *   is cut); there is nothing left, no forecast, no unplaced work and no warnings. `complete` is true. S13-00 (Will, "it should adjust
+ *   schedule"): finished *before* the planned end (`endedOn` earlier) ends the bar at `endedOn`, like stopped, so the work after that
+ *   day is no longer planned and the loads, ribbons and heavy weeks follow; finished on or after the planned end keeps the planned end.
  * - **stopped** (We stopped): dropped. The days after `endedOn` are removed (a stop before the start leaves none), the effective
  *   `end` is `endedOn` (never past the planned end), nothing is left to do or forecast, and there are no warnings. `complete`
  *   stays false: a stopped assignment never counts as finished.
@@ -20,8 +21,9 @@ export function closePlan(plan: ChildPlan, a: Assignment): ChildPlan {
   if (typeof a.endedOn !== "string" || !isValidLocalDate(a.endedOn)) throw new EngineInputError(`Assignment ${a.id}: an ended assignment needs a valid endedOn`);
   const base = { ...plan, endedAs: a.endedAs, endedOn: a.endedOn, unplacedUnits: 0, noCapacity: false, remainingUnits: 0, warnings: [] as ChildPlan["warnings"] };
   if (a.endedAs === "finished") {
-    const last = toDayNumber(a.end);
-    return { ...base, doneUnits: plan.totalUnits, complete: true, end: a.end, days: plan.days.filter((d) => toDayNumber(d.date) <= last) };
+    const last = Math.min(toDayNumber(a.end), toDayNumber(a.endedOn));
+    const end = fromDayNumber(Math.max(toDayNumber(a.start), last));
+    return { ...base, doneUnits: plan.totalUnits, complete: true, end, days: plan.days.filter((d) => toDayNumber(d.date) <= last) };
   }
   const on = toDayNumber(a.endedOn);
   const days = plan.days.filter((d) => toDayNumber(d.date) <= on);

@@ -12,7 +12,7 @@ const finished = (over: Partial<Assignment> = {}) => ({ ...open, endedAs: "finis
 const stopped = (over: Partial<Assignment> = {}) => ({ ...open, endedAs: "stopped" as const, endedOn: "2026-10-02", ...over });
 
 describe("the engine version", () => {
-  it("is 0.13.0 for the closed plans", () => expect(ENGINE_VERSION).toBe("0.13.0"));
+  it("is 0.14.0 for the closed plans", () => expect(ENGINE_VERSION).toBe("0.14.0"));
 });
 
 describe("an open assignment is untouched (S12-04)", () => {
@@ -50,12 +50,26 @@ describe("finished (S12-04)", () => {
     expect(p.warnings).toEqual([]);
     expect(p).toMatchObject({ noCapacity: false, unplacedUnits: 0, complete: true });
   });
-  it("finished before the end keeps the whole bar but no week counts work after that day", () => {
+  it("finished early (S13-00) ends the bar that day: no work after it, and the loads follow", () => {
     const p = plan(finished({ endedOn: "2026-10-09" }));
-    expect(p.days.at(-1)!.date).toBe("2026-10-30");
+    expect(p.days.at(-1)!.date).toBe("2026-10-09");
+    expect(p.days.filter((d) => d.date > "2026-10-09")).toEqual([]);
+    expect(p).toMatchObject({ endedAs: "finished", complete: true, end: "2026-10-09", plannedEnd: "2026-10-30", warnings: [], remainingUnits: 0, doneUnits: 200 });
     expect(plannedRangeForWeek(p, "2026-10-05").hasPlannedWork).toBe(true);
     expect(plannedRangeForWeek(p, "2026-10-12")).toMatchObject({ hasPlannedWork: false });
     expect(heavyWeek([p], "2026-10-12", MON_FRI).load).toBe(0);
+    expect(heavyWeek([plan(open)], "2026-10-12", MON_FRI).load).toBeGreaterThan(0);
+  });
+  it("finished on the planned end or after it keeps the bar to the planned end", () => {
+    expect(plan(finished({ endedOn: "2026-10-30" })).days).toEqual(plan(open).days);
+    const late = plan(finished({ endedOn: "2026-11-03" }));
+    expect(late.days).toEqual(plan(open).days);
+    expect(late.end).toBe("2026-10-30");
+  });
+  it("finished before it started has no days and ends where it begins", () => {
+    const p = plan(finished({ endedOn: "2026-09-01" }));
+    expect(p.days).toEqual([]);
+    expect(p).toMatchObject({ end: "2026-09-07", complete: true });
   });
 });
 
