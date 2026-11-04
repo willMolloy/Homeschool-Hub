@@ -174,8 +174,11 @@ export function plannedRangeForWeek(plan: ChildPlan, weekStart: LocalDate): { fr
   const w0 = toDayNumber(weekStart);
   let from = 0;
   let week = 0;
+  // S12-04: an assignment the parent said had ended has no work after the day it ended.
+  const over = plan.endedOn ? toDayNumber(plan.endedOn) : Infinity;
   for (const d of plan.days) {
     const n = toDayNumber(d.date);
+    if (n > over) continue;
     if (n < w0) from += d.units;
     else if (n <= w0 + 6) week += d.units;
   }

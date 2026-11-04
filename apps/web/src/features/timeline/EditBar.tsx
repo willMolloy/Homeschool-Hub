@@ -14,6 +14,7 @@ import { Clock } from "@phosphor-icons/react";
 import { datesError, type DateSpan, type Selection } from "./select";
 import { DateField } from "../../ui/DateField";
 import { TipBubble } from "../tips/TipBubble";
+import { endedWords } from "../completion/ended";
 
 export interface EditBarProps {
   selection: Selection;
@@ -33,6 +34,8 @@ export interface EditBarProps {
   pace?: string | null;
   /** S10-18: a side panel (840 px and up) rather than a bottom bar. */
   panel?: boolean;
+  /** S12-04: how the parent said it ended ("Finished Nov 2" / "Stopped Oct 30" shows under the dates), or null while it is open. */
+  ended?: { endedAs: "finished" | "stopped"; endedOn: string } | null;
   /** S11-06: the one-time hint for the first bar opened, in the sheet above the dates. */
   tip?: { text: string; onGotIt: () => void } | null;
 }
@@ -42,7 +45,7 @@ export const EDIT_PANEL_QUERY = "(min-width: 840px)";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose, pace = null, panel = false, tip = null }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose, pace = null, panel = false, ended = null, tip = null }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
   const [more, setMore] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -105,6 +108,7 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
           <label className="tl-tile"><span className="tl-tile-label">End</span><DateField className="tl-tile-field" opens={panel ? "down" : "up"} value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
         </div>
         {pace ? <p className="tl-pace" data-pace><Clock size={18} weight="regular" aria-hidden="true" />{pace}</p> : null}
+        {ended ? <p className="tl-ended-note" data-ended={ended.endedAs}>{endedWords(ended.endedAs, ended.endedOn)}</p> : null}
         <div className="tl-edit-ends">
           <button type="button" className="btn btn-secondary tl-copy-btn" disabled={busy} onClick={onCopy}>Copy</button>
           <div className="tl-more" ref={moreRef}>

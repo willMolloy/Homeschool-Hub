@@ -284,7 +284,7 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
             {selection && (
               <>
                 {panel ? null : <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />}
-                <EditBar ref={keep.ref} selection={selection} pace={selectedPace} panel={panel}
+                <EditBar ref={keep.ref} selection={selection} pace={selectedPace} panel={panel} ended={selected?.endedAs && selected.endedOn ? { endedAs: selected.endedAs, endedOn: selected.endedOn } : null}
                   tip={tip === "edit" ? { text: TIP_TEXT.edit, onGotIt: () => void markSeen("edit") } : null}
                   busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)} onUpdateStatus={() => setStatusing(selection.assignmentId)}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />

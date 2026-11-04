@@ -34,6 +34,8 @@ export interface TimelineAssignment {
   estimated: boolean;
   complete: boolean;
   warnings: PlanWarning[];
+  /** S12-04: how the parent said it ended ("finished" is drawn calmer with a check, "stopped" muted and cut at the day it stopped). */
+  endedAs?: "finished" | "stopped";
   /** S10-05 fix: per grid day, a school day this assignment can't be given work on (its weekdays, events that skip it). */
   idle?: boolean[];
 }
@@ -162,6 +164,7 @@ function toAssignment(grid: DayGrid, plan: ChildPlan, title: string, weekStart: 
     estimated: plan.weightSource === "default",
     complete: plan.complete,
     warnings: [...plan.warnings],
+    ...(plan.endedAs ? { endedAs: plan.endedAs } : {}),
     idle: idleDays(grid, plan, events),
   };
 }

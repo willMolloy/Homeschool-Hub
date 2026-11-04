@@ -22,6 +22,8 @@ export const HANDLE_W_PX = 4;
 export const HANDLE_INSET_PX = 3;
 const HANDLE_H = (rowHeight: number) => Math.min(14, Math.max(8, rowHeight - 6));
 
+/** S12-04: an ended bar is drawn in the lighter step of its colour (calmer); a stopped one is also muted and dashed (timeline.css). */
+const stepOf = (step: ChildStep, ended?: "finished" | "stopped"): ChildStep => (ended ? "light" : step);
 const STEP_SUFFIX: Record<ChildStep, string> = { base: "", light: "-light", dark: "-dark" };
 export const bandFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]})`;
 /** T-06: the AA label colour picked for each swatch (light or dark text, from the tokens). */
@@ -127,8 +129,9 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
             style={{ stroke: bandFill(b.paletteSlot, b.step) }} data-connector-for={b.assignmentId} />
         )))}
         {layout.bands.map((b) => (b.d ? (
-          <path key={`${b.rowKey}-${b.assignmentId}`} className={`tl-band${dim(b.assignmentId)}`} d={b.d} style={{ fill: bandFill(b.paletteSlot, b.step), stroke: `var(--tl-subject-${b.paletteSlot}-strong)` }}
-            data-assignment={b.assignmentId} />
+          <path key={`${b.rowKey}-${b.assignmentId}`} className={`tl-band${b.ended ? ` tl-ended tl-${b.ended}` : ""}${dim(b.assignmentId)}`} d={b.d}
+            style={{ fill: bandFill(b.paletteSlot, stepOf(b.step, b.ended)), stroke: `var(--tl-subject-${b.paletteSlot}-strong)` }}
+            data-assignment={b.assignmentId} {...(b.ended ? { "data-ended": b.ended } : {})} />
         ) : null))}
       </g>
 
@@ -151,10 +154,10 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         {layout.names.map((n) => (
           // T-11d: a name stays at full strength while its bar dims (an inside name only gains contrast; S10-04b: an
           // outside name is muted page text, which would drop below AA if it dimmed too).
-          <g key={`${n.rowKey}-${n.assignmentId}-${n.piece}`} className={dim(n.assignmentId).replace(" tl-dim", "").trim() || undefined} data-name-for={n.assignmentId}>
+          <g key={`${n.rowKey}-${n.assignmentId}-${n.piece}`} className={`${n.ended ? `tl-ended tl-${n.ended} ` : ""}${dim(n.assignmentId).replace(" tl-dim", "").trim()}`.trim() || undefined} data-name-for={n.assignmentId}>
             {n.outside
               ? <text className="tl-outside-name" x={n.textX} y={n.textY} dominantBaseline="central">{n.text}</text>
-              : <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step), stroke: bandFill(n.paletteSlot, n.step) }}>{n.text}</text>}
+              : <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, stepOf(n.step, n.ended)), stroke: bandFill(n.paletteSlot, stepOf(n.step, n.ended)) }}>{n.text}</text>}
           </g>
         ))}
       </g>

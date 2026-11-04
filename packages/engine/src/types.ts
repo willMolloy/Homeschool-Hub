@@ -211,6 +211,12 @@ export interface ChildPlan {
   previousWeekdays: Weekday[] | null;
   days: DayLoad[];
   warnings: PlanWarning[];
+  /**
+   * S12-04: how the parent said the assignment ended, and the day. Present only for an ended assignment. A finished plan keeps its
+   * days up to the planned end; a stopped one ends at `endedOn`. Neither has a forecast, unplaced work or warnings.
+   */
+  endedAs?: "finished" | "stopped";
+  endedOn?: LocalDate;
 }
 
 export type Detail = "daily" | "weekly";
