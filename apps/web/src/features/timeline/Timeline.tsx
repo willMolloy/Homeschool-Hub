@@ -151,11 +151,11 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
 
       <g className="tl-names" aria-hidden="true">
         {layout.names.map((n) => (
-          // T-11d: an inside name stays at full strength while its bar dims (it only gains contrast); an outside
-          // name dims with its bar (page text at the dim opacity still meets AA).
-          <g key={`${n.rowKey}-${n.assignmentId}-${n.piece}`} className={(n.outside ? dim(n.assignmentId) : dim(n.assignmentId).replace(" tl-dim", "")).trim() || undefined} data-name-for={n.assignmentId}>
+          // T-11d: a name stays at full strength while its bar dims (an inside name only gains contrast; S10-04b: an
+          // outside name is muted page text, which would drop below AA if it dimmed too).
+          <g key={`${n.rowKey}-${n.assignmentId}-${n.piece}`} className={dim(n.assignmentId).replace(" tl-dim", "").trim() || undefined} data-name-for={n.assignmentId}>
             {n.outside
-              ? <text className="tl-outside-name" x={n.textX} y={n.textY}>{n.text}</text>
+              ? <text className="tl-outside-name" x={n.textX} y={n.textY} dominantBaseline="central">{n.text}</text>
               : <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step), stroke: bandFill(n.paletteSlot, n.step) }}>{n.text}</text>}
           </g>
         ))}

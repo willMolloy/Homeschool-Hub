@@ -5,7 +5,7 @@ import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import {
   ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, LATER_PIECE_NAME_FACTOR, placeName, placePieceName, placePieceNames,
-  DESCENDER_PX, OUTSIDE_GAP_PX, OUTSIDE_NAME_PX, placeOutsideName,
+  NAME_FONT_PX, OUTSIDE_CLEAR_PX, OUTSIDE_GAP_PX, placeRightName,
 } from "../src/features/timeline/names";
 import type { BandColumn } from "../src/features/timeline/paths";
 import { Timeline } from "../src/features/timeline/Timeline";
@@ -43,11 +43,12 @@ describe("fitting a name", () => {
   });
 
   it(`shows nothing unless at least ${MIN_NAME_CHARS} characters and the ellipsis fit`, () => {
-    // T-11 (DeeDee): show what we can, down to one character and "…".
-    expect(MIN_NAME_CHARS).toBe(1);
-    expect(fitName("Robinson Crusoe", 5, perChar)).toBe(`Robi${ELLIPSIS}`);
-    expect(fitName("Robinson Crusoe", 2, perChar)).toBe(`R${ELLIPSIS}`);
-    expect(fitName("Robinson Crusoe", 1, perChar)).toBeNull();
+    // S10-04b (mockup): a cut name keeps at least six letters.
+    expect(MIN_NAME_CHARS).toBe(6);
+    expect(fitName("Robinson Crusoe", 7, perChar)).toBe(`Robins${ELLIPSIS}`);
+    expect(fitName("Robinson Crusoe", 6, perChar)).toBeNull();
+    expect(fitName("Robinson Crusoe", 6, perChar, true)).toBeNull();
+    expect(fitName("Robinson Crusoe", 15, perChar, true)).toBe("Robinson Crusoe");
     expect(fitName("   ", 100, perChar)).toBeNull();
   });
 
@@ -84,22 +85,19 @@ describe("placing a name inside its bar", () => {
 });
 
 describe("naming each piece of a bar (T-11)", () => {
-  it("writes a thin piece's name just above it, from the piece's start, cut to its width (T-11d, T-11e)", () => {
-    // Bar top at 48 (4 px thick about 50): the baseline sits 2 px above it, raised past descenders when there are any.
+  it("writes a name that doesn't fit inside in full to the right of its piece, centred on the row, when the row is free (S10-04b)", () => {
     const thin = [col(10, 40, 4), col(40, 70, 4)];
-    expect(OUTSIDE_GAP_PX).toBe(2);
-    expect(placeOutsideName("Treasure Island", thin, perChar)).toEqual({ text: "Treasure Island", x: 10, y: 46 - OUTSIDE_NAME_PX, width: 15, height: OUTSIDE_NAME_PX, textX: 10, textY: 46 });
-    expect(placeOutsideName("Piano practice", thin, perChar)).toMatchObject({ y: 46 - OUTSIDE_NAME_PX, textY: 46 - DESCENDER_PX });
-    expect(placeOutsideName("A Child's Garden of Verses", [col(10, 20, 4)], perChar)!.text).toBe(`A Child's${ELLIPSIS}`);
-    expect(placeOutsideName("Heidi", [col(10, 11, 4)], perChar)).toBeNull();
-    // With outside names on, the thin piece gets an outside name and the thick one stays inside; without, the thin one has none.
+    expect([OUTSIDE_GAP_PX, OUTSIDE_CLEAR_PX]).toEqual([6, 4]);
+    expect(placeRightName("Treasure Island", thin, 50, 200, perChar)).toEqual({ text: "Treasure Island", x: 76, y: 50 - NAME_FONT_PX / 2, width: 15, height: NAME_FONT_PX, textX: 76, textY: 50 });
+    // Exactly enough room (gap + text + clearance), then one pixel short: never cut outside.
+    expect(placeRightName("Heidi", thin, 50, 70 + 6 + 5 + 4, perChar)).not.toBeNull();
+    expect(placeRightName("Heidi", thin, 50, 70 + 6 + 5 + 3, perChar)).toBeNull();
+    // With limits, the thin piece gets an outside name and the thick one stays inside; without, the thin one has none.
     const pieces = [[col(0, 40, 4)], [col(50, 100, 20)]];
-    expect(placePieceNames("Heidi", pieces, 50, false, perChar, true).map((n) => [n.piece, n.outside])).toEqual([[0, true], [1, false]]);
+    expect(placePieceNames("Heidi", pieces, 50, false, perChar, [60, 300]).map((n) => [n.piece, n.outside])).toEqual([[0, true], [1, false]]);
     expect(placePieceNames("Heidi", pieces, 50, false, perChar).map((n) => n.piece)).toEqual([1]);
-    // A thick piece too short for its name stays unnamed: only thin pieces go outside.
-    expect(placePieceNames("Heidi", [[col(0, 6, 20)]], 50, false, perChar, true)).toEqual([]);
     // Zoomed out, the 2× rule still applies to later pieces.
-    expect(placePieceNames("Heidi", [[col(0, 40, 4)], [col(50, 58, 4)]], 50, true, perChar, true).map((n) => n.piece)).toEqual([0]);
+    expect(placePieceNames("Heidi", [[col(0, 40, 4)], [col(50, 58, 4)]], 50, true, perChar, [60, 300]).map((n) => n.piece)).toEqual([0]);
   });
 
   it(`leaves a piece thinner than ${NAME_PATCH_PX} px unnamed: with no patch, the text would spill onto the page (T-11c)`, () => {
@@ -109,11 +107,11 @@ describe("naming each piece of a bar (T-11)", () => {
     expect([p.x, p.y, p.height, p.textY]).toEqual([NAME_INSET_PX, 50 - NAME_PATCH_PX / 2, NAME_PATCH_PX, 50]);
   });
 
-  it("cuts the name to fit the piece, and gives up below one character and the ellipsis", () => {
+  it("cuts the name to fit the piece, and gives up below six letters and the ellipsis (S10-04b)", () => {
     const room = (n: number) => n + 2 * NAME_INSET_PX + 2 * NAME_PAD_PX;
-    expect(placePieceName("Treasure Island", [col(0, room(5), 20)], 50, perChar)!.text).toBe(`Trea${ELLIPSIS}`);
-    expect(placePieceName("Treasure Island", [col(0, room(2), 20)], 50, perChar)!.text).toBe(`T${ELLIPSIS}`);
-    expect(placePieceName("Treasure Island", [col(0, room(1), 20)], 50, perChar)).toBeNull();
+    expect(placePieceName("Treasure Island", [col(0, room(9), 20)], 50, perChar)!.text).toBe(`Treasure${ELLIPSIS}`);
+    expect(placePieceName("Treasure Island", [col(0, room(7), 20)], 50, perChar)!.text).toBe(`Treasu${ELLIPSIS}`);
+    expect(placePieceName("Treasure Island", [col(0, room(6), 20)], 50, perChar)).toBeNull();
   });
 
   it("names every piece with daily detail; zoomed out, later pieces only when at least 2× their name (T-11b)", () => {
@@ -129,7 +127,7 @@ describe("names in the layout", () => {
 
   const views = [["year", 1280], ["fall", 1280], ["spring", 1280], ["month", 1280], ["year", 390], ["month", 390], ["year", 360], ["year", 320]] as const;
   for (const [zoom, width] of views) {
-    it(`at ${zoom} / ${width} px every name sits inside one piece of its own bar, at most one per piece, never over another`, () => {
+    it(`at ${zoom} / ${width} px every name sits on (or just right of) one piece of its own bar, at most one per piece, never over another`, () => {
       const l = layoutTimeline(sample, { zoom, width, month: "2026-12" });
       const seen = new Set<string>();
       for (const n of l.names) {
@@ -137,18 +135,20 @@ describe("names in the layout", () => {
         const row = l.rows.find((r) => r.key === n.rowKey)!;
         expect(seen.has(`${band.rowKey}|${band.assignmentId}|${n.piece}`)).toBe(false);
         seen.add(`${band.rowKey}|${band.assignmentId}|${n.piece}`);
-        // T-11: inside its piece (no labels past the bar), inside its row.
         const piece = band.runs[n.piece]!;
-        expect(n.x).toBeGreaterThanOrEqual(piece.x0 - 0.01);
-        expect(n.x + n.width).toBeLessThanOrEqual(piece.x1 + 0.01);
         if (n.outside) {
-          // T-11d/T-11e: left-aligned with the piece, bottom edge just above the bar, never into the row above.
-          expect(n.x).toBeCloseTo(piece.x0, 5);
-          expect(n.height).toBe(OUTSIDE_NAME_PX);
-          expect(n.textY).toBeLessThanOrEqual(n.y + n.height + 1e-9);
-          expect(n.textY + OUTSIDE_GAP_PX).toBeLessThanOrEqual(band.cy);
-          expect(n.y).toBeGreaterThanOrEqual(row.y - row.labelLane - 0.01);
+          // S10-04b: just right of the piece, centred on the row, clear of every other piece in the row and the plot edge.
+          expect(n.x).toBeCloseTo(piece.x1 + OUTSIDE_GAP_PX, 5);
+          expect(n.textY).toBeCloseTo(band.cy, 5);
+          expect(n.text).toBe(band.title);
+          expect(n.x + n.width).toBeLessThanOrEqual(l.plot.x + l.plot.width - OUTSIDE_CLEAR_PX + 0.01);
+          for (const other of l.bands.filter((b) => b.rowKey === n.rowKey)) {
+            for (const run of other.runs) expect(run.x0 >= n.x + n.width + OUTSIDE_CLEAR_PX - 0.01 || run.x1 <= n.x + 0.01).toBe(true);
+          }
         } else {
+          // T-11: inside its piece, inside its row.
+          expect(n.x).toBeGreaterThanOrEqual(piece.x0 - 0.01);
+          expect(n.x + n.width).toBeLessThanOrEqual(piece.x1 + 0.01);
           expect(n.y).toBeGreaterThanOrEqual(row.y - 0.01);
           expect(n.y + n.height).toBeLessThanOrEqual(row.y + row.height + 0.01);
           expect(n.height).toBeGreaterThanOrEqual(NAME_PATCH_PX - 0.01);
@@ -156,23 +156,17 @@ describe("names in the layout", () => {
         }
         expect(n.text === band.title || (n.text.endsWith(ELLIPSIS) && band.title.startsWith(n.text.slice(0, -1)))).toBe(true);
         expect([n.paletteSlot, n.step]).toEqual([band.paletteSlot, band.step]);
-        for (const m of l.names.filter((m) => m.rowKey === n.rowKey && m.outside === n.outside && m !== n)) expect(m.x >= n.x + n.width || m.x + m.width <= n.x).toBe(true);
+        for (const m of l.names.filter((m) => m.rowKey === n.rowKey && m !== n)) expect(m.x >= n.x + n.width || m.x + m.width <= n.x).toBe(true);
       }
       if (width === 1280) expect(l.names.length).toBeGreaterThan(5);
-      // T-11d: only rows holding an outside name get extra space.
-      // T-11e: and only as much as its highest outside name needs (under 1 px to spare, from rounding up).
-      for (const r of l.rows) {
-        const outside = l.names.filter((n) => n.rowKey === r.key && n.outside);
-        if (outside.length === 0) expect(r.labelLane).toBe(0);
-        else if (r.labelLane > 0) expect(Math.min(...outside.map((n) => n.y)) - (r.y - r.labelLane)).toBeLessThan(1);
-      }
+      // S10-04b: names never need extra space above a row any more.
+      for (const r of l.rows) expect(r.labelLane).toBe(0);
     });
   }
 
-  it("gives some thin pieces an outside name, and leaves most rows compact (T-11d)", () => {
+  it("gives some thin pieces an outside name to their right (T-11d, S10-04b)", () => {
     const l = layoutTimeline(withThin, { zoom: "year", width: 1280 });
     expect(l.names.some((n) => n.outside)).toBe(true);
-    expect(l.rows.filter((r) => r.labelLane === 0).length).toBeGreaterThan(0);
   });
 
   it("with daily detail, the piece right after a break gets its own name", () => {
@@ -216,7 +210,7 @@ describe("drawing names", () => {
 });
 
 describe("names while another bar is selected (T-11d)", () => {
-  it("outside names dim with their bar; inside names stay at full strength over the dimmed bar", () => {
+  it("names stay at full strength while their bar dims: inside ones gain contrast, outside (muted) ones keep AA (S10-04b)", () => {
     const layout = layoutTimeline(withThin, { zoom: "year", width: 1280 });
     const outside = layout.names.find((n) => n.outside)!;
     const other = layout.names.find((n) => n.assignmentId !== outside.assignmentId)!.assignmentId;
@@ -224,10 +218,11 @@ describe("names while another bar is selected (T-11d)", () => {
     for (const g of container.querySelectorAll(".tl-names [data-name-for]")) {
       const isOutside = !!g.querySelector("text.tl-outside-name");
       const mine = g.getAttribute("data-name-for") === other;
-      expect(g.classList.contains("tl-dim")).toBe(isOutside && !mine);
+      expect(g.classList.contains("tl-dim")).toBe(false);
+      void isOutside;
       if (mine) expect(g.classList.contains("tl-selected")).toBe(true);
     }
-    expect(container.querySelector(`[data-name-for="${outside.assignmentId}"] text.tl-outside-name`)!.parentElement).toHaveClass("tl-dim");
+    expect(container.querySelector(`[data-name-for="${outside.assignmentId}"] text.tl-outside-name`)!.parentElement).not.toHaveClass("tl-dim");
   });
 });
 
@@ -244,15 +239,17 @@ describe("Black Beauty after Thanksgiving in Frank's Fall view (T-11b)", () => {
       blocked: f.blocked.map((b) => ({ id: b.id, label: b.label, kind: (b.kind ?? "vacation") as BlockedRange["kind"], startDate: b.start, endDate: b.end, childIds: [...(b.childIds ?? [])] })),
       events: [],
     }));
-    // About what the page's canvas measures for the 11 px name font (Treasure Island's text is ~79 px there).
+    // About what the page's canvas measured for the old 11 px name font (Treasure Island's text is ~79 px there).
     const browserish = (t: string) => t.length * 5.3;
     const l = layoutTimeline(forChild(model, "frank"), { zoom: "fall", width: 912, measureText: browserish });
     const band = l.bands.find((b) => b.assignmentId === "beauty")!;
     expect(band.runs).toHaveLength(2);
     const names = l.names.filter((n) => n.assignmentId === "beauty");
-    expect(names.map((n) => n.piece)).toEqual([0, 1]);
-    const after = names[1]!;
-    expect(after.text.startsWith("Bl")).toBe(true);
+    // S10-04b: the ~47 px piece before the break can't hold six letters and "…", and the break is too narrow for the
+    // name outside, so it goes unnamed (the tap still works); the piece after the break holds the name in full.
+    expect(names.map((n) => n.piece)).toEqual([1]);
+    const after = names[0]!;
+    expect(after.text).toBe("Black Beauty");
     // Wider than 2× its name but not 3×: this is the piece the old rule left blank.
     const w = band.runs[1]!.x1 - band.runs[1]!.x0;
     expect(w).toBeLessThan(3 * after.width);

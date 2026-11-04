@@ -43,9 +43,9 @@
 .tl-tick-week { stroke: var(--tl-grid); stroke-width: 1; stroke-opacity: 0.5; }
 .tl-axis-label { font-size: 11px; fill: var(--tl-muted-foreground); }
 .tl-band { fill-opacity: var(--tl-bar-opacity); stroke-width: 1; stroke-opacity: 0.4; stroke-linejoin: round; }
-.tl-name { font-size: 11px; font-weight: 500; paint-order: stroke; stroke-width: 3px; stroke-linejoin: round; }
+.tl-name { font-size: 12px; font-weight: 700; paint-order: stroke; stroke-width: 3px; stroke-linejoin: round; }
 /* T-11d: a thin piece's name, in the lane above its row: page text, small and calm. */
-.tl-outside-name { font-size: 11px; fill: var(--tl-foreground); paint-order: stroke; stroke: var(--tl-background); stroke-width: 3px; stroke-linejoin: round; }
+.tl-outside-name { font-size: 12px; font-weight: 600; fill: var(--tl-muted-foreground); paint-order: stroke; stroke: var(--tl-background); stroke-width: 3px; stroke-linejoin: round; }
 /* T-11: one assignment split by a break stays joined by a faint line in its colour (never between assignments). */
 .tl-connector { stroke-width: 2; stroke-opacity: 0.35; stroke-linecap: round; }
 /* S10-02: hairlines between lanes and between child groups. */

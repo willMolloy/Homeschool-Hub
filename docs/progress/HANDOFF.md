@@ -40,9 +40,12 @@ Details, files and Decisions are in [sprint-9.md](sprint-9.md) under "Sprint 9b"
 | S10-02 Lanes grouped by child | fa80631 |
 | S10-15 Year badges 44 px tap zone | e631c61 |
 | S10-03 Sticky two-line axis | 51cef65 |
+| S10-04 Bar heights follow effort (95th-percentile max) | b5f33d1 |
+| S10-04b Bar labels that fit | see sprint-10.md |
 
-- **Next:** S10-04 (bar heights; the max is now the view's 95th-percentile load, per DeeDee 2026-11-04), then S10-04b, S10-04c, S10-05, S10-06, S10-07 and S10-08. Then stop, and the S10-10a tester takes over.
-- **Gate:** before every commit, `DATABASE_URL=postgres://hh:hh@localhost:5432/hh2dev_test bash scripts/check.sh` must end ALL GREEN.
+- **Next:** S10-04c, then S10-05, S10-06, S10-07 and S10-08. Then stop, and the S10-10a tester takes over. If time runs short, S10-08 slips first, then S10-07 (README).
+- **Gate:** before every commit, `DATABASE_URL=postgres://hh:hh@127.0.0.1:5462/hh2dev_test bash scripts/check.sh` must end ALL GREEN (about 2 minutes).
+  - That Postgres is the Developer's own embedded one on 127.0.0.1:5462 (data in `/workspace/hh2-s10-pg/data`, binaries under `/workspace/hh2-s10-pg/node_modules/@embedded-postgres/linux-x64/native/bin`, user hh/hh). Start it with `pg_ctl -D /workspace/hh2-s10-pg/data -o "-p 5462 -c listen_addresses=127.0.0.1 -k /workspace/hh2-s10-pg/sock" start` if it is down; any scratch Postgres with an empty test database works too.
 - **In progress:** nothing half-done. Each ticket is one commit.
 
 ## S9b-07 and Claude's branch

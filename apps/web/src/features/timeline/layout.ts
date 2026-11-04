@@ -194,7 +194,7 @@ export interface LaneRow {
   height: number;
   /** The fixed centerline. */
   cy: number;
-  /** T-11d/T-11e: extra space just above `y` for names outside thin bars: only what they need, else 0. */
+  /** T-11d/T-11e: space above `y` for names over thin bars. S10-04b: always 0 (outside names sit to the right). */
   labelLane: number;
 }
 
@@ -443,6 +443,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   const m = metricsFor(width, options.bars);
   const plotX = Math.min(m.gutter + SIDE_PAD_PX, width / 2);
   const plotWidth = Math.max(0, width - plotX - m.pad);
+  const plotRight = plotX + plotWidth;
   const [first, last] = range ?? [0, -1];
   const xs = makeXScale(model, first, last, plotX, plotWidth);
   const shown = (i: number) => i >= first && i <= last;
@@ -599,26 +600,26 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
         const cy = r === 0 ? laneTop + m.pitch / 2 : laneTop + m.pitch + (r - 0.5) * m.sub;
         const height = rowHeight(members, heightOf);
         const key = `${lane.laneKey}#${r}`;
-        // The room above the bar inside its own row: the only place an outside name may go (S10-04b reworks names).
-        const slotTop = r === 0 ? laneTop : laneTop + m.pitch + (r - 1) * m.sub;
         rows.push({
           key, laneKey: lane.laneKey, row: r, subjectId: lane.subjectId, subjectName: lane.subjectName, childId: g.childId ?? "",
           childName: g.name, groupKey: g.key, paletteSlot: lane.paletteSlot, step: "base", y: cy - height / 2, height, cy, labelLane: 0,
         });
-        const row = rows[rows.length - 1]!;
-        for (const a of members) {
-          // T-11: the outer ends pulled in, so neighbouring assignments never touch.
+        // T-11: the outer ends pulled in, so neighbouring assignments never touch.
+        const drawnPieces = members.map((a) => {
           const columns = insetEnds(columnsFor(seriesFor(a), cy, heightOf));
-          const pieces = piecesOf(columns);
+          return { a, columns, pieces: piecesOf(columns) };
+        });
+        // S10-04b: where each piece's row stops being free on the right: the next piece in the row, or the plot's edge.
+        const starts = drawnPieces.flatMap((d) => d.pieces.map((p) => p[0]!.x0)).sort((x, z) => x - z);
+        const freeTo = (end: number) => starts.find((x) => x > end + 0.01) ?? plotRight;
+        for (const { a, columns, pieces } of drawnPieces) {
           bands.push({
             rowKey: key, laneKey: lane.laneKey, assignmentId: a.assignmentId, childId: a.childId, title: a.title,
             paletteSlot: lane.paletteSlot, step: "base", d: pathFor(columns), runs: runsOf(columns), cy,
             connectors: connectorsOf(pieces),
           });
-          for (const name of placePieceNames(a.title, pieces, cy, detail === "smooth", measure, true)) {
-            if (name.outside && name.y < slotTop - 0.01) continue;
-            // labelLane: how far the row's highest outside name reaches above its bar (no extra space is added).
-            if (name.outside) row.labelLane = Math.max(row.labelLane, row.y - name.y);
+          const limits = pieces.map((p) => freeTo(p[p.length - 1]!.x1));
+          for (const name of placePieceNames(a.title, pieces, cy, detail === "smooth", measure, limits)) {
             names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: lane.paletteSlot, step: "base", ...name });
           }
         }
