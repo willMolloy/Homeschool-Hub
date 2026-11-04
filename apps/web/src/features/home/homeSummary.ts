@@ -68,3 +68,16 @@ export function finishGlance(plans: readonly ChildPlan[]): { date: LocalDate; on
   const planned = open.reduce((x, p) => (p.plannedEnd > x ? p.plannedEnd : x), open[0]!.plannedEnd);
   return { date, onTrack: date <= planned };
 }
+
+/**
+ * S9b-03: the Schedule card's line. "on track to finish {date}" only when the forecast is known and nothing is forecast late;
+ * "{N} running late" when something is (the briefing line names the most important one); otherwise when it finishes.
+ */
+export function scheduleSub(finish: { date: LocalDate; onTrack: boolean } | null, late: number | undefined): string {
+  const head = "This week and your year";
+  if (late !== undefined && late > 0) return `${head} · ${late} running late`;
+  if (!finish) return head;
+  if (finish.onTrack && late === 0) return `${head} · on track to finish ${dayMonth(finish.date)}`;
+  if (!finish.onTrack) return `${head} · finishing about ${dayMonth(finish.date)}`;
+  return head;
+}

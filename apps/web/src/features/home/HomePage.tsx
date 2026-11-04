@@ -19,7 +19,7 @@ import { useWeekPlans } from "../plan/useWeekPlans";
 import { deviceToday, shownWeek } from "../plan/useShownWeek";
 import { isValidLocalDate } from "@hh/engine";
 import { subjectSlots } from "../timeline/model";
-import { dayMonth, finishGlance, greetingFor, longDate, weekOfSpan } from "./homeSummary";
+import { finishGlance, greetingFor, longDate, scheduleSub, weekOfSpan } from "./homeSummary";
 import "./home.css";
 
 export function HomePage() {
@@ -43,6 +43,7 @@ function Home() {
   const kids = (children.data ?? []).filter((c) => !c.archived);
   const weekNo = weekOfSpan(assignments.data ?? [], today);
   const finish = plans ? finishGlance(plans) : null;
+  const [late, setLate] = useState<number | undefined>(undefined);
 
   return (
     <div className="home">
@@ -52,7 +53,7 @@ function Home() {
       </header>
       <h1 className="home-greeting">{greetingFor(new Date().getHours())}</h1>
       <p className="home-date">{longDate(today)}{weekNo ? ` · Week ${weekNo.n} of ${weekNo.m}` : ""}</p>
-      <HomeBriefing weekStart={currentWeekStart} />
+      <HomeBriefing weekStart={currentWeekStart} onLate={setLate} />
       {/* S8-09: only once all four lists have answered, so it never flashes for a family that has set up. */}
       {children.data && subjects.data && assignments.data && blocked.data ? (
         <Checklist steps={checklistSteps({
@@ -66,7 +67,7 @@ function Home() {
           <div className="home-card-text">
             <h2><Link className="home-card-link" to="/schedule">Schedule</Link></h2>
             <div className="home-sub">
-              {finish ? (finish.onTrack ? `This week and your year · on track to finish ${dayMonth(finish.date)}` : `This week and your year · finishing about ${dayMonth(finish.date)}`) : "This week and your year"}
+              {scheduleSub(finish, late)}
             </div>
           </div>
           <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />

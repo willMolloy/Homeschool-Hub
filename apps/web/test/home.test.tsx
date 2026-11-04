@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
-import { finishGlance, greetingFor, longDate, weekGlance, weekOfSpan, weekSpan } from "../src/features/home/homeSummary";
+import { finishGlance, greetingFor, scheduleSub, longDate, weekGlance, weekOfSpan, weekSpan } from "../src/features/home/homeSummary";
 import { SETUP_LINKS, TABS } from "../src/layout/nav";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
@@ -200,6 +200,14 @@ describe("Home's facts", () => {
     expect(weekGlance([FRANK], "c1", "2026-10-26", "2026-10-28")).toEqual({ progress: 0.4, left: 1, planned: true });
     expect(weekGlance([FRANK], "c1", "2026-10-26", "2026-11-02")).toEqual({ progress: 1, left: 0, planned: true });
     expect(weekGlance([FRANK], "c2", "2026-10-26", "2026-10-28")).toEqual({ progress: 0, left: 0, planned: false });
+  });
+  it("S9b-03: the Schedule card line says on track only when nothing is forecast late", () => {
+    expect(scheduleSub({ date: "2026-12-01", onTrack: true }, 0)).toBe("This week and your year · on track to finish Dec 1");
+    expect(scheduleSub({ date: "2026-12-01", onTrack: true }, 2)).toBe("This week and your year · 2 running late");
+    expect(scheduleSub({ date: "2026-12-08", onTrack: false }, 1)).toBe("This week and your year · 1 running late");
+    expect(scheduleSub({ date: "2026-12-08", onTrack: false }, 0)).toBe("This week and your year · finishing about Dec 8");
+    expect(scheduleSub({ date: "2026-12-01", onTrack: true }, undefined)).toBe("This week and your year");
+    expect(scheduleSub(null, 0)).toBe("This week and your year");
   });
   it("the finish: the latest end of open work, and whether it is still the planned one", () => {
     expect(finishGlance([FRANK])).toEqual({ date: "2026-12-01", onTrack: true });

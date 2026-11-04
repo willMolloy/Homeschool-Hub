@@ -78,7 +78,8 @@ Branch `hh2/sprint-9b`, from `claude/test-coverage-analysis-6dehbu`. Tickets in 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
 | S9b-01 School days are real days | 0a31fc7 | API `services/recordEntryService.ts` (`coveredDays`), `repos/recordEntryRepo.ts` (overlap filter, `coveredDays` in the JSON), `services/recordTotals.ts` (union of days, `shareInRange`, hours in proportion), `routes/recordEntries.ts`; web `records/share.ts` (new, `partInRange`, `distinctSchoolDays`), `exportData.ts`, `RecordsPage.tsx` ("part of an entry from …"), `Totals.tsx` ("days any child did school"), `entryText.ts`, `api/types.ts` |
-| S9b-02 A typed book is never dropped | (this commit) | web `records/LogEntryForm.tsx`: a title typed but not added with Add is added on Save (the ticket's first choice) |
+| S9b-02 A typed book is never dropped | 426985e | web `records/LogEntryForm.tsx`: a title typed but not added with Add is added on Save (the ticket's first choice) |
+| S9b-03 Home never says "on track" beside a late line | (this commit) | web `home/homeSummary.ts` (`scheduleSub`), `HomePage.tsx`, `plan/HomeBriefing.tsx` (`onLate`), `plan/Briefing.tsx` (`useBriefingGroups` also gives `late`), `plan/briefingLines.ts` (`lateAssignments`) |
 
 ### Decisions (Sprint 9b)
 
@@ -88,3 +89,4 @@ Branch `hh2/sprint-9b`, from `claude/test-coverage-analysis-6dehbu`. Tickets in 
 - S9b-01: books on an entry only partly in the range are listed (whole). Notes are kept on the part.
 - S9b-01: All children counts the days any child did school (union); the label says "days any child did school" when All children is chosen and the family has more than one child, otherwise "school days". The Totals CSV keeps one row per child with that child's own distinct days.
 - S9b-01: the export's Entries rows are each entry's part inside the dates (clipped first and last day, days and hours); Edit and Delete in the list act on the whole entry.
+- S9b-03: "running late" counts the assignments with a "will finish late" briefing line (the same source as Home's briefing line), once each across children. Lines the parent chose to Keep still count: keeping the date doesn't make the work on time. Stalled ("No progress") lines don't count as late. The card says "on track to finish" only once that forecast has loaded and is 0; while it loads the card shows just "This week and your year".

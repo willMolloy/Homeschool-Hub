@@ -11,7 +11,7 @@ import type { Assignment, Child, PlanResponse } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useMe } from "../../auth/AuthProvider";
 import { shortDate } from "../schedule/formBits";
-import { buildBriefing, type BriefingLine, type ChildBriefing, type LateAction } from "./briefingLines";
+import { buildBriefing, lateAssignments, type BriefingLine, type ChildBriefing, type LateAction } from "./briefingLines";
 import { usePlanRefresh } from "./planRefresh";
 import "./plan.css";
 
@@ -120,7 +120,7 @@ interface BodyProps {
  * The briefing's lines per child for the shown week, with "Keep" remembered (S7b-05): undefined while the plan loads
  * or fails to load. Shared by the Week view's briefing and Home's one-line version (S9-05).
  */
-export function useBriefingGroups(assignments: Assignment[], children: Child[], weekStart: LocalDate): { groups: ChildBriefing[] | undefined; keep: (a: LateAction) => void } {
+export function useBriefingGroups(assignments: Assignment[], children: Child[], weekStart: LocalDate): { groups: ChildBriefing[] | undefined; late: number | undefined; keep: (a: LateAction) => void } {
   const me = useMe();
   const ranges = useMemo(() => briefingRanges(assignments, weekStart), [assignments, weekStart]);
   // A check-in or adjustment elsewhere on the page changed the plan: refetch in place.
@@ -133,21 +133,26 @@ export function useBriefingGroups(assignments: Assignment[], children: Child[], 
     writeKept(next);
     setKept(next);
   };
-  const groups = useMemo(() => {
+  const all = useMemo(() => {
     if (!plans) return undefined;
     const titles = new Map(assignments.map((a) => [a.id, a.title]));
-    const shown = buildBriefing({
+    return buildBriefing({
       plans,
       children: children.filter((c) => !c.archived).map((c) => ({ id: c.id, name: c.name })),
       titleOf: (id) => titles.get(id) ?? "An assignment",
       weekStart,
       calendar: { weekStart: me.weekStart, schoolDays: me.schoolDays as Weekday[] },
     });
+  }, [plans, assignments, children, weekStart, me.weekStart, me.schoolDays]);
+  const groups = useMemo(() => {
+    if (!all) return undefined;
     // S7b-05: a kept line stays hidden until its forecast changes.
     const visible = (l: BriefingLine) => !(l.action && kept[keptKey(l.action)] === l.action.signature);
-    return shown.map((g) => ({ ...g, lines: g.lines.filter(visible) })).filter((g) => g.lines.length > 0);
-  }, [plans, assignments, children, weekStart, me.weekStart, me.schoolDays, kept]);
-  return { groups, keep };
+    return all.map((g) => ({ ...g, lines: g.lines.filter(visible) })).filter((g) => g.lines.length > 0);
+  }, [all, kept]);
+  // S9b-03: how many assignments are forecast late, kept lines included (keeping the date doesn't make the work on time).
+  const late = useMemo(() => (all ? lateAssignments(all) : undefined), [all]);
+  return { groups, late, keep };
 }
 
 function BriefingBody({ assignments, children, weekStart }: BodyProps) {
