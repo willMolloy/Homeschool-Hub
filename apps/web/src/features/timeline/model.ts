@@ -9,7 +9,7 @@ import { aggregate, type ChildPlan, type LocalDate, type PlanWarning, type WeekS
 import type { Assignment, BlockedRange, Child, ScheduleEvent, Subject } from "../../api/types";
 import { slotOfColor } from "../roster/palette";
 import { buildDayGrid, gridIndex, sumSeries, zeros, type DayGrid } from "./grid";
-import { breaksOnGrid, eventsOnGrid, type TimelineBreak, type TimelineEvent } from "./marks";
+import { breaksOnGrid, eventsOnGrid, idleDays, type TimelineBreak, type TimelineEvent } from "./marks";
 
 /** Subject colour slots in the Soft Paper palette (`--tl-subject-1` … `-8`, S8-01). Slots repeat after this; the subject's icon (S8-11) is the cue, never colour alone. */
 export const PALETTE_SLOTS = 8;
@@ -34,6 +34,8 @@ export interface TimelineAssignment {
   estimated: boolean;
   complete: boolean;
   warnings: PlanWarning[];
+  /** S10-05 fix: per grid day, a school day this assignment can't be given work on (its weekdays, events that skip it). */
+  idle?: boolean[];
 }
 
 export interface ChildLane {
@@ -143,7 +145,7 @@ function extent(series: readonly number[]): [number, number] {
   return [first, last];
 }
 
-function toAssignment(grid: DayGrid, plan: ChildPlan, title: string, weekStart: WeekStart): TimelineAssignment {
+function toAssignment(grid: DayGrid, plan: ChildPlan, title: string, weekStart: WeekStart, events: readonly ScheduleEvent[]): TimelineAssignment {
   const daily = onGrid(grid, plan.days.map((d) => ({ date: d.date, value: d.thickness })));
   const weekly = onGrid(grid, aggregate(plan.days, "weekly", weekStart));
   const [first, last] = extent(daily);
@@ -160,6 +162,7 @@ function toAssignment(grid: DayGrid, plan: ChildPlan, title: string, weekStart: 
     estimated: plan.weightSource === "default",
     complete: plan.complete,
     warnings: [...plan.warnings],
+    idle: idleDays(grid, plan, events),
   };
 }
 
@@ -188,7 +191,7 @@ export function buildTimelineModel(input: TimelineInput): TimelineModel {
         .sort(([a], [b]) => children.rank(a) - children.rank(b))
         .map(([childId, plans]): ChildLane => {
           const assignments = plans
-            .map((p) => toAssignment(grid, p, titles.get(p.assignmentId) ?? "Assignment", input.weekStart))
+            .map((p) => toAssignment(grid, p, titles.get(p.assignmentId) ?? "Assignment", input.weekStart, input.events ?? []))
             .sort((a, b) => (a.first < 0 ? Infinity : a.first) - (b.first < 0 ? Infinity : b.first) || a.title.localeCompare(b.title));
           return {
             key: `${subjectId}:${childId}`,

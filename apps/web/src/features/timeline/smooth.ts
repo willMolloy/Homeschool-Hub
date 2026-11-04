@@ -113,8 +113,16 @@ export function cleanSeries(series: readonly number[], columns: readonly number[
  * when every school day in it is closed by a break (`closed`), easing from the load before it to the load after, so
  * the bar is unbroken under the break's wash. Other gaps (a day off, an unscheduled weekday, before the start or
  * after the end) stay gaps.
+ * S10-05 fix (M1): `idle` days (ones this assignment can't be given work on anyway: a weekday it doesn't use, an event
+ * that skips it) are passed over like weekends, so the Friday piano lesson before a break doesn't keep the gap. A gap
+ * still needs at least one closed school day to be bridged.
  */
-export function bridgeBreaks(series: readonly number[], schoolDay: readonly boolean[], closed: (i: number) => boolean): number[] {
+export function bridgeBreaks(
+  series: readonly number[],
+  schoolDay: readonly boolean[],
+  closed: (i: number) => boolean,
+  idle: (i: number) => boolean = () => false,
+): number[] {
   const out = [...series];
   let left = -1;
   for (let i = 0; i < series.length; i++) {
@@ -123,7 +131,7 @@ export function bridgeBreaks(series: readonly number[], schoolDay: readonly bool
       let school = 0;
       let open = false;
       for (let k = left + 1; k < i && !open; k++) {
-        if (!schoolDay[k]) continue;
+        if (!schoolDay[k] || idle(k)) continue;
         school++;
         if (!closed(k)) open = true;
       }

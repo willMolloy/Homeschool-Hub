@@ -46,9 +46,10 @@ Details, files and Decisions are in [sprint-9.md](sprint-9.md) under "Sprint 9b"
 | S10-05 Breaks as a wash over the bars | af89c39 |
 | S10-06 Edit sheet as mocked | 8a50218, 206353d |
 | S10-07 Add sheet as mocked | 6383476 |
-| S10-08 Title row: "+" and the pencil | see sprint-10.md |
+| S10-08 Title row: "+" and the pencil | 1693bc7 |
+| S10-05 fix (M1 from the 10a test): bars run through a break past a skipped day | see sprint-10.md |
 
-- **Next:** 10a build is done (S10-01..08, 04b, 04c, 15). The S10-10a tester pass is next (a separate tester). Do not start 10b on this branch: 10b is a new branch off `main` after 10a merges (README).
+- **Next:** 10a build is done (S10-01..08, 04b, 04c, 15). The S10-10a tester pass (`docs/reviews/sprint-10a-verification.md`, at 8b5b0dd) said NOT READY for one Medium (M1, S10-05); M1 is fixed (S10-05 fix), and L3/R6 is fixed separately (S10-19 partial). The other Lows (L1, L2, L4–L8) and the open R3/R4 are in the Sprint 10 README's carry-over list for 10b or the backlog. A re-test of M1 (and L3/R6) by a separate tester is next. Do not start 10b on this branch: 10b is a new branch off `main` after 10a merges (README).
 - **Gate:** before every commit, `DATABASE_URL=postgres://hh:hh@127.0.0.1:5462/hh2dev_test bash scripts/check.sh` must end ALL GREEN (about 2 minutes).
   - That Postgres is the Developer's own embedded one on 127.0.0.1:5462 (data in `/workspace/hh2-s10-pg/data`, binaries under `/workspace/hh2-s10-pg/node_modules/@embedded-postgres/linux-x64/native/bin`, user hh/hh). Start it with `pg_ctl -D /workspace/hh2-s10-pg/data -o "-p 5462 -c listen_addresses=127.0.0.1 -k /workspace/hh2-s10-pg/sock" start` if it is down; any scratch Postgres with an empty test database works too.
 - **In progress:** nothing half-done. Each ticket is one commit.

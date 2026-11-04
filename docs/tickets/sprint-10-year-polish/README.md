@@ -82,11 +82,27 @@ The Sprint 9b re-test (`docs/reviews/sprint-9b-verification.md`) passed READY wi
 |----|---------|---------------|
 | R1 | The "Each entry" CSV's School days column adds up to more than the real total, because a day in two entries is in both rows. | S10-19 (10b) |
 | R2 | A clipped CSV row doesn't say which longer entry it is part of, which the screen does say. | S10-19 (10b) |
-| R3 | "All children" wraps onto two lines at 320 px on Records and Schedule. | S10-10a checks Schedule (S10-02 touches the switch); S10-10b checks both again after S10-16. |
-| R4 | At 320 px with a long term name, only a weak fade shows that the zoom row scrolls. | S10-10a checks it. |
+| R3 | "All children" wraps onto two lines at 320 px on Records and Schedule. | S10-10a checked Schedule: **still open** (see below). S10-10b checks both again after S10-16. |
+| R4 | At 320 px with a long term name, only a weak fade shows that the zoom row scrolls. | S10-10a checked it: **still open** (see below). |
 | R5 | "Your log tracks School days." has a capital S mid-sentence. | S10-19 (10b) |
-| R6 | At 360 px, the date placeholder ends about 1 px before the calendar icon. | S10-10a checks it. S10-07 restyles the form. |
+| R6 | At 360 px, the date placeholder ends about 1 px before the calendar icon. | S10-10a: closed in the Log form and the Year tiles; open on Set up › Assignments and Days off (L3), fixed on `hh2/sprint-10` as "S10-19 partial". |
 | R7 | The `s2a-13-settings` smoke scenario is flaky after `axe-2a`. | S10-19 (10b) |
+
+## Carried over from the 10a test (Low)
+
+The S10-10a test (`docs/reviews/sprint-10a-verification.md`) found one Medium (M1, fixed as "S10-05 fix") and these Lows. L3 (with R6) is fixed as "S10-19 partial". The rest are not built in 10a; they go to 10b or the backlog.
+
+| ID | Finding | Where it goes |
+|----|---------|---------------|
+| L1 | A bar in an extra row is capped at 80 % of the maximum, so a cram week there can look lighter than an ordinary week (S10-04). | Backlog (rare; revisit `EXTRA_ROW_FACTOR`). |
+| L2 | A short bar with no room inside or outside gets no name (S10-04b allows "else none"; the badge and edit sheet still name it). | Backlog (by design; noted for DeeDee). |
+| L4 | A child whose only work is shared gets a header and ribbon with no lanes under it (S10-02). | Backlog. |
+| L5 | The Add sheet's Unit is still a native select, and the subject is not preselected (S10-07). | S10-16 (10b, forms). |
+| L6 | The `tap-targets` smoke script flags the 28 px tile inputs inside the 60 px date tiles. | S10-19 (10b): measure the label or skip `.tl-tile` inputs. |
+| L7 | `axe-2a` logged one colour-contrast hit on Add assignment's submit button at 1280 once (clean on re-runs). | S10-19 (10b), with R7. |
+| L8 | On the phone the Year edit sheet sits above the tab bar; the mockup caption has it covering it (S10-01). | Backlog (a mockup difference only). |
+| R3 | Still open: at 320 with 2 children "All children" wraps; with 3 children the child switch wraps to a second row at 390 and 414. | S10-16 / S10-10b (10b). |
+| R4 | Still open: at 320 with a 30-character Fall name, later chips are off-screen with only the fade as a cue. | S10-19 (10b). |
 
 ## Order
 

@@ -35,6 +35,15 @@ describe("bridgeBreaks", () => {
     expect(bridgeBreaks([1, 0, 0, 0, 1], weekend, (i) => i === 3)).toEqual([1, 1, 1, 1, 1]);
     expect(bridgeBreaks([1, 0, 0, 1, 1], weekend, () => true)).toEqual([1, 0, 0, 1, 1]);
   });
+  it("passes over idle days (an event that skips the work) next to the break, but never bridges idle days alone (S10-05 fix)", () => {
+    // Thu work, Fri piano (idle), Sat–Sun, Mon–Tue break, Wed work.
+    const week = [true, true, false, false, true, true, true];
+    const series = [2, 0, 0, 0, 0, 0, 2];
+    const brk = (i: number) => i === 4 || i === 5;
+    expect(bridgeBreaks(series, week, brk)).toEqual(series);
+    expect(bridgeBreaks(series, week, brk, (i) => i === 1).every((v) => v > 0)).toBe(true);
+    expect(bridgeBreaks([1, 0, 0, 0, 1], [true, true, false, false, true], () => false, (i) => i === 1)).toEqual([1, 0, 0, 0, 1]);
+  });
 });
 
 describe("the Year view's breaks (S10-05)", () => {
@@ -54,6 +63,26 @@ describe("the Year view's breaks (S10-05)", () => {
       expect(through).toBeGreaterThan(0);
     });
   }
+
+  it("bars stay whole across breaks when a weekly event skips them on the day before (S10-05 fix, M1: Frank's piano)", () => {
+    const withEvents = buildTimelineModel(sampleInput());
+    const piano = withEvents.lanes.flatMap((s) => s.children).flatMap((c) => c.assignments).find((a) => a.childId === "frank" && a.assignmentId === "piano")!;
+    expect(piano.idle?.some(Boolean)).toBe(true);
+    const fam = withEvents.breaks.filter((b) => b.childIds.length === 0);
+    const l = layoutTimeline(withEvents, { zoom: "year", width: 1280 });
+    const rects = l.breaks.filter((r) => fam.some((b) => b.id === r.breakId));
+    expect(rects.length).toBeGreaterThan(0);
+    const split: string[] = [];
+    for (const band of l.bands) {
+      for (let k = 1; k < band.runs.length; k++) {
+        const gap = { x0: band.runs[k - 1]!.x1, x1: band.runs[k]!.x0 };
+        for (const r of rects) if (gap.x0 < r.x + r.width && gap.x1 > r.x) split.push(`${band.title} (${band.childId}) at ${r.breakId}`);
+      }
+    }
+    expect(split).toEqual([]);
+    const pianoBand = l.bands.find((b) => b.assignmentId === "piano" && b.childId === "frank")!;
+    expect(pianoBand.runs).toHaveLength(1);
+  });
 
   it("draws each break as a soft band under the bars and a wash over them, under Today and the names", () => {
     const l = layoutTimeline(model, { zoom: "year", width: 1280 });

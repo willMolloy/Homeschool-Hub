@@ -513,7 +513,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   const throughBreaks = (a: TimelineAssignment) => {
     const own = model.breaks.filter((b) => b.childIds.length === 0 || b.childIds.includes(a.childId));
     if (own.length === 0) return seriesFor(a);
-    return bridgeBreaks(seriesFor(a), model.schoolDay, (i) => own.some((b) => i >= b.first && i <= b.last));
+    return bridgeBreaks(seriesFor(a), model.schoolDay, (i) => own.some((b) => i >= b.first && i <= b.last), (i) => a.idle?.[i] === true);
   };
 
   // S10-02: lanes grouped by child. Under All children, work shared by two or more children is drawn once, in a
