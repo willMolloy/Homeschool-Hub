@@ -1,6 +1,6 @@
 # Sprint 13 — Printable sheets and term in review
 
-> **Status: planned, after Sprint 12** (order agreed by Will, 2026-11-05). Decisions: `docs/progress/decisions-2026-11-04.md` and ROADMAP "Order of work after Sprint 10", item 3. One branch for the sprint, PR after its tester passes.
+> **Status: approved, building** (Will, 2026-11-05). Was: planned, after Sprint 12 (order agreed by Will, 2026-11-05). Decisions: `docs/progress/decisions-2026-11-04.md` and ROADMAP "Order of work after Sprint 10", item 3. One branch for the sprint, PR after its tester passes.
 
 ## Decisions (Will, 2026-11-04)
 - **Printable work sheets, weekly and daily, are a parent feature.** The parent prints them; children never use the app (no student view, no child logins).
@@ -12,6 +12,7 @@ Build in order, one commit per ticket, gate ALL GREEN, push after each. Progress
 
 | # | Ticket | Size |
 |---|--------|------|
+| 0 | [S13-00 — Sprint 12 follow-ups (one-tap Yes, finished early adjusts the schedule, stopped label at 320 px)](S13-00-sprint-12-follow-ups.md) | S |
 | 1 | [S13-01 — "Print sheets" on Schedule · Week](S13-01-print-sheets-entry.md) | S |
 | 2 | [S13-02 — The weekly sheet](S13-02-weekly-sheet.md) | M |
 | 3 | [S13-03 — The daily sheet](S13-03-daily-sheet.md) | S |

@@ -73,9 +73,8 @@ export default async function ({ page, shot, login, log, BASE }) {
   await shot("s12-07-list-360");
   await axe("the list sheet");
 
-  // A: Yes, finished (the day offered is yesterday, its end). B: Not yet (a new end a week from today).
+  // A: Yes, finished (one tap: it saves on yesterday, its end, with no date sheet). B: Not yet (a new end a week from today).
   await clickButton("[role=dialog] button[aria-label='Yes, finished: Smoke book A']");
-  await saveAnswer();
   await page.waitForFunction(() => !document.querySelector("[aria-label='Yes, finished: Smoke book A']"));
   const one = waiting - 1;
   await page.waitForFunction((n) => document.querySelector(".shell-nav a[href='/']")?.getAttribute("aria-label") === n, { timeout: 5000 }, `Home, ${one} ${one === 1 ? "thing needs" : "things need"} you`);

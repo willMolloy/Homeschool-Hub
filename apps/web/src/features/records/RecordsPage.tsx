@@ -99,7 +99,8 @@ export function RecordsPage() {
         <EmptyState text="Nothing logged yet." action={<Button onClick={() => setLogging("new")}>Log</Button>} />
       ) : (
         <>
-          <div className="records-actions"><Button onClick={() => setLogging("new")}>Log</Button><Button variant="secondary" onClick={() => setExporting(true)}>Export</Button></div>
+          <div className="records-actions"><Button onClick={() => setLogging("new")}>Log</Button><Button variant="secondary" onClick={() => setExporting(true)}>Export</Button>
+            <Link className="btn btn-secondary" to={`/records/review?${new URLSearchParams({ ...(rangeKey !== "dates" && rangeKey !== "week" ? { range: rangeKey } : {}), ...(choice ? { child: choice } : {}) }).toString()}`}>Term in review</Link></div>
           <ChildSwitch kids={kids} value={choice} onChange={setChoice} />
           <div className="range-chips" role="group" aria-label="Range">
             {options.map((o) => <Chip key={o.key} selected={rangeKey === o.key || (rangeKey !== "dates" && !options.some((x) => x.key === rangeKey) && o.key === "year")} onClick={() => setRangeKey(o.key)}>{o.label}</Chip>)}

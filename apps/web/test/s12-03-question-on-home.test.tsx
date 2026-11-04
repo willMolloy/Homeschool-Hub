@@ -1,4 +1,4 @@
-/** S12-03: "Did Frank finish Treasure Island?" on Home: one card or a list, the three answers, their requests, order and layout. */
+/** S12-03 (Yes is one tap since S13-00): "Did Frank finish Treasure Island?" on Home: one card or a list, the three answers, their requests, order and layout. */
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -67,31 +67,16 @@ describe("the completion question on Home (S12-03)", () => {
     expect(within(card).getAllByRole("button").map((b) => b.textContent)).toEqual(["Yes, finished", "Not yet", "We stopped"]);
   });
 
-  it("Yes, finished: the end date is offered, Save sends finished with it, and the card goes", async () => {
+  it("Yes, finished is one tap (S13-00): it saves at once with the stored end date, no date sheet, and the card goes", async () => {
     stub([book({})]);
     const user = userEvent.setup();
     renderAt("/");
     await user.click(await screen.findByRole("button", { name: "Yes, finished" }));
-    const sheet = await screen.findByRole("dialog", { name: "Finished Treasure Island" });
-    expect(within(sheet).getByLabelText("Finished on")).toHaveValue("Oct 23, 2026");
-    await user.click(within(sheet).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(patches()[0]).toMatchObject({ path: "/api/assignments/ti", body: { endedAs: "finished", endedOn: "2026-10-23" } });
-    await waitFor(() => expect(screen.queryByRole("region", { name: "A question for you" })).not.toBeInTheDocument());
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("Yes, finished: the day can be changed before saving", async () => {
-    stub([book({})]);
-    const user = userEvent.setup();
-    renderAt("/");
-    await user.click(await screen.findByRole("button", { name: "Yes, finished" }));
-    const field = await screen.findByLabelText("Finished on");
-    await user.clear(field);
-    await user.type(field, "10/21/2026");
-    await user.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(patches()).toHaveLength(1));
-    expect(patches()[0]!.body).toEqual({ endedAs: "finished", endedOn: "2026-10-21" });
+    expect(screen.queryByLabelText("Finished on")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("region", { name: "A question for you" })).not.toBeInTheDocument());
   });
 
   it("We stopped: today is offered and sent as stopped, never finished", async () => {
@@ -147,9 +132,7 @@ describe("the completion question on Home (S12-03)", () => {
     const user = userEvent.setup();
     renderAt("/");
     await user.click(await screen.findByRole("button", { name: "Yes, finished" }));
-    await user.click(await screen.findByRole("button", { name: "Save" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("It can't end before it starts.");
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(await screen.findByRole("region", { name: "A question for you" })).toBeInTheDocument();
   });
 
@@ -159,7 +142,6 @@ describe("the completion question on Home (S12-03)", () => {
     const user = userEvent.setup();
     renderAt("/");
     await user.click(await screen.findByRole("button", { name: "Yes, finished" }));
-    await user.click(await screen.findByRole("button", { name: "Save" }));
     expect(await screen.findByText("Marked Treasure Island finished.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
   });
@@ -202,7 +184,6 @@ describe("several waiting (S12-03)", () => {
     renderAt("/");
     await user.click(await screen.findByRole("button", { name: "Answer them" }));
     await user.click(await screen.findByRole("button", { name: "Yes, finished: Treasure Island" }));
-    await user.click(await screen.findByRole("button", { name: "Save" }));
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(patches()[0]).toMatchObject({ path: "/api/assignments/a", body: { endedAs: "finished", endedOn: "2026-10-23" } });
     const sheet = await screen.findByRole("dialog", { name: "2 assignments ended" });
@@ -225,7 +206,7 @@ describe("several waiting (S12-03)", () => {
     const user = userEvent.setup();
     renderAt("/");
     await user.click(await screen.findByRole("button", { name: "Answer them" }));
-    await user.click(await screen.findByRole("button", { name: "Yes, finished: Poems" }));
+    await user.click(await screen.findByRole("button", { name: "Not yet: Poems" }));
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
     expect(await screen.findByRole("dialog", { name: "3 assignments ended" })).toBeInTheDocument();
     expect(patches()).toHaveLength(0);

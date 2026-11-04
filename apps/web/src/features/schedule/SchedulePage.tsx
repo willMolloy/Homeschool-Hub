@@ -49,7 +49,7 @@ export function SchedulePage() {
         <Segmented as="tabs" label="View" value={view} onChange={choose} options={[{ value: "week", label: "Week" }, { value: "year", label: "Year" }]} />
         <span ref={setViewSlot} className="schedule-view-actions" />
       </div>
-      {view === "week" ? <WeekView headSlot={viewSlot} /> : <TimelinePage embedded titleSlot={titleSlot} />}
+      {view === "week" ? <WeekView headSlot={viewSlot} titleSlot={titleSlot} /> : <TimelinePage embedded titleSlot={titleSlot} />}
     </section>
   );
 }

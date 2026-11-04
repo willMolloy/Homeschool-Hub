@@ -39,6 +39,9 @@ export function CompletionQuestions({ questions, subjects, today, onAnswered }: 
   const [open, setOpen] = useState<Open>(null);
   // Answered ones leave at once, before the list is asked for again. (An undo or a reopen remounts Home, which starts afresh.)
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
+  // One-tap Yes (S13-00): the one being saved, and a refusal in the parent's words.
+  const [saving, setSaving] = useState<string | null>(null);
+  const [quickError, setQuickError] = useState<string | null>(null);
   const left = questions.filter((q) => !gone.has(q.assignment.id));
   const slot = subjectSlots(subjects);
   const subjectOf = (q: WaitingQuestion) => subjects.find((s) => s.id === q.assignment.subjectId);
@@ -53,12 +56,28 @@ export function CompletionQuestions({ questions, subjects, today, onAnswered }: 
     // Back to the list while others wait; otherwise the sheet closes (the effect above).
     setOpen((o) => (o && o.view === "answer" && o.back && left.length > 1 ? { view: "list" } : null));
   };
+  // Yes, finished saves at once with the stored end date (no date sheet; Change edits the day later). The others open their sheet.
+  const choose = async (q: WaitingQuestion, answer: Answer, back: boolean) => {
+    if (answer !== "finished") { setQuickError(null); setOpen({ view: "answer", id: q.assignment.id, answer, back }); return; }
+    if (saving) return;
+    setSaving(q.assignment.id);
+    setQuickError(null);
+    try {
+      await saveAnswer("finished", q.assignment, defaultDay("finished", q.assignment, today));
+      setGone((g) => new Set([...g, q.assignment.id]));
+      onAnswered();
+    } catch (e) {
+      setQuickError(e instanceof ApiError ? e.message : "Couldn't save that. Please try again.");
+    } finally {
+      setSaving(null);
+    }
+  };
   const current = open && open.view === "answer" ? left.find((q) => q.assignment.id === open.id) : undefined;
 
   return (
     <section className="home-question" aria-label="A question for you">
       {left.length === 1 ? (
-        <OneQuestion q={left[0]!} subject={subjectOf(left[0]!)} slot={slot(left[0]!.assignment.subjectId)} onChoose={(answer) => setOpen({ view: "answer", id: left[0]!.assignment.id, answer, back: false })} />
+        <OneQuestion q={left[0]!} subject={subjectOf(left[0]!)} slot={slot(left[0]!.assignment.subjectId)} busy={saving !== null} onChoose={(answer) => void choose(left[0]!, answer, false)} />
       ) : (
         <Card className="home-question-card" style={{ "--q-strong": "var(--tl-primary)" } as React.CSSProperties}>
           <div className="home-question-text">
@@ -70,16 +89,18 @@ export function CompletionQuestions({ questions, subjects, today, onAnswered }: 
           </div>
         </Card>
       )}
+      {quickError && open === null ? <p className="field-error home-question-error" role="alert">{quickError}</p> : null}
       <ResponsiveSheet
         open={open !== null}
         onOpenChange={(o) => { if (!o) setOpen(null); }}
         title={open?.view === "answer" && current ? sheetTitle(open.answer, current.assignment.title) : `${left.length} assignments ended`}
       >
+        {open?.view === "list" && quickError ? <p className="field-error" role="alert">{quickError}</p> : null}
         {open?.view === "list" ? (
           <ul className="question-list">
             {left.map((q) => (
               <li key={q.assignment.id}>
-                <OneQuestion q={q} subject={subjectOf(q)} slot={slot(q.assignment.subjectId)} row onChoose={(answer) => setOpen({ view: "answer", id: q.assignment.id, answer, back: true })} />
+                <OneQuestion q={q} subject={subjectOf(q)} slot={slot(q.assignment.subjectId)} row busy={saving !== null} onChoose={(answer) => void choose(q, answer, true)} />
               </li>
             ))}
           </ul>
@@ -100,7 +121,7 @@ function summary(qs: readonly WaitingQuestion[]): string {
 }
 
 /** One question: the subject's mark, the words, when it ended, and the three choices. */
-function OneQuestion({ q, subject, slot, row = false, onChoose }: { q: WaitingQuestion; subject: Subject | undefined; slot: number; row?: boolean; onChoose: (a: Answer) => void }) {
+function OneQuestion({ q, subject, slot, row = false, busy = false, onChoose }: { q: WaitingQuestion; subject: Subject | undefined; slot: number; row?: boolean; busy?: boolean; onChoose: (a: Answer) => void }) {
   const id = useId();
   const style = { "--q-strong": `var(--tl-subject-${slot}-strong)`, "--q-pastel": `var(--tl-subject-${slot})` } as React.CSSProperties;
   const body = (
@@ -114,7 +135,7 @@ function OneQuestion({ q, subject, slot, row = false, onChoose }: { q: WaitingQu
       </div>
       <div className="home-question-actions" role="group" aria-labelledby={id}>
         {CHOICES.map((c) => (
-          <Button key={c.answer} variant={c.primary ? "primary" : "secondary"} onClick={() => onChoose(c.answer)}
+          <Button key={c.answer} variant={c.primary ? "primary" : "secondary"} disabled={busy} onClick={() => onChoose(c.answer)}
             {...(row ? { "aria-label": `${c.label}: ${q.assignment.title}` } : {})}>
             {c.label}
           </Button>

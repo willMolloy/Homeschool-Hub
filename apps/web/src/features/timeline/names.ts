@@ -140,6 +140,30 @@ export function placeRightName(
 
 export type PieceName = NamePlacement & { piece: number; outside: boolean };
 
+/** S13-00 (N1): the word a stopped bar always shows. */
+export const STOPPED_WORD = "Stopped";
+
+/** The plot's horizontal extent, for the stopped word's last fallbacks. */
+export interface PlotBounds { left: number; right: number }
+
+/**
+ * S13-00 (N1): "Stopped" on its own for a stopped bar whose full name (with the word) did not fit: inside the piece in full, else
+ * outside to its right while the row is free, else outside to its right up to the plot's edge, else outside to its left. Never a
+ * bare stub. Null only when the plot has no room at all for it.
+ */
+export function placeStoppedWord(
+  piece: readonly BandColumn[], cy: number, limitX: number, bounds: PlotBounds, measure: MeasureText = estimateTextWidth,
+): (NamePlacement & { outside: boolean }) | null {
+  const inside = placePieceName(STOPPED_WORD, piece, cy, measure, true);
+  if (inside) return { ...inside, outside: false };
+  const right = placeRightName(STOPPED_WORD, piece, cy, limitX, measure) ?? placeRightName(STOPPED_WORD, piece, cy, bounds.right, measure);
+  if (right) return { ...right, outside: true };
+  const width = measure(STOPPED_WORD);
+  const x = piece[0]!.x0 - OUTSIDE_GAP_PX - width;
+  if (x < bounds.left) return null;
+  return { text: STOPPED_WORD, x, y: cy - NAME_FONT_PX / 2, width, height: NAME_FONT_PX, textX: x, textY: cy, outside: true };
+}
+
 /**
  * T-11: names for every piece of one bar. With daily detail every piece is named, so the piece after a break is
  * not mistaken for another assignment; zoomed out (`sparse`), the first named piece plus any later piece at least
@@ -149,7 +173,7 @@ export type PieceName = NamePlacement & { piece: number; outside: boolean };
  */
 export function placePieceNames(
   title: string, pieces: readonly (readonly BandColumn[])[], cy: number, sparse: boolean, measure: MeasureText = estimateTextWidth,
-  limits?: readonly number[],
+  limits?: readonly number[], stopped?: PlotBounds,
 ): PieceName[] {
   const out: PieceName[] = [];
   pieces.forEach((piece, i) => {
@@ -161,5 +185,11 @@ export function placePieceNames(
     if (sparse && out.length > 0 && width < LATER_PIECE_NAME_FACTOR * name.width) return;
     out.push({ ...name, piece: i, outside: name === right });
   });
+  // S13-00: a stopped bar always says so. If no name carries the word (cut, or none at all), "Stopped" stands alone on the last piece.
+  if (stopped && pieces.length > 0 && !out.some((n) => n.text.endsWith(STOPPED_WORD))) {
+    const last = pieces.length - 1;
+    const word = placeStoppedWord(pieces[last]!, cy, limits?.[last] ?? stopped.right, stopped, measure);
+    if (word) return [{ ...word, piece: last }];
+  }
   return out;
 }

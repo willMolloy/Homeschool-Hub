@@ -31,10 +31,10 @@ describe.skipIf(!hasDb)("the plan for ended assignments (S12-04, integration)", 
     await pool.end();
   });
 
-  it("an open assignment has no ended fields; the engine is 0.13.0", async () => {
+  it("an open assignment has no ended fields; the engine is 0.14.0", async () => {
     const p = await plan();
     expect(p.engineVersion).toBe(ENGINE_VERSION);
-    expect(ENGINE_VERSION).toBe("0.13.0");
+    expect(ENGINE_VERSION).toBe("0.14.0");
     expect(await mine()).not.toHaveProperty("endedAs");
   });
 
@@ -44,6 +44,17 @@ describe.skipIf(!hasDb)("the plan for ended assignments (S12-04, integration)", 
     const p = await mine();
     expect(p).toMatchObject({ endedAs: "finished", endedOn: "2026-10-30", complete: true, remainingUnits: 0, unplacedUnits: 0, warnings: [] });
     expect(p.days).toEqual(open.days);
+  });
+
+  it("finished early (S13-00): the bar ends that day and reopening brings the whole plan back", async () => {
+    await req("PATCH", `/api/assignments/${id}`, { endedAs: null });
+    const open = await mine();
+    await req("PATCH", `/api/assignments/${id}`, { endedAs: "finished", endedOn: "2026-10-09" });
+    const p = await mine();
+    expect(p).toMatchObject({ endedAs: "finished", endedOn: "2026-10-09", complete: true, end: "2026-10-09", plannedEnd: "2026-10-30", warnings: [] });
+    expect(p.days.at(-1)!.date).toBe("2026-10-09");
+    await req("PATCH", `/api/assignments/${id}`, { endedAs: null });
+    expect(await mine()).toEqual(open);
   });
 
   it("stopped: no work after the day it stopped; reopening brings the whole plan back", async () => {

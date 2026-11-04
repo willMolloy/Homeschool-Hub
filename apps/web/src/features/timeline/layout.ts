@@ -629,7 +629,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
             connectors: connectorsOf(pieces), ...(a.endedAs ? { ended: a.endedAs } : {}),
           });
           const limits = pieces.map((p) => freeTo(p[p.length - 1]!.x1));
-          for (const name of placePieceNames(barTitle(a.title, a.endedAs), pieces, cy, detail === "smooth", measure, limits)) {
+          for (const name of placePieceNames(barTitle(a.title, a.endedAs), pieces, cy, detail === "smooth", measure, limits, a.endedAs === "stopped" ? { left: plotX, right: plotRight } : undefined)) {
             names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: lane.paletteSlot, step: "base", ...(a.endedAs ? { ended: a.endedAs } : {}), ...name });
           }
         }

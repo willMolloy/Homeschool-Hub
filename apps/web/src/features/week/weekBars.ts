@@ -54,13 +54,19 @@ function sortBars(bars: WeekBarData[], l: Lookups): WeekBarData[] {
  * the engine counts from the assignment's start whatever range is asked for.
  */
 export function plannedRange(plan: ChildPlan, weekStart: LocalDate): { from: number; to: number; hasPlannedWork: boolean } {
-  const end = addDays(weekStart, 6);
-  // S12-04: nothing is planned after the day the parent said it ended.
-  const days = plan.days.filter((d) => d.date >= weekStart && d.date <= end && !(plan.endedOn && d.date > plan.endedOn));
+  return plannedRangeBetween(plan, weekStart, addDays(weekStart, 6));
+}
+
+/**
+ * The same cumulative range for any run of days (S13-02: the printed sheets ask for one day at a time, so a day's "pages 120–126"
+ * and the week's "pages 120–150" come from one rule). Nothing is planned after the day the parent said it ended (S12-04).
+ */
+export function plannedRangeBetween(plan: ChildPlan, from: LocalDate, to: LocalDate): { from: number; to: number; hasPlannedWork: boolean } {
+  const days = plan.days.filter((d) => d.date >= from && d.date <= to && !(plan.endedOn && d.date > plan.endedOn));
   const first = days.find((d) => d.units > EPS);
   if (!first) return { from: 0, to: 0, hasPlannedWork: false };
-  const to = Math.max(...days.map((d) => d.position));
-  return { from: first.position - first.units, to, hasPlannedWork: true };
+  const last = Math.max(...days.map((d) => d.position));
+  return { from: first.position - first.units, to: last, hasPlannedWork: true };
 }
 
 /** The bars of a current or coming week, from the engine's plans: only assignments with work that week. */

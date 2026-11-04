@@ -17,6 +17,8 @@ import { KidsPage } from "./routes/KidsPage";
 import { LoginPage } from "./routes/LoginPage";
 import { NotFoundPage } from "./routes/NotFoundPage";
 import { SubjectsPage } from "./routes/SubjectsPage";
+import { PrintDayPage, PrintWeekPage } from "./features/print/PrintPage";
+import { TermReviewPage } from "./features/review/TermReviewPage";
 import { RecordsPage } from "./features/records/RecordsPage";
 
 function Root() {
@@ -60,6 +62,11 @@ export const routes: RouteObject[] = [
       { path: "/login", element: <LoginRoute /> },
       // S11-01: the setup flow is signed-in but outside the shell (no tab bar while setting up).
       { path: "/welcome", element: <RequireAuth><WelcomePage /></RequireAuth> },
+      // S13-01: the print pages are signed-in but outside the shell (no bar or rail on the sheets).
+      // S13-05: Term in review is a full-screen page (no bar or rail), reached from Records.
+      { path: "/records/review", element: <RequireAuth><TermReviewPage /></RequireAuth> },
+      { path: "/print/week", element: <RequireAuth><PrintWeekPage /></RequireAuth> },
+      { path: "/print/day", element: <RequireAuth><PrintDayPage /></RequireAuth> },
       {
         element: (
           <RequireAuth>
