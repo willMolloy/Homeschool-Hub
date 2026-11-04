@@ -7,6 +7,7 @@
  * cover them).
  */
 import { forwardRef, useEffect, useRef, useState } from "react";
+import { Clock } from "@phosphor-icons/react";
 import { datesError, type DateSpan, type Selection } from "./select";
 import { DateField } from "../../ui/DateField";
 
@@ -24,11 +25,13 @@ export interface EditBarProps {
   /** S6-08: asks to put the assignment back to how it was created (the page confirms first). */
   onReset: () => void;
   onClose: () => void;
+  /** S10-06: "About 20 pages a day · 40 min" (rounded), or null while it isn't known. */
+  pace?: string | null;
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose, pace = null }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
   const [more, setMore] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -79,12 +82,14 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
         <button type="button" className="tl-edit-close" aria-label="Close" onClick={onClose}>×</button>
       </div>
       <div className="tl-edit-body">
+        {/* S10-06 (mockup frame 2): the dates are tiles, each the shared DateField under a small label. */}
         <div className="tl-edit-dates">
-          <label>Start <DateField opens="up" value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
-          <label>End <DateField opens="up" value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
+          <label className="tl-tile"><span className="tl-tile-label">Start</span><DateField className="tl-tile-field" opens="up" value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
+          <label className="tl-tile"><span className="tl-tile-label">End</span><DateField className="tl-tile-field" opens="up" value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
         </div>
+        {pace ? <p className="tl-pace" data-pace><Clock size={18} weight="regular" aria-hidden="true" />{pace}</p> : null}
         <div className="tl-edit-ends">
-          <button type="button" className="btn btn-secondary" disabled={busy} onClick={onCopy}>Copy</button>
+          <button type="button" className="btn btn-secondary tl-copy-btn" disabled={busy} onClick={onCopy}>Copy</button>
           <div className="tl-more" ref={moreRef}>
             <button type="button" className="btn btn-secondary tl-more-btn" aria-expanded={more} aria-controls="tl-more-menu" onClick={() => setMore((m) => !m)}>More</button>
             {more && (

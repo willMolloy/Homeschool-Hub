@@ -24,7 +24,8 @@ import type { Draft } from "../features/schedule/ScheduleList";
 import { afterAdd } from "../features/timeline/afterAdd";
 import { EditBar } from "../features/timeline/EditBar";
 import { UpdateEstimateSheet } from "../features/timeline/UpdateEstimate";
-import { unitsPerCapacityDay, unitsPerDay } from "../features/schedule/effort";
+import { paceLine, unitsPerCapacityDay, unitsPerDay } from "../features/schedule/effort";
+import { minutesPerDayFromWeight, weightPerUnitOf } from "@hh/engine";
 import { usePace } from "../features/schedule/usePace";
 import { useMe } from "../auth/AuthProvider";
 import { useAssignmentEdit } from "../features/timeline/useAssignmentEdit";
@@ -143,6 +144,18 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   const estimatedReal = usePace(estimated && estimatedDays ? { subjectId: estimated.subjectId, childIds: estimated.childIds, startDate: estimated.startDate, endDate: estimated.endDate, weekdays: estimatedDays } : null);
   const estimatedPace = !estimated || !estimatedDays ? null
     : estimatedReal ? unitsPerCapacityDay(estimated.totalUnits, estimatedReal.capacityDays) : unitsPerDay(estimated.totalUnits, estimated.startDate, estimated.endDate, estimatedDays);
+  // S10-06: the edit sheet's pace line, at the selection's dates (a drag updates it), over the days the plan really has.
+  const selected = selection ? assignments.find((a) => a.id === selection.assignmentId) : undefined;
+  const selectedSubject = selected ? subjects.find((s) => s.id === selected.subjectId) : undefined;
+  const selectedDays = selected ? selected.weekdays ?? selectedSubject?.defaultWeekdays ?? schoolDays : null;
+  const selectedDraft = selected && selection && selectedDays
+    ? { subjectId: selected.subjectId, childIds: selected.childIds, startDate: selection.startDate, endDate: selection.endDate, weekdays: selectedDays } : null;
+  const selectedReal = usePace(selectedDraft, 150);
+  const selectedPerDay = !selected || !selectedDraft ? null
+    : selectedReal ? unitsPerCapacityDay(selected.totalUnits, selectedReal.capacityDays) : unitsPerDay(selected.totalUnits, selectedDraft.startDate, selectedDraft.endDate, selectedDraft.weekdays);
+  const selectedPace = selected && selectedPerDay !== null
+    ? paceLine(selectedPerDay, selected.unitType, minutesPerDayFromWeight(weightPerUnitOf(selected, selectedSubject?.defaultWeight ?? null).weight, selectedPerDay))
+    : null;
   const [resetting, setResetting] = useState<{ id: string; title: string } | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
   const confirmReset = async () => {
@@ -229,7 +242,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
             {selection && (
               <>
                 <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />
-                <EditBar ref={keep.ref} selection={selection}
+                <EditBar ref={keep.ref} selection={selection} pace={selectedPace}
                   busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)} onUpdateStatus={() => setStatusing(selection.assignmentId)}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
               </>

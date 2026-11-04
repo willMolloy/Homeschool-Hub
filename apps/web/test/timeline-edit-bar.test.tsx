@@ -70,7 +70,7 @@ describe("the edit bar", () => {
     const panel = await sheet();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(within(panel).getByText(a.title)).toBeInTheDocument();
-    expect(within(panel).getByText(/ · /)).toBeInTheDocument();
+    expect(panel.querySelector(".tl-edit-sub")!.textContent).toMatch(/ · /); // S10-06: the pace line has a " · " too
     expect(within(panel).getByLabelText("Start")).toHaveValue(formatDate(a.startDate));
     expect(within(panel).getByLabelText("End")).toHaveValue(formatDate(a.endDate));
     for (const name of ["Copy", "More", "Close"]) expect(within(panel).getByRole("button", { name })).toBeEnabled();
