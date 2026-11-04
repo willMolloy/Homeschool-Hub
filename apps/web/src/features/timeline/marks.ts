@@ -1,5 +1,5 @@
 /** T-02: breaks and recurring-event days on the timeline grid. Pure; no drawing. */
-import { weekdayOf, type BlockedKind } from "@hh/engine";
+import { ruleFactor, weekdayOf, type BlockedKind, type ChildPlan } from "@hh/engine";
 import type { BlockedRange, ScheduleEvent } from "../../api/types";
 import { clipSpan, type DayGrid } from "./grid";
 
@@ -59,4 +59,32 @@ export function eventsOnGrid(grid: DayGrid, events: readonly ScheduleEvent[], br
       }
       return days.length ? [{ id: e.id, name: e.name, childIds: [...e.childIds], days }] : [];
     });
+}
+
+/**
+ * S10-05 fix (M1): the school days this plan can't be given work on, whatever the breaks: a weekday the assignment
+ * doesn't use (its own days or its subject's, S4-01, with the S4-01b change date), or an event that day that skips
+ * its subject for this child (a "skip" rule, or "lighter" leaving nothing). Break bridging doesn't count these as open.
+ */
+export function idleDays(
+  grid: DayGrid,
+  plan: Pick<ChildPlan, "childId" | "subjectId" | "weekdays" | "weekdaysFrom" | "previousWeekdays">,
+  events: readonly ScheduleEvent[],
+): boolean[] {
+  const skips = events
+    .filter((e) => !e.archived && (e.childIds.length === 0 || e.childIds.includes(plan.childId)))
+    .filter((e) => {
+      const own = Object.prototype.hasOwnProperty.call(e.subjectRules, plan.subjectId) ? e.subjectRules[plan.subjectId] : undefined;
+      return ruleFactor(own ?? e.defaultRule ?? "normal", e.capacityFraction) === 0;
+    })
+    .map((e) => ({ from: e.startDate, to: e.endDate, weekdays: new Set<number>(e.weekdays) }));
+  const now = plan.weekdays ? new Set<number>(plan.weekdays) : null;
+  const before = plan.previousWeekdays ? new Set<number>(plan.previousWeekdays) : null;
+  return grid.dates.map((date, i) => {
+    if (!grid.schoolDay[i]) return false;
+    const wd = weekdayOf(date);
+    const mask = plan.weekdaysFrom && date < plan.weekdaysFrom ? before : now;
+    if (mask && !mask.has(wd)) return true;
+    return skips.some((e) => e.weekdays.has(wd) && (!e.from || date >= e.from) && (!e.to || date <= e.to));
+  });
 }

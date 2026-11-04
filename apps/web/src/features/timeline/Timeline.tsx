@@ -3,18 +3,20 @@
  * Back to front: breaks, gridlines, bands, event strips, Today. One path per band and per event, so the Year view
  * stays well under 300 nodes. Colours are the `--tl-*` tokens (palette and theme switch without a re-render).
  */
-import { useEffect, useId, useState, type CSSProperties } from "react";
-import { ChartBar } from "@phosphor-icons/react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { UsersThree } from "@phosphor-icons/react";
 import type { Subject } from "../../api/types";
 import { SubjectBadge } from "../subjects/SubjectIcon";
 import { bandExtent } from "./drag";
-import { AXIS_HEIGHT_PX, BADGE_HIT_PX, BADGE_PX, GUTTER_PX, type TimelineLayout } from "./layout";
+import { BADGE_HIT_PX, nearestBadge, type TimelineLayout } from "./layout";
 import type { ChildStep } from "./model";
 
 /** Room under the lanes for the Today pill. */
-export const TODAY_PILL_PX = 22;
-const PILL_W = 44;
+/** S10-03: the Today pill, on the axis's second line. */
+const PILL_W = 50;
 const PILL_H = 18;
+/** S10-03: the months' baseline on the axis's first line. */
+const AXIS_LINE1_Y = 15;
 /** T-08b: the grip at each end of the selected bar: a small pill in the bar's label colour. */
 export const HANDLE_W_PX = 4;
 export const HANDLE_INSET_PX = 3;
@@ -24,9 +26,6 @@ const STEP_SUFFIX: Record<ChildStep, string> = { base: "", light: "-light", dark
 export const bandFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]})`;
 /** T-06: the AA label colour picked for each swatch (light or dark text, from the tokens). */
 export const nameFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]}-label)`;
-
-/** T-05b: the summed bar pinned above the lanes. S8-07: it has no text label; its chart icon in the gutter says so (title and name). */
-export const TOTALS_LABEL = "All subjects";
 
 export interface TimelineProps {
   layout: TimelineLayout;
@@ -45,11 +44,9 @@ export interface TimelineProps {
 }
 
 export function Timeline({ layout, label, selectedId = null, onPick, flashId = null, grips = true, subjects = [] }: TimelineProps) {
-  const hatchId = `tl-hatch-${useId().replace(/:/g, "")}`;
-  /** T-05c: zoomed out, breaks are a very faint plain tint instead of a hatch. */
-  const quiet = layout.detail === "smooth";
-  const bottom = Math.max(layout.lanesBottom, layout.totals.y + layout.totals.height);
-  const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
+  const bottom = layout.lanesBottom;
+  const m = layout.metrics;
+  const height = layout.height;
   // S8-07: tapping a lane's badge names its subject in a small popover and highlights that lane (the other lanes dim).
   const [lane, setLane] = useState<string | null>(null);
   const laneIds = new Map(layout.bands.map((b) => [b.assignmentId, b.laneKey]));
@@ -80,39 +77,50 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
   const pillX = layout.todayX === null ? 0 : Math.max(0, Math.min(layout.width - PILL_W, layout.todayX - PILL_W / 2));
 
   return (
-    <div className="tl-wrap" style={{ width: layout.width, height }}>
+    <div className="tl-wrap" style={{ width: layout.width, height, "--tl-sticky-top": `${m.axis}px` } as CSSProperties}>
+    {/* S10-03: the axis sticks to the top while the lanes scroll: months on line 1, the Today pill on line 2. The group
+        header rows stick just under it. It lies over the top of the picture (the layout leaves it room). */}
+    <div className="tl-axis" data-axis style={{ height: m.axis, marginBottom: -m.axis }}>
+      <svg className="tl-axis-svg" width={layout.width} height={m.axis} aria-hidden="true">
+        {layout.ticks.map((t) => (t.label ? (
+          <text key={`label-${t.index}`} className="tl-axis-label" x={t.x + 3} y={AXIS_LINE1_Y}>{t.label}</text>
+        ) : null))}
+        <line className="tl-axis-rule" x1={0} x2={layout.width} y1={m.axis - 0.5} y2={m.axis - 0.5} />
+        {layout.todayX === null ? null : (
+          <g className="tl-today" data-today-pill>
+            <line className="tl-today-stub" x1={layout.todayX} x2={layout.todayX} y1={AXIS_LINE1_Y + 4} y2={m.axis} />
+            <rect x={pillX} y={m.axis - PILL_H - 2} width={PILL_W} height={PILL_H} rx={PILL_H / 2} />
+            <text x={pillX + PILL_W / 2} y={m.axis - 7} textAnchor="middle">Today</text>
+          </g>
+        )}
+      </svg>
+    </div>
     <svg className="tl-svg" width={layout.width} height={height} viewBox={`0 0 ${layout.width} ${height}`} role="img" aria-label={label} data-pickable={onPick ? "" : undefined}
       onClick={onPick ? (e) => {
         const r = e.currentTarget.getBoundingClientRect();
         onPick(e.clientX - r.left, e.clientY - r.top);
       } : undefined}>
-      <defs>
-        <pattern id={hatchId} width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line className="tl-hatch-line" x1={0} y1={0} x2={0} y2={6} />
-        </pattern>
-      </defs>
-
+      {/* S10-05 (mockup): each break is a soft band behind the grid, and the same band washed over the bars. */}
       <g className="tl-breaks">
         {layout.breaks.map((b, i) => (
-          <rect key={`${b.breakId}-${i}`} x={b.x} y={b.y} width={b.width} height={b.height}
-            className={quiet ? "tl-break-quiet" : undefined} fill={quiet ? undefined : `url(#${hatchId})`}>
-            {b.label ? <title>{b.label}</title> : null}
-          </rect>
+          <rect key={`${b.breakId}-${i}`} className="tl-break" x={b.x} y={b.y} width={b.width} height={b.height} />
         ))}
       </g>
 
       <g className="tl-grid">
         {layout.ticks.map((t) => (
           <line key={`${t.kind}-${t.index}`} className={t.kind === "month" ? "tl-tick-month" : "tl-tick-week"}
-            x1={t.x} x2={t.x} y1={AXIS_HEIGHT_PX - 4} y2={bottom} />
+            x1={t.x} x2={t.x} y1={m.axis} y2={bottom} />
         ))}
-        {layout.ticks.map((t) => (t.label ? (
-          <text key={`label-${t.index}`} className="tl-axis-label" x={t.x + 3} y={AXIS_HEIGHT_PX - 7}>{t.label}</text>
-        ) : null))}
+      </g>
+
+      <g className="tl-rules">
+        {layout.rules.map((r) => (
+          <line key={`${r.kind}-${r.y}`} className={r.kind === "group" ? "tl-rule-group" : "tl-rule-lane"} x1={r.x0} x2={layout.width} y1={r.y} y2={r.y} />
+        ))}
       </g>
 
       <g className="tl-bands">
-        {layout.totals.d ? <path className="tl-totals" d={layout.totals.d} /> : null}
         {layout.bands.flatMap((b) => b.connectors.map((c, k) => (
           <line key={`c-${b.rowKey}-${b.assignmentId}-${k}`} className={`tl-connector${dim(b.assignmentId)}`} x1={c.x0} x2={c.x1} y1={b.cy} y2={b.cy}
             style={{ stroke: bandFill(b.paletteSlot, b.step) }} data-connector-for={b.assignmentId} />
@@ -123,14 +131,29 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         ) : null))}
       </g>
 
+      <g className="tl-wash" data-wash>
+        {layout.breaks.map((b, i) => (
+          <rect key={`${b.breakId}-${i}`} x={b.x} y={b.y} width={b.width} height={b.height}>
+            {b.label ? <title>{b.label}</title> : null}
+          </rect>
+        ))}
+      </g>
+
+      {/* S10-03: the dashed Today line runs through every lane, over the bars and under their names (which carry a halo). */}
+      {layout.todayX === null ? null : (
+        <g className="tl-today" data-today>
+          <line x1={layout.todayX} x2={layout.todayX} y1={layout.todayTop} y2={bottom} />
+        </g>
+      )}
+
       <g className="tl-names" aria-hidden="true">
         {layout.names.map((n) => (
-          // T-11d: an inside name stays at full strength while its bar dims (it only gains contrast); an outside
-          // name dims with its bar (page text at the dim opacity still meets AA).
-          <g key={`${n.rowKey}-${n.assignmentId}-${n.piece}`} className={(n.outside ? dim(n.assignmentId) : dim(n.assignmentId).replace(" tl-dim", "")).trim() || undefined} data-name-for={n.assignmentId}>
+          // T-11d: a name stays at full strength while its bar dims (an inside name only gains contrast; S10-04b: an
+          // outside name is muted page text, which would drop below AA if it dimmed too).
+          <g key={`${n.rowKey}-${n.assignmentId}-${n.piece}`} className={dim(n.assignmentId).replace(" tl-dim", "").trim() || undefined} data-name-for={n.assignmentId}>
             {n.outside
-              ? <text className="tl-outside-name" x={n.textX} y={n.textY}>{n.text}</text>
-              : <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step) }}>{n.text}</text>}
+              ? <text className="tl-outside-name" x={n.textX} y={n.textY} dominantBaseline="central">{n.text}</text>
+              : <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step), stroke: bandFill(n.paletteSlot, n.step) }}>{n.text}</text>}
           </g>
         ))}
       </g>
@@ -147,33 +170,41 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         ) : null))}
       </g>
 
-      {layout.todayX === null ? null : (
-        <g className="tl-today" data-today>
-          <line x1={layout.todayX} x2={layout.todayX} y1={layout.todayTop} y2={bottom + 4} />
-          <rect x={pillX} y={bottom + 4} width={PILL_W} height={PILL_H} rx={PILL_H / 2} />
-          <text x={pillX + PILL_W / 2} y={bottom + 4 + PILL_H - 5} textAnchor="middle">Today</text>
-        </g>
-      )}
 
     </svg>
-    {/* S8-07: the gutter. One round badge per lane (the subject's icon, or its letter) and a chart icon for All subjects; no names on the picture. */}
-    <div className="tl-gutter" style={{ width: GUTTER_PX }}>
-      {layout.rows.length > 0 && (
-        <span className="tl-total-icon" title={TOTALS_LABEL} style={{ top: layout.totals.cy - BADGE_PX / 2, width: GUTTER_PX, height: BADGE_PX } as CSSProperties}>
-          <ChartBar size={14} weight="light" aria-hidden="true" />
-        </span>
-      )}
+    {/* S8-07: the gutter. S10-02: one round badge per lane, pinned to the centre of the lane's first row. */}
+    <div className="tl-gutter" style={{ width: m.gutter }}>
       {layout.badges.map((b) => (
-        <button key={b.laneKey} type="button" className="tl-badge" aria-label={b.text} aria-pressed={picked === b.laneKey}
-          style={{ top: b.top, height: Math.max(BADGE_HIT_PX, b.bottom - b.top), width: GUTTER_PX } as CSSProperties}
-          onClick={() => setLane(picked === b.laneKey ? null : b.laneKey)}>
-          <SubjectBadge subject={subjects.find((s) => s.id === b.subjectId) ?? { name: b.subjectName, icon: null }} slot={b.paletteSlot} size={BADGE_PX} />
+        <button key={b.laneKey} type="button" className="tl-badge" aria-label={b.label} aria-pressed={picked === b.laneKey}
+          style={{ top: b.cy - BADGE_HIT_PX / 2, height: BADGE_HIT_PX, width: Math.max(BADGE_HIT_PX, m.gutter), "--tl-badge-w": `${m.gutter}px` } as CSSProperties}
+          onClick={(e) => {
+            // S10-15: zones overlap a little; a pointer tap goes to the nearest badge centre (a keyboard press to this one).
+            const r = e.currentTarget.getBoundingClientRect();
+            const inside = e.detail > 0 && r.height > 0 && e.clientY >= r.top && e.clientY <= r.bottom;
+            const hit = inside ? nearestBadge(layout.badges, b.cy - BADGE_HIT_PX / 2 + (e.clientY - r.top)) ?? b : b;
+            setLane(picked === hit.laneKey ? null : hit.laneKey);
+          }}>
+          <SubjectBadge subject={subjects.find((s) => s.id === b.subjectId) ?? { name: b.subjectName, icon: null }} slot={b.paletteSlot} size={m.badge} />
         </button>
       ))}
       {layout.badges.filter((b) => b.laneKey === picked).map((b) => (
-        <div key={b.laneKey} className="tl-lane-pop" role="status" style={{ top: b.cy - 14 }}>{b.text}</div>
+        <div key={b.laneKey} className="tl-lane-pop" role="status" style={{ top: b.cy - 14, left: m.gutter + 2 }}>{b.text}</div>
       ))}
     </div>
+    {/* S10-02: each group's header row (the child's initial and load ribbon, or Together) stays at the top while its lanes scroll. */}
+    {layout.groups.map((g) => (
+      <div key={g.key} className="tl-group" data-group={g.key} style={{ top: g.top, height: g.bottom - g.top }}>
+        <div className="tl-group-head" style={{ height: g.header.height }}>
+          <svg className="tl-ribbon" width={layout.width} height={g.header.height} aria-hidden="true">
+            {g.header.ribbon ? <path d={g.header.ribbon} /> : null}
+          </svg>
+          <span className="tl-group-avatar" style={{ width: m.gutter }} aria-hidden="true">
+            <span style={{ width: m.badge, height: m.badge }}>{g.kind === "together" ? <UsersThree size={15} weight="bold" /> : g.initial}</span>
+          </span>
+          <span className="tl-group-name" style={{ left: layout.plot.x + 6, fontSize: m.font + 0.5 }}>{g.name}</span>
+        </div>
+      </div>
+    ))}
     </div>
   );
 }

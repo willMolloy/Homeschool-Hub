@@ -1,17 +1,18 @@
 /* S9-04: the shared date field and its calendar (Soft Paper tokens; 44 px targets). */
 .date-field { display: block; min-width: 0; position: relative; }
 .date-field-box { position: relative; display: block; }
-.date-field-box input[type="text"] {
+/* S10-19 partial (L3/R6): .date-field lifts this to (0,3,1) so forms.css' `.field input[type="text"]` (0,2,1, loaded later) can't take the 48 px room for the icon. */
+.date-field .date-field-box input[type="text"] {
   width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 48px 10px 12px;
   border: 1px solid var(--tl-input); border-radius: var(--tl-radius-bar); background: var(--tl-card); color: var(--tl-foreground); font: inherit; min-width: 0;
 }
-.date-field-box input[aria-invalid="true"] { border-color: var(--danger); }
+.date-field .date-field-box input[aria-invalid="true"] { border-color: var(--danger); }
 .date-field-open {
   position: absolute; top: 0; right: 0; width: 44px; height: 44px; display: inline-grid; place-items: center;
   border: 0; background: transparent; color: var(--tl-primary); border-radius: var(--tl-radius-bar); cursor: pointer;
 }
 .date-field-open:disabled { opacity: 0.5; cursor: default; }
-.date-cal { position: absolute; top: 100%; left: 0; z-index: 5; margin-top: 6px; padding: 8px; box-sizing: border-box; width: min(21rem, calc(100vw - 32px)); background: var(--tl-card); color: var(--tl-foreground); border: 1px solid var(--tl-border); border-radius: var(--tl-radius); }
+.date-cal { position: absolute; top: 100%; left: 0; z-index: var(--z-popover); margin-top: 6px; padding: 8px; box-sizing: border-box; width: min(21rem, calc(100vw - 32px)); background: var(--tl-card); color: var(--tl-foreground); border: 1px solid var(--tl-border); border-radius: var(--tl-radius); }
 .date-cal-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 .date-cal-title { font-family: var(--tl-font-display); font-weight: 600; }
 .date-cal-nav { width: 44px; height: 44px; display: inline-grid; place-items: center; border: 0; border-radius: 999px; background: transparent; color: var(--tl-primary); cursor: pointer; }

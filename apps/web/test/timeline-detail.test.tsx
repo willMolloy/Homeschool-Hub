@@ -95,16 +95,16 @@ describe("smooth mode", () => {
     expect(long.slice(2, 7)).toEqual([0, 0, 0, 0, 0]);
   });
 
-  it("rounds to even pixels, ignores changes under the dead band, and eases real changes without overshoot", () => {
+  it("ignores changes under the dead band, and eases real changes without overshoot", () => {
     const xs = makeXScale(model, 0, 39, 0, 400);
+    const px = (v: number) => (v > 0 ? Math.min(40, v * 2.8) : 0);
     const wobble = model.dates.map((_, i) => (i < 40 && model.schoolDay[i] ? 3 + (i % 3) * 0.13 : 0));
-    const flat = smoothColumns(wobble, xs, 50, 2.8, 40).filter((c) => c);
+    const flat = smoothColumns(wobble, xs, 50, px).filter((c) => c);
     expect(new Set(flat.map((c) => c!.bottom - c!.top)).size).toBe(1);
     expect(smoothBandPath(flat)).not.toMatch(/C/);
     const series = model.dates.map((_, i) => (i < 40 && model.schoolDay[i] ? (i < 20 ? 3 : 7) : 0));
-    const columns = smoothColumns(series, xs, 50, 2.8, 40).filter((c) => c);
-    for (const c of columns) expect((c!.bottom - c!.top) % 2).toBe(0);
-    const d = smoothBandPath(smoothColumns(series, xs, 50, 2.8, 40));
+    const columns = smoothColumns(series, xs, 50, px).filter((c) => c);
+    const d = smoothBandPath(smoothColumns(series, xs, 50, px));
     expect(d).toMatch(/C/);
     const y = [...d.matchAll(/,(-?[\d.]+)/g)].map((m) => Number(m[1]));
     const tops = columns.map((c) => c!.top);
@@ -113,9 +113,11 @@ describe("smooth mode", () => {
     expect(Math.max(...y)).toBeLessThanOrEqual(Math.max(...bottoms) + 0.01);
   });
 
-  it("the All subjects bar follows the same rule", () => {
-    expect(layoutTimeline(model, { zoom: "year", width: 390 }).totals.d).toMatch(/C/);
-    expect(layoutTimeline(model, { zoom: "month", width: 390 }).totals.d).not.toMatch(/C/);
+  it("S10-02: the children's load ribbons follow the same rule", () => {
+    const ribbons = (zoom: "year" | "month") => layoutTimeline(model, { zoom, width: 390 }).groups.map((g) => g.header.ribbon).filter(Boolean);
+    expect(ribbons("year").length).toBeGreaterThan(0);
+    for (const d of ribbons("year")) expect(d).toMatch(/C/);
+    for (const d of ribbons("month")) expect(d).not.toMatch(/C/);
   });
 
   it("phones show fewer month labels, never closer than 48 px", () => {

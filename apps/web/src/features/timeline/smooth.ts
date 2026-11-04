@@ -20,11 +20,6 @@ export const PHASE_RATIO = 1.5;
 /** T-08b: a phase shorter than this (school days) joins its closest neighbour, so short lumps never show. */
 export const PHASE_MIN_DAYS = 10;
 
-/** S7-21: the calm look's window, about four school weeks (an assignment's own school days, never past its ends). */
-export const CALM_WINDOW_DAYS = 20;
-/** S7-21: at the smooth detail a bar's thickness changes by at most this many px per week. */
-export const CALM_SLOPE_PX_PER_WEEK = 2;
-
 /** Segments over column positions: nonzero runs joined across gaps shorter than `split`. */
 function segmentsOf(v: readonly number[], split: number): [number, number][] {
   const segments: [number, number][] = [];
@@ -57,38 +52,6 @@ export function smoothSeries(series: readonly number[], columns: readonly number
       for (let j = a; j <= b; j++) sum += v[j]!;
       out[columns[k]!] = sum / (b - a + 1);
     }
-  }
-  return out;
-}
-
-/**
- * S7-21: an assignment's calm series for the zoomed-out look: a centred moving average over about four school weeks of
- * its own days (the window shrinks at its ends and never reaches across a break), so a short heavy stretch is spread
- * into a gentle swell. The mean of a segment is kept, so a heavier assignment is still a thicker band.
- */
-export const calmSeries = (series: readonly number[], columns: readonly number[]): number[] => smoothSeries(series, columns, CALM_WINDOW_DAYS);
-
-/**
- * S7-21: limit how fast heights (px) change from one column to the next: at most `perWeek` px per week of calendar
- * time (`gapDays[k]` is the days from column k-1 to column k). Runs of positive heights are limited on their own, so a
- * bar still starts and ends in the right week. Done forwards and backwards and averaged, so the result is symmetric
- * and still never changes faster than the limit. It only rounds off what the moving average left (an abrupt spike
- * loses height); smooth data passes through unchanged.
- */
-export function limitSlope(heights: readonly number[], gapDays: readonly number[], perWeek = CALM_SLOPE_PX_PER_WEEK): number[] {
-  const out = [...heights];
-  let k = 0;
-  while (k < heights.length) {
-    if (!(heights[k]! > 0)) { k++; continue; }
-    let end = k;
-    while (end + 1 < heights.length && heights[end + 1]! > 0) end++;
-    const step = (j: number) => (perWeek * Math.max(1, gapDays[j] ?? 1)) / 7;
-    const fwd = heights.slice(k, end + 1);
-    for (let j = 1; j < fwd.length; j++) fwd[j] = Math.min(fwd[j - 1]! + step(k + j), Math.max(fwd[j - 1]! - step(k + j), fwd[j]!));
-    const back = heights.slice(k, end + 1);
-    for (let j = back.length - 2; j >= 0; j--) back[j] = Math.min(back[j + 1]! + step(k + j + 1), Math.max(back[j + 1]! - step(k + j + 1), back[j]!));
-    for (let j = 0; j < fwd.length; j++) out[k + j] = (fwd[j]! + back[j]!) / 2;
-    k = end + 1;
   }
   return out;
 }
@@ -142,5 +105,43 @@ export function cleanSeries(series: readonly number[], columns: readonly number[
     join(i, !next || (prev && ratio(mean(p), mean(prev)) <= ratio(mean(p), mean(next))) ? i - 1 : i + 1);
   }
   for (const p of phases) for (const [a, b] of p.spans) for (let k = a; k <= b; k++) out[columns[k]!] = mean(p);
+  return out;
+}
+
+/**
+ * S10-05 (Will, 2026-11-01): bars run straight through breaks. A run of zero days with work on both sides is filled
+ * when every school day in it is closed by a break (`closed`), easing from the load before it to the load after, so
+ * the bar is unbroken under the break's wash. Other gaps (a day off, an unscheduled weekday, before the start or
+ * after the end) stay gaps.
+ * S10-05 fix (M1): `idle` days (ones this assignment can't be given work on anyway: a weekday it doesn't use, an event
+ * that skips it) are passed over like weekends, so the Friday piano lesson before a break doesn't keep the gap. A gap
+ * still needs at least one closed school day to be bridged.
+ */
+export function bridgeBreaks(
+  series: readonly number[],
+  schoolDay: readonly boolean[],
+  closed: (i: number) => boolean,
+  idle: (i: number) => boolean = () => false,
+): number[] {
+  const out = [...series];
+  let left = -1;
+  for (let i = 0; i < series.length; i++) {
+    if (!(series[i]! > 0)) continue;
+    if (left >= 0 && i - left > 1) {
+      let school = 0;
+      let open = false;
+      for (let k = left + 1; k < i && !open; k++) {
+        if (!schoolDay[k] || idle(k)) continue;
+        school++;
+        if (!closed(k)) open = true;
+      }
+      if (!open && school > 0) {
+        const a = series[left]!;
+        const b = series[i]!;
+        for (let k = left + 1; k < i; k++) out[k] = a + ((b - a) * (k - left)) / (i - left);
+      }
+    }
+    left = i;
+  }
   return out;
 }

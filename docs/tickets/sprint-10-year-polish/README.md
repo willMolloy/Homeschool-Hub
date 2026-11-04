@@ -1,27 +1,155 @@
 # Sprint 10 — Year view polish
 
-> **Status: approved to build after Sprint 9** (Will, 2026-11-01: "Sure" to a Year polish sprint after Sprint 9; "See what you can get done on sprint 9 and 10"). Built from the UX expert's mockup: `docs/design/mockups/year-polish.html` (PNGs beside it) and `docs/design/year-polish-notes.md` (measurements). Source review: `docs/design/ux-review-current.md` (improvements 4 and 5, Year drift).
+> **Status: tickets ready (updated 2026-11-03), to build after Sprint 9 and 9b.**
+> - Will approved a Year polish sprint after Sprint 9 on 2026-11-01 ("Sure"; "See what you can get done on sprint 9 and 10").
+> - DeeDee's decisions of 2026-11-03 (below) add to it and replace parts of the mockup.
+> - Built from the UX expert's mockup, `docs/design/mockups/year-polish.html` (PNGs beside it), and from `docs/design/year-polish-notes.md` (measurements).
+> - Source review: `docs/design/ux-review-current.md` (improvements 4, 5, 6, 8, 9, 10, and the Year drift).
+> - **Split into 10a and 10b (approved by DeeDee, 2026-11-04).** Sprint 10a is the Year view; Sprint 10b is colours, navigation and the wide layout, plus S9b-07. See [Order](#order).
+> - Branch: `hh2/sprint-10` (cut from `hh2/sprint-9b`, with `main` merged in after PR #4) is the **Sprint 10a branch**. Sprint 10b gets its own branch off `main` after 10a merges, per the one-branch-per-sprint rule in HOW_WE_WORK.
 
-**Decisions on the UX expert's questions:** 2 and 3 approved by Will (2026-11-01).
-1. **Decided by Will (2026-11-01): a "Together" group.** Under All children, an assignment shared by two or more children shows once, in a Together group at the top, with the children's initials on the bar; with one child selected it appears in that child's lanes. Each child's load ribbon still counts it. No data change.
-2. Bars run **through** breaks with the break drawn as a wash over them.
-3. "All children" stays first in the shared switch (already decided).
+## Decisions
 
-**Flag for Will:** the mockup caps bars at **20 px on a phone (22 desktop)**, down from today's 112 px soft cap, so the difference between light and heavy days becomes gentle (12 → 20 px). It reads much calmer but shows effort less strongly. It is built behind one set of constants (`hMin`, `hCap`, the curve factor) so it can be tuned after Will looks.
+**Earlier decisions, by Will (2026-11-01):**
+1. **A "Together" group.**
+   - Under All children, an assignment shared by two or more children shows once, in a Together group at the top, with the children's initials on the bar.
+   - With one child selected, it appears in that child's lanes.
+   - Each child's load ribbon still counts it.
+   - No data change.
+   - *Status: decided, not built.* Today a shared assignment is drawn once per child, and only the edit sheet's subtitle names every child. S10-02 builds it.
+2. Bars run **through** breaks, with the break drawn as a wash over them (S10-05).
+3. "All children" stays first in the shared child switch. This was already decided, and UX review improvement 8's "Frank · Margaret · Both" order is not adopted.
 
-Build in order, one commit per ticket, each with `bash scripts/check.sh` green, comparing against the mockup at 360/390 and 1280 px in light and dark. Progress in `docs/progress/sprint-10.md`. Dragging stays off; drag code kept.
+**Decided by DeeDee, 2026-11-03:**
+1. **Bar height (S10-04).**
+   - Always dynamic, so effort shows at every zoom, clamped between a minimum and a maximum.
+   - Scaled to the current view: with one child, that child's loads set the maximum; under All children, every child's loads do.
+   - **Reviewed 2026-11-04, percentile change approved by DeeDee:** the maximum height goes to about the 95th percentile of the bar loads in the current view, not the single heaviest one. Loads above it clamp to the maximum, so one unusually heavy week doesn't flatten every other bar.
+   - The minimum, the maximum and the curve are named, tunable constants, so values can be tried on real data.
+   - This replaces the earlier "Flag for Will" about the mockup's 20 px phone / 22 px desktop cap.
+2. **Subject colours (S10-11, S10-12).**
+   - Every subject gets its own auto-assigned colour, from a palette grown from 8 to 12 soft hues that meet AA in light and dark.
+   - A parent can change a subject's colour from a small swatch row in its edit sheet.
+   - Colours repeat only beyond 12, and the icon badges tell those apart.
+   - Includes Art moving to coral (year-polish-notes decision 9) and UX review improvement 9: drop the subject colour dot, and make "Show archived" a switch.
+3. **Desktop layout (S10-09, S10-16, S10-17, S10-18).**
+   - Navigation:
+     - a bottom bar under 600 px;
+     - a compact 80 px icon rail at 600 px and up;
+     - no labelled sidebar, and never the bar and the rail together;
+     - the same top-level items in both, Set up included.
+   - The Year timeline uses the full width.
+   - Home, Records, Set up, forms, buttons and segmented controls are capped in a centred column of about 480–640 px.
+   - Forms are single-column with labels above. Only short related pairs (start and end date) sit side by side.
+   - Home becomes two panes at 840 px and up: the briefing and the Schedule card in the wide pane, Records and the getting-started checklist in the narrow one.
+   - The edit sheet becomes a side panel of about 340–412 px that pushes the timeline. It stays open while other bars are tapped, and closes with Esc, × or a click on empty space.
+   - No widget dashboard.
+   - 24 px margins and gaps on large screens.
+   - This replaces year-polish-notes decision 8 (a sidebar at 1024 px and up).
+   - References:
+     - [M3 navigation rail](https://m3.material.io/components/navigation-rail/guidelines)
+     - [M3 canonical layouts](https://m3.material.io/foundations/layout/canonical-layouts)
+     - [NN/g web form design](https://www.nngroup.com/articles/web-form-design/)
+4. **Week view (S10-13).**
+   - The "This week" row's arrows and date range fold into the header row with the Week | Year switch (UX review improvement 8). The arrows keep 44 px targets.
+   - Checked on 2026-11-03: S9-02 had not done this.
+5. **Untracked gaps, now ticketed.**
+   - Set up gets a back link with a 44 px target, and an active item (UX review improvement 10): S10-14.
+   - Year badges get a 44 px tap zone: S10-15.
+   - The tester (S10-10a) must confirm that the 24 px badge finding is closed.
 
-| Order | Ticket | Size |
-|-------|--------|------|
-| 1 | [S10-01 — Sheets sit above the tab bar](S10-01-sheets-above-the-tab-bar.md) | XS |
-| 2 | [S10-02 — Lanes grouped by child, badges pinned to lanes](S10-02-lanes-grouped-by-child.md) | M |
-| 3 | [S10-03 — Today in a sticky two-line axis](S10-03-today-in-the-axis.md) | S |
-| 4 | [S10-04 — Calm bar heights and labels](S10-04-calm-bar-heights-and-labels.md) | M |
-| 5 | [S10-05 — Breaks as a wash over the bars](S10-05-breaks-as-a-wash.md) | S |
-| 6 | [S10-06 — The edit sheet: date tiles and the pace line](S10-06-edit-sheet.md) | S |
-| 7 | [S10-07 — Add assignment: subject picker, child chips, soft day chips](S10-07-add-assignment-pickers.md) | M |
-| 8 | [S10-08 — Title row: "+" and the pencil](S10-08-title-row.md) | XS |
-| 9 | [S10-09 — Desktop: sidebar, icon rail and side panel](S10-09-desktop-layout.md) | M |
-| 10 | [S10-10 — Tester pass](S10-10-tester-pass.md) | S |
+## Conservative calls by the PO
 
-Slip rule: S10-09 (desktop) slips first.
+These are defaults made while writing the tickets (2026-11-03). Each can be reversed with a one-line change.
+
+- **S10-04 starting values:**
+  - phone 8 → 28 px, desktop 8 → 32 px;
+  - curve 1.5;
+  - the maximum (the view's 95th-percentile load, from 2026-11-04) taken over the whole school year at the current zoom, so scrolling never rescales the bars;
+  - a dev-only `?debug=1&bars=min,max,curve` override for trying values.
+- **S10-09:** rail items show a small label under each icon, as Material 3 shows (confirmed by DeeDee, 2026-11-03).
+- **S10-09, changed 2026-11-04 (DeeDee):** once Set up is in the bar and the rail, Home's Set up row is dropped, so there is one way to do each thing. Sprint 10b.
+- **S10-11:** colours a parent has already stored are not changed. Only new subjects and the demo seed get the new rule.
+- **S10-14:** Set up is the active item on Set up screens, because it is now in the bar and the rail. UX review 10 suggested Home.
+- **S10-16:** pages are capped at 640 px, and forms, buttons and segmented controls at 480 px.
+- **S10-17 and S10-18:** both start at 840 px. The two-pane Home is about 1040 px wide at most, and the side panel is 360 px.
+
+## Carried over from 9b re-test (Low)
+
+The Sprint 9b re-test (`docs/reviews/sprint-9b-verification.md`) passed READY with 7 Low findings. Sprint 9 and 9b were merged to `main` in [PR #4](https://github.com/willMolloy/Homeschool-Hub/pull/4).
+
+| ID | Finding | Where it goes |
+|----|---------|---------------|
+| R1 | The "Each entry" CSV's School days column adds up to more than the real total, because a day in two entries is in both rows. | S10-19 (10b) |
+| R2 | A clipped CSV row doesn't say which longer entry it is part of, which the screen does say. | S10-19 (10b) |
+| R3 | "All children" wraps onto two lines at 320 px on Records and Schedule. | S10-10a checked Schedule: **still open** (see below). S10-10b checks both again after S10-16. |
+| R4 | At 320 px with a long term name, only a weak fade shows that the zoom row scrolls. | S10-10a checked it: **still open** (see below). |
+| R5 | "Your log tracks School days." has a capital S mid-sentence. | S10-19 (10b) |
+| R6 | At 360 px, the date placeholder ends about 1 px before the calendar icon. | S10-10a: closed in the Log form and the Year tiles; open on Set up › Assignments and Days off (L3), fixed on `hh2/sprint-10` as "S10-19 partial". |
+| R7 | The `s2a-13-settings` smoke scenario is flaky after `axe-2a`. | S10-19 (10b) |
+
+## Carried over from the 10a test (Low)
+
+The S10-10a test (`docs/reviews/sprint-10a-verification.md`) found one Medium (M1, fixed as "S10-05 fix") and these Lows. L3 (with R6) is fixed as "S10-19 partial". The rest are not built in 10a; they go to 10b or the backlog.
+
+| ID | Finding | Where it goes |
+|----|---------|---------------|
+| L1 | A bar in an extra row is capped at 80 % of the maximum, so a cram week there can look lighter than an ordinary week (S10-04). | Backlog (rare; revisit `EXTRA_ROW_FACTOR`). |
+| L2 | A short bar with no room inside or outside gets no name (S10-04b allows "else none"; the badge and edit sheet still name it). | Backlog (by design; noted for DeeDee). |
+| L4 | A child whose only work is shared gets a header and ribbon with no lanes under it (S10-02). | Backlog. |
+| L5 | The Add sheet's Unit is still a native select, and the subject is not preselected (S10-07). | S10-16 (10b, forms). |
+| L6 | The `tap-targets` smoke script flags the 28 px tile inputs inside the 60 px date tiles. | S10-19 (10b): measure the label or skip `.tl-tile` inputs. |
+| L7 | `axe-2a` logged one colour-contrast hit on Add assignment's submit button at 1280 once (clean on re-runs). | S10-19 (10b), with R7. |
+| L8 | On the phone the Year edit sheet sits above the tab bar; the mockup caption has it covering it (S10-01). | Backlog (a mockup difference only). |
+| R3 | Still open: at 320 with 2 children "All children" wraps; with 3 children the child switch wraps to a second row at 390 and 414. | S10-16 / S10-10b (10b). |
+| R4 | Still open: at 320 with a 30-character Fall name, later chips are off-screen with only the fade as a cue. | S10-19 (10b). |
+| L9 | From the re-test (5a5ce00): the Copy tests in `timeline-edit-bar.test.tsx` and `assignment-weekdays.test.tsx` are flaky under CPU load, because S10-06's read-only `POST /api/plan/pace` is counted as a write. Leave `/api/plan/pace` out of the POST / non-GET filters (tests only). | **Closed** on `hh2/sprint-10` as "S10-19 partial" (it failed PR #5's CI). |
+| L10 | From the re-test (5a5ce00): on Set up › Assignments and Days off at 360 and 390, the side-by-side Start/End fields clip "Dec 30, 2026" and the "Choose a date" placeholder. Stack them on narrow widths, or shorten the placeholder. | S10-19 (10b). |
+
+## Order
+
+Build in order, one commit per ticket, each with `bash scripts/check.sh` green. Compare against the mockup at 360/390 and 1280 px in light and dark; where they differ, DeeDee's decisions win. Progress goes in `docs/progress/sprint-10.md`. Dragging stays off, and the drag code is kept.
+
+**Split approved by DeeDee, 2026-11-04.** Sprint 10a is built, tested and merged first. Its builder stops after the last 10a ticket. Sprint 10b starts on a new branch off `main` after 10a merges.
+
+### Sprint 10a: the Year view (branch `hh2/sprint-10`)
+
+| # | Ticket | Depends on | Size |
+|---|--------|------------|------|
+| 1 | [S10-01 — Sheets sit above the tab bar](S10-01-sheets-above-the-tab-bar.md) | — | XS |
+| 2 | [S10-02 — Lanes grouped by child](S10-02-lanes-grouped-by-child.md) | S10-01 | M |
+| 3 | [S10-15 — Year badges get a 44 px tap zone](S10-15-year-badges-44-px-tap-zone.md) | S10-02 | XS |
+| 4 | [S10-03 — Today in a sticky two-line axis](S10-03-today-in-the-axis.md) | S10-02 | S |
+| 5 | [S10-04 — Bar heights follow effort at every zoom](S10-04-bar-heights-follow-effort.md) | S10-02 | M |
+| 6 | [S10-04b — Bar labels that fit](S10-04b-bar-labels-that-fit.md) | S10-04 | S |
+| 7 | [S10-04c — 44 px tap zones on thin bars](S10-04c-bar-tap-zones.md) | S10-04 | XS |
+| 8 | [S10-05 — Breaks as a wash over the bars](S10-05-breaks-as-a-wash.md) | S10-02 | S |
+| 9 | [S10-06 — The Year edit sheet as mocked](S10-06-edit-sheet-as-mocked.md) | S10-01 | S |
+| 10 | [S10-07 — Add assignment without browser-default controls](S10-07-add-assignment-without-browser-controls.md) | S10-06 | M |
+| 11 | [S10-08 — Title row: "+" and the pencil](S10-08-title-row.md) | — | XS |
+| 12 | [S10-10a — Tester pass, Sprint 10a](S10-10a-tester-pass.md) | all of 10a | S |
+
+**10a slip rule:** S10-08 slips first, then S10-07. S10-04, S10-04b and S10-04c stay together.
+
+### Sprint 10b: colours, navigation and the wide layout (new branch off `main`, after 10a merges)
+
+| # | Ticket | Depends on | Size |
+|---|--------|------------|------|
+| 1 | [S10-11 — Twelve soft subject colours, each subject its own](S10-11-unique-subject-colours.md) | — | S |
+| 2 | [S10-12 — Subjects screen cleanup (UX review 9)](S10-12-subjects-screen-cleanup.md) | S10-11 | S |
+| 3 | [S10-13 — Week arrows and dates in the Week \| Year row](S10-13-week-header-in-one-row.md) | — | S |
+| 4 | [S10-09 — Navigation: a bottom bar or an icon rail](S10-09-navigation-bar-or-rail.md) (now also drops Home's Set up row) | S10-01 | S |
+| 5 | [S10-14 — Set up gets a 44 px back link](S10-14-set-up-back-link.md) | S10-09 | XS |
+| 6 | [S10-16 — A centred content column with single-column forms](S10-16-content-column-and-forms.md) | S10-09 | S |
+| 7 | [S10-17 — Home in two panes on wide screens](S10-17-home-two-panes.md) | S10-16 | S |
+| 8 | [S10-18 — The Year edit sheet as a side panel on wide screens](S10-18-edit-side-panel.md) | S10-06, S10-16 | S |
+| 9 | [S10-19 — Small carry-overs from the 9b re-test](S10-19-carry-overs-from-9b-retest.md) | — | S |
+| 10 | [S9b-07 — A run of days shows which days count](../sprint-9b-fixes/S9b-07-runs-show-day-chips.md) (adapted to our S9b-01: entries count school weekdays less days off) | — | S |
+| 11 | [S10-10b — Tester pass, Sprint 10b](S10-10b-tester-pass.md) | all of 10b | S |
+
+**10b slip rule:**
+1. S10-17 and S10-18 slip first. S10-19 can slip with them.
+2. Then S10-16.
+3. S10-09 and S10-14 stay together; one is not built without the other.
+
+The IDs are kept stable from the 2026-11-01 draft. New tickets are S10-04b, S10-04c and S10-11 to S10-19. S10-10 is split into S10-10a and S10-10b (2026-11-04). So the table order is the build order, not the ID order.

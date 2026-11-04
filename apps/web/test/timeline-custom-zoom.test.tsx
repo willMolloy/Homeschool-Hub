@@ -198,7 +198,7 @@ describe("a view with no plan, and an empty month (S7b-07)", () => {
     const user = userEvent.setup();
     renderAt("/timeline");
     await screen.findByRole("img", { name: "Year timeline" });
-    await user.click(screen.getByRole("button", { name: "Edit zoom views" }));
+    await user.click(screen.getByRole("button", { name: "Edit views" }));
     const form = await screen.findByRole("form", { name: "Zoom views" });
     expect(within(form).getAllByText("Not in this year's dates")).toHaveLength(2);
   });

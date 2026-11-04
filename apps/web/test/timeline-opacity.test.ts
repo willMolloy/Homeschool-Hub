@@ -21,8 +21,14 @@ describe("bar opacity (S8-01)", () => {
 // T-11d: outside names are page text that dims with its bar; inside names stay full strength on a dimmed bar.
 describe("name contrast while dimmed (T-11d)", () => {
   const css = readFileSync("src/features/timeline/timeline.css", "utf8");
-  it("outside names use the page text colour", () => {
-    expect(css).toMatch(/\.tl-outside-name\s*\{[^}]*fill:\s*var\(--tl-foreground\);/);
+  // S10-04b (mockup): outside names are muted page text, and no longer dim with their bar (muted text at 0.7 would miss AA).
+  it("outside names use the muted text colour", () => {
+    expect(css).toMatch(/\.tl-outside-name\s*\{[^}]*fill:\s*var\(--tl-muted-foreground\);/);
+  });
+  it.each(THEME_NAMES)("muted outside names at full strength meet AA on the page and on cards (%s)", (theme) => {
+    for (const bg of [CHROME[theme].background!, CHROME[theme].card!]) {
+      expect(contrast(CHROME[theme]["muted-foreground"]!, bg)).toBeGreaterThanOrEqual(4.5);
+    }
   });
   it.each(THEME_NAMES)("page text at the dim opacity meets AA on the page and on cards (%s)", (theme) => {
     for (const bg of [CHROME[theme].background!, CHROME[theme].card!]) {

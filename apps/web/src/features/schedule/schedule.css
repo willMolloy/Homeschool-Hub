@@ -296,3 +296,36 @@
 .subject-select-row select { flex: 1; min-width: 0; }
 /* S8-08: the back link is the accent colour, not the browser's blue. */
 .schedule-back a { color: var(--tl-primary); text-decoration: none; }
+
+/* S10-07: the Year Add sheet's own controls (mockup frame 5). Only the `.form-sheet` look uses the chips and tiles. */
+.subject-pick { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--tl-border); border-radius: 12px; background: var(--tl-card); color: var(--tl-foreground); font: inherit; font-size: 1rem; text-align: left; cursor: pointer; }
+.subject-pick:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: 2px; }
+.subject-pick[aria-invalid="true"] { border-color: var(--danger); }
+.subject-pick-name { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subject-pick-name.is-empty { font-weight: 400; color: var(--tl-muted-foreground); }
+.subject-pick-caret { flex: none; color: var(--tl-muted-foreground); }
+.subject-pick-list { list-style: none; margin: 0 -16px; padding: 0; }
+.subject-pick-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 56px; box-sizing: border-box; padding: 0 16px; border: 0; border-top: 1px solid var(--tl-border); background: transparent; color: var(--tl-foreground); font: inherit; font-size: 1.03rem; text-align: left; cursor: pointer; }
+.subject-pick-row:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: -3px; }
+.subject-pick-row.is-new { color: var(--tl-primary); font-weight: 800; }
+.subject-pick-row .subject-pick-name { font-weight: inherit; }
+.subject-pick-tick { flex: none; color: var(--tl-primary); }
+.subject-pick-new { width: 32px; height: 32px; flex: none; box-sizing: border-box; border-radius: 50%; border: 1.5px dashed var(--tl-primary); color: var(--tl-primary); display: grid; place-items: center; }
+.subject-pick .subject-pick-new { width: 28px; height: 28px; }
+.subject-pick-group { margin: 14px 0 4px; color: var(--tl-muted-foreground); font-size: 0.84rem; font-weight: 700; }
+
+.kid-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.kid-chip { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; box-sizing: border-box; padding: 0 14px 0 10px; border: 1px solid var(--tl-border); border-radius: 999px; background: var(--tl-card); color: var(--tl-foreground); font-size: 0.97rem; cursor: pointer; }
+.kid-chip input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.kid-chip.is-on { padding: 0 13px 0 9px; border: 1.5px solid var(--tl-primary); background: var(--tl-primary-soft); font-weight: 800; }
+.kid-chip:has(input:focus-visible) { outline: 3px solid var(--tl-ring); outline-offset: 2px; }
+.kid-chip-av { width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--tl-secondary); color: var(--tl-muted-foreground); font-size: 0.75rem; font-weight: 800; }
+/* The initial is drawn by CSS so the chip's label (and its checkbox's name) is just the name. */
+.kid-chip-av::before { content: attr(data-initial); }
+.kid-chip.is-on .kid-chip-av { background: var(--tl-card); color: var(--tl-primary); }
+.kid-chip-tick { flex: none; color: var(--tl-primary); }
+
+.date-tiles-field { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+.form-sheet .day-chip { border-radius: 12px; border-color: var(--tl-border); background: var(--tl-card); color: var(--tl-muted-foreground); font-weight: 600; }
+.form-sheet .day-chip:has(input:checked) { border: 1.5px solid var(--tl-primary); background: var(--tl-primary-soft); color: var(--tl-primary); font-weight: 800; }
+.form-sheet .day-chip:has(input:focus-visible) { outline-color: var(--tl-ring); }

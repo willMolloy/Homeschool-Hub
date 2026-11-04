@@ -68,7 +68,7 @@ describe("zoom presets", () => {
     expect(expected.todayX).not.toBeNull();
     expect(todayX(svg)).toBeCloseTo(expected.todayX!, 3);
     expect(within(zoomGroup()).getByRole("button", { name: "Fall" })).toHaveAttribute("aria-pressed", "true");
-    const months = [...svg.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
+    const months = [...svg.closest(".tl-wrap")!.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
     expect(months).not.toContain("Jan");
   });
 
@@ -76,7 +76,7 @@ describe("zoom presets", () => {
     await open();
     await userEvent.click(within(zoomGroup()).getByRole("button", { name: "Spring" }));
     const svg = await screen.findByRole("img", { name: "Spring timeline" });
-    expect([...svg.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent)).toContain("Jan");
+    expect([...svg.closest(".tl-wrap")!.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent)).toContain("Jan");
     expect(svg.querySelector("[data-today]")).toBeNull();
   });
 
@@ -96,7 +96,7 @@ describe("zoom presets", () => {
     await userEvent.click(within(zoomGroup()).getByRole("button", { name: "Fall" }));
     const leaving = document.querySelector(".tl-leaving")!;
     expect(leaving).toHaveAttribute("aria-hidden", "true");
-    expect(document.querySelector(".tl-entering svg")).toHaveAccessibleName("Fall timeline");
+    expect(document.querySelector(".tl-entering svg.tl-svg")).toHaveAccessibleName("Fall timeline");
     expect(screen.getAllByRole("img")).toHaveLength(1);
     await waitFor(() => expect(document.querySelector(".tl-leaving")).toBeNull());
     expect(document.querySelectorAll(".tl-stage svg.tl-svg")).toHaveLength(1);

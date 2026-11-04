@@ -82,25 +82,28 @@ describe("the Year timeline page", () => {
     // S8-07: no names on the picture: each lane has a badge in the gutter, named for its subject (and child).
     expect(svg.querySelectorAll("text.tl-lane-label")).toHaveLength(0);
     const badges = [...svg.closest(".tl-wrap")!.querySelectorAll("button.tl-badge")].map((b) => b.getAttribute("aria-label"));
-    expect(badges).toEqual(expected.badges.map((b) => b.text));
+    expect(badges).toEqual(expected.badges.map((b) => b.label));
     expect(badges).toContain("Literature · Frank");
-    expect(svg.querySelector("path.tl-totals")).not.toBeNull();
+    expect(badges).toContain("History · Together"); // S10-02: shared work in the Together group
+    expect(svg.querySelector("path.tl-totals")).toBeNull(); // S10-02: the children's ribbons replace All subjects
   });
 
-  it("marks breaks with a faint plain tint at Year (T-05c), months along the top, and today with the one strong line and pill", async () => {
+  it("marks breaks with a soft band and wash at Year (S10-05), months along the top, and today with the one strong line and pill", async () => {
     stubSample();
     const { svg } = await openTimeline();
-    const hatchId = svg.querySelector("pattern")!.id;
+    // S10-05: no hatch; each break is a soft band behind the grid and a wash over the bars.
+    expect(svg.querySelector("pattern")).toBeNull();
     const breaks = svg.querySelectorAll(".tl-breaks rect");
     expect(breaks.length).toBeGreaterThan(0);
-    expect(breaks[0]).toHaveClass("tl-break-quiet");
-    expect(breaks[0]).not.toHaveAttribute("fill", `url(#${hatchId})`);
-    const months = [...svg.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
+    expect(breaks[0]).toHaveClass("tl-break");
+    expect(svg.querySelectorAll(".tl-wash rect")).toHaveLength(breaks.length);
+    const months = [...svg.closest(".tl-wrap")!.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
     // T-05c: a phone shows every other month label, so the axis stays calm.
     expect(months).toEqual(["Sep", "Nov", "Jan", "Mar", "May"]);
     const today = svg.querySelector("[data-today]")!;
     expect(today.querySelectorAll("line")).toHaveLength(1);
-    expect(today.textContent).toBe("Today");
+    // S10-03: the pill lives in the sticky axis, not on the picture.
+    expect(svg.closest(".tl-wrap")!.querySelector(".tl-axis [data-today-pill]")!.textContent).toBe("Today");
   });
 
   it("stays under 300 SVG nodes at Year zoom, at 360 px and with events, which Year hides (T-05c)", async () => {
@@ -125,7 +128,8 @@ describe("the Year timeline page", () => {
     // S8-07: the lane badges in the gutter are buttons too (one per lane, named for the subject); they are counted on their own.
     const visible = within(main).getAllByRole("button").filter((b) => !b.closest(".sr-only") && !b.classList.contains("tl-badge"));
     expect(main.querySelectorAll("button.tl-badge").length).toBeGreaterThan(3);
-    expect(visible.map((b) => b.textContent)).toEqual(["+ Add assignment", "Year", "Fall", "Spring", "This month", "Edit", "All children", "Frank", "Margaret"]);
+    expect(visible.map((b) => b.textContent)).toEqual(["Add assignment", "Year", "Fall", "Spring", "This month", "", // S10-08: the "+" and the pencil are icons
+      "All children", "Frank", "Margaret"]);
     expect(within(main).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Schedule"]); // the page title; Week | Year is a pair of tabs, not buttons
     // Below the title: the picture, and the lane list that only screen readers get. Nothing else.
     const bleed = main.querySelector(".timeline-bleed")!;
@@ -139,11 +143,11 @@ describe("the Year timeline page", () => {
     const svg = await screen.findByRole("img", { name: "Year timeline" });
     expect(svg.querySelectorAll("path.tl-band")).toHaveLength(0);
     expect(svg.querySelector("[data-today]")).not.toBeNull();
-    const months = [...svg.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
+    const months = [...svg.closest(".tl-wrap")!.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
     expect(months.length).toBeGreaterThan(2);
     expect(svg.querySelectorAll("text.tl-lane-label")).toHaveLength(0);
     expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Add assignment" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add assignment" })).toBeInTheDocument();
     // The plan is still fetched for the school year (nothing to fetch for, but the range is one rule).
     expect(plansPath()).toEqual(["/api/plan?from=2026-07-27&to=2027-07-04"]);
   });

@@ -52,13 +52,15 @@ async function openForm(path = "/timeline") {
   const user = userEvent.setup();
   const r = renderAt(path);
   await screen.findByRole("img", { name: "Year timeline" });
-  await user.click(screen.getByRole("button", { name: "+ Add assignment" }));
+  await user.click(screen.getByRole("button", { name: "Add assignment" }));
   const sheet = await screen.findByRole("dialog", { name: "Add assignment" });
   return { ...r, user, sheet };
 }
 
 async function fillEssentials(user: ReturnType<typeof userEvent.setup>, sheet: HTMLElement, title = "Ancient Egypt") {
-  await user.selectOptions(within(sheet).getByLabelText("Subject"), "hist");
+  // S10-07: the Subject row opens a picker sheet.
+  await user.click(within(sheet).getByRole("button", { name: /^Subject/ }));
+  await user.click(within(await screen.findByRole("dialog", { name: "Subject" })).getByRole("button", { name: "History" }));
   if (title) await user.type(within(sheet).getByLabelText("Title"), title);
   await user.click(within(sheet).getByLabelText("Margaret"));
   fireEvent.change(within(sheet).getByLabelText("Start"), { target: { value: "2026-11-02" } });
@@ -104,12 +106,13 @@ describe("adding an assignment from the timeline", () => {
     // Essentials first, in order; then the effort question (S6-09), asked in time, with no weight field and no "More".
     const labels = [...sheet.querySelectorAll("label, legend, summary")].map((e) => e.textContent!.trim()).filter((t) => !["Frank", "Margaret", "Mon", "Tue", "Wed", "Thu", "Fri"].includes(t));
     // S4-07: the Days chips sit right under the dates.
-    expect(labels.slice(0, 8)).toEqual(["Subject", "Title", "Children", "Start", "End", "Days", "Unit", "Total"]);
-    expect(labels[8]).toBe("About how long will that take?");
+    // S10-07: the sheet's own controls: For (child chips), Dates (tiles), School days (soft chips).
+    expect(labels.slice(0, 9)).toEqual(["Subject", "Title", "For", "Dates", "Start", "End", "School days", "Unit", "Total"]);
+    expect(labels[9]).toBe("About how long will that take?");
     expect(within(sheet).queryByText("More")).toBeNull();
     expect(within(sheet).queryByLabelText(/^Weight per/)).toBeNull();
     // Nothing non-essential: the form's own buttons and the close button, no helper text or badges.
-    expect(within(sheet).getAllByRole("button").map((b) => b.textContent)).toEqual(["×", "", "", "Add", "Cancel"]) /* S9-04: the two calendar buttons (icon only, named "Choose a date") sit after Start and End */;
+    expect(within(sheet).getAllByRole("button").map((b) => b.textContent)).toEqual(["×", "Choose a subject…", "", "", "Add", "Cancel"]) /* S10-07: the subject picker row; S9-04: the two calendar buttons (icon only, named "Choose a date") sit after Start and End */;
   });
 
   it("is a bottom sheet on phones", async () => {
@@ -145,7 +148,7 @@ describe("adding an assignment from the timeline", () => {
       return b!;
     });
     expect(band).toHaveClass("tl-flash");
-    expect(screen.getByRole("button", { name: "+ Add assignment" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add assignment" })).toBeInTheDocument();
   });
 
   it("switches the child filter to All when it would hide the new bar", async () => {

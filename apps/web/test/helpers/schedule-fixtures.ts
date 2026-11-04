@@ -28,5 +28,12 @@ export function patchMerging<T extends { id: string }>(...rows: T[]) {
   };
 }
 
-/** Requests that change something. The event preview (S5-02) and the pace count (S7b-10) are POSTs that only read, so they aren't. */
-export const writes = () => fakeApi.calls.filter((c) => c.method !== "GET" && c.path !== "/api/plan/preview-event" && c.path !== "/api/plan/pace");
+/** POSTs that only read: the event preview (S5-02) and the pace count (S7b-10, S10-06's edit sheet). */
+export const READ_ONLY_POSTS: readonly string[] = ["/api/plan/preview-event", "/api/plan/pace"];
+const pathOnly = (path: string) => path.split("?")[0]!;
+/** A recorded request that changes something (any non-GET except the read-only POSTs, whatever its query string). */
+export const isWrite = (c: { method: string; path: string }) => c.method !== "GET" && !READ_ONLY_POSTS.includes(pathOnly(c.path));
+/** Requests that change something, in order. S10-19 partial (L9): when the pace POST lands doesn't matter, it is never one. */
+export const writes = () => fakeApi.calls.filter(isWrite);
+/** Writes that are POSTs (creates). */
+export const writePosts = () => writes().filter((c) => c.method === "POST");

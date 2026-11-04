@@ -67,3 +67,21 @@ export const paceLooksHigh = (perDay: number, unitType: UnitType) => perDay > PA
 /** S6b-07: "That's about 300 pages a day. Is that right?" */
 export const paceNoteText = (perDay: number, unitType: UnitType) =>
   `That's ${paceText(perDay, unitType).replace(/^About/, "about")}. Is that right?`;
+
+/** S10-06: units a day for the edit sheet's pace line, rounded: whole from 1 up, else to one decimal (never shown as 0). */
+export function roundedUnits(perDay: number): number {
+  return perDay >= 1 ? Math.round(perDay) : Math.max(0.1, Math.round(perDay * 10) / 10);
+}
+
+/** S10-06: minutes a day for the pace line, rounded: to 5 from 10 up, else whole (never less than 1). */
+export function roundedMinutes(minutes: number): number {
+  return minutes >= 10 ? Math.round(minutes / 5) * 5 : Math.max(1, Math.round(minutes));
+}
+
+/** S10-06: "About 20 pages a day · 40 min", rounded values only; the minutes are left off when unknown. */
+export function paceLine(perDay: number, unitType: UnitType, minutes: number | null): string {
+  const n = roundedUnits(perDay);
+  const label = n === 1 ? UNIT_LABELS[unitType].one : UNIT_LABELS[unitType].many;
+  const time = minutes === null || !Number.isFinite(minutes) ? "" : ` · ${roundedMinutes(minutes)} min`;
+  return `About ${n.toLocaleString("en-US")} ${label} a day${time}`;
+}

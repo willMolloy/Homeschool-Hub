@@ -1,7 +1,7 @@
 /* S6-08: a quiet bar at the bottom: one line, one 44 px button. It sits above the tab bar on phones and above the
    timeline's edit bar while that is open (the timeline sets --edit-bar-height). */
 .undo-bar {
-  position: fixed; left: 50%; transform: translateX(-50%); z-index: 11;
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: var(--z-toast);
   bottom: calc(var(--tab-bar-height, 70px) + env(safe-area-inset-bottom) + var(--edit-bar-height, 0px) + 8px);
   display: flex; align-items: center; gap: 4px;
   width: max-content; max-width: calc(100vw - 32px); box-sizing: border-box;

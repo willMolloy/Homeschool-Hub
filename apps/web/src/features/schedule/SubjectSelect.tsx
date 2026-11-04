@@ -8,8 +8,12 @@
  * S7b-14 (F-12): choosing a common subject, or Add under New subject…, creates nothing yet: the name is kept as the
  * form's pending subject ("Nature Study (new)") and is created when the assignment is saved, so Cancel leaves no
  * orphan subject behind. An existing name just selects that subject.
+ * S10-07: `picker` (the Year Add sheet) swaps the dropdown for a row that opens a Subject sheet: each subject's badge and
+ * name, a tick on the current one, the common ones, and "New subject…" last. Choosing works exactly as the dropdown does.
  */
-import { useEffect, useId, useState, type MutableRefObject } from "react";
+import { useEffect, useId, useState, type MutableRefObject, type ReactNode } from "react";
+import { CaretRight, Check, Plus } from "@phosphor-icons/react";
+import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { ApiError, apiPost } from "../../api/client";
 import type { Subject } from "../../api/types";
 import { findSubjectNamed, missingCommonSubjects } from "../roster/commonSubjects";
@@ -36,9 +40,12 @@ interface Props {
    * form must save nothing); with nothing typed it resolves to undefined and the form uses its own subject.
    */
   resolveRef?: MutableRefObject<(() => Promise<string | null | undefined>) | null>;
+  /** S10-07: a picker row and sheet instead of the dropdown. */
+  picker?: boolean;
 }
 
-export function SubjectSelect({ id, value, onChange, l, options, invalidProps, resolveRef }: Props) {
+export function SubjectSelect({ id, value, onChange, l, options, invalidProps, resolveRef, picker = false }: Props) {
+  const [sheet, setSheet] = useState(false);
   const nameId = useId();
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
@@ -126,8 +133,47 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
     }
   }
 
+  const slotOf = subjectSlots(l.subjects);
+  const current = naming ? NEW_VALUE : pending ? PENDING_VALUE : value;
+  const pickRow = (v: string, badge: ReactNode, label: string, isNew = false) => (
+    <li key={v}>
+      <button type="button" className={`subject-pick-row${isNew ? " is-new" : ""}`} aria-current={v === current ? "true" : undefined}
+        onClick={() => { setSheet(false); choose(v); }}>
+        {badge}<span className="subject-pick-name">{label}</span>
+        {v === current ? <Check className="subject-pick-tick" size={20} weight="bold" aria-hidden="true" /> : null}
+      </button>
+    </li>
+  );
+  const newBadge = <span className="subject-pick-new" aria-hidden="true"><Plus size={16} weight="bold" /></span>;
+  const shownName = naming ? "New subject…" : pending ? `${pending} (new)` : chosen ? chosen.name : "Choose a subject…";
+
   return (
     <>
+      {picker ? (
+        <>
+          <button id={id} type="button" className="subject-pick" aria-haspopup="dialog" aria-label={`Subject: ${shownName}`} disabled={busy}
+            onClick={() => setSheet(true)} {...invalidProps}>
+            {chosen && !naming && !pending ? <SubjectBadge subject={chosen} slot={slotOf(chosen.id)} size={28} /> : naming || pending ? newBadge : null}
+            <span className={`subject-pick-name${chosen || naming || pending ? "" : " is-empty"}`}>{shownName}</span>
+            <CaretRight className="subject-pick-caret" size={18} aria-hidden="true" />
+          </button>
+          <ResponsiveSheet open={sheet} onOpenChange={setSheet} title="Subject">
+            <ul className="subject-pick-list" aria-label="Subjects">
+              {pending ? pickRow(PENDING_VALUE, newBadge, `${pending} (new)`) : null}
+              {options.map((s) => pickRow(s.id, <SubjectBadge subject={s} slot={slotOf(s.id)} size={32} />, `${s.name}${s.archived ? " (archived)" : ""}`))}
+            </ul>
+            {common.length > 0 ? (
+              <>
+                <p className="subject-pick-group">Add a common subject</p>
+                <ul className="subject-pick-list" aria-label="Common subjects">
+                  {common.map((c) => pickRow(COMMON_PREFIX + c, newBadge, c))}
+                </ul>
+              </>
+            ) : null}
+            <ul className="subject-pick-list" aria-label="New subject">{pickRow(NEW_VALUE, newBadge, "New subject…", true)}</ul>
+          </ResponsiveSheet>
+        </>
+      ) : (
       <div className="subject-select-row">
       {chosen ? <SubjectBadge subject={chosen} slot={subjectSlots(l.subjects)(chosen.id)} size={32} /> : null}
       <select id={id} value={naming ? NEW_VALUE : pending ? PENDING_VALUE : value} disabled={busy} onChange={(e) => choose(e.target.value)} {...invalidProps}>
@@ -146,6 +192,7 @@ export function SubjectSelect({ id, value, onChange, l, options, invalidProps, r
         <option value={NEW_VALUE}>New subject…</option>
       </select>
       </div>
+      )}
       {naming ? (
         <div className="subject-new">
           <label htmlFor={nameId}>Subject name</label>

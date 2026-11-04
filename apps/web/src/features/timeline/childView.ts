@@ -19,6 +19,7 @@ export function forChild(model: TimelineModel, childId: string | null): Timeline
   return {
     ...model,
     lanes,
+    children: model.children.filter((c) => c.childId === childId),
     breaks: model.breaks.filter((b) => touches(b.childIds, childId)),
     events: model.events.filter((e) => touches(e.childIds, childId)),
     totals: {

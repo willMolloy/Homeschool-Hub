@@ -24,7 +24,8 @@ import type { Draft } from "../features/schedule/ScheduleList";
 import { afterAdd } from "../features/timeline/afterAdd";
 import { EditBar } from "../features/timeline/EditBar";
 import { UpdateEstimateSheet } from "../features/timeline/UpdateEstimate";
-import { unitsPerCapacityDay, unitsPerDay } from "../features/schedule/effort";
+import { paceLine, unitsPerCapacityDay, unitsPerDay } from "../features/schedule/effort";
+import { minutesPerDayFromWeight, weightPerUnitOf } from "@hh/engine";
 import { usePace } from "../features/schedule/usePace";
 import { useMe } from "../auth/AuthProvider";
 import { useAssignmentEdit } from "../features/timeline/useAssignmentEdit";
@@ -33,7 +34,8 @@ import { BAR_DRAG_ENABLED, grabSelected, previewModel } from "../features/timeli
 import { useBarDrag, type DragPreview } from "../features/timeline/useBarDrag";
 import { hitTest } from "../features/timeline/hit";
 import { selectionFor } from "../features/timeline/select";
-import { layoutTimeline } from "../features/timeline/layout";
+import { layoutTimeline, type BarsOverride } from "../features/timeline/layout";
+import { useBarsOverride } from "../features/timeline/useBarsOverride";
 import type { TimelineModel } from "../features/timeline/model";
 import { yearHalves, yearSpan } from "../features/records/ranges";
 import type { MeasureText } from "../features/timeline/names";
@@ -45,6 +47,7 @@ import { useTimelineData } from "../features/timeline/useTimelineData";
 import { useZoomFade } from "../features/timeline/useZoomFade";
 import { availableZooms, defaultMonth, gridMonths, viewWithoutPlan, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
+import { createPortal } from "react-dom";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
 import { UpdateStatusFlow } from "../features/status/UpdateStatusFlow";
 import { EditZoomViewsSheet } from "../features/timeline/EditZoomViews";
@@ -58,12 +61,13 @@ const FALLBACK_WIDTH = 360;
 /** T-10: how long a just-added bar stays highlighted (keep in step with tl-flash in timeline.css). */
 export const FLASH_MS = 2400;
 
-interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail; customViews?: ZoomViews["custom"]; viewOverrides?: ZoomViews["overrides"] }
+interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail; customViews?: ZoomViews["custom"]; viewOverrides?: ZoomViews["overrides"]; bars?: BarsOverride | null }
 const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: LayoutArgs) =>
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
-/** `embedded`: inside Schedule (S8-04), which owns the page title. */
-export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
+/** `embedded`: inside Schedule (S8-04), which owns the page title. S10-08: `titleSlot` is the spot in Schedule's
+ *  title row where the "+" goes (rendered there through a portal; the add state stays here). */
+export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?: boolean; titleSlot?: HTMLElement | null }) {
   const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects, zoomViews, setZoomViews } = useTimelineData();
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
   // S8b-07: the same child switch as Week and Track work (one child, or All children), remembered on this device.
@@ -96,12 +100,14 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   };
   // The last detail drawn, for the detail threshold's hysteresis.
   const lastDetail = useRef<DrawnDetail | undefined>(undefined);
+  // S10-04: dev-only `?debug=1&bars=min,max,curve` tries other bar heights live.
+  const bars = useBarsOverride();
   const layout = useMemo(
-    () => layoutFor(drawn, shownZoom, { width, measureText, month, customViews, viewOverrides, previousDetail: lastDetail.current }),
-    [drawn, shownZoom, width, measureText, month, customViews, viewOverrides],
+    () => layoutFor(drawn, shownZoom, { width, measureText, month, customViews, viewOverrides, bars, previousDetail: lastDetail.current }),
+    [drawn, shownZoom, width, measureText, month, customViews, viewOverrides, bars],
   );
   lastDetail.current = layout?.detail;
-  const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month, customViews, viewOverrides }), [model, leaving, width, measureText, month, customViews, viewOverrides]);
+  const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month, customViews, viewOverrides, bars }), [model, leaving, width, measureText, month, customViews, viewOverrides, bars]);
   // T-07: the selection lives beside the zoom, so it survives zoom changes and month flips.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const edit = useAssignmentEdit(applyAssignment);
@@ -140,6 +146,18 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   const estimatedReal = usePace(estimated && estimatedDays ? { subjectId: estimated.subjectId, childIds: estimated.childIds, startDate: estimated.startDate, endDate: estimated.endDate, weekdays: estimatedDays } : null);
   const estimatedPace = !estimated || !estimatedDays ? null
     : estimatedReal ? unitsPerCapacityDay(estimated.totalUnits, estimatedReal.capacityDays) : unitsPerDay(estimated.totalUnits, estimated.startDate, estimated.endDate, estimatedDays);
+  // S10-06: the edit sheet's pace line, at the selection's dates (a drag updates it), over the days the plan really has.
+  const selected = selection ? assignments.find((a) => a.id === selection.assignmentId) : undefined;
+  const selectedSubject = selected ? subjects.find((s) => s.id === selected.subjectId) : undefined;
+  const selectedDays = selected ? selected.weekdays ?? selectedSubject?.defaultWeekdays ?? schoolDays : null;
+  const selectedDraft = selected && selection && selectedDays
+    ? { subjectId: selected.subjectId, childIds: selected.childIds, startDate: selection.startDate, endDate: selection.endDate, weekdays: selectedDays } : null;
+  const selectedReal = usePace(selectedDraft, 150);
+  const selectedPerDay = !selected || !selectedDraft ? null
+    : selectedReal ? unitsPerCapacityDay(selected.totalUnits, selectedReal.capacityDays) : unitsPerDay(selected.totalUnits, selectedDraft.startDate, selectedDraft.endDate, selectedDraft.weekdays);
+  const selectedPace = selected && selectedPerDay !== null
+    ? paceLine(selectedPerDay, selected.unitType, minutesPerDayFromWeight(weightPerUnitOf(selected, selectedSubject?.defaultWeight ?? null).weight, selectedPerDay))
+    : null;
   const [resetting, setResetting] = useState<{ id: string; title: string } | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
   const confirmReset = async () => {
@@ -187,7 +205,10 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
     <>
       <header className="timeline-page-header">
         {embedded ? null : <h1>Timeline</h1>}
-        {!failed && !loading && model && <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />}
+        {!failed && !loading && model && (() => {
+          const add = <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />;
+          return embedded && titleSlot ? createPortal(add, titleSlot) : add;
+        })()}
         {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews, viewOverrides)} onEdit={() => setEditingViews(true)} />}
       </header>
       {ready && <ChildSwitch kids={childList} value={choice} onChange={setChoice} />}
@@ -203,7 +224,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
           <>
             <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews, viewOverrides)} timeline`} subjects={subjects} />
             <p className="tl-empty">Nothing planned yet.</p>
-            <p className="tl-empty tl-empty-hint">Tap + Add assignment above and your books and lessons appear here.</p>
+            <p className="tl-empty tl-empty-hint">Tap + above to add an assignment, and your books and lessons appear here.</p>
           </>
         ) : (
           <>
@@ -226,7 +247,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
             {selection && (
               <>
                 <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />
-                <EditBar ref={keep.ref} selection={selection}
+                <EditBar ref={keep.ref} selection={selection} pace={selectedPace}
                   busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)} onUpdateStatus={() => setStatusing(selection.assignmentId)}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
               </>

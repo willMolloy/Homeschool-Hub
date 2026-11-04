@@ -19,6 +19,8 @@ export const AA_TEXT = 4.5;
 export const AA_UI = 3;
 /** Bars are solid: the pastel is already mixed toward the page, so no transparency is layered on top. */
 export const BAR_OPACITY = 1;
+/** S10-05 (mockup "Break band over bars"): the break band's fill opacity over the bars. */
+export const WASH_OPACITY = { light: 0.72, dark: 0.5 } as const;
 /** The bar's secondary text (the amount) is ink at this opacity; it must stay at 5.2:1 or better (dark fills are darker, so dark needs a little more ink). */
 export const BAR_SECONDARY_OPACITY: Record<ThemeName, number> = { light: 0.78, dark: 0.86 };
 
@@ -225,17 +227,20 @@ export function renderTokensCss(): string {
     "  --tl-motion: 220ms;",
     `  --tl-bar-opacity: ${BAR_OPACITY};`,
     `  --tl-bar-secondary-opacity: ${BAR_SECONDARY_OPACITY.light};`,
+    `  --tl-wash: ${WASH_OPACITY.light};`,
     "  --tl-sheet-shadow: 0 -8px 24px rgb(60 40 20 / 0.1);",
     "}",
     '[data-theme="dark"] {',
     ...darkBody(""),
     `  --tl-bar-secondary-opacity: ${BAR_SECONDARY_OPACITY.dark};`,
+    `  --tl-wash: ${WASH_OPACITY.dark};`,
     "  --tl-sheet-shadow: 0 -8px 24px rgb(0 0 0 / 0.5);",
     "}",
     "@media (prefers-color-scheme: dark) {",
     '  :root:not([data-theme="light"]) {',
     ...darkBody("  "),
     `    --tl-bar-secondary-opacity: ${BAR_SECONDARY_OPACITY.dark};`,
+    `    --tl-wash: ${WASH_OPACITY.dark};`,
     "    --tl-sheet-shadow: 0 -8px 24px rgb(0 0 0 / 0.5);",
     "  }",
     "}",

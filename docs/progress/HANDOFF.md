@@ -1,12 +1,17 @@
-# Handoff (2026-11-03)
+# Handoff (updated 2026-11-04)
 
 Where Homeschool Hub stands, for whoever picks it up next (Product Owner, Developer or Tester).
 
 ## State
 
-- **Branch:** `hh2/sprint-9b`, started from `claude/test-coverage-analysis-6dehbu` (it holds Sprint 9 and Sprint 9b).
-  https://github.com/willMolloy/Homeschool-Hub/tree/hh2/sprint-9b
-- **`main` has neither Sprint 9 nor 9b yet.** No PR is open. Per the branch rule in [../HOW_WE_WORK.md](../HOW_WE_WORK.md#branches) (decided by DeeDee, 2026-11-03), the PR to `main` comes only after the sprint passes testing.
+- **Sprint 9 and 9b are merged to `main`:** [PR #4](https://github.com/willMolloy/Homeschool-Hub/pull/4), "Sprint 9 + 9b: Schedule & Records, plus fixes", merged on 2026-11-03 with a merge commit (the same method as PR #3).
+  - The merge commit is `bd47c550f4c92c3cb0fc4e8ff5baf0447364d5a8`.
+  - CI passed on the head, `e8dab0d`.
+  - The re-test (`docs/reviews/sprint-9b-verification.md`) said READY: no High or Medium findings, and 7 Low ones (R1–R7).
+- **Branches:**
+  - Work now continues on `hh2/sprint-10` (the Sprint 10a branch), which has `main` merged in: https://github.com/willMolloy/Homeschool-Hub/tree/hh2/sprint-10
+  - `hh2/sprint-9b` is kept, but it is done.
+  - The branch rule is in [../HOW_WE_WORK.md](../HOW_WE_WORK.md#branches) (decided by DeeDee, 2026-11-03).
 - **Gate:** `bash scripts/check.sh` was ALL GREEN before every Sprint 9b commit.
 
 ## Done: Sprint 9b (fixes from the S9-10 test)
@@ -20,18 +25,48 @@ Details, files and Decisions are in [sprint-9.md](sprint-9.md) under "Sprint 9b"
 | S9b-03 Home's "on track" is honest | db6bdf0 | The Schedule card says "running late" when any work is forecast late. |
 | S9b-04 Smoke scenarios use the DateField | 6e9c58b | Scenarios type US dates. They pass against a private local stack. |
 | S9b-05 Small fixes from the Sprint 9 tester | 3a247ae | N6, N7, N9–N17 and the demo's late assignment (S9-05). |
+| S9b-06 Independent re-test | e8dab0d | READY. 18 of 18 pass, 23 of 23 smoke scenarios, and 7 Low findings (R1–R7). See `docs/reviews/sprint-9b-verification.md`. |
+
+## Now: Sprint 10a (the Year view) on `hh2/sprint-10`
+
+- **The split (DeeDee, 2026-11-04).** Sprint 10 is now two sprints; see `docs/tickets/sprint-10-year-polish/README.md#order`.
+  - **10a** is the Year view: S10-01 to S10-08, S10-04b, S10-04c and S10-15, then the S10-10a tester pass. It is built on `hh2/sprint-10`, which is the 10a branch.
+  - **10b** is colours, navigation and the wide layout: S10-09, S10-11 to S10-14, S10-16 to S10-19 and S9b-07, then the S10-10b tester pass. It gets its own branch off `main` after 10a merges. **Don't start 10b on `hh2/sprint-10`.**
+- **Progress:** per-ticket rows and Decisions are in [sprint-10.md](sprint-10.md). Done and pushed so far:
+
+| Ticket | Commit |
+|--------|--------|
+| S10-01 Sheets above the tab bar | bea44b8 |
+| S10-02 Lanes grouped by child | fa80631 |
+| S10-15 Year badges 44 px tap zone | e631c61 |
+| S10-03 Sticky two-line axis | 51cef65 |
+| S10-04 Bar heights follow effort (95th-percentile max) | b5f33d1 |
+| S10-04b Bar labels that fit | 9cd926c |
+| S10-04c 44 px tap zones on thin bars | dfd1c45 |
+| S10-05 Breaks as a wash over the bars | af89c39 |
+| S10-06 Edit sheet as mocked | 8a50218, 206353d |
+| S10-07 Add sheet as mocked | 6383476 |
+| S10-08 Title row: "+" and the pencil | 1693bc7 |
+| S10-05 fix (M1 from the 10a test): bars run through a break past a skipped day | fc6f467 |
+| S10-19 partial (L3/R6 from the 10a test): date field padding on Set up forms | 9b5bfc7 |
+| S10-19 partial (L9 from the re-test): tests ignore the read-only pace POST | see sprint-10.md |
+
+- **Next:** 10a build is done (S10-01..08, 04b, 04c, 15). The S10-10a tester pass (`docs/reviews/sprint-10a-verification.md`, at 8b5b0dd) said NOT READY for one Medium (M1, S10-05); M1 is fixed (S10-05 fix), and L3/R6 is fixed separately (S10-19 partial). The other Lows (L1, L2, L4–L8) and the open R3/R4 are in the Sprint 10 README's carry-over list for 10b or the backlog. The re-test (5a5ce00) said **READY**: M1 and L3/R6 closed, with two new Lows (L9 test flake, L10 date clip), both carried to S10-19 in 10b. L9 failed PR #5's first CI run and is now fixed (tests only). Next: PR #5 to `main` once CI is green, then 10b on `hh2/sprint-10b`. Do not start 10b on this branch: 10b is a new branch off `main` after 10a merges (README).
+- **Gate:** before every commit, `DATABASE_URL=postgres://hh:hh@127.0.0.1:5462/hh2dev_test bash scripts/check.sh` must end ALL GREEN (about 2 minutes).
+  - That Postgres is the Developer's own embedded one on 127.0.0.1:5462 (data in `/workspace/hh2-s10-pg/data`, binaries under `/workspace/hh2-s10-pg/node_modules/@embedded-postgres/linux-x64/native/bin`, user hh/hh). Start it with `pg_ctl -D /workspace/hh2-s10-pg/data -o "-p 5462 -c listen_addresses=127.0.0.1 -k /workspace/hh2-s10-pg/sock" start` if it is down; any scratch Postgres with an empty test database works too.
+- **In progress:** nothing half-done. Each ticket is one commit.
+
+## S9b-07 and Claude's branch
+
+- The ticket `docs/tickets/sprint-9b-fixes/S9b-07-runs-show-day-chips.md` and its README row were copied from `origin/claude/test-coverage-analysis-6dehbu` (commit `0d2e95d`). The rest of that branch was **not merged**.
+- That branch's S9b-01 to S9b-04 commits (`d329548`, `400a1d9`, `308339d`, `375d3e0`) are Claude's parallel versions. They are superseded by ours, which are on `main` via PR #4. Don't merge them.
+- Future work branches from `main`, per the one-branch-per-sprint rule in [HOW_WE_WORK](../HOW_WE_WORK.md#branches).
+- **S9b-07 is in Sprint 10b** (2026-11-04). It is not built on `hh2/sprint-10`. Build it adapted to our S9b-01, where an entry's days are the calendar's school weekdays less days off. The S10-10b tester checks it.
 
 ## What's next, in order
 
-1. **S9b-06: the independent re-test** (`docs/tickets/sprint-9b-fixes/S9b-06-retest.md`). The Tester, not the Developer, re-checks N1–N17 and S9-05 in a browser:
-   - at 320, 360, 390 and 1280 px, in light and dark;
-   - plus the smoke scenarios and the gate.
-   - The results go in a "Re-test (S9b-06)" section of `docs/reviews/sprint-9-verification.md`.
-   - Things the Developer could not check:
-     - the CSV byte-order mark in Excel (N14);
-     - dark theme and forced-colours look of the new switch (N15). The 320 px checks were made in Chrome on a throwaway page only.
-2. **The Sprint 9 + 9b PR to `main`**, once the re-test passes. It is one PR from `hh2/sprint-9b`, with no force-push. DeeDee approves the merge.
-3. **Sprint 10: Year view polish** (`docs/tickets/sprint-10-year-polish/`). Its branch starts from `main` after that merge.
+1. **Finish Sprint 10a**, then the S10-10a tester pass, then a Sprint 10a PR to `main` once it passes, as with PR #4.
+2. **Sprint 10b** on a new branch off `main`, then the S10-10b tester pass and its PR.
 
 ## Open for DeeDee
 
@@ -47,4 +82,5 @@ Details, files and Decisions are in [sprint-9.md](sprint-9.md) under "Sprint 9b"
 
 - The new-session checklist in HOW_WE_WORK now points to [sprint-9.md](sprint-9.md) and this file.
 - Shared machine: other agents may run servers on :5173, :3000, :5273 and :3100. Leave them alone, and use other ports for a private stack bound to 127.0.0.1.
+- Tester notes for 10a are in S10-10a: All children against one child side by side (the bars rescale, which is expected); a 3-child family with overlapping books at 390 px; a badge's tap zone wins over a bar's at the plot's left edge.
 - `test/timeline-add.test.tsx` ("on save, closes, draws the new bar…") failed once in a full gate run during S9b-05 and passed alone and on the rerun. It looks timing-sensitive, so watch for it.
