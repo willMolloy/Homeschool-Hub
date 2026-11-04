@@ -77,7 +77,8 @@ Branch `hh2/sprint-9b`, from `claude/test-coverage-analysis-6dehbu`. Tickets in 
 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
-| S9b-01 School days are real days | (this commit) | API `services/recordEntryService.ts` (`coveredDays`), `repos/recordEntryRepo.ts` (overlap filter, `coveredDays` in the JSON), `services/recordTotals.ts` (union of days, `shareInRange`, hours in proportion), `routes/recordEntries.ts`; web `records/share.ts` (new, `partInRange`, `distinctSchoolDays`), `exportData.ts`, `RecordsPage.tsx` ("part of an entry from …"), `Totals.tsx` ("days any child did school"), `entryText.ts`, `api/types.ts` |
+| S9b-01 School days are real days | 0a31fc7 | API `services/recordEntryService.ts` (`coveredDays`), `repos/recordEntryRepo.ts` (overlap filter, `coveredDays` in the JSON), `services/recordTotals.ts` (union of days, `shareInRange`, hours in proportion), `routes/recordEntries.ts`; web `records/share.ts` (new, `partInRange`, `distinctSchoolDays`), `exportData.ts`, `RecordsPage.tsx` ("part of an entry from …"), `Totals.tsx` ("days any child did school"), `entryText.ts`, `api/types.ts` |
+| S9b-02 A typed book is never dropped | (this commit) | web `records/LogEntryForm.tsx`: a title typed but not added with Add is added on Save (the ticket's first choice) |
 
 ### Decisions (Sprint 9b)
 

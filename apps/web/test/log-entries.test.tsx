@@ -114,6 +114,30 @@ describe("the log form", () => {
     expect(calls("POST")[0]!.body).toMatchObject({ childIds: ["c2"], startDate: "2026-11-07", endDate: "2026-11-07", countsSchoolDay: false, notes: "Nature walk", books: ["Heidi"], homeMinutes: 60, awayMinutes: null, subjectMinutes: {} });
   });
 
+  it("S9b-02: a book title typed but not added is saved with the entry", async () => {
+    const user = userEvent.setup();
+    const form = await openLog(user);
+    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    await user.click(form.getByRole("button", { name: "Frank" }));
+    await user.type(form.getByLabelText("Book title"), "Heidi{Enter}");
+    await user.type(form.getByLabelText("Book title"), "  Charlotte's Web ");
+    await user.click(form.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(calls("POST")).toHaveLength(1));
+    expect(calls("POST")[0]!.body).toMatchObject({ books: ["Heidi", "Charlotte's Web"] });
+  });
+
+  it("S9b-02: a typed title alone is something to log", async () => {
+    const user = userEvent.setup();
+    const form = await openLog(user);
+    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    await user.click(form.getByRole("button", { name: "Frank" }));
+    await user.click(form.getByRole("switch", { name: /Count as a school day/ }));
+    await user.type(form.getByLabelText("Book title"), "Heidi");
+    await user.click(form.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(calls("POST")).toHaveLength(1));
+    expect(calls("POST")[0]!.body).toMatchObject({ countsSchoolDay: false, books: ["Heidi"] });
+  });
+
   it("a family with one child is not asked who", async () => {
     stub(DETAILED, [], KIDS.slice(0, 1));
     const user = userEvent.setup();
