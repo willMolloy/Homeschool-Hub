@@ -9,4 +9,5 @@
 | 3 | [S9b-03 — Home never says "on track" beside a late line](S9b-03-home-on-track-is-honest.md) | N4 | XS |
 | 4 | [S9b-04 — Smoke scenarios use the new date field](S9b-04-smoke-scenarios-date-field.md) | N5 | S |
 | 5 | [S9b-05 — Small fixes from the Sprint 9 tester](S9b-05-small-fixes.md) | N6, N7, N9–N17, S9-05 | S |
-| 6 | [S9b-06 — Re-test](S9b-06-retest.md) | — | S |
+| 6 | [S9b-07 — A run of days shows which days count](S9b-07-runs-show-day-chips.md) | Will (non-5-day weeks) | S |
+| 7 | [S9b-06 — Re-test](S9b-06-retest.md) | — | S |
