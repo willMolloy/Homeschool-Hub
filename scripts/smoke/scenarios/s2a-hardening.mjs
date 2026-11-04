@@ -1,4 +1,3 @@
-import { typeDates } from "../common.mjs";
 // Full Schedule flow: settings → add assignment → add days off → add event → plan reflects each → clean up.
 export default async function ({ page, shot, login, log, BASE }) {
   const W = Number(process.env.W || 360), H = W === 360 ? 740 : 800;
@@ -10,7 +9,10 @@ export default async function ({ page, shot, login, log, BASE }) {
   await page.setViewport({ width: W, height: H });
   const sw = () => page.evaluate(() => document.documentElement.scrollWidth);
   const S = (name) => shot(`s2a-hardening-${name}-${tag}`, W, H);
-  const setDates = (form, vals) => typeDates(page, form, vals);
+  const setDates = (form, vals) => page.$$eval(`${form} input[type=date]`, (els, vals) => {
+    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    els.forEach((el, i) => { if (vals[i] != null) { set.call(el, vals[i]); el.dispatchEvent(new Event("input", { bubbles: true })); } });
+  }, vals);
   const click = async (sel) => { await page.$eval(sel, (b) => b.scrollIntoView({ block: "center" })); await page.click(sel); };
   const hasCard = (t) => page.waitForFunction((t) => [...document.querySelectorAll(".card-title")].some((e) => e.textContent === t), { timeout: 5000 }, t);
   const goneCard = (t) => page.waitForFunction((t) => ![...document.querySelectorAll(".card-title")].some((e) => e.textContent === t), { timeout: 5000 }, t);
@@ -43,7 +45,7 @@ export default async function ({ page, shot, login, log, BASE }) {
   await page.waitForSelector(form);
   const subj = await page.$eval(`${form} select`, (s) => s.options[1].value);
   await page.select(`${form} select`, subj);
-  const inputs = await page.$$(`${form} input[type=text]:not([placeholder='Choose a date']), ${form} input[type=number]`);
+  const inputs = await page.$$(`${form} input[type=text], ${form} input[type=number]`);
   await inputs[0].type(A); await inputs[1].type("10");
   await setDates(form, [WEEK, "2026-11-20"]);
   await click(`${form} .choice-list input[type=checkbox]`);

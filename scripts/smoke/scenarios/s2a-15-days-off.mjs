@@ -1,4 +1,3 @@
-import { typeDates } from "../common.mjs";
 export default async function ({ page, shot, login, log, BASE }) {
   await page.goto(`${BASE}/setup/days-off`, { waitUntil: "networkidle0" });
   await login();
@@ -19,7 +18,11 @@ export default async function ({ page, shot, login, log, BASE }) {
   await page.waitForSelector(form);
   const label = await page.$(`${form} input[type=text]`);
   await label.type("Smoke test break");
-  await typeDates(page, form, ["2026-11-09", "2026-11-11"]);
+  await page.$$eval(`${form} input[type=date]`, (els) => {
+    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    const vals = ["2026-11-09", "2026-11-11"];
+    els.forEach((el, i) => { set.call(el, vals[i]); el.dispatchEvent(new Event("input", { bubbles: true })); });
+  });
   log("form sw", await page.evaluate(() => document.documentElement.scrollWidth));
   await shot("s2a-15-days-off-add-360");
   await page.$eval(`${form} button[type=submit]`, (b) => b.scrollIntoView({ block: "center" }));
