@@ -48,58 +48,58 @@ Agreed now, so they don't drift later. We consider going public only if:
 
 ## 1. Core checklist
 
-Status as of 2026-10-30. "Built" means a sprint delivered it; the end-to-end pass in the last row confirms it.
+Status as of 2026-11-04 (updated from the merged sprints on `main`, through Sprint 9b, PR #4). "Built" means a sprint delivered it and its tester passed; the end-to-end pass in the last row confirms it. Sprint 10 is being built on its own branch (`hh2/sprint-10`) and may change details here when it merges.
 
-**Build order for what's left:** assignment weekdays first (it changes what the bars mean, so it comes ahead of the effort rework), then the weekly briefing with finish-date forecasts, then the C1–C3 items (week adjust, undo, effort), now decided. Fast setup, accounts and the hosting fixes fit around these.
+**What's left in the core, in order:** Sprint 10a (Year view polish), Sprint 10b (colours, navigation, wide layout, and the run-of-days fix S9b-07), then Sprint 11 (accounts and the hosting fixes in code; to be discussed with Will before it starts), then the end-to-end run. The features agreed on 2026-11-04 ("Planned next" below) follow Sprint 10.
 
 ### Assignment weekdays
-- [ ] **Which weekdays an assignment runs on** (Sprint 4: tappable day chips, a subject default that assignments follow until customised). Today the engine spreads every assignment over all school days, so a once-a-week subject (picture study, composer, nature study) shows as a fifth of a lesson every day, and math can't be Monday to Thursday only. An assignment gets optional weekdays (default: every school day); the plan places its work only on those days, and the bars, This Week and check-ins follow. Events already have weekdays; assignments don't.
+- [x] **Which weekdays an assignment runs on** (built in Sprint 4: tappable day chips, a subject default that assignments follow until customised). Today the engine spreads every assignment over all school days, so a once-a-week subject (picture study, composer, nature study) shows as a fifth of a lesson every day, and math can't be Monday to Thursday only. An assignment gets optional weekdays (default: every school day); the plan places its work only on those days, and the bars, This Week and check-ins follow. Events already have weekdays; assignments don't.
 
 ### The map
 - [x] Year timeline: lanes per subject and child, thickness, All subjects bar, zoom presets, child filter (timeline T-01 to T-11e).
-- [x] Tap a bar to edit it, drag it to change dates, add an assignment from the timeline (T-07e, T-08, T-10).
-- [ ] **Phone finishing pass:** a compact edit bar and 44 px tap targets on every core screen.
+- [x] Tap a bar to edit it, add an assignment from the timeline (T-07e, T-10). Dragging is switched off behind `BAR_DRAG_ENABLED` since Sprint 7 (Will; code kept).
+- [x] **Phone finishing pass** (Sprint 5, and every sprint since checks 360 px and 44 px): a compact edit bar and 44 px tap targets on every core screen.
 
 ### Steering
-- [x] This Week, and the optional "How did last week go?" check-in for finished weeks (S2b, T-03b, T-09).
+- [x] Schedule · Week (formerly This Week). The weekly "How did last week go?" card was retired in Sprint 9; **Update status** on a bar corrects the plan's pace instead.
 - [x] Days off for the whole family or one child (for example a sick day). Bars reflow and keep their end dates (S2a).
-- [ ] **Adjust the current or a coming week:** change this week's amount, then keep the end date or push it back. The `week_override` table exists; C1 is decided (the most recent edit wins).
-- [ ] **Undo, and reset an assignment to how it was.** C2 decided: the last change, plus reset to how it was created.
-- [ ] **Weekly briefing on This Week, with finish-date forecasts.** A short status line per child above the week's work: "On track", or "Latin will finish 2 weeks late at this pace. Keep the end date or push it back?", or "This is your heaviest week." It appears only when there's something to act on. It is part of This Week, not a new screen. The engine already produces the warnings (work past the end date, no capacity, unplaced work); forecasts move once check-ins show a slower or faster pace. Its keep-or-push buttons use week adjust (C1).
+- [x] **Adjust the current or a coming week** (Sprint 6; whole-week undo and past weeks never change, Sprint 7b): change this week's amount, then keep the end date or push it back. The `week_override` table exists; C1 is decided (the most recent edit wins).
+- [x] **Undo, and reset an assignment to how it was** (Sprint 6). C2 decided: the last change, plus reset to how it was created.
+- [x] **Weekly briefing with finish-date forecasts** (Sprints 4 and 6; a late line offers Move end / Keep, Sprint 7b; one line on Home, Sprint 9). A short status line per child above the week's work: "On track", or "Latin will finish 2 weeks late at this pace. Keep the end date or push it back?", or "This is your heaviest week." It appears only when there's something to act on. It is part of This Week, not a new screen. The engine already produces the warnings (work past the end date, no capacity, unplaced work); forecasts move once check-ins show a slower or faster pace. Its keep-or-push buttons use week adjust (C1).
 - [x] ~~**"Missed a day?" on This Week.**~~ Built in Sprint 4, then **removed by Will's decision of 2026-10-31** (Sprint 6, S6-04): the weekly check-in already covers missed work ("keep the end date or push it back"), and a second way to report it clutters This Week. Sick days can still be added under Days off; attendance totals come with the records module.
-- [ ] **Preview before saving an event:** for example "Treasure Island goes from 5 to 6 pages a day". Events already have skip, lighter and normal rules per subject (S2a); the preview is missing.
+- [x] **Preview before saving an event** (Sprint 5): for example "Treasure Island goes from 5 to 6 pages a day". Events already have skip, lighter and normal rules per subject (S2a); the preview is missing.
 
 ### Effort (decision C3: approved)
 Thickness shows effort: how much work a day of this takes. Today the parent picks a weight per unit (Light, Normal, Heavy or Very heavy). Parents can't easily say how heavy one page is, but they can say how long a day takes. The proposal:
-- [ ] **Ask in time, store as effort.** When adding an assignment: "How many pages a day?" and "About how long will that take?" (15, 30, 45 or 60 minutes, or custom). The app stores the effort per unit (minutes per day ÷ units per day ÷ 2, since 1 point = 2 minutes). From then on the bar behaves as now: pull the end date in and it gets thicker.
-- [ ] **"Feels heavier / lighter" on the edit bar.** One tap nudges the effort by about 25% and the bar redraws. This is the main way to correct a bad first guess, and it is steering in itself.
-- [ ] **Corrections carry forward.** A corrected effort becomes the default for that child's next assignment in that subject (building on the subject default and learned usual weight, S2b-08 and S2b-32).
+- [x] **Ask in time, store as effort** (Sprint 6). When adding an assignment: "How many pages a day?" and "About how long will that take?" (15, 30, 45 or 60 minutes, or custom). The app stores the effort per unit (minutes per day ÷ units per day ÷ 2, since 1 point = 2 minutes). From then on the bar behaves as now: pull the end date in and it gets thicker.
+- [x] **Correcting a guess** (Sprint 7b): "Feels heavier / lighter" was replaced by **Update time estimate** (15, 30, 45, 60 minutes a day or custom), Will 2026-10-31. Original idea: One tap nudges the effort by about 25% and the bar redraws. This is the main way to correct a bad first guess, and it is steering in itself.
+- [x] **Corrections carry forward** (Sprints 6 and 7b). A corrected effort becomes the default for that child's next assignment in that subject (building on the subject default and learned usual weight, S2b-08 and S2b-32).
 - Optional extra, not required: one dismissible prompt about two weeks into an assignment ("Is Treasure Island still about 30 minutes a day?").
 
 Why not correct effort from the check-in: the check-in records how far a child got (pace), not how long it took, so it can't fix effort. It stays an optional way to steer the pace.
 
 ### Fast setup
 Sprint 3a (`tickets/sprint-3a-setup/`) builds the first three.
-- [ ] **Bulk-add** several assignments in one go.
-- [ ] **Copy an assignment**, including to another child (for example a younger sibling).
-- [ ] **CSV import** of assignments.
+- [x] **Bulk-add** (Sprint 3a; optional dates per row, Sprint 7b) several assignments in one go.
+- [x] **Copy an assignment** (Sprint 3a), including to another child (for example a younger sibling).
+- [x] **CSV import** of assignments (Sprint 3a).
 - [x] ~~**Book lookup by title.**~~ **Dropped by Will on 2026-10-31:** editions differ in page count, and a wrong prefilled total would quietly mislead parents.
-- [ ] **Calendar templates for the year's shape** (terms and breaks; the weekly shape is the weekday chips). Set up in one step, with a preview of the breaks it adds; everything stays editable under Days off.
+- [x] **Calendar templates for the year's shape** (Sprint 5; holidays keep their real dates, Sprint 7b) (terms and breaks; the weekly shape is the weekday chips). Set up in one step, with a preview of the breaks it adds; everything stays editable under Days off.
   - **Built in:** 36 weeks, a Sabbath schedule (6 weeks on, 1 off), three terms of 12 weeks, plus US holidays offered as days off.
   - **Build your own:** a simple pattern ("__ weeks on, __ weeks off", start and end dates, which holidays to skip), or "Save this year as a template" from breaks set up by hand, reused at rollover.
   - Sharing a template with friends or a co-op comes later.
-- [ ] **Custom zoom views** (Sprint 7). A quiet Edit at the end of the zoom row: hide Fall, Spring or This month, and add, rename, delete and reorder the family's own views (for example terms), up to 6 including Year.
-- [ ] **Year rollover and sibling reuse.** Start next year from this one, or copy a plan to a younger child, with the dates shifted.
+- [x] **Custom zoom views** (Sprint 7; Fall and Spring renamable and re-datable, Sprint 9). A quiet Edit at the end of the zoom row: hide Fall, Spring or This month, and add, rename, delete and reorder the family's own views (for example terms), up to 6 including Year.
+- [x] **Year rollover and sibling reuse** (Sprint 7: copy to a new year, copy to another child; both skip duplicates and can be undone, Sprint 7b). Start next year from this one, or copy a plan to a younger child, with the dates shifted.
 
 ### UI refinement and dark mode (Sprint 8, after Sprint 7): Soft Paper chosen
-Added by Will on 2026-10-31: the UI isn't up to modern standards yet. Done once the core features stop changing, so nothing is restyled twice; accounts and hosting hardening follow it.
+**Built in Sprints 8 and 8b** (PR #3). Added by Will on 2026-10-31: the UI isn't up to modern standards yet. Done once the core features stop changing, so nothing is restyled twice; accounts and hosting hardening follow it.
 - **Chosen 2026-10-31:** Soft Paper (`design/ux-research.md`), with slightly stronger assignment colours; tickets in `tickets/sprint-8-soft-paper/`. Navigation: Home · Schedule · Records (Schedule has Week | Year), decided by Will on 2026-10-31 and corrected on 2026-11-01 (Sprint 9).
 - **Design brief:** calm and airy, with the soft, rounded shapes of a warm and friendly app; pastel colours; very clean and tidy.
-- [ ] **Audit and direction first:** screenshot every screen at phone and desktop widths, critique against a modern standard, and show 2–3 visual directions on one page for Will and DeeDee to choose from before code changes.
-- [ ] **One design system:** tokens for type, spacing, radius, elevation and colour (light and dark), and shared components (buttons, fields, chips, cards, sheets, lists) in place of per-screen CSS.
-- [ ] **Screen-by-screen refinement:** the shell and navigation, This Week, the timeline, the schedule screens, forms and sheets, empty and loading states.
-- [ ] **Light, dark and system themes:** follows the device by default; Settings offers Light / Dark / System, remembered on that device. Pastel bars get dark-tuned versions; contrast tests run in both themes. (Today the app is locked to light: `color-scheme: light` in `styles.css`; timeline dark tokens already exist in `tokens.css`.)
-- [ ] **Checks:** the tap-target script and contrast in both themes, and a tester pass with before-and-after screenshots.
+- [x] **Audit and direction first:** screenshot every screen at phone and desktop widths, critique against a modern standard, and show 2–3 visual directions on one page for Will and DeeDee to choose from before code changes.
+- [x] **One design system:** tokens for type, spacing, radius, elevation and colour (light and dark), and shared components (buttons, fields, chips, cards, sheets, lists) in place of per-screen CSS.
+- [x] **Screen-by-screen refinement:** the shell and navigation, This Week, the timeline, the schedule screens, forms and sheets, empty and loading states.
+- [x] **Light, dark and system themes:** follows the device by default; Settings offers Light / Dark / System, remembered on that device. Pastel bars get dark-tuned versions; contrast tests run in both themes. (Built in Sprint 8.)
+- [x] **Checks:** the tap-target script and contrast in both themes, and a tester pass with before-and-after screenshots.
 
 ### Schedule and Records (Sprint 9, approved 2026-11-01)
 Will, 2026-11-01: Home's two main options are **Schedule** and **Records**; the weekly check-in card was retired (Update status on a bar corrects the plan's pace). Records therefore moved from "Optional modules" into the core, and the Track work tab went. Built in Sprint 9: log setup (template styles, never a state), log entries the parent types (hours and minutes, one entry per child, never prefilled, never moving the plan), totals for a range, and an export with chosen columns and dates (CSV and a printable page per child). Tickets: `tickets/sprint-9-schedule-and-records/README.md`; progress: `progress/sprint-9.md`.
@@ -107,9 +107,24 @@ Will, 2026-11-01: Home's two main options are **Schedule** and **Records**; the 
 - [x] One US-style date field everywhere; Fall and Spring renamed and re-dated (S9-04, S9-06).
 - [x] The weekly check-in card and Track work page retired; Update status from a Week bar and the Year edit bar (S9-02).
 - [x] Records: log setup, log entries, totals for a range, export with chosen columns and dates (S9-03, S9-07, S9-08, S9-11).
-- [ ] Tester pass (S9-10).
+- [x] Tester pass (S9-10), fixes in Sprint 9b (school days are real days, a typed book is never dropped, an honest "on track", and small fixes), re-test READY (`reviews/sprint-9b-verification.md`). Merged in PR #4.
+- [ ] **Runs of days show which days count (S9b-07):** day chips on a multi-day log entry, pre-set to the family's usual days, so a Saturday catch-up or a non-Mon–Fri week counts exactly (Will, 2026-11-01). In Sprint 10b.
 
-Sprint 10 is Year view polish (UX review); accounts and hosting hardening move to Sprint 11.
+### Year view polish (Sprint 10, split into 10a and 10b by DeeDee, 2026-11-04)
+Built by a second agent on `hh2/sprint-10`; tickets and decisions in `tickets/sprint-10-year-polish/README.md` (on that branch until its PR merges). DeeDee's decisions of 2026-11-03 and 2026-11-04 are recorded there.
+- [ ] **10a, the Year view:** sheets above the tab bar; lanes grouped by child with a **Together** group for shared work (Will); 44 px badge tap zones; Today in a sticky axis; bar heights that follow effort at every zoom, scaled to about the 95th percentile of the view so one heavy week can't flatten the rest; labels that fit; 44 px tap zones on thin bars; breaks as a wash over the bars; the edit sheet as mocked; Add assignment without browser controls; the title row.
+- [ ] **10b, colours, navigation and layout:** 12 soft colours with each subject its own; the Subjects screen cleanup; the Week header in one row; a bottom bar under 600 px and an icon rail above; a Set up back link; a centred content column and single-column forms; Home in two panes and the edit sheet as a side panel on wide screens; the 9b carry-overs; and S9b-07.
+
+### Planned next, after Sprint 10 (agreed with Will, 2026-11-04)
+Tickets to be written when Sprint 10 is done; build order as listed.
+1. [ ] **"Did Frank finish Treasure Island?"** When an assignment's end date passes, Home shows a clear card asking **Yes, finished / Not yet / We stopped**. Yes marks it done with that date (it feeds Completed on the Year view and the term summary); Not yet opens a date picker to move the end, and the question returns at the new end; We stopped marks it dropped, never counted as finished. Several at once read "3 assignments ended" and open one list. Nothing is assumed: an assignment counts as finished only when the parent says so. It is a schedule fact, not a log entry.
+2. [ ] **The "needs you" dot.** A small fern-accent dot (never alarm red) on the Home tab, and on the rail on wide screens, while something needs the parent's **answer**, for now only completion questions. It stays until answered; screen readers hear "Home, 1 thing needs you". Passive warnings (running late, heavy week) stay in the briefing line without the dot, so the dot keeps its meaning (Will, 2026-11-04).
+3. [ ] **Printable work sheets, weekly and daily (a parent feature).** The parent prints the sheets; children never use the app. A "Print sheets" button on Schedule · Week: pick a week or a single day and one, several or All children; one page per child. Each subject, the assignment and that week's or day's range ("Treasure Island · pages 120–150"), split by day on the weekly sheet; the daily sheet shows only what's scheduled that weekday. Paper checkboxes for the child (nothing comes back into the app), and a notes line. **No minutes** (Will). No student view or child logins (Will, 2026-11-04).
+4. [ ] **Term in review.** One card image per child for a term or the year, from Records: the assignments the parent marked finished, books read, time by subject and school days, each shown only if the family tracks it. No invented numbers, no favourite-book guess and no parent note (Will). Saved as an image or printed; no public link.
+5. [ ] **Calendar feed (after hosting).** One-way: a private subscription link a parent adds to Google, Apple or Outlook Calendar. It holds events, breaks and optionally assignment start and finish dates (never daily work), with children's names in the titles and an optional feed per child. We never sign in to their calendar or read it; Google refreshes subscribed calendars within about a day, which the app says. Two-way sync is not planned.
+
+### Sprint 11: accounts and the hosting fixes in code
+Discuss with Will before it starts (Will, 2026-11-01).
 
 ### Accounts
 - [ ] **Invite-only accounts, with separate parent logins.** An invite link creates a family account, and the same kind of link adds a second parent to an existing family. Each parent has their own login to the one family; today the login is stored on the family itself, so it moves to its own table. Password resets are done by hand with the existing `set-family-login` CLI. Self-serve signup and emailed resets wait until going public, so no email provider is needed yet.
@@ -123,7 +138,7 @@ Done during the core work, since none needs a host. Details are in "Private host
 - [ ] Login throttle that trusts the proxy.
 
 ### End to end
-- [ ] **The whole loop works on a real family's term:** set up a term, see it on the timeline, adjust a week, check in, undo a mistake. Run on a realistic Charlotte Mason-style term, not only the demo family, before phase 2.
+- [ ] **The whole loop works on a real family's term:** set up a term, see it on the timeline, adjust a week, update a status, log a week and export it, undo a mistake. Run on a realistic Charlotte Mason-style term, not only the demo family, before phase 2.
 
 ## 2. Private hosting
 
@@ -140,19 +155,24 @@ For DeeDee only; nobody else gets the link until phase 4. No public tunnels or h
 
 Each follows the module rules above. In order:
 
-1. **Records**: **moved into the core in Sprint 9** (see "Schedule and Records" in the core checklist). It is logging the parent types, not something generated from the plan: log setup, entries (hours and minutes, never prefilled, never moving the plan), totals for a range, CSV and a printable summary. Still to come inside it, held by Will: work samples and photos, and a **Charlotte Mason term-exam list** (at the end of a term, each child's books and subjects covered, to draw exam questions from). **CSV safety (built in S9-11):** titles, notes and subject names can start with `=`, `+`, `-` or `@` (for example `=HYPERLINK(...)`); they are stored as typed, so every CSV export escapes such cells (prefix a `'`) so a spreadsheet never runs them as formulas. Every total and export carries the wording: "Made for your state records. It doesn't guarantee your homeschool meets every state requirement; check your state's rules." Nothing claims to meet a state's requirements (APP_OVERVIEW.md, "Product rules").
+1. **Records**: **moved into the core in Sprint 9** (see "Schedule and Records" in the core checklist). It is logging the parent types, not something generated from the plan: log setup, entries (hours and minutes, never prefilled, never moving the plan), totals for a range, CSV and a printable summary. Still to come inside it: the term summary ("Planned next" above) and a **Charlotte Mason term-exam list** (at the end of a term, each child's books and subjects covered, to draw exam questions from). **CSV safety (built in S9-11):** titles, notes and subject names can start with `=`, `+`, `-` or `@` (for example `=HYPERLINK(...)`); they are stored as typed, so every CSV export escapes such cells (prefix a `'`) so a spreadsheet never runs them as formulas. Every total and export carries the wording: "Made for your state records. It doesn't guarantee your homeschool meets every state requirement; check your state's rules." Nothing claims to meet a state's requirements (APP_OVERVIEW.md, "Product rules").
 2. **Daily checklist**, for families who want it: a Today list per child with one-tap done. A tick confirms what the plan already assumes. Never required.
 3. **Later, as the hub grows:**
    - **"Smooth this month":** the app suggests moving a bar out of an overloaded week, accepted with one tap. It waits until the briefing shows where overload actually happens.
    - **Co-op groups:** a co-op shares class schedules that appear in each member family's plan. Wait until a co-op asks; the share link and separate parent logins cover the first needs.
-   - Quick capture (photos and voice notes for a portfolio), one-way calendar export (ICS), library due dates, and a curriculum budget with ESA receipts.
-   - Curriculum templates (tied to curriculum partnerships), print, and the rest of the hub list in `spec/SPEC.md` ("Hub features").
+   - **Curriculum import** (after the friends beta, if feedback supports it; Will, 2026-11-04). First step: the parent pastes or imports a book's table of contents (CSV import already exists). Publisher data needs partnerships; free schedules such as AmblesideOnline need permission to redistribute. Photo reading of a contents page is risky (mis-entered data).
+   - Library due dates, a curriculum budget with ESA receipts, and transcripts, GPA and credits for high schoolers (entry-heavy and legally sensitive; a separate module, much later).
+   - Curriculum templates (tied to curriculum partnerships) and the rest of the hub list in `spec/SPEC.md` ("Hub features"). Competitor research of 2026-11-04 informed this list.
 
 ## Not planned now
 
 - Lesson or chapter titles on assignments. They need tedious entry; revisit with templates.
 - Curriculum templates and partnerships. A later-stage idea, tied to partnering with particular curricula.
-- Weekly print.
+- ~~Weekly print.~~ Reversed by Will on 2026-11-04: the parent prints weekly and daily work sheets ("Planned next").
+- **Portfolio, work samples and photos** (Will, 2026-11-04): a phone or computer folder does this well; storing children's photos adds cost and privacy responsibility for little advantage.
+- **A student view, child logins or a per-child app link** (Will, 2026-11-04): children don't need to be in the app; the parent prints daily or weekly sheets instead.
+- **Two-way calendar sync** (reading a family's Google Calendar into the app): which child an event belongs to can't be known, and edits would clash. The one-way feed covers the need.
+- Daily checkbox grids as the main screen, gamification, AI tutors or built-in lessons, community messaging, and anything that claims state compliance.
 - Payments and billing. The friends beta is free, with every Family feature.
 - Self-serve signup and password-reset email (before going public).
 - AA contrast for inside names on dimmed bars (45 of 240 safe-palette combinations fail, T-11d).
@@ -173,6 +193,10 @@ Commit hashes and notes are in each progress doc.
 | Review fixes RF-01 to RF-12 | 24172fc | `tickets/review-fixes/`, `reviews/review-fixes-verification.md` |
 | Sprint 2b: effort weights, assumed progress, weekly check-ins (S2b-01 to S2b-38) | e9d9aad | `progress/sprint-2b.md` |
 | Sprint 2c: fixes from the Sprint 2b verification (S2c-01 to S2c-06) | 6346256 | `progress/sprint-2c.md` |
+| Sprints 3a and 3b: fast setup (bulk add, copy, CSV import) and fixes · PR #1 | 87b8389 | `progress/sprint-3a.md`, `progress/sprint-3b.md` |
+| Sprints 4 and 4b: assignment weekdays, briefing and forecasts, fixes · PR #2 | 49477c8 | `progress/sprint-4.md`, `progress/sprint-4b.md` |
+| Sprints 5 to 8b: preview and templates, steering (week adjust, undo, effort in minutes), setup and polish, the CM end-to-end run, the Soft Paper redesign · PR #3 | 5d24ab9 | `progress/sprint-5.md` to `progress/sprint-8.md`, `reviews/` |
+| Sprints 9 and 9b: Home · Schedule · Records, logging and export · PR #4 | bd47c55 | `progress/sprint-9.md`, `progress/HANDOFF.md` |
 
 The timeline tickets, in `progress/timeline.md`:
 
@@ -202,7 +226,7 @@ Decided by Will on 2026-10-30; DeeDee can still revisit them before the work is 
 
 - **C1. Week-adjust mode rule** (overnight O3): **decided: the most recent edit wins**, as the engine does today (`packages/engine/src/placement.ts`). Unblocks "Adjust the current or a coming week".
 - **C2. How far undo goes:** **decided: undo the last change, plus reset an assignment to how it was created.** Removal (O4) stays as built: days off are hard-deleted, assignments and events archive-only.
-- **C3. Effort input:** **decided: approved as written** in "Effort" above (ask in time, store as effort, nudge heavier or lighter, carry corrections forward).
+- **C3. Effort input:** **decided: approved as written** in "Effort" above (ask in time, store as effort, carry corrections forward); the heavier/lighter nudge became Update time estimate (Will, 2026-10-31).
 
 ### Needed for hosting (phase 2)
 
