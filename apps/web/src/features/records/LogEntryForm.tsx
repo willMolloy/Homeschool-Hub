@@ -76,9 +76,7 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
     if (fields.totalHours) body.totalMinutes = typed(total);
     if (fields.homeAway) { body.homeMinutes = typed(home); body.awayMinutes = typed(away); }
     if (fields.notes) body.notes = notes.trim() === "" ? null : notes.trim();
-    // A title typed but not added with "Add" is added on Save, never dropped (S9b-02).
-    const pending = book.trim();
-    if (fields.books) body.books = pending ? [...books, pending] : books;
+    if (fields.books) body.books = books;
     if (start && last >= start) {
       const days = Math.round((Date.parse(last) - Date.parse(start)) / 86_400_000) + 1;
       const sum = Object.values((body.subjectMinutes ?? {}) as Record<string, number>).reduce((a, b) => a + b, 0);
