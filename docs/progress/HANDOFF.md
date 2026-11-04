@@ -4,20 +4,21 @@ Where Homeschool Hub stands, for whoever picks it up next (Product Owner, Develo
 
 ## State
 
+- **Sprint 10b is merged to `main`:** [PR #6](https://github.com/willMolloy/Homeschool-Hub/pull/6), "Sprint 10b: colours, navigation, wide layout, run-of-days chips", merge commit `f54fb01445791482c4215abb104d10ff64fafa39` (`f54fb01`), 2026-11-04. CI passed on the head, `37d45eb`. The re-test (`docs/reviews/sprint-10b-verification.md`, dcd0152) said READY.
 - **Sprint 10a is merged to `main`:** [PR #5](https://github.com/willMolloy/Homeschool-Hub/pull/5), merge commit `60692781bf87f07ed7cb7fe6bed07432404939ff` (`6069278`), 2026-11-04. The re-test (`docs/reviews/sprint-10a-verification.md`) said READY.
 - **Sprint 9 and 9b are merged to `main`:** [PR #4](https://github.com/willMolloy/Homeschool-Hub/pull/4), "Sprint 9 + 9b: Schedule & Records, plus fixes", merged on 2026-11-03 with a merge commit (the same method as PR #3).
   - The merge commit is `bd47c550f4c92c3cb0fc4e8ff5baf0447364d5a8`.
   - CI passed on the head, `e8dab0d`.
   - The re-test (`docs/reviews/sprint-9b-verification.md`) said READY: no High or Medium findings, and 7 Low ones (R1–R7).
 - **Branches:**
-  - Work now continues on `hh2/sprint-10b` (Sprint 10b), cut from `main` at the PR #5 merge: https://github.com/willMolloy/Homeschool-Hub/tree/hh2/sprint-10b
-  - `hh2/sprint-10` (10a) and `hh2/sprint-9b` are kept, but they are done.
+  - No sprint branch is open. The next sprint gets a new branch off `main` (after `f54fb01`).
+  - `hh2/sprint-10b`, `hh2/sprint-10` (10a) and `hh2/sprint-9b` are kept, but they are done.
   - The branch rule is in [../HOW_WE_WORK.md](../HOW_WE_WORK.md#branches) (decided by DeeDee, 2026-11-03).
 - **Gate:** `bash scripts/check.sh` was ALL GREEN before every Sprint 10b commit.
 
-## Now: Sprint 10b (colours, navigation, the wide layout) on `hh2/sprint-10b`
+## Done: Sprint 10b (colours, navigation, the wide layout), merged in PR #6
 
-- **The 10b build is done.** Per-ticket rows and Decisions are in [sprint-10b.md](sprint-10b.md). Pushed, one commit per ticket:
+- **Sprint 10b is done and merged.** Per-ticket rows and Decisions are in [sprint-10b.md](sprint-10b.md). Pushed, one commit per ticket:
 
 | Ticket | Commit |
 |--------|--------|
@@ -37,12 +38,10 @@ Where Homeschool Hub stands, for whoever picks it up next (Product Owner, Develo
 | S10-10b fix L4: a clipped row names its in-range days | 141fa17 |
 | S10-10b fix L6: back links' "‹" hidden from screen readers | e47d195 |
 
-- **Tester pass:** S10-10b (`docs/reviews/sprint-10b-verification.md`, 465ba55) said **NOT READY** for two Mediums in S9b-07, M1 (chip names, axe) and M2 (editing a run's dates dropped ticks); everything else passed. M1, M2, L3, L4 and L6 (the "‹" in back link names) are fixed in the commits above.
-- **Next:** the tester re-checks S9b-07 (as the report asks), then the Sprint 10b PR to `main` once it passes, as with PR #5. No PR is open yet.
-- **For the tester:** migration `018_record_entry_days` is new (run `db/migrate.ts`); the smoke `login()` now waits out a 429 (R7), verified with 3 reseeded full rounds, 23/23 each. Reseed between full smoke rounds, or `kids-add` leaves a second "Ada" and `kids-edit` fails the next round (data, not a flake).
-- **Waiting on DeeDee:** the 840 px breakpoints, unchanged on purpose: (a) S10-17 / L1, between 840 and about 952 px Home's wide pane is under its 480 px target; (b) S10-18 / L2, at 840 px the timeline beside the edit panel is 352 px wide. The tester rates both Low, not blocking.
-- **Left for now:** L5 (Rose and Lilac read close; the swatch "used" cue is subtle).
-- **For the re-check:** `run-days` now also returns `partlyOff` (L3); restart the API. The new smoke scenario `axe-log` (`SMOKE_EMAIL=smoke@example.com node flow.mjs axe-log`) runs axe on the Log form with a short and a long run.
+- **Tester pass:** S10-10b first pass (465ba55) said NOT READY for M1 and M2 (S9b-07); the fixes above closed M1, M2, L3, L4 and L6. The re-test (dcd0152) said **READY**: gate ALL GREEN, one reseeded smoke round 24/24 scenarios (with `axe-log`), 32/32 tap-target runs.
+- **Decided (DeeDee, 2026-11-04):** keep 840 px as the breakpoint for Home's two panes and the edit side panel. L1, L2 and questions (a), (b) are won't fix (logged in sprint-10b.md and the Sprint 10 README).
+- **Backlog (Low, open):** L5, Rose and Lilac read close at a glance and the swatch "used" cue is subtle (both pass AA). The L6 observations (focus stays on the timeline after picking another bar; a full-page screenshot artefact) are unchanged.
+- **Next:** not set; the Product Owner picks the next sprint. Migration `018_record_entry_days` is on `main` (run `db/migrate.ts`).
 - **Gate:** before every commit, `DATABASE_URL=postgres://hh:hh@127.0.0.1:5462/hh2dev_test bash scripts/check.sh` must end ALL GREEN (about 2 minutes).
   - That Postgres is the Developer's own embedded one on 127.0.0.1:5462 (data in `/workspace/hh2-s10-pg/data`, binaries under `/workspace/hh2-s10-pg/node_modules/@embedded-postgres/linux-x64/native/bin`, user hh/hh). Start it with `pg_ctl -D /workspace/hh2-s10-pg/data -o "-p 5462 -c listen_addresses=127.0.0.1 -k /workspace/hh2-s10-pg/sock" start` if it is down; any scratch Postgres with an empty test database works too.
 - **In progress:** nothing half-done. Each ticket is one commit.
