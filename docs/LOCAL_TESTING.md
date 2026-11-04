@@ -57,6 +57,15 @@ Open http://localhost:5173 and sign in with `demo@example.com` / `demo-password`
 - [ ] Schedule · Year with some work shows one hint at a time ("Thicker bars…", then "Tap an icon…", and "Change the start or end…" the first time you open a bar), each with Got it. Family settings → Show tips again brings them back (the demo and the other seeded families have seen them already).
 - [ ] 320 px and dark mode: nothing scrolls sideways and every button is easy to tap.
 
+**"Did Frank finish…?" and the needs-you dot (Sprint 12):** the demo family (`demo@example.com`) has one question waiting on Nov 4, 2026 and later: "Did Margaret finish A Child's Garden of Verses?" (the older demo books were already answered as finished). To answer without touching the demo, use `smoke@example.com` after the seed script above (run it again for a fresh set). Scenario: `node flow.mjs completion` (scripts/smoke) adds two assignments that ended yesterday, answers Yes / Not yet / We stopped from Home, and checks the dot, Year and axe.
+- [ ] Home: the question card is first, above the briefing; on a wide screen it spans both panes. Yes, finished, Not yet and We stopped each open a small sheet with the day (Oct 30 style) and Save; Cancel changes nothing.
+- [ ] Several waiting: one card "N assignments ended" with Answer them; each answered row leaves the list; the card goes after the last.
+- [ ] The Home item on the bar (phone) and the rail (600 px and up) shows a small green dot while a question waits, and is named "Home, 1 thing needs you" (2 things need you). It is green, never red, and clears the moment the last question is answered, without a reload. A late line or a heavy week never lights it.
+- [ ] Undo ("Marked … finished. Undo") puts the question and the dot back.
+- [ ] Schedule · Year: a finished bar is lighter with a check after its name; a stopped bar is muted, dashed, and says "Stopped"; opening it shows "Finished Nov 2" / "Stopped Oct 30" with Change (Yes, Not yet, We stopped, Not ended). Not ended brings the bar back and, if its end has passed, the question.
+- [ ] Nothing about a finished or stopped assignment shows in the briefing, in Week after it ended, or in Records.
+- [ ] 320 px and dark mode: nothing scrolls sideways and every button is easy to tap.
+
 ## Known and accepted
 - Year badges are 24 px wide by design (each has a 32 px+ tall tap area).
 - The setup forms' calendar pop-up and number steppers from the mockup are not built yet (forms behave as before).

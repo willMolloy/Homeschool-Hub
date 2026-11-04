@@ -6,6 +6,10 @@
 - Tester: first pass NOT READY (N1, N2 Medium), fixed in 11b; re-test **READY** (`docs/reviews/sprint-11-verification.md`). Open Lows N7–N9 are carried into Sprint 12 (S12-09).
 - Progress and decisions: `docs/progress/sprint-11.md`. Tickets: `docs/tickets/sprint-11-first-run/`, `docs/tickets/sprint-11b-fixes/`.
 
+## Build status: Sprint 12 (see `sprint-12.md`)
+
+S12-01 to S12-07 are built and pushed on `claude/test-coverage-analysis-6dehbu` (migration 024, engine 0.13.0). S12-09 and the S12-08 tester pass follow.
+
 ## Next: Sprint 12
 
 - Tickets: `docs/tickets/sprint-12-completion/` (the completion question, the needs-you dot, and S12-09 for the Sprint 11 Lows). Claude's developer builds it on `claude/test-coverage-analysis-6dehbu`, committing and pushing after every ticket; the PR to `main` comes after its tester passes.
