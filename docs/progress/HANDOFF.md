@@ -4,15 +4,40 @@ Where Homeschool Hub stands, for whoever picks it up next (Product Owner, Develo
 
 ## State
 
+- **Sprint 10a is merged to `main`:** [PR #5](https://github.com/willMolloy/Homeschool-Hub/pull/5), merge commit `60692781bf87f07ed7cb7fe6bed07432404939ff` (`6069278`), 2026-11-04. The re-test (`docs/reviews/sprint-10a-verification.md`) said READY.
 - **Sprint 9 and 9b are merged to `main`:** [PR #4](https://github.com/willMolloy/Homeschool-Hub/pull/4), "Sprint 9 + 9b: Schedule & Records, plus fixes", merged on 2026-11-03 with a merge commit (the same method as PR #3).
   - The merge commit is `bd47c550f4c92c3cb0fc4e8ff5baf0447364d5a8`.
   - CI passed on the head, `e8dab0d`.
   - The re-test (`docs/reviews/sprint-9b-verification.md`) said READY: no High or Medium findings, and 7 Low ones (R1–R7).
 - **Branches:**
-  - Work now continues on `hh2/sprint-10` (the Sprint 10a branch), which has `main` merged in: https://github.com/willMolloy/Homeschool-Hub/tree/hh2/sprint-10
-  - `hh2/sprint-9b` is kept, but it is done.
+  - Work now continues on `hh2/sprint-10b` (Sprint 10b), cut from `main` at the PR #5 merge: https://github.com/willMolloy/Homeschool-Hub/tree/hh2/sprint-10b
+  - `hh2/sprint-10` (10a) and `hh2/sprint-9b` are kept, but they are done.
   - The branch rule is in [../HOW_WE_WORK.md](../HOW_WE_WORK.md#branches) (decided by DeeDee, 2026-11-03).
-- **Gate:** `bash scripts/check.sh` was ALL GREEN before every Sprint 9b commit.
+- **Gate:** `bash scripts/check.sh` was ALL GREEN before every Sprint 10b commit.
+
+## Now: Sprint 10b (colours, navigation, the wide layout) on `hh2/sprint-10b`
+
+- **The 10b build is done.** Per-ticket rows and Decisions are in [sprint-10b.md](sprint-10b.md). Pushed, one commit per ticket:
+
+| Ticket | Commit |
+|--------|--------|
+| S10-11 Twelve soft subject colours | e553209 |
+| S10-12 Subjects screen cleanup | 3964add |
+| S10-13 Week arrows and dates in the Week \| Year row | dc2c891 |
+| S10-09 Navigation: a bottom bar or an icon rail | 4a86f38 |
+| S10-14 Set up gets a 44 px back link | 3777402 |
+| S10-16 Content column, forms, L5, R3 | ed32332 |
+| S10-17 Home in two panes | 0c3a95e |
+| S10-18 Year edit sheet as a side panel | 1dff685 |
+| S10-19 9b re-test carry-overs and 10a Lows (R1, R2, R5, R7, L6, L7, L10, R4) | e398e03 |
+| S9b-07 A run of days shows which days count | a4eec20 |
+
+- **Next:** the S10-10b tester pass (not the Developer's), then the Sprint 10b PR to `main` once it passes, as with PR #5. No PR is open yet.
+- **For the tester:** migration `018_record_entry_days` is new (run `db/migrate.ts`); the smoke `login()` now waits out a 429 (R7), verified with 3 reseeded full rounds, 23/23 each. Reseed between full smoke rounds, or `kids-add` leaves a second "Ada" and `kids-edit` fails the next round (data, not a flake).
+- **Open questions from the build (for DeeDee or the tester):** S10-17: between 840 and about 952 px Home's wide pane is under its 480 px target; S10-18: at 840 px the timeline beside the edit panel is 352 px wide. Both are in sprint-10b.md.
+- **Gate:** before every commit, `DATABASE_URL=postgres://hh:hh@127.0.0.1:5462/hh2dev_test bash scripts/check.sh` must end ALL GREEN (about 2 minutes).
+  - That Postgres is the Developer's own embedded one on 127.0.0.1:5462 (data in `/workspace/hh2-s10-pg/data`, binaries under `/workspace/hh2-s10-pg/node_modules/@embedded-postgres/linux-x64/native/bin`, user hh/hh). Start it with `pg_ctl -D /workspace/hh2-s10-pg/data -o "-p 5462 -c listen_addresses=127.0.0.1 -k /workspace/hh2-s10-pg/sock" start` if it is down; any scratch Postgres with an empty test database works too.
+- **In progress:** nothing half-done. Each ticket is one commit.
 
 ## Done: Sprint 9b (fixes from the S9-10 test)
 
@@ -27,7 +52,7 @@ Details, files and Decisions are in [sprint-9.md](sprint-9.md) under "Sprint 9b"
 | S9b-05 Small fixes from the Sprint 9 tester | 3a247ae | N6, N7, N9–N17 and the demo's late assignment (S9-05). |
 | S9b-06 Independent re-test | e8dab0d | READY. 18 of 18 pass, 23 of 23 smoke scenarios, and 7 Low findings (R1–R7). See `docs/reviews/sprint-9b-verification.md`. |
 
-## Now: Sprint 10a (the Year view) on `hh2/sprint-10`
+## Done: Sprint 10a (the Year view) on `hh2/sprint-10`, merged as PR #5 (`6069278`)
 
 - **The split (DeeDee, 2026-11-04).** Sprint 10 is now two sprints; see `docs/tickets/sprint-10-year-polish/README.md#order`.
   - **10a** is the Year view: S10-01 to S10-08, S10-04b, S10-04c and S10-15, then the S10-10a tester pass. It is built on `hh2/sprint-10`, which is the 10a branch.
@@ -51,22 +76,19 @@ Details, files and Decisions are in [sprint-9.md](sprint-9.md) under "Sprint 9b"
 | S10-19 partial (L3/R6 from the 10a test): date field padding on Set up forms | 9b5bfc7 |
 | S10-19 partial (L9 from the re-test): tests ignore the read-only pace POST | 0994cc9 |
 
-- **Next:** 10a build is done (S10-01..08, 04b, 04c, 15). The S10-10a tester pass (`docs/reviews/sprint-10a-verification.md`, at 8b5b0dd) said NOT READY for one Medium (M1, S10-05); M1 is fixed (S10-05 fix), and L3/R6 is fixed separately (S10-19 partial). The other Lows (L1, L2, L4–L8) and the open R3/R4 are in the Sprint 10 README's carry-over list for 10b or the backlog. The re-test (5a5ce00) said **READY**: M1 and L3/R6 closed, with two new Lows (L9 test flake, L10 date clip), both carried to S10-19 in 10b. L9 failed PR #5's first CI run and is now fixed (tests only). Next: PR #5 to `main` once CI is green, then 10b on `hh2/sprint-10b`. Do not start 10b on this branch: 10b is a new branch off `main` after 10a merges (README).
-- **Gate:** before every commit, `DATABASE_URL=postgres://hh:hh@127.0.0.1:5462/hh2dev_test bash scripts/check.sh` must end ALL GREEN (about 2 minutes).
-  - That Postgres is the Developer's own embedded one on 127.0.0.1:5462 (data in `/workspace/hh2-s10-pg/data`, binaries under `/workspace/hh2-s10-pg/node_modules/@embedded-postgres/linux-x64/native/bin`, user hh/hh). Start it with `pg_ctl -D /workspace/hh2-s10-pg/data -o "-p 5462 -c listen_addresses=127.0.0.1 -k /workspace/hh2-s10-pg/sock" start` if it is down; any scratch Postgres with an empty test database works too.
-- **In progress:** nothing half-done. Each ticket is one commit.
+- **Result:** the S10-10a pass said NOT READY for M1 (S10-05), which was fixed; the re-test (5a5ce00) said **READY**. L9 was fixed before the merge; L10 and the other Lows went to S10-19 in 10b.
 
 ## S9b-07 and Claude's branch
 
 - The ticket `docs/tickets/sprint-9b-fixes/S9b-07-runs-show-day-chips.md` and its README row were copied from `origin/claude/test-coverage-analysis-6dehbu` (commit `0d2e95d`). The rest of that branch was **not merged**.
 - That branch's S9b-01 to S9b-04 commits (`d329548`, `400a1d9`, `308339d`, `375d3e0`) are Claude's parallel versions. They are superseded by ours, which are on `main` via PR #4. Don't merge them.
 - Future work branches from `main`, per the one-branch-per-sprint rule in [HOW_WE_WORK](../HOW_WE_WORK.md#branches).
-- **S9b-07 is in Sprint 10b** (2026-11-04). It is not built on `hh2/sprint-10`. Build it adapted to our S9b-01, where an entry's days are the calendar's school weekdays less days off. The S10-10b tester checks it.
+- **S9b-07 is built in Sprint 10b** (`a4eec20`), adapted to our S9b-01: an entry stores the days the parent ticked, and NULL (every older entry) still means the calendar's school weekdays less days off. The S10-10b tester checks it.
 
 ## What's next, in order
 
-1. **Finish Sprint 10a**, then the S10-10a tester pass, then a Sprint 10a PR to `main` once it passes, as with PR #4.
-2. **Sprint 10b** on a new branch off `main`, then the S10-10b tester pass and its PR.
+1. **The S10-10b tester pass** on `hh2/sprint-10b`; fix anything it finds as its own commits.
+2. **The Sprint 10b PR** to `main` once the pass is READY, as with PR #5.
 
 ## Open for DeeDee
 
