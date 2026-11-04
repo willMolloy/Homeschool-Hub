@@ -34,6 +34,8 @@ import type { EffortPick } from "./effort";
 import { effortCardText } from "./weightText";
 import { useMe } from "../../auth/AuthProvider";
 import { DateField } from "../../ui/DateField";
+import { EndingRow } from "../completion/ChangeEnding";
+import { endedWords } from "../completion/ended";
 
 export { LIMITS };
 
@@ -117,6 +119,7 @@ function AssignmentCard({ a, l, planEnd }: { a: Assignment; l: Lookups; planEnd?
         {units(a.totalUnits, a.unitType)}{effort ? ` · ${effort}` : ""}
       </span>
       <span className="card-line">{dateRange(a.startDate, a.endDate)}{planEnd && planEnd > a.endDate ? ` · plan ends ${shortDate(planEnd)}` : ""}</span>
+      {a.endedAs && a.endedOn ? <span className="card-line">{endedWords(a.endedAs, a.endedOn)}</span> : null}
     </span>
   );
 }
@@ -300,6 +303,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   return (
     <form className={`card schedule-form${sheet ? " form-sheet" : ""}`} aria-label={item ? `Edit ${item.title}` : "Add assignment"} onSubmit={submit} noValidate>
       {shownError ? <p className="form-error" role="alert">{shownError}</p> : null}
+      {item?.endedAs ? <EndingRow assignment={item} names={childIds.map(l.childName)} onChanged={onSaved} /> : null}
       {field(ids.subject, "Subject", errors.subject,
         <SubjectSelect id={ids.subject} value={subjectId} onChange={setSubjectId} l={l} options={activeSubjects} invalidProps={inv(errors.subject, ids.subject)} resolveRef={newSubject} picker={sheet} />)}
       {field(ids.title, "Title", errors.title,

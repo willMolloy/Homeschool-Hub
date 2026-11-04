@@ -68,6 +68,10 @@
 .tl-svg .tl-dim { opacity: 0.7; }
 /* T-08b: the selected bar is solid; its grips never take the pointer (the stage handles dragging). */
 .tl-band.tl-selected { fill-opacity: 1; }
+/* S12-04: an ended bar is drawn in the lighter step of its colour (set inline). Stopped work is also muted (its colour drained
+   to a grey-ish wash, on the name too, so the halo still matches) and its outline dashed; a finished bar keeps its full outline. */
+.tl-band.tl-stopped { stroke-dasharray: 4 3; stroke-opacity: 0.6; }
+.tl-svg .tl-stopped { filter: saturate(0.35); }
 /* S10-06 (mockup frame 2): the chosen bar carries a 2 px outline in its subject's strong tone. */
 .tl-band.tl-selected { stroke-width: 2; stroke-opacity: 1; }
 .tl-handles { pointer-events: none; }

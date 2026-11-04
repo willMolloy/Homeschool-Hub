@@ -25,6 +25,11 @@ export const MIN_NAME_CHARS = 6;
 export const LATER_PIECE_NAME_FACTOR = 2;
 export const ELLIPSIS = "…";
 
+/** S12-04: the words drawn on an ended bar: a small check after a finished one's name, "Stopped" after a stopped one's. */
+export function barTitle(title: string, endedAs?: "finished" | "stopped"): string {
+  return endedAs === "finished" ? `${title} ✓` : endedAs === "stopped" ? `${title} · Stopped` : title;
+}
+
 /** Width of a string in CSS px at NAME_FONT_PX. */
 export type MeasureText = (text: string) => number;
 

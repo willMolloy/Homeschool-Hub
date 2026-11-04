@@ -9,6 +9,8 @@ import type { BlockedRange, FamilySettings, FamilySettingsPatch, SetupDeferral, 
 import { useApi } from "../../api/useApi";
 import { useMe } from "../../auth/AuthProvider";
 import { Button } from "../../ui/components";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { formatDate } from "../../lib/dates";
 import { DateField } from "../../ui/DateField";
 import { dateRangeError, saveError } from "../schedule/formBits";
 import { MAX_YEAR_DAYS, leaveOutExisting } from "../schedule/templates";
@@ -38,6 +40,8 @@ export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onS
   const [shape, setShape] = useState<ShapeId>(saved?.shape ?? (laterFirst && me.setupDeferred.includes("year") && !saved ? "later" : "fall-spring"));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // S12-09 (N8): "I'll set this later" after a year was saved asks before it clears the saved dates.
+  const [confirmClear, setConfirmClear] = useState(false);
   const ids = { start: useId(), end: useId() };
   const later = shape === "later";
   const problem = later ? null : dateRangeError(start, end, MAX_YEAR_DAYS);
@@ -50,6 +54,7 @@ export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onS
     fail(null);
     const rest = me.setupDeferred.filter((d) => d !== "year");
     if (later) {
+      if (saved) { setConfirmClear(true); return; }
       await onSave({ setupDeferred: [...rest, "year"] as SetupDeferral[] });
       return;
     }
@@ -75,6 +80,17 @@ export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onS
       setSaving(false);
     }
   }
+
+  // Yes: the saved dates (and their shape) are cleared and the year is put off; the breaks and term views already made stay.
+  const clearDates = async () => {
+    setConfirmClear(false);
+    setSaving(true);
+    try {
+      await onSave({ schoolYear: null, setupDeferred: [...me.setupDeferred.filter((d) => d !== "year"), "year"] as SetupDeferral[] });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const invalid = (id: string) => (error ? { "aria-invalid": true as const, "aria-describedby": `${id}-err` } : {});
   return (
@@ -104,6 +120,11 @@ export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onS
       </fieldset>
       <p className="welcome-preview" aria-live="polite">{preview}</p>
       <div className="btn-row"><Button type="submit" disabled={busy || saving}>{submitLabel}</Button></div>
+      {confirmClear && saved ? (
+        <ConfirmDialog title="Clear the saved dates?" confirmLabel="Clear the dates" onConfirm={() => void clearDates()} onCancel={() => setConfirmClear(false)}>
+          <p>Your school year, {formatDate(saved.start)} to {formatDate(saved.end)}, is cleared and you can set it later. Breaks and term views you already added stay.</p>
+        </ConfirmDialog>
+      ) : null}
     </form>
   );
 }

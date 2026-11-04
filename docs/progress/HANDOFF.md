@@ -1,9 +1,18 @@
 # Handoff (updated 2026-11-05)
 
-## Now: Sprint 11 + 11b done; Sprint 12 next (not started)
+## Done: Sprint 11 + 11b, first run (merged in PR #8, `fc8a510`)
 
-- **Sprint 11 (first run) and 11b** are done and merged to `main` via [PR #8](https://github.com/willMolloy/Homeschool-Hub/pull/8) (merge `fc8a510`). Tickets in `docs/tickets/sprint-11-first-run/`, progress in `docs/progress/sprint-11.md`.
-- **Next:** Sprint 12, the completion question ("Did Frank finish…?") and the needs-you dot. Not started; no branch or tickets yet. It gets a new branch off `main` (after `fc8a510`).
+- Setup flow for new families at `/welcome`, three one-time Schedule hints, Set up → School year, and Home's checklist hidden per family. Migrations 019–023 (run `db/migrate.ts`).
+- Tester: first pass NOT READY (N1, N2 Medium), fixed in 11b; re-test **READY** (`docs/reviews/sprint-11-verification.md`). Open Lows N7–N9 are carried into Sprint 12 (S12-09).
+- Progress and decisions: `docs/progress/sprint-11.md`. Tickets: `docs/tickets/sprint-11-first-run/`, `docs/tickets/sprint-11b-fixes/`.
+
+## Build status: Sprint 12 (see `sprint-12.md`)
+
+S12-01 to S12-07 and S12-09 are built and pushed on `claude/test-coverage-analysis-6dehbu` (migration 024, engine 0.13.0). The S12-08 tester pass is next; the PR to `main` comes after it passes.
+
+## Next: Sprint 12
+
+- Tickets: `docs/tickets/sprint-12-completion/` (the completion question, the needs-you dot, and S12-09 for the Sprint 11 Lows). Claude's developer builds it on `claude/test-coverage-analysis-6dehbu`, committing and pushing after every ticket; the PR to `main` comes after its tester passes.
 - **Open Low items:** see ROADMAP, "Open backlog (Low)".
 - **Order after it:** Sprint 12 completion question + needs-you dot, Sprint 13 printable sheets + term in review, Sprint 14 accounts and hosting fixes (ROADMAP, "Order of work after Sprint 10"; `docs/progress/decisions-2026-11-04.md`).
 

@@ -103,7 +103,7 @@ export async function eventPreviewRoutes(app: FastifyInstance): Promise<void> {
     const rows: { row: PreviewRow; size: number }[] = [];
     for (const a of after) {
       const o = was.get(`${a.assignmentId}/${a.childId}`);
-      if (!o) continue;
+      if (!o || o.endedAs) continue; // S12-04: an ended assignment has nothing left to move
       if (!hasWorkFrom(o, asOf) && !hasWorkFrom(a, asOf)) continue; // S7-06: nothing left to do from today on
       const bs = side(o);
       const as = side(a);

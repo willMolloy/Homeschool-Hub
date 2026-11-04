@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { TABS } from "./nav";
 import { railLabelsShown } from "./railLabels";
+import { homeLabel } from "../features/completion/NeedsYou";
 import "./app-shell.css";
 
 export interface AppShellProps {
@@ -11,14 +12,17 @@ export interface AppShellProps {
   banner?: ReactNode;
   /** S6-08: changing it remounts the page (after an undo, so every list reloads). */
   contentKey?: number;
+  /** S12-05: how many things need the parent's answer; above 0, Home shows the needs-you dot. */
+  needsYou?: number;
 }
 
 /**
  * S8-04: the page and the navigation (Home, Schedule, Records, Set up: names and icons live in `nav.tsx`). No header: Home
  * holds the logo and the family button. S10-09: one `nav`, drawn as the bottom bar under 600 px and as an 80 px icon rail on
- * the left from 600 px (app-shell.css), so the two are never shown together and always hold the same items.
+ * the left from 600 px (app-shell.css), so the two are never shown together and always hold the same items. S12-05: while a question
+ * waits, Home carries a small fern dot and the name "Home, 1 thing needs you".
  */
-export function AppShell({ footer, banner, contentKey }: AppShellProps) {
+export function AppShell({ footer, banner, contentKey, needsYou = 0 }: AppShellProps) {
   const { search } = useLocation();
   const labels = railLabelsShown(search);
   return (
@@ -33,8 +37,11 @@ export function AppShell({ footer, banner, contentKey }: AppShellProps) {
         <ul>
           {TABS.map((t) => (
             <li key={t.to}>
-              <NavLink to={t.to} end={t.end}>
-                <span className="shell-nav-pill"><t.icon size={24} weight="light" aria-hidden="true" /></span>
+              <NavLink to={t.to} end={t.end} {...(t.to === "/" && needsYou > 0 ? { "aria-label": homeLabel(needsYou) } : {})}>
+                <span className="shell-nav-pill">
+                  <t.icon size={24} weight="light" aria-hidden="true" />
+                  {t.to === "/" && needsYou > 0 ? <span className="shell-nav-dot" data-needs-you={needsYou} aria-hidden="true" /> : null}
+                </span>
                 <span className="shell-nav-label">{t.label}</span>
               </NavLink>
             </li>

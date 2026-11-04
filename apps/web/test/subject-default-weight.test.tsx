@@ -61,6 +61,9 @@ describe("Subject usual effort", () => {
 
   it("None sends null, and adding doesn't load assignments", async () => {
     const user = await setup();
+    // S12-05: the shell lists the assignments once for the needs-you dot; adding a subject must not ask again.
+    const listed = () => fakeApi.calls.filter((c) => c.path === "/api/assignments").length;
+    const before = listed();
     await user.click(screen.getByRole("button", { name: "Add subject" }));
     const form = screen.getByRole("form", { name: "Add subject" });
     await user.type(within(form).getByLabelText("Name"), "Art");
@@ -68,7 +71,7 @@ describe("Subject usual effort", () => {
     await user.click(within(form).getByRole("button", { name: "Add" }));
     await screen.findByRole("button", { name: "Art" });
     expect(lastBody()).toMatchObject({ name: "Art", defaultWeight: null });
-    expect(fakeApi.calls.some((c) => c.path === "/api/assignments")).toBe(false);
+    expect(listed()).toBe(before);
   });
 
   it("a unit change resets the picker to None", async () => {

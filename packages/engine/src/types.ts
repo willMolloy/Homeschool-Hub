@@ -37,6 +37,12 @@ export interface Assignment {
    */
   weekdaysFrom?: LocalDate | null;
   previousWeekdays?: Weekday[] | null;
+  /**
+   * S12-01: how the parent said the assignment ended, and the day. null/missing = open. Only the parent's answer sets it. The
+   * plan treats an ended assignment as closed at `endedOn` (S12-04).
+   */
+  endedAs?: "finished" | "stopped" | null;
+  endedOn?: LocalDate | null;
 }
 
 /**
@@ -205,6 +211,12 @@ export interface ChildPlan {
   previousWeekdays: Weekday[] | null;
   days: DayLoad[];
   warnings: PlanWarning[];
+  /**
+   * S12-04: how the parent said the assignment ended, and the day. Present only for an ended assignment. A finished plan keeps its
+   * days up to the planned end; a stopped one ends at `endedOn`. Neither has a forecast, unplaced work or warnings.
+   */
+  endedAs?: "finished" | "stopped";
+  endedOn?: LocalDate;
 }
 
 export type Detail = "daily" | "weekly";

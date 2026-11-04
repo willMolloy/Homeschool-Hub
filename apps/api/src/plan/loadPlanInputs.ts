@@ -76,8 +76,9 @@ export async function readPlanInputs(db: Queryable, familyId: string): Promise<P
     id: string; subject_id: string; title: string; unit_type: UnitType; total_units: number;
     start_date: string; end_date: string; weight_per_unit: number | null;
     weekdays: number[] | null; weekdays_from: string | null; previous_weekdays: number[] | null;
+    ended_as: "finished" | "stopped" | null; ended_on: string | null;
   }>(db,
-    `SELECT id, subject_id, title, unit_type, total_units, start_date, end_date, weight_per_unit, weekdays, weekdays_from, previous_weekdays
+    `SELECT id, subject_id, title, unit_type, total_units, start_date, end_date, weight_per_unit, weekdays, weekdays_from, previous_weekdays, ended_as, ended_on
        FROM assignment WHERE family_id = $1 AND archived_at IS NULL ORDER BY start_date, id`, [familyId]);
   const assignmentChildren = await query<{ assignment_id: string; child_id: string }>(db,
     "SELECT assignment_id, child_id FROM assignment_child WHERE family_id = $1 ORDER BY child_id", [familyId]);
@@ -125,6 +126,8 @@ export async function readPlanInputs(db: Queryable, familyId: string): Promise<P
       weekdays: sortedDays(a.weekdays),
       weekdaysFrom: a.weekdays_from,
       previousWeekdays: sortedDays(a.previous_weekdays),
+      endedAs: a.ended_as,
+      endedOn: a.ended_on,
     });
   }
   const planned = new Set(assignments.map((a) => a.id));

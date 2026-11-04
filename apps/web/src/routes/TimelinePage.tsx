@@ -58,6 +58,7 @@ import { filterChildren, forChild } from "../features/timeline/childView";
 import { useTips } from "../features/tips/useTips";
 import { TIP_TEXT } from "../features/tips/tips";
 import { TipBubble } from "../features/tips/TipBubble";
+import { ChangeEndingSheet } from "../features/completion/ChangeEnding";
 import "../features/timeline/timeline.css";
 
 /** Width used before anything can be measured (the smallest phone we design for). */
@@ -115,6 +116,8 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
   // T-07: the selection lives beside the zoom, so it survives zoom changes and month flips.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const edit = useAssignmentEdit(applyAssignment);
+  // S12-06: changing how the selected assignment ended.
+  const [changingEnd, setChangingEnd] = useState(false);
   const picked = model && selectedId ? selectionFor(model, assignments, selectedId) : null;
   const selection = picked && preview?.assignmentId === picked.assignmentId ? { ...picked, ...preview.span } : picked;
   // S10-18: from 840 px the edit sheet is a side panel. Where focus was when it opened decides where it goes back to.
@@ -284,7 +287,7 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
             {selection && (
               <>
                 {panel ? null : <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />}
-                <EditBar ref={keep.ref} selection={selection} pace={selectedPace} panel={panel}
+                <EditBar ref={keep.ref} selection={selection} pace={selectedPace} panel={panel} ended={selected?.endedAs && selected.endedOn ? { endedAs: selected.endedAs, endedOn: selected.endedOn } : null} onChangeEnding={() => setChangingEnd(true)}
                   tip={tip === "edit" ? { text: TIP_TEXT.edit, onGotIt: () => void markSeen("edit") } : null}
                   busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)} onUpdateStatus={() => setStatusing(selection.assignmentId)}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
@@ -303,6 +306,8 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
         <UpdateStatusFlow assignmentId={statusAssignment.id} title={statusAssignment.title} onClose={() => setStatusing(null)} onSaved={reload}
           childId={childId && statusAssignment.childIds.includes(childId) ? childId : statusAssignment.childIds.length === 1 ? statusAssignment.childIds[0]! : null} />
       )}
+      <ChangeEndingSheet assignment={changingEnd && selected ? selected : null} names={selected ? selected.childIds.map((id) => children.find((c) => c.id === id)?.name ?? "").filter(Boolean) : []}
+        onClose={() => setChangingEnd(false)} onChanged={(saved) => { setChangingEnd(false); applyAssignment(saved); }} />
       <UpdateEstimateSheet assignment={estimated} subject={estimatedSubject} pace={estimatedPace}
         childNames={estimated ? estimated.childIds.map((id) => children.find((c) => c.id === id)?.name ?? "").filter(Boolean) : []}
         onSaved={(saved) => { applyAssignment(saved); setEstimating(null); }} onClose={() => setEstimating(null)} />

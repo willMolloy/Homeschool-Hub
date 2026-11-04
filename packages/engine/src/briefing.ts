@@ -157,7 +157,10 @@ export function heavyWeek(childPlans: ChildPlan[], weekStart: LocalDate, calenda
   const w0 = weekStartOfDayNumber(toDayNumber(weekStart), calendar.weekStart);
   const weeks = new Map<number, number>();
   for (const p of childPlans) {
+    // S12-04: an assignment the parent said had ended is no work after the day it ended.
+    const over = p.endedOn ? toDayNumber(p.endedOn) : Infinity;
     for (const d of p.days) {
+      if (toDayNumber(d.date) > over) continue;
       const w = weekStartOfDayNumber(toDayNumber(d.date), calendar.weekStart);
       weeks.set(w, (weeks.get(w) ?? 0) + d.thickness);
     }

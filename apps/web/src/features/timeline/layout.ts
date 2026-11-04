@@ -14,7 +14,7 @@
 import { weekdayOf } from "@hh/engine";
 import type { BuiltInZoomOverrides, CustomZoomView } from "../../api/types";
 import type { ChildStep, SubjectLane, TimelineAssignment, TimelineModel } from "./model";
-import { estimateTextWidth, placePieceNames, type MeasureText } from "./names";
+import { barTitle, estimateTextWidth, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows } from "./rows";
@@ -235,6 +235,8 @@ export interface LaneBand {
   cy: number;
   /** T-11: the spans between this assignment's own pieces (split by a break), drawn as a faint centre line. */
   connectors: { x0: number; x1: number }[];
+  /** S12-04: the parent said it ended: finished (calmer, a check after the name) or stopped (muted, "Stopped"). */
+  ended?: "finished" | "stopped";
 }
 
 /** T-06: a name drawn inside its bar (T-11c: straight on the bar, no patch). */
@@ -255,6 +257,8 @@ export interface BarName {
   piece: number;
   /** S10-04b: written to the right of the piece, in muted page text, because the piece can't hold it in full. */
   outside: boolean;
+  /** S12-04: on an ended bar (drawn in the lighter step, and muted when stopped). */
+  ended?: "finished" | "stopped";
 }
 
 /** S10-02: a group of lanes: Together, or one child. Its header row holds the initial and the load ribbon. */
@@ -622,11 +626,11 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
           bands.push({
             rowKey: key, laneKey: lane.laneKey, assignmentId: a.assignmentId, childId: a.childId, title: a.title,
             paletteSlot: lane.paletteSlot, step: "base", d: pathFor(columns), runs: runsOf(columns), cy,
-            connectors: connectorsOf(pieces),
+            connectors: connectorsOf(pieces), ...(a.endedAs ? { ended: a.endedAs } : {}),
           });
           const limits = pieces.map((p) => freeTo(p[p.length - 1]!.x1));
-          for (const name of placePieceNames(a.title, pieces, cy, detail === "smooth", measure, limits)) {
-            names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: lane.paletteSlot, step: "base", ...name });
+          for (const name of placePieceNames(barTitle(a.title, a.endedAs), pieces, cy, detail === "smooth", measure, limits)) {
+            names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: lane.paletteSlot, step: "base", ...(a.endedAs ? { ended: a.endedAs } : {}), ...name });
           }
         }
       });

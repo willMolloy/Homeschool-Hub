@@ -385,4 +385,18 @@ END $$;
 SELECT pg_temp.expect_error($$UPDATE family SET tips_seen = '{tour}' WHERE id = 'f0000000-0000-0000-0000-0000000000c6'$$, '23514', 'tips_seen holds only the three tips');
 DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c6';
 
+-- S12-01: how an assignment ended (024_assignment_ended)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c7', 'Ended family');
+INSERT INTO subject (id, family_id, name) VALUES ('50000000-0000-0000-0000-0000000000c7', 'f0000000-0000-0000-0000-0000000000c7', 'Reading');
+INSERT INTO assignment (id, family_id, subject_id, title, unit_type, total_units, start_date, end_date) VALUES
+  ('a0000000-0000-0000-0000-0000000000c7', 'f0000000-0000-0000-0000-0000000000c7', '50000000-0000-0000-0000-0000000000c7', 'Treasure Island', 'pages', 100, '2026-10-01', '2026-10-30');
+DO $$ BEGIN
+  IF (SELECT ended_as FROM assignment WHERE id = 'a0000000-0000-0000-0000-0000000000c7') IS NOT NULL THEN RAISE EXCEPTION 'FAIL an assignment should start open'; END IF;
+  RAISE NOTICE 'ok   an assignment starts open (024)';
+END $$;
+SELECT pg_temp.expect_error($$UPDATE assignment SET ended_as = 'done', ended_on = '2026-10-30' WHERE id = 'a0000000-0000-0000-0000-0000000000c7'$$, '23514', 'ended_as is finished or stopped');
+SELECT pg_temp.expect_error($$UPDATE assignment SET ended_as = 'finished' WHERE id = 'a0000000-0000-0000-0000-0000000000c7'$$, '23514', 'ended_as needs ended_on');
+UPDATE assignment SET ended_as = 'stopped', ended_on = '2026-10-20' WHERE id = 'a0000000-0000-0000-0000-0000000000c7';
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c7';
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

@@ -15,4 +15,5 @@
 // 0.10.0: ChildPlan.adjustedWeeks, weekdaysFrom and previousWeekdays (S7b-04); the briefing forecast leaves adjusted weeks out and survives a weekday change.
 // 0.11.0: a keepEndDate week adjustment only re-spreads the weeks after it; earlier weeks keep their amounts (S7b-09).
 // 0.12.0: a keepEndDate adjustment in the last week pulls the rest back only into the days from today, else the end moves later (S7b-18).
-export const ENGINE_VERSION = "0.12.0";
+// 0.13.0: an assignment the parent said had ended is closed at its endedOn (S12-04): finished keeps its days to the planned end, stopped ends at endedOn; neither forecasts, leaves unplaced work or warns; ChildPlan.endedAs, endedOn.
+export const ENGINE_VERSION = "0.13.0";

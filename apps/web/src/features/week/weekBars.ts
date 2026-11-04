@@ -55,7 +55,8 @@ function sortBars(bars: WeekBarData[], l: Lookups): WeekBarData[] {
  */
 export function plannedRange(plan: ChildPlan, weekStart: LocalDate): { from: number; to: number; hasPlannedWork: boolean } {
   const end = addDays(weekStart, 6);
-  const days = plan.days.filter((d) => d.date >= weekStart && d.date <= end);
+  // S12-04: nothing is planned after the day the parent said it ended.
+  const days = plan.days.filter((d) => d.date >= weekStart && d.date <= end && !(plan.endedOn && d.date > plan.endedOn));
   const first = days.find((d) => d.units > EPS);
   if (!first) return { from: 0, to: 0, hasPlannedWork: false };
   const to = Math.max(...days.map((d) => d.position));

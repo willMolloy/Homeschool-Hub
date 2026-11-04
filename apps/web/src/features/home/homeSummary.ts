@@ -50,7 +50,7 @@ export function weekGlance(plans: readonly ChildPlan[], childId: string, weekSta
     if (p.childId !== childId) continue;
     let later = false;
     for (const d of p.days) {
-      if (d.date < weekStart || d.date > end || d.units <= 0) continue;
+      if (d.date < weekStart || d.date > end || d.units <= 0 || (p.endedOn && d.date > p.endedOn)) continue;
       total += d.units;
       if (d.date < today) before += d.units;
       else later = true;
@@ -62,7 +62,7 @@ export function weekGlance(plans: readonly ChildPlan[], childId: string, weekSta
 
 /** The latest finish across work that is not done, and whether it is still the planned one. */
 export function finishGlance(plans: readonly ChildPlan[]): { date: LocalDate; onTrack: boolean } | null {
-  const open = plans.filter((p) => !p.complete);
+  const open = plans.filter((p) => !p.complete && !p.endedAs);
   if (open.length === 0) return null;
   const date = open.reduce((x, p) => (p.end > x ? p.end : x), open[0]!.end);
   const planned = open.reduce((x, p) => (p.plannedEnd > x ? p.plannedEnd : x), open[0]!.plannedEnd);

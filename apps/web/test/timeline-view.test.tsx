@@ -169,10 +169,12 @@ describe("the Year timeline page", () => {
     fakeApi.on("GET /api/plan", 500, { error: "boom", message: "boom" });
     renderAt("/timeline");
     const alert = await screen.findByRole("alert");
+    // The shell asks for the children too (the needs-you dot, S12-05); only Retry's own requests are counted below.
+    const kidsBefore = fakeApi.calls.filter((c) => c.path === "/api/children").length;
     stubSample();
     await userEvent.click(within(alert).getByRole("button", { name: "Retry" }));
     await screen.findByRole("img", { name: "Year timeline" });
     await waitFor(() => expect(plansPath()).toHaveLength(2));
-    expect(fakeApi.calls.filter((c) => c.path === "/api/children")).toHaveLength(1);
+    expect(fakeApi.calls.filter((c) => c.path === "/api/children")).toHaveLength(kidsBefore);
   });
 });

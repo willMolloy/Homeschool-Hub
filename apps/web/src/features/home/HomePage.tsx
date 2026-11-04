@@ -4,10 +4,11 @@
  * Set up is in the bar and the rail. Nothing here is a number the family did not enter.
  * S10-17: from 840 px, two panes under the header, greeting and date: a wide one (Schedule) and a narrow one (Records,
  * then the checklist). The briefing spans both panes above them, so Schedule and Records always start level (Will,
- * 2026-11-05). Under 840 px, one column in the old order. The DOM follows what is shown
+ * 2026-11-05). Under 840 px, one column in the old order. S12-03: the completion question ("Did Frank finish…?") comes before the
+ * briefing in both layouts. The DOM follows what is shown
  * (two layouts, picked by a media query), so reading and tab order always match the screen.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CaretRight, ListBullets, Notebook } from "@phosphor-icons/react";
 import type { Assignment, Child, Subject } from "../../api/types";
@@ -17,11 +18,12 @@ import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { Logo } from "../../layout/Logo";
 import { Button, Card, ListRow } from "../../ui/components";
 import { HomeBriefing } from "../plan/HomeBriefing";
+import { CompletionQuestions } from "../completion/CompletionQuestions";
+import { todayOf, waitingQuestions } from "../completion/waiting";
 import { Checklist, checklistSteps } from "./Checklist";
 import { PlanRefreshProvider } from "../plan/planRefresh";
 import { useWeekPlans } from "../plan/useWeekPlans";
-import { deviceToday, shownWeek } from "../plan/useShownWeek";
-import { isValidLocalDate } from "@hh/engine";
+import { shownWeek } from "../plan/useShownWeek";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 import { subjectSlots } from "../timeline/model";
 import { finishGlance, greetingFor, longDate, scheduleSub, weekOfSpan } from "./homeSummary";
@@ -40,7 +42,7 @@ export function HomePage() {
 
 function Home() {
   const me = useMe();
-  const today = isValidLocalDate(me.today) ? me.today : deviceToday();
+  const today = todayOf(me);
   const { currentWeekStart } = shownWeek(null, today, me.weekStart);
   const children = useApi<Child[]>("/api/children");
   const assignments = useApi<Assignment[]>("/api/assignments");
@@ -54,6 +56,11 @@ function Home() {
 
   const wide = useMediaQuery(HOME_PANES_QUERY);
   const briefing = <HomeBriefing weekStart={currentWeekStart} onLate={setLate} />;
+  // S12-03: the completion question comes first, above the briefing, and spans both panes on wide screens like it.
+  const waiting = useMemo(() => waitingQuestions(assignments.data ?? [], children.data ?? [], today), [assignments.data, children.data, today]);
+  const question = children.data && assignments.data ? (
+    <CompletionQuestions questions={waiting} subjects={subjects.data ?? []} today={today} onAnswered={assignments.reload} />
+  ) : null;
   // S8-09: only once the children list has answered, so it never flashes for a family that has set up. S11-05: reminders only.
   const checklist = children.data ? (
     <Checklist steps={checklistSteps({ children: kids.length }, me.setupDeferred ?? [])} />
@@ -96,6 +103,7 @@ function Home() {
       <p className="home-date">{longDate(today)}{weekNo ? ` · Week ${weekNo.n} of ${weekNo.m}` : ""}</p>
       {wide ? (
         <>
+        {question}
         {briefing}
         <div className="home-panes">
           <div className="home-pane home-pane-wide">
@@ -109,6 +117,7 @@ function Home() {
         </>
       ) : (
         <>
+          {question}
           {briefing}
           {checklist}
           {schedule}

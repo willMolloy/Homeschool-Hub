@@ -1,5 +1,5 @@
 /** /api/assignments (S2a-04..06); POST /api/assignments/bulk (S3a-03); POST /api/assignments/:id/reset (S6-07). */
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { withTransaction, type Tx } from "../db";
 import { checkUnitChange } from "../http/assignmentWeight";
@@ -7,7 +7,7 @@ import { checkDatesKeepLatestCheckIn, short as shortDate } from "../http/checkIn
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, Title, TotalUnits, UnitTypeField, WeightPerUnit, Weekdays } from "../http/scheduleLimits";
 import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
-import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment } from "../repos/assignmentRepo";
+import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment, type AssignmentRow, type EndedAs } from "../repos/assignmentRepo";
 import { checkRefs } from "../repos/refs";
 import { subjectDefaultWeekdays } from "../repos/subjectRepo";
 import { familyWeekStart } from "../http/familyWeek";
@@ -62,6 +62,9 @@ const PatchBody = z
     endDate: LocalDate.optional(),
     childIds: Children.optional(),
     archived: z.boolean().optional(),
+    // S12-01: only the parent says an assignment ended. null reopens it. `endedOn` alone moves the day of one already ended.
+    endedAs: z.enum(["finished", "stopped"], "endedAs must be finished or stopped.").nullable().optional(),
+    endedOn: LocalDate.optional(),
   })
   .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.");
 
@@ -96,12 +99,41 @@ const possessive = (title: string) => (/s$/i.test(title) ? `${title}'` : `${titl
 
 function patchLabel(p: z.infer<typeof PatchBody>, title: string): string {
   if (p.archived !== undefined) return `${p.archived ? "Archived" : "Restored"} ${title}`;
+  // S12-01: "Marked Treasure Island finished", "Marked Treasure Island stopped", "Reopened Treasure Island".
+  if (p.endedAs === null) return `Reopened ${title}`;
+  if (p.endedAs !== undefined) return `Marked ${title} ${p.endedAs}`;
   const sent = Object.entries(p).filter(([, v]) => v !== undefined).map(([k]) => k);
   // S7b-05: moving only the end (the late line's "Move end to ...") says so.
   if (sent.length === 1 && p.endDate !== undefined) return `Moved ${possessive(title)} end to ${shortDate(p.endDate)}`;
   if (sent.every((k) => k === "startDate" || k === "endDate")) return `Moved ${title}`;
   if (sent.every((k) => k === "weightPerUnit")) return `Updated the time estimate for ${title}`; // S7b-02: the parent's words, not "weight"
   return `Changed ${title}`;
+}
+
+/**
+ * S12-01: the `ended_as` / `ended_on` a patch leaves (undefined = unchanged). `endedAs` null reopens; finished takes the stored end
+ * date and stopped takes today (never before the start) unless `endedOn` says otherwise; `endedOn` alone only moves an ended one.
+ * An assignment can't end before it starts, and a later start can't pass the day it ended.
+ */
+async function resolveEnded(c: Tx, req: FastifyRequest, cur: AssignmentRow, p: z.infer<typeof PatchBody>): Promise<{ endedAs?: EndedAs | null; endedOn?: string | null }> {
+  const start = p.startDate ?? cur.start_date;
+  const tooEarly = () => new HttpError(400, "invalid_range", "It can't end before it starts.");
+  if (p.endedAs === null) {
+    if (p.endedOn !== undefined) throw new HttpError(400, "invalid_request", "Reopening an assignment takes no end day.");
+    return { endedAs: null, endedOn: null };
+  }
+  let result: { endedAs: EndedAs; endedOn: string } | undefined;
+  if (p.endedAs !== undefined) {
+    const today = p.endedOn === undefined && p.endedAs === "stopped" ? (await familyWeekStart(c, req)).today : "";
+    const on = p.endedOn ?? (p.endedAs === "finished" ? (p.endDate ?? cur.end_date) : today > start ? today : start);
+    result = { endedAs: p.endedAs, endedOn: on };
+  } else if (p.endedOn !== undefined) {
+    if (!cur.ended_as) throw new HttpError(400, "invalid_request", "Say how it ended first (endedAs).");
+    result = { endedAs: cur.ended_as, endedOn: p.endedOn };
+  }
+  const on = result?.endedOn ?? cur.ended_on;
+  if (on && on < start) throw tooEarly();
+  return result ?? {};
 }
 
 export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
@@ -154,6 +186,7 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       if (p.startDate !== undefined || p.endDate !== undefined) {
         await checkDatesKeepLatestCheckIn(c, req.familyId, cur.id, p.startDate ?? cur.start_date, p.endDate ?? cur.end_date);
       }
+      const ended = await resolveEnded(c, req, cur, p);
       const unitType = p.unitType ?? cur.unit_type;
       checkUnitChange({ unitType: cur.unit_type, weightPerUnit: cur.weight_per_unit }, p.unitType, p);
       // Only newly named references are checked: an assignment may keep a subject that was archived later.
@@ -169,7 +202,7 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
         const week = await familyWeekStart(c, req);
         history = weekdaysChange({ startDate: p.startDate ?? cur.start_date, today: week.today, weekStart: week.weekStart, before, after, schoolDays: week.schoolDays, stored: { weekdaysFrom: cur.weekdays_from, previousWeekdays: cur.previous_weekdays } }) ?? undefined;
       }
-      await updateAssignment(c, req.familyId, cur.id, { ...p, history });
+      await updateAssignment(c, req.familyId, cur.id, { ...p, ...ended, history });
       // A new weight (or the same number under a new unit type) is a choice for every child left on the assignment.
       let choiceIds: string[] = [];
       if (p.weightPerUnit !== undefined && (p.weightPerUnit !== cur.weight_per_unit || unitType !== cur.unit_type)) {

@@ -6,6 +6,7 @@ import { pastMissedDays } from "./missed";
 import { replanFrom } from "./reanchor";
 import { validWeekdays, weekdaysOf } from "./weekdays";
 import { weightPerUnitOf } from "./weights";
+import { closePlan } from "./ended";
 import { ENGINE_VERSION } from "./version";
 import type { Assignment, ChildPlan, DayKind, DayLoad, LocalDate, PlanContext, PlanWarning, SubjectWeight } from "./types";
 
@@ -138,7 +139,7 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     });
   }
 
-  return {
+  return closePlan({
     engineVersion: ENGINE_VERSION,
     assignmentId: a.id,
     childId,
@@ -166,7 +167,7 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     previousWeekdays: changesDays ? previous : null,
     days,
     warnings,
-  };
+  }, a);
 }
 
 /** One ChildPlan per child on the assignment. Shared assignments track each child separately. */

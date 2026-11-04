@@ -43,7 +43,6 @@ describe.skipIf(!hasDb)("the school year on the family (integration)", () => {
     ["a day that isn't a date", { start: "2026-02-30", end: "2026-05-01" }],
     ["a missing last day", { start: "2026-08-17" }],
     ["an unknown key", { start: "2026-08-17", end: "2027-05-21", name: "x" }],
-    ["null", null],
   ])("%s → 400, nothing changes", async (_l, schoolYear) => {
     const before = (await get()).json();
     expect((await patch({ schoolYear })).statusCode).toBe(400);

@@ -10,6 +10,10 @@
 }
 .welcome-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 20px; }
 .welcome-top .btn { padding-left: 8px; padding-right: 8px; }
+/* S12-09 (N7): at 320 px the wordmark and Sign out each stay on one line (they wrapped to two): the wordmark is a little smaller there. */
+.welcome-top .logo b, .welcome-top .btn { white-space: nowrap; }
+.welcome-top .logo { gap: 8px; min-width: 0; }
+@media (max-width: 359.98px) { .welcome-top .logo b { font-size: 1.05rem; } }
 .welcome-progress { margin-bottom: 8px; }
 .welcome-step { margin: 0 0 6px; font-size: 0.875rem; font-weight: 600; color: var(--tl-muted-foreground); }
 .welcome-bar { height: 8px; border-radius: 999px; background: var(--tl-secondary); overflow: hidden; }

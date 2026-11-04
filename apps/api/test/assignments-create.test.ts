@@ -49,7 +49,7 @@ describe.skipIf(!hasDb)("POST /api/assignments (integration)", () => {
     expect(res.statusCode).toBe(201);
     const j = res.json();
     expect(j).toEqual({ id: expect.any(String), subjectId: subject, title: "Saxon 5/4", unitType: "lessons", totalUnits: 20, weightPerUnit: 15, weekdays: null,
-      startDate: "2026-11-02", endDate: "2026-11-27", childIds: [kids[0]], archived: false });
+      startDate: "2026-11-02", endDate: "2026-11-27", childIds: [kids[0]], archived: false, endedAs: null, endedOn: null });
     const { rows } = await pool.query("SELECT family_id FROM assignment_child WHERE assignment_id = $1", [j.id]);
     expect(rows).toEqual([{ family_id: a.familyId }]);
     const list = (await req("GET", "/api/assignments")).json();

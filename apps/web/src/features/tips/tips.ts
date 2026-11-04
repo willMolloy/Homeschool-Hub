@@ -9,7 +9,8 @@ export const TIP_IDS: readonly TipId[] = ["bars", "edit", "icons"];
 export const TIP_TEXT: Record<TipId, string> = {
   bars: "Thicker bars mean more work each day. Tap one to change it.",
   edit: "Change the start or end and the rest of the plan adjusts.",
-  icons: "Tap an icon to see the subject's name.",
+  // S12-09 (N9): the banner sits above the picture, not beside an icon, so it says where to look.
+  icons: "Tap an icon in the left column to see the subject's name.",
 };
 
 /**

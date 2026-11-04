@@ -63,7 +63,8 @@ export function buildBriefing(input: BriefingInput): ChildBriefing[] {
     const late: BriefingLine[] = [];
     const problems: BriefingLine[] = [];
     for (const p of mine) {
-      if (p.complete) continue;
+      // S12-04: finished is done, stopped is dropped: neither is late, stuck or short of room.
+      if (p.complete || p.endedAs) continue;
       const title = titleOf(p.assignmentId);
       if (p.noCapacity) {
         problems.push({ key: `nocap-${p.assignmentId}`, text: `${title} has no school days left.` });

@@ -1,0 +1,29 @@
+/* S12-03: the completion question on Home. A clear card: a thick rule in the subject's colour, its round badge, and three
+   44 px choices. It sits above the briefing and every other card (and spans both panes from 840 px, like the briefing). */
+.home-question { margin: 0 0 16px; }
+.home-question-card, .question-row {
+  --q-strong: var(--tl-primary);
+  position: relative; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box;
+  padding: 16px 16px 16px 20px; border-left: 6px solid var(--q-strong);
+}
+.home-question-card { margin: 0; }
+.home-question-head { display: flex; align-items: center; gap: 12px; }
+.home-question-text { flex: 1; min-width: 0; }
+.home-question-text h2, .home-question-title { margin: 0; font-family: var(--tl-font-display); font-weight: 600; font-size: 1.25rem; line-height: 1.25; overflow-wrap: anywhere; }
+.home-question-sub { margin: 2px 0 0; font-size: 0.875rem; color: var(--tl-muted-foreground); overflow-wrap: anywhere; }
+.home-question-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.home-question-actions .btn { flex: 1 1 0; min-width: max-content; padding-left: 12px; padding-right: 12px; }
+@media (max-width: 359.98px) { .home-question-actions .btn { flex-basis: 100%; } }
+
+/* The sheet's list of several, and its answer form. */
+.question-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.question-row { border: 1px solid var(--tl-border); border-left: 6px solid var(--q-strong); border-radius: var(--tl-radius); background: var(--tl-card); }
+.question-row .home-question-title { font-size: 1.05rem; }
+.answer-form { display: grid; gap: 14px; }
+.answer-question { margin: 0; color: var(--tl-muted-foreground); }
+.answer-actions { justify-content: flex-start; }
+
+/* S12-06: "Finished Nov 2" with Change, and the sheet's four choices. */
+.ended-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 4px 4px 12px; border-radius: 12px; background: var(--tl-secondary); }
+.ended-text { font-weight: 600; font-size: 0.94rem; overflow-wrap: anywhere; }
+.change-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }

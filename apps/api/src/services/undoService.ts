@@ -8,7 +8,7 @@ import type { UnitType } from "@hh/engine";
 import { query, withTransaction, type Db, type Queryable, type Tx } from "../db";
 import { HttpError } from "../http/errors";
 import { checkDatesKeepLatestCheckIn } from "../http/checkInDates";
-import { lockAssignment, updateAssignment, type AssignmentRow } from "../repos/assignmentRepo";
+import { lockAssignment, updateAssignment, type AssignmentRow, type EndedAs } from "../repos/assignmentRepo";
 import { replaceLinks } from "../repos/sql";
 import { deleteEntry, insertEntry, lockEntry, replaceEntry, type RecordEntryState } from "../repos/recordEntryRepo";
 
@@ -16,6 +16,8 @@ export interface AssignmentState {
   subjectId: string; title: string; unitType: UnitType; totalUnits: number; weightPerUnit: number | null;
   weekdays: number[] | null; weekdaysFrom: string | null; previousWeekdays: number[] | null;
   startDate: string; endDate: string; archived: boolean; childIds: string[];
+  /** S12-01: how it ended (a state saved before this existed has neither, and leaves them as they are). */
+  endedAs?: EndedAs | null; endedOn?: string | null;
 }
 export interface BlockedRangeState { label: string | null; kind: string; startDate: string; endDate: string; childIds: string[] }
 export interface WeekOverrideState {
@@ -37,6 +39,7 @@ export const assignmentState = (r: AssignmentRow): AssignmentState => ({
   subjectId: r.subject_id, title: r.title, unitType: r.unit_type, totalUnits: r.total_units, weightPerUnit: r.weight_per_unit,
   weekdays: r.weekdays, weekdaysFrom: r.weekdays_from, previousWeekdays: r.previous_weekdays,
   startDate: r.start_date, endDate: r.end_date, archived: r.archived_at !== null, childIds: r.child_ids,
+  endedAs: r.ended_as, endedOn: r.ended_on,
 });
 
 /** The assignment as it stands, as a step; null when nothing differs from `before` (a no-op edit isn't worth an undo). */
@@ -85,7 +88,7 @@ async function applyStep(tx: Tx, familyId: string, step: UndoStep): Promise<void
       if (s.startDate !== cur.start_date || s.endDate !== cur.end_date) await checkDatesKeepLatestCheckIn(tx, familyId, step.id, s.startDate, s.endDate);
       await updateAssignment(tx, familyId, step.id, {
         subjectId: s.subjectId, title: s.title, unitType: s.unitType, totalUnits: s.totalUnits, weightPerUnit: s.weightPerUnit,
-        weekdays: s.weekdays, startDate: s.startDate, endDate: s.endDate, childIds: s.childIds, archived: s.archived,
+        weekdays: s.weekdays, startDate: s.startDate, endDate: s.endDate, childIds: s.childIds, archived: s.archived, endedAs: s.endedAs, endedOn: s.endedOn,
         history: { weekdaysFrom: s.weekdaysFrom, previousWeekdays: s.previousWeekdays },
       });
       return;
