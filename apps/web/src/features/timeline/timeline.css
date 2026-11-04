@@ -88,7 +88,7 @@
 .tl-tile { flex: 1 1 0; min-width: 0; min-height: 60px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; padding: 8px 2px 8px 12px; border-radius: 14px; background: var(--tl-secondary); cursor: text; }
 .tl-tile:focus-within { background: var(--tl-card); box-shadow: inset 0 0 0 2px var(--tl-primary); }
 .tl-tile-label { color: var(--tl-muted-foreground); font-size: 0.78rem; line-height: 1.2; }
-.tl-tile .date-field-box input[type="text"] { min-height: 28px; padding: 0 42px 0 0; border: 0; border-radius: 0; background: transparent; font-weight: 800; font-size: 1.03rem; text-overflow: ellipsis; }
+.tl-tile .date-field .date-field-box input[type="text"] { /* beats the global input rule (0,3,1) */  min-height: 28px; padding: 0 38px 0 0; border: 0; border-radius: 0; background: transparent; font-weight: 800; font-size: 1.03rem; text-overflow: ellipsis; }
 .tl-tile .date-field-box input[type="text"]:focus-visible { outline: none; }
 .tl-tile .date-field-open { top: 50%; transform: translateY(-50%); color: var(--tl-muted-foreground); }
 .tl-pace { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--tl-primary-soft); color: var(--tl-foreground); font-size: 0.94rem; }
@@ -113,7 +113,7 @@
   .tl-edit-sub { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tl-edit-close { margin: 0 -12px 0 0; }
   .tl-edit-body { margin-top: 0; }
-  .tl-tile .date-field-box input[type="text"] { font-size: 0.94rem; }
+  .tl-tile .date-field .date-field-box input[type="text"] { font-size: 0.94rem; }
 }
 
 /* S7-15: under 360 px the two dates don't fit side by side (the End picker ran 11 px past the edge at 320), so they

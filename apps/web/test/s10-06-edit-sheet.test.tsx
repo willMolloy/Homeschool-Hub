@@ -87,6 +87,8 @@ describe("the Year edit sheet (S10-06)", () => {
     for (const b of mine) expect(b).toHaveClass("tl-selected");
     const css = readFileSync("src/features/timeline/timeline.css", "utf8");
     expect(css).toMatch(/\.tl-band\.tl-selected \{ stroke-width: 2; stroke-opacity: 1; \}/);
+    // The tile's date sits on the tile: the rule must out-rank the global input rule (three :not()s = 0,3,1).
+    expect(css).toMatch(/\.tl-tile \.date-field \.date-field-box input\[type="text"\] \{[^}]*background: transparent/);
     expect([...panel.querySelectorAll(".tl-edit-ends > button, .tl-edit-ends .tl-more-btn")].map((b) => b.textContent)).toEqual(["Copy", "More"]);
   });
 });
