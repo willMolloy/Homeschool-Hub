@@ -107,3 +107,33 @@ export function cleanSeries(series: readonly number[], columns: readonly number[
   for (const p of phases) for (const [a, b] of p.spans) for (let k = a; k <= b; k++) out[columns[k]!] = mean(p);
   return out;
 }
+
+/**
+ * S10-05 (Will, 2026-11-01): bars run straight through breaks. A run of zero days with work on both sides is filled
+ * when every school day in it is closed by a break (`closed`), easing from the load before it to the load after, so
+ * the bar is unbroken under the break's wash. Other gaps (a day off, an unscheduled weekday, before the start or
+ * after the end) stay gaps.
+ */
+export function bridgeBreaks(series: readonly number[], schoolDay: readonly boolean[], closed: (i: number) => boolean): number[] {
+  const out = [...series];
+  let left = -1;
+  for (let i = 0; i < series.length; i++) {
+    if (!(series[i]! > 0)) continue;
+    if (left >= 0 && i - left > 1) {
+      let school = 0;
+      let open = false;
+      for (let k = left + 1; k < i && !open; k++) {
+        if (!schoolDay[k]) continue;
+        school++;
+        if (!closed(k)) open = true;
+      }
+      if (!open && school > 0) {
+        const a = series[left]!;
+        const b = series[i]!;
+        for (let k = left + 1; k < i; k++) out[k] = a + ((b - a) * (k - left)) / (i - left);
+      }
+    }
+    left = i;
+  }
+  return out;
+}

@@ -227,7 +227,7 @@ describe("names while another bar is selected (T-11d)", () => {
 });
 
 describe("Black Beauty after Thanksgiving in Frank's Fall view (T-11b)", () => {
-  it("names the piece after the break at 1280 px (a 912 px plot)", () => {
+  it("runs through the break and is named once at 1280 px (a 912 px plot)", () => {
     const f = DEMO_FAMILY;
     const plans = planAll(f.assignments, { calendar: f.calendar, events: f.events, blocked: f.blocked, overrides: f.overrides,
       checkIns: f.checkIns, subjectWeights: f.subjectWeights, asOf: "2026-10-30" });
@@ -243,15 +243,9 @@ describe("Black Beauty after Thanksgiving in Frank's Fall view (T-11b)", () => {
     const browserish = (t: string) => t.length * 5.3;
     const l = layoutTimeline(forChild(model, "frank"), { zoom: "fall", width: 912, measureText: browserish });
     const band = l.bands.find((b) => b.assignmentId === "beauty")!;
-    expect(band.runs).toHaveLength(2);
+    // S10-05: the bar runs straight through Thanksgiving under the wash, so it is one piece named in full.
+    expect(band.runs).toHaveLength(1);
     const names = l.names.filter((n) => n.assignmentId === "beauty");
-    // S10-04b: the ~47 px piece before the break can't hold six letters and "…", and the break is too narrow for the
-    // name outside, so it goes unnamed (the tap still works); the piece after the break holds the name in full.
-    expect(names.map((n) => n.piece)).toEqual([1]);
-    const after = names[0]!;
-    expect(after.text).toBe("Black Beauty");
-    // Wider than 2× its name but not 3×: this is the piece the old rule left blank.
-    const w = band.runs[1]!.x1 - band.runs[1]!.x0;
-    expect(w).toBeLessThan(3 * after.width);
+    expect(names.map((n) => [n.piece, n.text])).toEqual([[0, "Black Beauty"]]);
   });
 });

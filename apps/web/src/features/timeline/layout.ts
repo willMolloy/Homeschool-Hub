@@ -19,7 +19,7 @@ import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows } from "./rows";
 import { sumSeries } from "./grid";
-import { smoothSeries } from "./smooth";
+import { bridgeBreaks, smoothSeries } from "./smooth";
 import { makeXScale, type XScale } from "./xscale";
 import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, type Zoom } from "./zoom";
 
@@ -509,6 +509,12 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   const columnsFor = (series: readonly number[], cy: number, heightOf: HeightOf) =>
     detail === "smooth" ? smoothColumns(series, xs, cy, heightOf) : bandColumns(series, xs, cy, heightOf);
   const pathFor = detail === "smooth" ? smoothBandPath : bandPath;
+  // S10-05: a bar runs straight through the breaks that close its child's school days (family-wide or the child's own).
+  const throughBreaks = (a: TimelineAssignment) => {
+    const own = model.breaks.filter((b) => b.childIds.length === 0 || b.childIds.includes(a.childId));
+    if (own.length === 0) return seriesFor(a);
+    return bridgeBreaks(seriesFor(a), model.schoolDay, (i) => own.some((b) => i >= b.first && i <= b.last));
+  };
 
   // S10-02: lanes grouped by child. Under All children, work shared by two or more children is drawn once, in a
   // Together group at the top; each child's group holds that child's own work, one lane per subject. Every group
@@ -606,7 +612,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
         });
         // T-11: the outer ends pulled in, so neighbouring assignments never touch.
         const drawnPieces = members.map((a) => {
-          const columns = insetEnds(columnsFor(seriesFor(a), cy, heightOf));
+          const columns = insetEnds(columnsFor(throughBreaks(a), cy, heightOf));
           return { a, columns, pieces: piecesOf(columns) };
         });
         // S10-04b: where each piece's row stops being free on the right: the next piece in the row, or the plot's edge.

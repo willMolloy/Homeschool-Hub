@@ -88,14 +88,15 @@ describe("the Year timeline page", () => {
     expect(svg.querySelector("path.tl-totals")).toBeNull(); // S10-02: the children's ribbons replace All subjects
   });
 
-  it("marks breaks with a faint plain tint at Year (T-05c), months along the top, and today with the one strong line and pill", async () => {
+  it("marks breaks with a soft band and wash at Year (S10-05), months along the top, and today with the one strong line and pill", async () => {
     stubSample();
     const { svg } = await openTimeline();
-    const hatchId = svg.querySelector("pattern")!.id;
+    // S10-05: no hatch; each break is a soft band behind the grid and a wash over the bars.
+    expect(svg.querySelector("pattern")).toBeNull();
     const breaks = svg.querySelectorAll(".tl-breaks rect");
     expect(breaks.length).toBeGreaterThan(0);
-    expect(breaks[0]).toHaveClass("tl-break-quiet");
-    expect(breaks[0]).not.toHaveAttribute("fill", `url(#${hatchId})`);
+    expect(breaks[0]).toHaveClass("tl-break");
+    expect(svg.querySelectorAll(".tl-wash rect")).toHaveLength(breaks.length);
     const months = [...svg.closest(".tl-wrap")!.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
     // T-05c: a phone shows every other month label, so the axis stays calm.
     expect(months).toEqual(["Sep", "Nov", "Jan", "Mar", "May"]);

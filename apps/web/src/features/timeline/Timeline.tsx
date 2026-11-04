@@ -3,7 +3,7 @@
  * Back to front: breaks, gridlines, bands, event strips, Today. One path per band and per event, so the Year view
  * stays well under 300 nodes. Colours are the `--tl-*` tokens (palette and theme switch without a re-render).
  */
-import { useEffect, useId, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { UsersThree } from "@phosphor-icons/react";
 import type { Subject } from "../../api/types";
 import { SubjectBadge } from "../subjects/SubjectIcon";
@@ -44,9 +44,6 @@ export interface TimelineProps {
 }
 
 export function Timeline({ layout, label, selectedId = null, onPick, flashId = null, grips = true, subjects = [] }: TimelineProps) {
-  const hatchId = `tl-hatch-${useId().replace(/:/g, "")}`;
-  /** T-05c: zoomed out, breaks are a very faint plain tint instead of a hatch. */
-  const quiet = layout.detail === "smooth";
   const bottom = layout.lanesBottom;
   const m = layout.metrics;
   const height = layout.height;
@@ -103,18 +100,10 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         const r = e.currentTarget.getBoundingClientRect();
         onPick(e.clientX - r.left, e.clientY - r.top);
       } : undefined}>
-      <defs>
-        <pattern id={hatchId} width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line className="tl-hatch-line" x1={0} y1={0} x2={0} y2={6} />
-        </pattern>
-      </defs>
-
+      {/* S10-05 (mockup): each break is a soft band behind the grid, and the same band washed over the bars. */}
       <g className="tl-breaks">
         {layout.breaks.map((b, i) => (
-          <rect key={`${b.breakId}-${i}`} x={b.x} y={b.y} width={b.width} height={b.height}
-            className={quiet ? "tl-break-quiet" : undefined} fill={quiet ? undefined : `url(#${hatchId})`}>
-            {b.label ? <title>{b.label}</title> : null}
-          </rect>
+          <rect key={`${b.breakId}-${i}`} className="tl-break" x={b.x} y={b.y} width={b.width} height={b.height} />
         ))}
       </g>
 
@@ -140,6 +129,14 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
           <path key={`${b.rowKey}-${b.assignmentId}`} className={`tl-band${dim(b.assignmentId)}`} d={b.d} style={{ fill: bandFill(b.paletteSlot, b.step), stroke: `var(--tl-subject-${b.paletteSlot}-strong)` }}
             data-assignment={b.assignmentId} />
         ) : null))}
+      </g>
+
+      <g className="tl-wash" data-wash>
+        {layout.breaks.map((b, i) => (
+          <rect key={`${b.breakId}-${i}`} x={b.x} y={b.y} width={b.width} height={b.height}>
+            {b.label ? <title>{b.label}</title> : null}
+          </rect>
+        ))}
       </g>
 
       {/* S10-03: the dashed Today line runs through every lane, over the bars and under their names (which carry a halo). */}
