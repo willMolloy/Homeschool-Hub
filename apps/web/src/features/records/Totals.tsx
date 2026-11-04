@@ -8,9 +8,10 @@ import { subjectSlots } from "../timeline/model";
 import { formatMinutes } from "./entryText";
 import "./records.css";
 
-export function bigNumbers(t: RecordTotals, f: LogFields): { label: string; value: string }[] {
+/** S9b-01: with All children (and more than one child) the days are the days any child did school, and the label says so. */
+export function bigNumbers(t: RecordTotals, f: LogFields, anyChild = false): { label: string; value: string }[] {
   const out: { label: string; value: string }[] = [];
-  if (f.schoolDays) out.push({ label: "school days", value: String(t.schoolDays) });
+  if (f.schoolDays) out.push({ label: anyChild ? "days any child did school" : "school days", value: String(t.schoolDays) });
   if (f.subjectHours || f.totalHours) out.push({ label: "hours", value: formatMinutes(t.totalMinutes) });
   if (f.coreSplit) { out.push({ label: "core hours", value: formatMinutes(t.coreMinutes) }); out.push({ label: "non-core hours", value: formatMinutes(t.nonCoreMinutes) }); }
   if (f.homeAway) { out.push({ label: "hours at home", value: formatMinutes(t.homeMinutes) }); out.push({ label: "hours away", value: formatMinutes(t.awayMinutes) }); }
@@ -18,13 +19,13 @@ export function bigNumbers(t: RecordTotals, f: LogFields): { label: string; valu
   return out;
 }
 
-export function Totals({ totals, fields, subjects }: { totals: RecordTotals; fields: LogFields; subjects: readonly Subject[] }) {
+export function Totals({ totals, fields, subjects, anyChild = false }: { totals: RecordTotals; fields: LogFields; subjects: readonly Subject[]; anyChild?: boolean }) {
   const slot = subjectSlots(subjects);
   const most = Math.max(1, ...totals.bySubject.map((s) => s.minutes));
   return (
     <div className="totals">
       <div className="big-numbers" role="group" aria-label="Totals">
-        {bigNumbers(totals, fields).map((n) => (
+        {bigNumbers(totals, fields, anyChild).map((n) => (
           <div key={n.label} className="big-number"><strong>{n.value}</strong><span>{n.label}</span></div>
         ))}
       </div>

@@ -8,13 +8,14 @@ import { boxesFor, formatMinutes, summaryOf, toMinutes } from "../src/features/r
 import { NO_FIELDS } from "../src/features/records/logSetup";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
+import { withCovered } from "./helpers/recordEntry";
 
 const KIDS = [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }, { id: "c2", name: "Margaret", color: null, sortOrder: 1, archived: false }];
 const sub = (id: string, name: string): Subject => ({ id, name, color: null, sortOrder: 0, archived: false, defaultWeight: null, defaultWeekdays: null });
 const SUBJECTS = [sub("math", "Math"), sub("read", "Reading")];
 const DETAILED: LogSetup = { template: "detailed", fields: { ...NO_FIELDS, subjectHours: true, notes: true, books: true, homeAway: true } };
 const FAMILY = (logSetup: LogSetup): FamilySettings => ({ name: "F", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false, zoomViews: { hidden: [], custom: [] }, logSetup });
-const entry = (over: Partial<RecordEntry> = {}): RecordEntry => ({ id: "e1", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-06", countsSchoolDay: true, schoolDays: 5, subjectMinutes: { math: 210, read: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
+const entry = (over: Partial<RecordEntry> = {}): RecordEntry => withCovered({ id: "e1", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-06", countsSchoolDay: true, schoolDays: 5, subjectMinutes: { math: 210, read: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
 const calls = (m: string) => fakeApi.calls.filter((c) => c.method === m && c.path.startsWith("/api/log-entries"));
 
 function stub(setup: LogSetup, entries: RecordEntry[] = [], kids = KIDS) {

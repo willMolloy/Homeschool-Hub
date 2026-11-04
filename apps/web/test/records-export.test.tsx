@@ -9,6 +9,7 @@ import { availableColumns, buildCsv, buildTable, csvCell, csvFileName, exportEnt
 import { RECORDS_WORDING } from "../src/features/records/wording";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
+import { withCovered } from "./helpers/recordEntry";
 
 const KIDS = [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }, { id: "c2", name: "Margaret", color: null, sortOrder: 1, archived: false }];
 const SUBJECTS: Subject[] = [
@@ -16,7 +17,7 @@ const SUBJECTS: Subject[] = [
   { id: "art", name: "Art", color: null, sortOrder: 1, archived: false, defaultWeight: null, defaultWeekdays: null, core: false },
   { id: "bad", name: "=HYPERLINK(\"x\")", color: null, sortOrder: 2, archived: false, defaultWeight: null, defaultWeekdays: null },
 ];
-const e = (over: Partial<RecordEntry>): RecordEntry => ({ id: "e", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-02", countsSchoolDay: true, schoolDays: 1, subjectMinutes: {}, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
+const e = (over: Partial<RecordEntry>): RecordEntry => withCovered({ id: "e", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-02", countsSchoolDay: true, schoolDays: 1, subjectMinutes: {}, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
 const ENTRIES = [
   e({ id: "1", startDate: "2026-11-02", endDate: "2026-11-06", schoolDays: 5, subjectMinutes: { math: 210, art: 90 }, notes: "=HYPERLINK(\"http://x\",\"hi\")", books: ["Heidi"] }),
   e({ id: "2", childId: "c2", startDate: "2026-11-02", endDate: "2026-11-06", schoolDays: 5, subjectMinutes: { math: 120 }, homeMinutes: 60, notes: "plain, with comma" }),
@@ -102,6 +103,27 @@ describe("the CSV", () => {
     expect(t.header).toEqual(["Child", "School days", "Math (hours)", "Art (hours)", "Total hours", "Core hours", "Non-core hours", "Hours at home", "Books read"]);
     expect(t.rows).toEqual([["Frank", 6, "4.5", "1.5", "6", "4.5", "1.5", "", "Heidi"], ["Margaret", 5, "2", "", "2", "2", "", "1", ""]]);
     expect(lines(buildCsv(input({ mode: "totals", columns: ["schoolDays"] }))).slice(1)).toEqual(["Child,School days", "Frank,6"]);
+  });
+
+  it("S9b-01: school days are distinct days: the same day twice is one day, and two children on the same days is the union", () => {
+    const dup = [e({ id: "a", startDate: "2026-11-02", endDate: "2026-11-06", schoolDays: 5 }), e({ id: "b", startDate: "2026-11-04", endDate: "2026-11-04", schoolDays: 1 })];
+    expect(totalsFor(dup, () => false).schoolDays).toBe(5);
+    expect(totalsFor(ENTRIES.slice(0, 2), () => false).schoolDays).toBe(5);
+    expect(totalsFor([e({ countsSchoolDay: false, schoolDays: 0 })], () => false).schoolDays).toBe(0);
+    // All children in the CSV totals: Frank 6, Margaret 5 (their own distinct days)
+    expect(lines(buildCsv(input({ mode: "totals", childIds: ["c1", "c2"], columns: ["schoolDays"] }))).slice(1)).toEqual(["Child,School days", "Frank,6", "Margaret,5"]);
+  });
+
+  it("S9b-01: an entry partly in the dates exports only its part inside: clipped dates, days, and hours in proportion", () => {
+    const run = e({ id: "r", startDate: "2026-11-02", endDate: "2026-11-06", schoolDays: 5, subjectMinutes: { math: 600 }, homeMinutes: 300 });
+    const [part] = exportEntries(input({ entries: [run], start: "2026-11-05", end: "2026-11-30" }));
+    expect(part).toMatchObject({ startDate: "2026-11-05", endDate: "2026-11-06", schoolDays: 2, subjectMinutes: { math: 240 }, homeMinutes: 120, coveredDays: ["2026-11-05", "2026-11-06"] });
+    expect(totalsFor([part!], (id) => id === "math")).toMatchObject({ schoolDays: 2, totalMinutes: 240, coreMinutes: 240 });
+    // days off inside the run are not covered, so they are not counted
+    const withBreak = e({ id: "w", startDate: "2026-11-23", endDate: "2026-11-27", coveredDays: ["2026-11-23", "2026-11-24", "2026-11-25"], schoolDays: 3, subjectMinutes: { math: 180 } });
+    expect(exportEntries(input({ entries: [withBreak], start: "2026-11-25", end: "2026-11-30" }))[0]).toMatchObject({ schoolDays: 1, subjectMinutes: { math: 60 } });
+    // a whole entry inside the dates is the entry itself
+    expect(exportEntries(input({ entries: [run] }))[0]).toBe(run);
   });
 
   it("hours are decimal hours; the file is named for the dates", () => {

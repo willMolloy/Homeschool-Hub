@@ -25,6 +25,9 @@ export const boxesFor = (m: number | null | undefined): { h: string; m: string }
 export const dayWords = (e: Pick<RecordEntry, "startDate" | "endDate">) =>
   e.startDate === e.endDate ? formatDate(e.startDate) : `${formatShort(e.startDate)} – ${formatDate(e.endDate)}`;
 
+/** S9b-01: under an entry only partly in the range: "part of an entry from Nov 2 to Nov 6". */
+export const partWords = (whole: Pick<RecordEntry, "startDate" | "endDate">) => `part of an entry from ${formatShort(whole.startDate)} to ${formatShort(whole.endDate)}`;
+
 /** "5 school days · Math 3 h 30 m, Reading 2 h · 6 h at home". Only what was typed. */
 export function summaryOf(e: RecordEntry, subjects: readonly Subject[]): string {
   const parts: string[] = [];

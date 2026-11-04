@@ -51,7 +51,7 @@ describe.skipIf(!hasDb)("/api/log-entries (S9-07, integration)", () => {
     expect(made).toHaveLength(2);
     expect(made.map((e) => e.childId).sort()).toEqual([frank, margaret].sort());
     for (const e of made) {
-      expect(e).toEqual({ id: expect.any(String), childId: expect.any(String), ...WEEK, countsSchoolDay: true, schoolDays: 5, subjectMinutes: { [math]: 210, [reading]: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [] });
+      expect(e).toEqual({ id: expect.any(String), childId: expect.any(String), ...WEEK, countsSchoolDay: true, schoolDays: 5, coveredDays: ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"], subjectMinutes: { [math]: 210, [reading]: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [] });
     }
     expect(new Set(made.map((e) => e.id)).size).toBe(2);
     expect((await pool.query("SELECT count(*)::int AS n FROM record_entry WHERE family_id = $1", [a.familyId])).rows[0].n).toBe(2);
@@ -78,6 +78,13 @@ describe.skipIf(!hasDb)("/api/log-entries (S9-07, integration)", () => {
       expect(sat.schoolDays).toBe(1);
       const weekend = (await req("POST", "/api/log-entries", { childIds: [frank], startDate: "2026-11-07", endDate: "2026-11-08" })).json()[0];
       expect(weekend.schoolDays).toBe(0);
+    });
+    it("days are worked out from the dates when read (S9b-01): a day off added later is left out of an older run", async () => {
+      const e = (await req("POST", "/api/log-entries", { childIds: [frank], ...WEEK })).json()[0];
+      expect(e.schoolDays).toBe(5);
+      await req("POST", "/api/blocked-ranges", { startDate: "2026-11-03", endDate: "2026-11-03", kind: "holiday" });
+      const [again] = await list();
+      expect(again).toMatchObject({ schoolDays: 4, coveredDays: ["2026-11-02", "2026-11-04", "2026-11-05", "2026-11-06"] });
     });
     it("with the switch off the entry counts 0 days, and the switch is stored", async () => {
       const e = (await req("POST", "/api/log-entries", { childIds: [frank], ...WEEK, countsSchoolDay: false, totalMinutes: 60 })).json()[0];
@@ -131,7 +138,11 @@ describe.skipIf(!hasDb)("/api/log-entries (S9-07, integration)", () => {
       const all = await list();
       expect(all.map((e) => e.startDate)).toEqual(["2026-11-16", "2026-11-16", "2026-11-09", "2026-11-09", "2026-11-02", "2026-11-02"]);
       expect(await list("?from=2026-11-09&to=2026-11-09")).toHaveLength(2);
+      // S9b-01: a range holds every entry with a day in it, not only those that start in it
+      await req("POST", "/api/log-entries", { childIds: [frank], startDate: "2026-11-05", endDate: "2026-11-10" });
+      expect((await list("?from=2026-11-09&to=2026-11-09")).map((e) => e.startDate)).toEqual(["2026-11-09", "2026-11-09", "2026-11-05"]);
       expect(await list(`?childId=${margaret}&from=2026-11-05`)).toHaveLength(2);
+      expect(await list(`?childId=${frank}&from=2026-11-11&to=2026-11-15`)).toHaveLength(0);
       expect((await req("GET", "/api/log-entries?bogus=1")).statusCode).toBe(400);
     });
 
@@ -139,7 +150,7 @@ describe.skipIf(!hasDb)("/api/log-entries (S9-07, integration)", () => {
       const e = (await req("POST", "/api/log-entries", { childIds: [frank], ...WEEK, subjectMinutes: { [math]: 60 }, notes: "kept", books: ["Heidi"], homeMinutes: 30 })).json()[0];
       const p = await req("PATCH", `/api/log-entries/${e.id}`, { subjectMinutes: { [math]: 90 }, endDate: "2026-11-04" });
       expect(p.statusCode, p.body).toBe(200);
-      expect(p.json()).toEqual({ ...e, subjectMinutes: { [math]: 90 }, endDate: "2026-11-04", schoolDays: 3 });
+      expect(p.json()).toEqual({ ...e, subjectMinutes: { [math]: 90 }, endDate: "2026-11-04", schoolDays: 3, coveredDays: ["2026-11-02", "2026-11-03", "2026-11-04"] });
       expect((await req("PATCH", `/api/log-entries/${e.id}`, { countsSchoolDay: false })).json()).toMatchObject({ countsSchoolDay: false, schoolDays: 0, notes: "kept", books: ["Heidi"], homeMinutes: 30 });
       expect((await req("PATCH", `/api/log-entries/${e.id}`, { notes: null, homeMinutes: null })).json()).toMatchObject({ notes: null, homeMinutes: null, books: ["Heidi"] });
       expect((await req("PATCH", `/api/log-entries/${e.id}`, { totalMinutes: 99999 })).statusCode).toBe(400);

@@ -1,7 +1,8 @@
 /** S9-08: Records totals for a range, from log entries only. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
-import { totalsOf } from "../src/services/recordTotals";
+import { addDays, weekdayOf } from "@hh/engine";
+import { shareInRange, totalsOf } from "../src/services/recordTotals";
 import type { RecordEntryRow } from "../src/repos/recordEntryRepo";
 import { testConfig } from "./helpers/config";
 import { hasDb, testPool } from "./helpers/db";
@@ -10,17 +11,36 @@ import { signedInFamily } from "./helpers/session";
 
 const row = (over: Partial<RecordEntryRow>): RecordEntryRow => ({ id: "x", family_id: "f", child_id: "c1", start_date: "2026-11-02", end_date: "2026-11-02", counts_school_day: true, school_days: 1, subject_minutes: {}, total_minutes: null, home_minutes: null, away_minutes: null, notes: null, books: [], ...over });
 
+const days = (start: string, end: string) => { const out: string[] = []; for (let d = start; d <= end; d = addDays(d, 1)) if (![0, 6].includes(weekdayOf(d))) out.push(d); return start === end ? [start] : out; };
+const covered = (e: RecordEntryRow) => days(e.start_date, e.end_date);
+
 describe("totalsOf (pure)", () => {
   it("adds subjects, splits core and non-core, keeps a typed total, and lists each book once", () => {
     const t = totalsOf([
-      row({ school_days: 5, subject_minutes: { m: 210, a: 60 }, books: ["Heidi", "treasure island"], home_minutes: 90, away_minutes: 30 }),
-      row({ child_id: "c2", school_days: 3, subject_minutes: {}, total_minutes: 120, books: [" Treasure  Island ", "Heidi"], start_date: "2026-11-09" }),
-    ], (id) => id === "m");
-    expect(t).toEqual({ entries: 2, schoolDays: 5, totalMinutes: 390, coreMinutes: 210, nonCoreMinutes: 60, homeMinutes: 90, awayMinutes: 30, books: ["Heidi", "treasure island"], bySubject: [{ subjectId: "m", minutes: 210 }, { subjectId: "a", minutes: 60 }] });
+      row({ start_date: "2026-11-02", end_date: "2026-11-06", subject_minutes: { m: 210, a: 60 }, books: ["Heidi", "treasure island"], home_minutes: 90, away_minutes: 30 }),
+      row({ child_id: "c2", start_date: "2026-11-09", end_date: "2026-11-11", subject_minutes: {}, total_minutes: 120, books: [" Treasure  Island ", "Heidi"] }),
+    ], (id) => id === "m", covered);
+    expect(t).toEqual({ entries: 2, schoolDays: 8, totalMinutes: 390, coreMinutes: 210, nonCoreMinutes: 60, homeMinutes: 90, awayMinutes: 30, books: ["Heidi", "treasure island"], bySubject: [{ subjectId: "m", minutes: 210 }, { subjectId: "a", minutes: 60 }] });
+    expect(totalsOf([], () => false, covered)).toMatchObject({ entries: 0, schoolDays: 0, totalMinutes: 0, books: [], bySubject: [] });
   });
-  it("school days add up within a child and the family shows the most any one child logged", () => {
-    expect(totalsOf([row({ school_days: 2 }), row({ school_days: 3 }), row({ child_id: "c2", school_days: 4 })], () => false).schoolDays).toBe(5);
-    expect(totalsOf([], () => false)).toMatchObject({ entries: 0, schoolDays: 0, totalMinutes: 0, books: [], bySubject: [] });
+  it("S9b-01: a day is counted once, however many entries or children hold it", () => {
+    // Frank Mon-Fri, then Monday again: 5, not 6
+    expect(totalsOf([row({ start_date: "2026-11-02", end_date: "2026-11-06" }), row({ start_date: "2026-11-02" })], () => false, covered).schoolDays).toBe(5);
+    // Frank Mon-Thu and Margaret Tue-Fri: the days any child did school are Mon to Fri
+    expect(totalsOf([row({ start_date: "2026-11-02", end_date: "2026-11-05" }), row({ child_id: "c2", start_date: "2026-11-03", end_date: "2026-11-06" })], () => false, covered).schoolDays).toBe(5);
+    // the switch off adds no days
+    expect(totalsOf([row({ start_date: "2026-11-02", end_date: "2026-11-06", counts_school_day: false })], () => false, covered).schoolDays).toBe(0);
+  });
+  it("S9b-01: an entry overlapping a range counts its days inside, and its hours in proportion", () => {
+    const run = row({ start_date: "2026-11-02", end_date: "2026-11-06", subject_minutes: { m: 600 }, home_minutes: 300 });
+    expect(totalsOf([run], (id) => id === "m", covered, { from: "2026-11-04", to: "2026-11-05" })).toMatchObject({ entries: 1, schoolDays: 2, totalMinutes: 240, coreMinutes: 240, homeMinutes: 120, bySubject: [{ subjectId: "m", minutes: 240 }] });
+    expect(totalsOf([run], () => false, covered, { from: "2026-11-09", to: "2026-11-13" })).toMatchObject({ entries: 0, schoolDays: 0, totalMinutes: 0 });
+    // a weekend-only run covers no school days: its hours split by calendar days
+    expect(totalsOf([row({ start_date: "2026-11-07", end_date: "2026-11-08", total_minutes: 120 })], () => false, covered, { from: "2026-11-08", to: "2026-11-08" })).toMatchObject({ schoolDays: 0, totalMinutes: 60 });
+  });
+  it("shareInRange: whole when the entry is inside, nothing when it is outside", () => {
+    expect(shareInRange({ start: "2026-11-02", end: "2026-11-06", covered: days("2026-11-02", "2026-11-06") }, { from: "2026-11-01", to: "2026-11-30" })).toEqual({ days: days("2026-11-02", "2026-11-06"), fraction: 1 });
+    expect(shareInRange({ start: "2026-11-02", end: "2026-11-06", covered: days("2026-11-02", "2026-11-06") }, { from: "2026-11-07" })).toEqual({ days: [], fraction: 0 });
   });
 });
 
@@ -61,8 +81,32 @@ describe.skipIf(!hasDb)("GET /api/records/totals (S9-08, integration)", () => {
     expect(await totals(`?${fall}&childId=${frank}`)).toMatchObject({ entries: 2, schoolDays: 8, totalMinutes: 390, coreMinutes: 270, nonCoreMinutes: 120, books: ["Heidi"] });
     expect(await totals(`?${fall}&childId=${margaret}`)).toMatchObject({ entries: 1, schoolDays: 5, totalMinutes: 330 });
     expect(await totals(`?${fall}`)).toMatchObject({ entries: 3, schoolDays: 8, totalMinutes: 720 });
-    expect(await totals("?from=2026-11-10&to=2026-11-12")).toMatchObject({ entries: 0, schoolDays: 0, totalMinutes: 0 }); // by first day
+    // S9b-01: Frank's Nov 9-11 run, 60 m over 3 days, seen through Nov 10-12: 2 days and 2/3 of the hour
+    expect(await totals("?from=2026-11-10&to=2026-11-12")).toMatchObject({ entries: 1, schoolDays: 2, totalMinutes: 40 });
     expect(await totals("")).toMatchObject({ entries: 3, from: null, to: null, childId: null });
+  });
+
+  it("S9b-01, the tester's cases: a second entry on a day, children on different days, and a range inside a run", async () => {
+    const week = "from=2026-11-02&to=2026-11-08";
+    await log({ childIds: [frank], startDate: "2026-11-02", endDate: "2026-11-06", subjectMinutes: { [math]: 600 } });
+    await log({ childIds: [frank], startDate: "2026-11-02", subjectMinutes: { [reading]: 75 } });
+    expect(await totals(`?${week}&childId=${frank}`)).toMatchObject({ entries: 2, schoolDays: 5, totalMinutes: 675 });
+    await pool.query("DELETE FROM record_entry WHERE family_id = $1", [a.familyId]);
+    await log({ childIds: [frank], startDate: "2026-11-02", endDate: "2026-11-05" });
+    await log({ childIds: [margaret], startDate: "2026-11-03", endDate: "2026-11-06" });
+    expect(await totals(`?${week}`)).toMatchObject({ entries: 2, schoolDays: 5 });
+    expect(await totals(`?${week}&childId=${frank}`)).toMatchObject({ schoolDays: 4 });
+    await pool.query("DELETE FROM record_entry WHERE family_id = $1", [a.familyId]);
+    await log({ childIds: [frank], startDate: "2026-11-02", endDate: "2026-11-06", totalMinutes: 600 });
+    expect(await totals("?from=2026-11-04&to=2026-11-05")).toMatchObject({ entries: 1, schoolDays: 2, totalMinutes: 240 });
+  });
+
+  it("S9b-01: days off inside a run are not counted, and the switch off counts none", async () => {
+    await req("POST", "/api/blocked-ranges", { startDate: "2026-11-24", endDate: "2026-11-25", kind: "holiday" });
+    await log({ childIds: [frank], startDate: "2026-11-23", endDate: "2026-11-27" });
+    await log({ childIds: [margaret], startDate: "2026-11-23", endDate: "2026-11-27", countsSchoolDay: false });
+    expect(await totals("?from=2026-11-23&to=2026-11-29")).toMatchObject({ entries: 2, schoolDays: 3 });
+    expect(await totals(`?from=2026-11-23&to=2026-11-29&childId=${margaret}`)).toMatchObject({ entries: 1, schoolDays: 0 });
   });
 
   it("reads only log entries: the plan's check-ins never count", async () => {

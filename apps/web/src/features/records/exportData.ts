@@ -3,8 +3,10 @@
  * printable summary) out. Rules: the wording is the first line; date and child are always there; only fields the family tracks
  * can be ticked; a column with no data in the range is left out (all data stays stored); and a cell that starts with = + - or @ gets
  * a leading ' so a spreadsheet never runs it as a formula (ROADMAP, CSV safety). The totals work mirrors apps/api services/recordTotals.ts.
+ * S9b-01: an entry overlapping the dates is exported as its part inside them (share.ts), and school days are distinct days.
  */
 import type { LogFields, RecordEntry, Subject } from "../../api/types";
+import { distinctSchoolDays, partInRange, type EntryPart } from "./share";
 import { RECORDS_WORDING } from "./wording";
 
 export type ColumnKey = "schoolDays" | "subjectHours" | "totalHours" | "coreSplit" | "homeAway" | "notes" | "books";
@@ -42,13 +44,11 @@ export const entryMinutes = (e: RecordEntry): number => {
 export interface Totals { schoolDays: number; totalMinutes: number; coreMinutes: number; nonCoreMinutes: number; homeMinutes: number; awayMinutes: number; books: string[]; bySubject: Map<string, number> }
 const norm = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
 
-/** The same sums as the API's totals, for the export's own rows. A family's totals show the most school days any one child logged. */
+/** The same sums as the API's totals, for the export's own rows. School days are the distinct days covered (S9b-01). */
 export function totalsFor(entries: readonly RecordEntry[], coreOf: (id: string) => boolean): Totals {
-  const days = new Map<string, number>();
   const books = new Map<string, string>();
   const t: Totals = { schoolDays: 0, totalMinutes: 0, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [], bySubject: new Map() };
   for (const e of [...entries].sort((a, b) => a.startDate.localeCompare(b.startDate))) {
-    days.set(e.childId, (days.get(e.childId) ?? 0) + e.schoolDays);
     for (const [id, m] of Object.entries(e.subjectMinutes)) {
       t.bySubject.set(id, (t.bySubject.get(id) ?? 0) + m);
       if (coreOf(id)) t.coreMinutes += m; else t.nonCoreMinutes += m;
@@ -58,7 +58,7 @@ export function totalsFor(entries: readonly RecordEntry[], coreOf: (id: string) 
     t.awayMinutes += e.awayMinutes ?? 0;
     for (const b of e.books) if (!books.has(norm(b))) books.set(norm(b), b);
   }
-  t.schoolDays = Math.max(0, ...days.values());
+  t.schoolDays = distinctSchoolDays(entries);
   t.books = [...books.values()];
   return t;
 }
@@ -77,10 +77,10 @@ export interface ExportInput {
 
 export interface Table { header: string[]; rows: (string | number)[][] }
 
-/** The entries an export covers: first day in the dates, for the chosen children, oldest first (then by child name). */
-export function exportEntries(i: ExportInput): RecordEntry[] {
+/** The entries an export covers: each one's part inside the dates, for the chosen children, oldest first (then by child name). */
+export function exportEntries(i: ExportInput): EntryPart[] {
   const name = (id: string) => i.children.find((c) => c.id === id)?.name ?? "";
-  return i.entries.filter((e) => e.startDate >= i.start && e.startDate <= i.end && i.childIds.includes(e.childId))
+  return i.entries.filter((e) => i.childIds.includes(e.childId)).map((e) => partInRange(e, i.start, i.end)).filter((e): e is EntryPart => e !== null)
     .sort((a, b) => a.startDate.localeCompare(b.startDate) || name(a.childId).localeCompare(name(b.childId)));
 }
 

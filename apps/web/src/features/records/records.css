@@ -31,6 +31,7 @@
 .entry-row { padding: 12px 14px; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); }
 .entry-head { font-weight: 700; overflow-wrap: anywhere; }
 .entry-sum { margin: 2px 0 6px; color: var(--tl-muted-foreground); font-size: 0.875rem; overflow-wrap: anywhere; }
+.entry-part { margin: 2px 0 0; color: var(--tl-muted-foreground); font-size: 0.8125rem; font-style: italic; }
 .entry-actions { display: flex; gap: 4px; }
 
 /* S9-08: range picker, big numbers, hours by subject. */

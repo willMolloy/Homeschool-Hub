@@ -18,9 +18,10 @@ import { ALL, useChildChoice } from "../week/useChildChoice";
 import { ExportSheet } from "./ExportSheet";
 import { LogEntryForm } from "./LogEntryForm";
 import { LogSetupForm } from "./LogSetupForm";
-import { dayWords, summaryOf } from "./entryText";
+import { dayWords, partWords, summaryOf } from "./entryText";
 import { trackedWords } from "./logSetup";
 import { rangeOptions } from "./ranges";
+import { partInRange, type EntryPart } from "./share";
 import { Totals } from "./Totals";
 import { RECORDS_WORDING } from "./wording";
 import { formatRangeYears } from "../../lib/dates";
@@ -66,7 +67,8 @@ export function RecordsPage() {
     );
   }
   const refresh = () => { entries.reload(); totals.reload(); };
-  const inRange = entries.data.filter((e) => range && e.startDate >= range.start && e.startDate <= range.end && (childId === null || e.childId === childId));
+  // S9b-01: every entry with a day in the range, as its part inside the range
+  const inRange = range ? entries.data.filter((e) => childId === null || e.childId === childId).map((e) => partInRange(e, range.start, range.end)).filter((e): e is EntryPart => e !== null) : [];
   const nameOf = (id: string) => children.data!.find((c) => c.id === id)?.name ?? "Child";
   const remove = async (e: RecordEntry) => {
     setError(null);
@@ -96,17 +98,18 @@ export function RecordsPage() {
           <p className="range-note">{range ? formatRangeYears(range.start, range.end) : "Pick the first and last day."}</p>
           {range ? (
             <>
-              <Totals totals={totals.data} fields={setup.fields} subjects={subjects.data} />
+              <Totals totals={totals.data} fields={setup.fields} subjects={subjects.data} anyChild={childId === null && kids.length > 1} />
               {error ? <p className="form-error" role="alert">{error}</p> : null}
               {inRange.length === 0 ? <p className="records-lead">Nothing logged in these dates.</p> : (
                 <ul className="entry-list" aria-label="Log entries">
                   {inRange.map((e) => (
                     <li key={e.id} className="entry-row">
                       <div className="entry-head">{dayWords(e)} · {nameOf(e.childId)}</div>
+                      {e.whole ? <p className="entry-part">{partWords(e.whole)}</p> : null}
                       <p className="entry-sum">{summaryOf(e, subjects.data!)}</p>
                       <div className="entry-actions">
-                        <Button variant="quiet" aria-label={`Edit ${nameOf(e.childId)}, ${dayWords(e)}`} onClick={() => setLogging(e)}>Edit</Button>
-                        <Button variant="quiet" aria-label={`Delete ${nameOf(e.childId)}, ${dayWords(e)}`} onClick={() => void remove(e)}>Delete</Button>
+                        <Button variant="quiet" aria-label={`Edit ${nameOf(e.childId)}, ${dayWords(e.whole ?? e)}`} onClick={() => setLogging(e.whole ?? e)}>Edit</Button>
+                        <Button variant="quiet" aria-label={`Delete ${nameOf(e.childId)}, ${dayWords(e.whole ?? e)}`} onClick={() => void remove(e.whole ?? e)}>Delete</Button>
                       </div>
                     </li>
                   ))}

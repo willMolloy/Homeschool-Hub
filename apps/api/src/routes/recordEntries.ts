@@ -15,7 +15,7 @@ import { checkRefs } from "../repos/refs";
 import {
   deleteEntry, insertEntry, listEntries, lockEntry, replaceEntry, stateOf, toJson, type RecordEntryRow, type RecordEntryState,
 } from "../repos/recordEntryRepo";
-import { calendarModel, daysCounted } from "../services/recordEntryService";
+import { calendarModel, coveredDays, daysCounted } from "../services/recordEntryService";
 import { totalsOf } from "../services/recordTotals";
 import { recordUndo } from "../services/undoService";
 
@@ -82,16 +82,25 @@ async function checkSubjects(db: Parameters<typeof checkRefs>[0], familyId: stri
 const label = (s: { startDate: string; endDate: string }, who: string) =>
   `${who}'s log for ${s.startDate === s.endDate ? short(s.startDate) : `${short(s.startDate)} to ${short(s.endDate)}`}`;
 
-export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
-  app.get("/api/log-entries", async (req) => (await listEntries(app.db, req.familyId, parseBody(ListQuery, req.query))).map(toJson));
+type Model = Awaited<ReturnType<typeof calendarModel>>;
+/** S9b-01: an entry's covered days come from its dates and the calendar as it is now. */
+const coveredOf = (model: Model) => (r: RecordEntryRow) => coveredDays(model, r.child_id, r.start_date, r.end_date);
+const jsonWith = (model: Model) => (r: RecordEntryRow) => toJson(r, coveredOf(model)(r));
 
-  /** S9-08: read-only totals for a range (by each entry's first day) and one child or all, from log entries only. */
+export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
+  app.get("/api/log-entries", async (req) => {
+    const rows = await listEntries(app.db, req.familyId, parseBody(ListQuery, req.query));
+    return rows.length === 0 ? [] : rows.map(jsonWith(await calendarModel(app.db, req.familyId)));
+  });
+
+  /** S9-08, S9b-01: read-only totals for a range (each entry's days inside it) and one child or all, from log entries only. */
   app.get("/api/records/totals", async (req) => {
     const q = parseBody(ListQuery, req.query);
     const entries = await listEntries(app.db, req.familyId, q);
     const { rows } = await app.db.query<{ id: string; core: boolean }>("SELECT id, core FROM subject WHERE family_id = $1", [req.familyId]);
     const core = new Map(rows.map((r) => [r.id, r.core]));
-    return { from: q.from ?? null, to: q.to ?? null, childId: q.childId ?? null, ...totalsOf(entries, (id) => core.get(id) ?? false) };
+    const model = await calendarModel(app.db, req.familyId);
+    return { from: q.from ?? null, to: q.to ?? null, childId: q.childId ?? null, ...totalsOf(entries, (id) => core.get(id) ?? false, coveredOf(model), { from: q.from, to: q.to }) };
   });
 
   app.post("/api/log-entries", async (req, reply) => {
@@ -103,7 +112,7 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
       totalMinutes: b.totalMinutes ?? null, homeMinutes: b.homeMinutes ?? null, awayMinutes: b.awayMinutes ?? null, notes: b.notes ?? null, books: b.books ?? [],
     };
     checkHours(base);
-    const rows = await withTransaction(app.db, async (tx) => {
+    const { rows, model } = await withTransaction(app.db, async (tx) => {
       await checkRefs(tx, req.familyId, { childIds: b.childIds });
       await checkSubjects(tx, req.familyId, Object.keys(base.subjectMinutes));
       const model = await calendarModel(tx, req.familyId);
@@ -111,9 +120,9 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
       for (const childId of b.childIds) {
         made.push(await insertEntry(tx, req.familyId, { ...base, childId, schoolDays: daysCounted(model, childId, b.startDate, endDate, base.countsSchoolDay) }));
       }
-      return made;
+      return { rows: made, model };
     });
-    return reply.code(201).send(rows.map(toJson));
+    return reply.code(201).send(rows.map(jsonWith(model)));
   });
 
   app.patch<{ Params: { id: string } }>("/api/log-entries/:id", async (req) => {
@@ -138,13 +147,14 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
       checkDateOrder(next.startDate, next.endDate, MAX_ENTRY_DAYS);
       checkHours(next);
       await checkSubjects(tx, req.familyId, Object.keys(p.subjectMinutes ?? {}));
-      next.schoolDays = daysCounted(await calendarModel(tx, req.familyId), next.childId, next.startDate, next.endDate, next.countsSchoolDay);
+      const model = await calendarModel(tx, req.familyId);
+      next.schoolDays = daysCounted(model, next.childId, next.startDate, next.endDate, next.countsSchoolDay);
       const after = await replaceEntry(tx, req.familyId, cur.id, next);
       if (JSON.stringify(before) !== JSON.stringify(stateOf(after))) {
         const who = (await tx.query<{ name: string }>("SELECT name FROM child WHERE id = $1", [cur.child_id])).rows[0]?.name ?? "Child";
         await recordUndo(tx, req.familyId, `Changed ${label(before, who)}`, [{ op: "logEntry", id: cur.id, set: before }]);
       }
-      return toJson(after);
+      return jsonWith(model)(after);
     });
   });
 
