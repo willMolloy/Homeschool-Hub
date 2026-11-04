@@ -2,14 +2,20 @@
    S10-09: from 600 px the same nav is an 80 px icon rail on the left instead (never both). */
 /* S8b-03: the tab bar's height, in one place: the edit bar, the undo bar and the page padding all clear it by this.
    S10-09: --rail-width is what fixed bars and the page start after; with the rail there is no bar to clear. */
+/* S10-16: the content column. Pages (Home, Records, Set up, Schedule · Week) are at most --content-max wide and centred;
+   forms, stand-alone button rows and segmented controls at most --form-max (forms.css). Schedule · Year is not capped. */
 :root {
   --tab-bar-height: 70px;
   --rail-width: 0px;
+  --content-max: 640px;
+  --form-max: 480px;
+  --page-pad: 20px;
 }
 @media (min-width: 600px) {
   :root {
     --tab-bar-height: 0px;
     --rail-width: 80px;
+    --page-pad: 24px;
   }
 }
 .shell {
@@ -36,9 +42,9 @@ html {
 .shell-main {
   flex: 1;
   width: 100%;
-  max-width: 960px;
+  max-width: calc(var(--content-max) + 2 * var(--page-pad));
   margin: 0 auto;
-  padding: 20px 20px 16px;
+  padding: 20px var(--page-pad) 16px;
   padding-top: max(20px, env(safe-area-inset-top));
   box-sizing: border-box;
   outline: none;
@@ -104,10 +110,15 @@ html {
 .shell-nav a[aria-current="page"] .shell-nav-pill {
   background: var(--tl-primary-soft);
 }
-@media (min-width: 640px) {
+/* S10-16: 24 px margins from 600 px (the rail's breakpoint). */
+@media (min-width: 600px) {
   .shell-main {
-    padding: 28px 24px 16px;
+    padding-top: max(28px, env(safe-area-inset-top));
   }
+}
+/* S10-16: the Year timeline uses the full width beside the rail. */
+.shell-main:has(.schedule-page[data-view="year"]) {
+  max-width: none;
 }
 
 /* S10-09: the rail. Fixed on the left, icons centred with a small label under each (Material 3), the active one in a pill.

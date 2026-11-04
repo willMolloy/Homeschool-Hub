@@ -141,8 +141,9 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
         </>
       ) : (
         <>
+          {/* S10-16: one column; only the year's first and last day sit side by side. */}
           {custom ? (
-            <div className="field-row">
+            <>
               <div className="field">
                 <label htmlFor={ids.on}>Weeks on</label>
                 <input id={ids.on} type="number" inputMode="numeric" min={1} max={MAX_CUSTOM_WEEKS} value={weeksOn} onChange={(e) => setWeeksOn(e.target.value)} />
@@ -151,7 +152,7 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
                 <label htmlFor={ids.off}>Weeks off</label>
                 <input id={ids.off} type="number" inputMode="numeric" min={1} max={MAX_CUSTOM_WEEKS} value={weeksOff} onChange={(e) => setWeeksOff(e.target.value)} />
               </div>
-            </div>
+            </>
           ) : null}
           <div className="field-row">
             <div className="field">

@@ -104,7 +104,8 @@ describe("adding an assignment from the timeline", () => {
     const { sheet } = await openForm();
     expect(sheet).toHaveAttribute("data-sheet", "side");
     // Essentials first, in order; then the effort question (S6-09), asked in time, with no weight field and no "More".
-    const labels = [...sheet.querySelectorAll("label, legend, summary")].map((e) => e.textContent!.trim()).filter((t) => !["Frank", "Margaret", "Mon", "Tue", "Wed", "Thu", "Fri"].includes(t));
+    const labels = [...sheet.querySelectorAll("label, legend, summary")].map((e) => e.textContent!.trim()).filter((t) => !["Frank", "Margaret", "Mon", "Tue", "Wed", "Thu", "Fri", "Pages", "Chapters", "Lessons", "Minutes"].includes(t));
+    // S10-16 (L5): Unit is a group of chips (Pages, Chapters, Lessons, Minutes), left out above like the day chips.
     // S4-07: the Days chips sit right under the dates.
     // S10-07: the sheet's own controls: For (child chips), Dates (tiles), School days (soft chips).
     expect(labels.slice(0, 9)).toEqual(["Subject", "Title", "For", "Dates", "Start", "End", "School days", "Unit", "Total"]);
@@ -112,7 +113,7 @@ describe("adding an assignment from the timeline", () => {
     expect(within(sheet).queryByText("More")).toBeNull();
     expect(within(sheet).queryByLabelText(/^Weight per/)).toBeNull();
     // Nothing non-essential: the form's own buttons and the close button, no helper text or badges.
-    expect(within(sheet).getAllByRole("button").map((b) => b.textContent)).toEqual(["×", "Choose a subject…", "", "", "Add", "Cancel"]) /* S10-07: the subject picker row; S9-04: the two calendar buttons (icon only, named "Choose a date") sit after Start and End */;
+    expect(within(sheet).getAllByRole("button").map((b) => b.textContent)).toEqual(["×", "Literature", "", "", "Add", "Cancel"]) /* S10-07: the subject picker row (S10-16, L5: on the first subject); S9-04: the two calendar buttons (icon only, named "Choose a date") sit after Start and End */;
   });
 
   it("is a bottom sheet on phones", async () => {

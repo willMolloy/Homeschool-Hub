@@ -43,6 +43,8 @@ button.bar-body { cursor: pointer; }
 /* S8b-07: the child switch: chips, or one pill that opens a list when the names do not fit one line. */
 .child-switch { margin: 0 0 16px; }
 .child-switch .segmented { margin: 0; }
+/* S10-16 (R3): a name never wraps inside its chip ("All chil-/dren"); when the chips don't fit, ChildSwitch shows the pill. */
+.child-switch .segmented button { white-space: nowrap; }
 .child-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--tl-secondary); color: var(--tl-foreground); font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
 .child-options { display: grid; gap: 6px; }
 .child-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 0 16px; border: 0; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }

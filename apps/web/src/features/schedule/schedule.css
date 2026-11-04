@@ -331,3 +331,7 @@
 .form-sheet .day-chip { border-radius: 12px; border-color: var(--tl-border); background: var(--tl-card); color: var(--tl-muted-foreground); font-weight: 600; }
 .form-sheet .day-chip:has(input:checked) { border: 1.5px solid var(--tl-primary); background: var(--tl-primary-soft); color: var(--tl-primary); font-weight: 800; }
 .form-sheet .day-chip:has(input:focus-visible) { outline-color: var(--tl-ring); }
+/* S10-16 (L5): the Add sheet's Unit as chips (one choice), drawn like the child chips without the initial. */
+.unit-chip, .unit-chip.is-on { padding-left: 14px; }
+/* S10-16: Add several's rows are one column too: Title, Total, then the row's Dates / Remove buttons. */
+.bulk-row-fields .btn-row { margin: 0 0 14px; }
