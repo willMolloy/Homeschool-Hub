@@ -1,16 +1,14 @@
 // S8-09: the getting-started checklist on Home and the empty states of every screen.
-import { screen, within } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
-import { checklistSteps, CHECKLIST_KEY } from "../src/features/home/Checklist";
-import { fakeApi } from "./helpers/fake-api";
+import { checklistSteps } from "../src/features/home/Checklist";
+import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
 const KID = { id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false };
 const SUBJECT = { id: "s1", name: "Math", color: null, sortOrder: 0, archived: false, icon: "calculator" };
-const BOOK = { id: "a1", subjectId: "s1", title: "Math 5", startDate: "2026-08-31", endDate: "2027-05-28", archived: false };
-const BREAK = { id: "b1", label: "Fall break", kind: "break", startDate: "2026-11-23", endDate: "2026-11-27", childIds: [] };
 
 function family(over: { children?: unknown[]; subjects?: unknown[]; assignments?: unknown[]; blocked?: unknown[] } = {}) {
   fakeApi.on("GET /api/children", 200, over.children ?? []);
@@ -25,59 +23,74 @@ const checklist = () => screen.findByRole("region", { name: "Getting started" })
 beforeEach(() => localStorage.clear());
 
 describe("the getting-started checklist", () => {
-  it("a brand-new family sees four steps in order, each opening the right screen", async () => {
+  it("a family with no children sees one reminder, opening the right screen; no subjects, books or breaks row", async () => {
     family();
     renderAt("/");
     const list = within(await checklist());
     const links = list.getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual(["Add your children", "Add subjects", "Add your books and lessons", "Set your year's breaks"]);
-    expect(links.map((l) => l.getAttribute("href"))).toEqual(["/setup/children", "/setup/subjects", "/setup/assignments", "/setup/days-off"]);
+    expect(links.map((l) => l.textContent)).toEqual(["Add your children"]);
+    expect(links.map((l) => l.getAttribute("href"))).toEqual(["/setup/children"]);
     expect(list.queryByText("Done")).toBeNull();
+    expect(list.queryByText(/books and lessons|breaks|subjects/i)).toBeNull();
   });
 
-  it("each step ticks itself as its data appears, and the list goes when all four are done", async () => {
-    family({ children: [KID] });
+  it("a reminder goes as its data appears, and the list goes when none is left", async () => {
+    family();
     const first = renderAt("/");
-    let list = within(await checklist());
-    expect(within(list.getByRole("link", { name: /Add your children/ })).getByText("Done")).toBeInTheDocument();
-    expect(list.getAllByText("Done")).toHaveLength(1);
+    const list = within(await checklist());
+    expect(list.getAllByRole("link").map((l) => l.textContent)).toEqual(["Add your children"]);
     first.unmount();
-    family({ children: [KID], subjects: [SUBJECT], assignments: [BOOK] });
-    const second = renderAt("/");
-    list = within(await checklist());
-    expect(list.getAllByText("Done")).toHaveLength(3);
-    expect(within(list.getByRole("link", { name: /Set your year's breaks/ })).queryByText("Done")).toBeNull();
-    second.unmount();
-    family({ children: [KID], subjects: [SUBJECT], assignments: [BOOK], blocked: [BREAK] });
+    family({ children: [KID] });
     renderAt("/");
     await screen.findByRole("button", { name: "Family and settings" });
     await screen.findByText(/on track|This week and your year/);
     expect(screen.queryByRole("region", { name: "Getting started" })).toBeNull();
   });
 
-  it("archived subjects and assignments do not count as done", () => {
-    expect(checklistSteps({ children: 0, subjects: 0, assignments: 0, breaks: 0 }).map((s) => s.done)).toEqual([false, false, false, false]);
-    expect(checklistSteps({ children: 1, subjects: 2, assignments: 3, breaks: 4 }).every((s) => s.done)).toBe(true);
+  it("the steps put off in the setup flow are reminders, first, and nothing else is assumed", async () => {
+    family({ children: [KID], subjects: [SUBJECT] });
+    fakeApi.on("GET /api/me", 200, { ...DEMO_ME, setupDone: true, setupDeferred: ["year", "breaks"] });
+    renderAt("/");
+    const list = within(await checklist());
+    expect(list.getAllByRole("link").map((l) => [l.textContent, l.getAttribute("href")])).toEqual([
+      ["Set your school year", "/welcome?only=year"], ["Add your breaks", "/welcome?only=breaks"],
+    ]);
   });
 
-  it("can be hidden, and stays hidden on this device", async () => {
+  it("checklistSteps: reminders for what was put off, plus children only when there are none; never subjects, books or lessons", () => {
+    expect(checklistSteps({ children: 0 }).map((s) => s.key)).toEqual(["children"]);
+    expect(checklistSteps({ children: 1 })).toEqual([]);
+    expect(checklistSteps({ children: 1 }, ["breaks"]).map((s) => s.key)).toEqual(["breaks"]);
+    expect(checklistSteps({ children: 0 }, ["year", "breaks"]).map((s) => s.key)).toEqual(["year", "breaks", "children"]);
+  });
+
+  it("can be hidden, which is saved on the family (not the browser), so it stays hidden for that family only", async () => {
     family();
+    const me = { ...DEMO_ME };
+    fakeApi.on("GET /api/me", () => [200, me]);
+    fakeApi.on("PATCH /api/family", (body) => { Object.assign(me, body); return [200, {}]; });
     const user = userEvent.setup();
     const first = renderAt("/");
     await checklist();
     await user.click(screen.getByRole("button", { name: "Hide the getting-started list" }));
     expect(screen.queryByRole("region", { name: "Getting started" })).toBeNull();
-    expect(localStorage.getItem(CHECKLIST_KEY)).toBe("1");
+    expect(fakeApi.calls.filter((c) => c.method === "PATCH").map((c) => c.body)).toEqual([{ checklistHidden: true }]);
+    expect(localStorage.length).toBe(0);
     first.unmount();
     renderAt("/");
     await screen.findByRole("button", { name: "Family and settings" });
     await screen.findByText("This week and your year");
     expect(screen.queryByRole("region", { name: "Getting started" })).toBeNull();
+    // Another family on this browser still has its own reminders.
+    fakeApi.on("GET /api/me", 200, { ...DEMO_ME, familyId: "other", checklistHidden: false });
+    cleanup();
+    renderAt("/");
+    expect(await checklist()).toBeInTheDocument();
   });
 
   it("does not guess while a list has not answered", async () => {
     family();
-    fakeApi.on("GET /api/blocked-ranges", 500, { error: "boom" });
+    fakeApi.on("GET /api/children", 500, { error: "boom" });
     renderAt("/");
     await screen.findByText("This week and your year");
     expect(screen.queryByRole("region", { name: "Getting started" })).toBeNull();
@@ -87,9 +100,9 @@ describe("the getting-started checklist", () => {
     family();
     const user = userEvent.setup();
     const { router } = renderAt("/");
-    await user.click(within(await checklist()).getByRole("link", { name: "Add subjects" }));
-    expect(router.state.location.pathname).toBe("/setup/subjects");
-    expect(await screen.findByRole("group", { name: "Add common subjects" })).toBeInTheDocument();
+    await user.click(within(await checklist()).getByRole("link", { name: "Add your children" }));
+    expect(router.state.location.pathname).toBe("/setup/children");
+    expect(await screen.findByText("No children yet.")).toBeInTheDocument();
   });
 });
 

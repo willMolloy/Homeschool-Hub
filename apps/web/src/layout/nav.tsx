@@ -34,6 +34,7 @@ export const SETUP_LINKS: readonly SetupLink[] = [
   { to: "/setup/children", label: "Children", hint: "Who you teach." },
   { to: "/setup/subjects", label: "Subjects", hint: "Math, reading and the rest." },
   { to: "/setup/assignments", label: "Assignments", hint: "Books and lessons, and by when." },
+  { to: "/setup/school-year", label: "School year", hint: "First and last day, and its terms." },
   { to: "/setup/days-off", label: "Days off and breaks", hint: "Vacations, holidays and sick days." },
   { to: "/setup/events", label: "Events", hint: "Weekly things like co-op or piano." },
 ];

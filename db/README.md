@@ -23,6 +23,11 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `014_zoom_views.sql` | S7-03: `family.zoom_views` (JSON `{ hidden, custom }`: the built-in zoom views a family hides and its own named views; the API checks the contents, S7-04/05) |
 | `017_record_entries.sql` | S9-07: `record_entry`, what a parent typed into the log in Records: one row per child per entry, a day or a run of days, typed minutes (by subject, total, home, away), notes, books, the school-day switch and how many days it counts. Never read by the plan |
 | `018_record_entry_days.sql` | S9b-07: `record_entry.days` (the dates a run of days counts, as the parent ticked them; NULL = the school calendar's days in the run, as before, and always NULL for a single day) |
+| `019_setup_flow.sql` | S11-01: `family.setup_step` (1–6), `setup_done` and `setup_deferred` (`year`, `breaks`): where a family is in the first-run flow. Families that exist when it runs are marked done; a family created afterwards starts at step 1 |
+| `020_school_year.sql` | S11-03: `family.school_year_start` and `school_year_end` (both or neither, the last not before the first): the year the parent gave in the setup flow. NULL for a family that has not given one |
+| `021_tips_seen.sql` | S11-06: `family.tips_seen` (`bars`, `edit`, `icons`): the one-time hints on Schedule the family has seen. Families that exist when it runs have seen them all; a new family has seen none |
+| `022_school_year_shape.sql` | S11b-01: `family.school_year_shape` (`fall-spring`, `three-terms`, `36-weeks`, `sabbath`; NULL until chosen): the shape the parent gave the school year, so Back and Set up show it |
+| `023_checklist_hidden.sql` | S11b-02: `family.checklist_hidden`: the family hid Home's getting-started reminders (per family, not per browser) |
 | `016_log_setup.sql` | S9-03: `family.log_setup` (JSON: the template style and the fields the records track; NULL until picked) and `subject.core` (core or non-core, for core and non-core hours) |
 | `015_subject_icon.sql` | S8-11: `subject.icon` (a key from the fixed icon list, NULL = first-letter badge; existing subjects get the default their name suggests) |
 

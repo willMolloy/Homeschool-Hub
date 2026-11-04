@@ -44,7 +44,39 @@ export function FamilySettingsPage() {
       <div className="card schedule-form">
         <AppearanceChoice />
       </div>
+      <ShowTipsAgain />
     </section>
+  );
+}
+
+/** S11-06: the one-time hints on Schedule come back for this family (on every device). */
+function ShowTipsAgain() {
+  const { refresh } = useAuth();
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function show() {
+    setBusy(true);
+    setStatus(null);
+    try {
+      await apiPatch("/api/family", { tipsSeen: [] });
+      await refresh();
+      setStatus("The tips will show again on Schedule.");
+    } catch (err) {
+      setStatus(saveError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="card schedule-form">
+      <fieldset className="choice-list">
+        <legend>Tips</legend>
+        <div className="btn-row">
+          <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => void show()}>Show tips again</button>
+        </div>
+        <p className="form-status" role="status">{status}</p>
+      </fieldset>
+    </div>
   );
 }
 

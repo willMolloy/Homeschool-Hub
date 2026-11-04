@@ -2,14 +2,15 @@
  * S8-04: Home. The logo and the family button, a greeting with the date, the briefing when something needs
  * attention, and (S9-01, Will's correction) the two main jobs as equal cards, Schedule and Records. S10-09: no Set up row;
  * Set up is in the bar and the rail. Nothing here is a number the family did not enter.
- * S10-17: from 840 px, two panes under the header, greeting and date: a wide one (the briefing, then Schedule) and a
- * narrow one (Records, then the checklist). Under 840 px, one column in the old order. The DOM follows what is shown
+ * S10-17: from 840 px, two panes under the header, greeting and date: a wide one (Schedule) and a narrow one (Records,
+ * then the checklist). The briefing spans both panes above them, so Schedule and Records always start level (Will,
+ * 2026-11-05). Under 840 px, one column in the old order. The DOM follows what is shown
  * (two layouts, picked by a media query), so reading and tab order always match the screen.
  */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CaretRight, ListBullets, Notebook } from "@phosphor-icons/react";
-import type { Assignment, BlockedRange, Child, Subject } from "../../api/types";
+import type { Assignment, Child, Subject } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useAuth, useMe } from "../../auth/AuthProvider";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
@@ -44,7 +45,6 @@ function Home() {
   const children = useApi<Child[]>("/api/children");
   const assignments = useApi<Assignment[]>("/api/assignments");
   const subjects = useApi<Subject[]>("/api/subjects");
-  const blocked = useApi<BlockedRange[]>("/api/blocked-ranges");
   const plans = useWeekPlans(currentWeekStart);
   const live = (assignments.data ?? []).filter((a) => !a.archived);
   const kids = (children.data ?? []).filter((c) => !c.archived);
@@ -54,11 +54,9 @@ function Home() {
 
   const wide = useMediaQuery(HOME_PANES_QUERY);
   const briefing = <HomeBriefing weekStart={currentWeekStart} onLate={setLate} />;
-  // S8-09: only once all four lists have answered, so it never flashes for a family that has set up.
-  const checklist = children.data && subjects.data && assignments.data && blocked.data ? (
-    <Checklist steps={checklistSteps({
-      children: kids.length, subjects: subjects.data.filter((s) => !s.archived).length, assignments: live.length, breaks: blocked.data.length,
-    })} />
+  // S8-09: only once the children list has answered, so it never flashes for a family that has set up. S11-05: reminders only.
+  const checklist = children.data ? (
+    <Checklist steps={checklistSteps({ children: kids.length }, me.setupDeferred ?? [])} />
   ) : null;
   const schedule = (
     <Card className="home-card">
@@ -97,9 +95,10 @@ function Home() {
       <h1 className="home-greeting">{greetingFor(new Date().getHours())}</h1>
       <p className="home-date">{longDate(today)}{weekNo ? ` · Week ${weekNo.n} of ${weekNo.m}` : ""}</p>
       {wide ? (
+        <>
+        {briefing}
         <div className="home-panes">
           <div className="home-pane home-pane-wide">
-            {briefing}
             {schedule}
           </div>
           <div className="home-pane home-pane-narrow">
@@ -107,6 +106,7 @@ function Home() {
             {checklist}
           </div>
         </div>
+        </>
       ) : (
         <>
           {briefing}

@@ -1,0 +1,110 @@
+/**
+ * S11-03, S11b-02: the school year's first and last day and its shape (cards, with a preview line), shared by step 4 of the setup
+ * flow and the School year screen in Set up, so they behave the same. Saving adds the shape's breaks (the existing calendar
+ * templates), applies its term views and hands `onSave` what to store; "I'll set this later" (the flow only) hands it a deferral.
+ */
+import { useId, useMemo, useState, type FormEvent } from "react";
+import { apiGet, apiPost } from "../../api/client";
+import type { BlockedRange, FamilySettings, FamilySettingsPatch, SetupDeferral, YearShape } from "../../api/types";
+import { useApi } from "../../api/useApi";
+import { useMe } from "../../auth/AuthProvider";
+import { Button } from "../../ui/components";
+import { DateField } from "../../ui/DateField";
+import { dateRangeError, saveError } from "../schedule/formBits";
+import { MAX_YEAR_DAYS, leaveOutExisting } from "../schedule/templates";
+import { SHAPES, planYear, previewLine, zoomViewsFor, type ShapeId } from "./yearShapes";
+
+export interface YearFormProps {
+  saved: { start: string; end: string; shape?: YearShape | null } | null;
+  /** Offer "I'll set this later" (the setup flow). */
+  allowLater: boolean;
+  /** Start on "I'll set this later" when the year was put off (the flow's Back; not the reminder or Set up). */
+  laterFirst: boolean;
+  submitLabel: string;
+  busy: boolean;
+  /** Store `patch` (and move on). Resolves false when it could not be saved. */
+  onSave: (patch: FamilySettingsPatch) => Promise<boolean>;
+  /** Show a problem. */
+  fail: (message: string | null) => void;
+}
+
+export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onSave, fail }: YearFormProps) {
+  const me = useMe();
+  const existing = useApi<BlockedRange[]>("/api/blocked-ranges");
+  const [start, setStart] = useState(saved?.start ?? "");
+  const [end, setEnd] = useState(saved?.end ?? "");
+  // Back shows the shape chosen before (a year put off shows "later" when Back returns to it; the reminder, which is there to give
+  // the year, starts on Fall and Spring); otherwise Fall and Spring.
+  const [shape, setShape] = useState<ShapeId>(saved?.shape ?? (laterFirst && me.setupDeferred.includes("year") && !saved ? "later" : "fall-spring"));
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const ids = { start: useId(), end: useId() };
+  const later = shape === "later";
+  const problem = later ? null : dateRangeError(start, end, MAX_YEAR_DAYS);
+  const plan = useMemo(() => (later || problem ? null : planYear(shape, start, end, me.weekStart)), [later, problem, shape, start, end, me.weekStart]);
+  const preview = later ? previewLine("later", { breaks: [], halves: null, terms: null }, []) : plan && existing.data ? previewLine(shape, plan, existing.data) : null;
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (busy || saving) return;
+    fail(null);
+    const rest = me.setupDeferred.filter((d) => d !== "year");
+    if (later) {
+      await onSave({ setupDeferred: [...rest, "year"] as SetupDeferral[] });
+      return;
+    }
+    // The same shape and dates as already saved: nothing to add or replace.
+    if (saved && saved.shape === shape && saved.start === start && saved.end === end) {
+      await onSave({ setupDeferred: rest });
+      return;
+    }
+    if (problem || !plan) return setError(problem === "Pick a start and an end date." ? "Pick the first and last day of the school year." : problem);
+    setError(null);
+    setSaving(true);
+    try {
+      // Breaks first: if the save after them fails, trying again leaves out the days off that are already there.
+      const { add } = leaveOutExisting(plan.breaks, (await apiGet<BlockedRange[]>("/api/blocked-ranges")));
+      if (add.length > 0) {
+        await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges: add.map((b) => ({ label: b.label, kind: b.kind, startDate: b.start, endDate: b.end, childIds: [] })) });
+      }
+      const zoom = zoomViewsFor(plan, (await apiGet<FamilySettings>("/api/family")).zoomViews, saved?.shape ?? null);
+      await onSave({ schoolYear: { start, end, shape }, ...(zoom ? { zoomViews: zoom } : {}), setupDeferred: rest });
+    } catch (err) {
+      fail(saveError(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const invalid = (id: string) => (error ? { "aria-invalid": true as const, "aria-describedby": `${id}-err` } : {});
+  return (
+    <form onSubmit={submit} noValidate>
+      {later ? null : (
+        <div className="field-row">
+          <div className="field">
+            <label htmlFor={ids.start}>First day</label>
+            <DateField id={ids.start} value={start} onChange={(v) => { setStart(v); setError(null); }} {...invalid(ids.start)} />
+          </div>
+          <div className="field">
+            <label htmlFor={ids.end}>Last day</label>
+            <DateField id={ids.end} value={end} onChange={(v) => { setEnd(v); setError(null); }} {...invalid(ids.end)} />
+          </div>
+        </div>
+      )}
+      {error ? <p className="field-error" id={`${ids.start}-err`} role="alert">{error}</p> : null}
+      <fieldset className="shape-cards">
+        <legend>The shape of the year</legend>
+        {SHAPES.filter((s) => allowLater || s.id !== "later").map((s) => (
+          <label key={s.id} className="shape-card">
+            <input type="radio" name="shape" value={s.id} checked={shape === s.id} onChange={() => { setShape(s.id); setError(null); }} />
+            <span className="shape-name">{s.label}</span>
+            <span className="shape-hint">{s.hint}</span>
+          </label>
+        ))}
+      </fieldset>
+      <p className="welcome-preview" aria-live="polite">{preview}</p>
+      <div className="btn-row"><Button type="submit" disabled={busy || saving}>{submitLabel}</Button></div>
+    </form>
+  );
+}
+

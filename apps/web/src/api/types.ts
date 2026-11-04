@@ -21,7 +21,23 @@ export interface Me {
   today: string;
   /** The seeded demo family: it can look around but not add events (the API refuses too). */
   demo: boolean;
+  /** S11-01: which step of the first-run flow the family is on (1–6). */
+  setupStep: number;
+  /** S11-01: true once the family has finished the flow. Families that existed before it are done and never see it. */
+  setupDone: boolean;
+  /** S11-01: the steps put off with "I'll set this later" or "I'll get back to you on this"; Home keeps a reminder for each. */
+  setupDeferred: SetupDeferral[];
+  /** S11-06: the one-time hints on Schedule this family has seen; each shows once. */
+  tipsSeen: TipId[];
+  /** S11b-02: the family hid Home's getting-started reminders (stored on the family, so another family on this browser is not affected). */
+  checklistHidden: boolean;
 }
+
+/** S11-06: the three one-time hints on Schedule: the bars' thickness, the open bar's dates, the subject icons. */
+export type TipId = "bars" | "edit" | "icons";
+
+/** S11-01: the setup steps a family can put off. */
+export type SetupDeferral = "year" | "breaks";
 
 /** S7-03: one of the family's own timeline zoom views; start and end are YYYY-MM-DD, inclusive. */
 export interface CustomZoomView {
@@ -92,16 +108,31 @@ export interface RecordTotals {
 }
 
 /** GET/PATCH /api/family */
-export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
+export type FamilySettings = Omit<Me, "familyId" | "today" | "demo" | "setupStep" | "setupDone" | "setupDeferred" | "tipsSeen" | "checklistHidden"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */
   weekStartLocked: boolean;
   /** S7-03 */
   zoomViews: ZoomViews;
   /** S9-03: what the records track; null until the family picks a template style. */
   logSetup: LogSetup | null;
+  /** S11-03: the school year's first and last day as the parent gave them in the setup flow; null until given. */
+  schoolYear?: SchoolYear | null;
 };
+/** S11b-01: the shapes a school year is given (the setup flow's cards, "I'll set this later" aside). */
+export type YearShape = "fall-spring" | "three-terms" | "36-weeks" | "sabbath";
+export interface SchoolYear { start: string; end: string; shape?: YearShape | null }
 /** The PATCH /api/family body: any of the editable fields. */
-export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">>;
+export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">> & {
+  /** S11-01: the setup step the family is on, and what it put off. `setupDone` only ever goes to true. */
+  setupStep?: number;
+  setupDone?: true;
+  setupDeferred?: SetupDeferral[];
+  /** S11-03: the school year (never cleared by a patch). */
+  schoolYear?: { start: string; end: string; shape?: YearShape };
+  /** S11-06: the hints seen; an empty list shows them all again ("Show tips again"). */
+  tipsSeen?: TipId[];
+  checklistHidden?: boolean;
+};
 
 /** POST /api/auth/login */
 export interface LoginResponse {

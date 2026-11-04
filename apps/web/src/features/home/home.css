@@ -47,9 +47,7 @@
 .checklist li + li { border-top: 1px solid var(--tl-border); }
 .checklist-row { display: flex; align-items: center; gap: 12px; min-height: 52px; color: inherit; text-decoration: none; font-weight: 600; }
 .checklist-row svg { flex: none; color: var(--tl-muted-foreground); }
-.checklist .is-done .checklist-row { color: var(--tl-muted-foreground); font-weight: 400; }
-.checklist .is-done svg, .checklist .is-next svg { color: var(--tl-primary); }
-.checklist-done { margin-left: auto; font-size: 0.8125rem; }
+.checklist .is-next svg { color: var(--tl-primary); }
 .home-checklist .btn-row { margin-top: 4px; justify-content: flex-end; }
 .empty-state { margin: 8px 0 16px; padding: 18px; border-radius: var(--tl-radius); background: var(--tl-secondary); }
 .empty-state p { margin: 0; }
