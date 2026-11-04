@@ -31,10 +31,18 @@ Where Homeschool Hub stands, for whoever picks it up next (Product Owner, Develo
 | S10-18 Year edit sheet as a side panel | 1dff685 |
 | S10-19 9b re-test carry-overs and 10a Lows (R1, R2, R5, R7, L6, L7, L10, R4) | e398e03 |
 | S9b-07 A run of days shows which days count | a4eec20 |
+| S10-10b fix M1: date chips' names start with their text (+ `axe-log` smoke) | 5aee8a2 |
+| S10-10b fix M2: moving a run's dates keeps the ticks | c179cfb |
+| S10-10b fix L3: "Wed 11 is Frank's day off" hint with several children | 29c431d |
+| S10-10b fix L4: a clipped row names its in-range days | 141fa17 |
+| S10-10b fix L6: back links' "‹" hidden from screen readers | e47d195 |
 
-- **Next:** the S10-10b tester pass (not the Developer's), then the Sprint 10b PR to `main` once it passes, as with PR #5. No PR is open yet.
+- **Tester pass:** S10-10b (`docs/reviews/sprint-10b-verification.md`, 465ba55) said **NOT READY** for two Mediums in S9b-07, M1 (chip names, axe) and M2 (editing a run's dates dropped ticks); everything else passed. M1, M2, L3, L4 and L6 (the "‹" in back link names) are fixed in the commits above.
+- **Next:** the tester re-checks S9b-07 (as the report asks), then the Sprint 10b PR to `main` once it passes, as with PR #5. No PR is open yet.
 - **For the tester:** migration `018_record_entry_days` is new (run `db/migrate.ts`); the smoke `login()` now waits out a 429 (R7), verified with 3 reseeded full rounds, 23/23 each. Reseed between full smoke rounds, or `kids-add` leaves a second "Ada" and `kids-edit` fails the next round (data, not a flake).
-- **Open questions from the build (for DeeDee or the tester):** S10-17: between 840 and about 952 px Home's wide pane is under its 480 px target; S10-18: at 840 px the timeline beside the edit panel is 352 px wide. Both are in sprint-10b.md.
+- **Waiting on DeeDee:** the 840 px breakpoints, unchanged on purpose: (a) S10-17 / L1, between 840 and about 952 px Home's wide pane is under its 480 px target; (b) S10-18 / L2, at 840 px the timeline beside the edit panel is 352 px wide. The tester rates both Low, not blocking.
+- **Left for now:** L5 (Rose and Lilac read close; the swatch "used" cue is subtle).
+- **For the re-check:** `run-days` now also returns `partlyOff` (L3); restart the API. The new smoke scenario `axe-log` (`SMOKE_EMAIL=smoke@example.com node flow.mjs axe-log`) runs axe on the Log form with a short and a long run.
 - **Gate:** before every commit, `DATABASE_URL=postgres://hh:hh@127.0.0.1:5462/hh2dev_test bash scripts/check.sh` must end ALL GREEN (about 2 minutes).
   - That Postgres is the Developer's own embedded one on 127.0.0.1:5462 (data in `/workspace/hh2-s10-pg/data`, binaries under `/workspace/hh2-s10-pg/node_modules/@embedded-postgres/linux-x64/native/bin`, user hh/hh). Start it with `pg_ctl -D /workspace/hh2-s10-pg/data -o "-p 5462 -c listen_addresses=127.0.0.1 -k /workspace/hh2-s10-pg/sock" start` if it is down; any scratch Postgres with an empty test database works too.
 - **In progress:** nothing half-done. Each ticket is one commit.
