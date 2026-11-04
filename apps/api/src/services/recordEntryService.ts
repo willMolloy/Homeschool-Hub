@@ -35,7 +35,8 @@ export function schoolCalendarDays(model: CapacityModel, childId: string, start:
 /** S9b-07: what the log form needs to tick a run's days: the family's school weekdays, and per date in the run whether it is a
  * school day and whether it is a day off, for the children picked (a date counts as a school day if it is one for any of them,
  * and as a day off if it is off for all of them; no children = the whole family's days off only). */
-export interface RunDays { weekdays: number[]; schoolDays: string[]; daysOff: string[] }
+/** S10-10b (L3): `partlyOff` lists the dates that are a day off for some of the picked children but not all, and for whom. */
+export interface RunDays { weekdays: number[]; schoolDays: string[]; daysOff: string[]; partlyOff: { date: string; childIds: string[] }[] }
 
 export async function runDays(db: Queryable, familyId: string, childIds: readonly string[], start: string, end: string): Promise<RunDays> {
   const inputs = await readPlanInputs(db, familyId);
@@ -45,11 +46,14 @@ export async function runDays(db: Queryable, familyId: string, childIds: readonl
   const kids = childIds.length > 0 ? childIds : [""];
   const schoolDays: string[] = [];
   const daysOff: string[] = [];
+  const partlyOff: RunDays["partlyOff"] = [];
   for (let d = toDayNumber(start); d <= toDayNumber(end); d += 1) {
     if (kids.some((c) => model.schoolDay(d, c))) schoolDays.push(fromDayNumber(d));
-    if (kids.every((c) => !offModel.schoolDay(d, c))) daysOff.push(fromDayNumber(d));
+    const off = kids.filter((c) => !offModel.schoolDay(d, c));
+    if (off.length === kids.length) daysOff.push(fromDayNumber(d));
+    else if (off.length > 0) partlyOff.push({ date: fromDayNumber(d), childIds: off });
   }
-  return { weekdays: [...inputs.calendar.schoolDays].sort((a, b) => a - b), schoolDays, daysOff };
+  return { weekdays: [...inputs.calendar.schoolDays].sort((a, b) => a - b), schoolDays, daysOff, partlyOff };
 }
 
 /** How many days an entry counts for a child: its covered days, or 0 with the switch off. */

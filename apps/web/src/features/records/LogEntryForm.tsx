@@ -140,7 +140,8 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
         <span>Count as a school day<small>{isRun ? "Tick the days that count." : "Turn off if this wasn't a school day."}</small></span>
       </label>
       {counts && isRun ? (
-        <RunDayChips start={start} end={last} childIds={picked} ticks={dayTicks} onTicks={onTicks} onChange={setRunDays} />
+        <RunDayChips start={start} end={last} childIds={picked} ticks={dayTicks} onTicks={onTicks}
+          nameOf={(id) => kids.find((k) => k.id === id)?.name ?? "a child"} onChange={setRunDays} />
       ) : null}
       {fields.subjectHours ? (
         <fieldset className="log-hours"><legend>Hours by subject</legend>

@@ -49,15 +49,16 @@ describe.skipIf(!hasDb)("S9b-07 ticked days for a run (integration)", () => {
     await req("PATCH", "/api/family", { schoolDays: [2, 3, 4, 5, 6] });
     const res = await req("GET", `/api/log-entries/run-days?from=2026-11-02&to=2026-11-08&childIds=${frank}`);
     expect(res.statusCode, res.body).toBe(200);
-    expect(res.json()).toEqual({ weekdays: [2, 3, 4, 5, 6], schoolDays: ["2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"], daysOff: [] });
+    expect(res.json()).toEqual({ weekdays: [2, 3, 4, 5, 6], schoolDays: ["2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"], daysOff: [], partlyOff: [] });
   });
 
   it("days off: left out of the pre-selection, for the children picked (off for all = a day off)", async () => {
     await req("POST", "/api/blocked-ranges", { startDate: "2026-11-04", endDate: "2026-11-04", kind: "holiday" });
     await req("POST", "/api/blocked-ranges", { startDate: "2026-11-05", endDate: "2026-11-05", kind: "sick", childIds: [frank] });
     const days = async (kids: string[]) => (await req("GET", `/api/log-entries/run-days?from=2026-11-02&to=2026-11-06${kids.length ? `&childIds=${kids.join(",")}` : ""}`)).json();
-    expect(await days([frank])).toEqual({ weekdays: [1, 2, 3, 4, 5], schoolDays: ["2026-11-02", "2026-11-03", "2026-11-06"], daysOff: ["2026-11-04", "2026-11-05"] });
-    expect(await days([frank, margaret])).toEqual({ weekdays: [1, 2, 3, 4, 5], schoolDays: ["2026-11-02", "2026-11-03", "2026-11-05", "2026-11-06"], daysOff: ["2026-11-04"] });
+    expect(await days([frank])).toEqual({ weekdays: [1, 2, 3, 4, 5], schoolDays: ["2026-11-02", "2026-11-03", "2026-11-06"], daysOff: ["2026-11-04", "2026-11-05"], partlyOff: [] });
+    expect(await days([frank, margaret])).toEqual({ weekdays: [1, 2, 3, 4, 5], schoolDays: ["2026-11-02", "2026-11-03", "2026-11-05", "2026-11-06"], daysOff: ["2026-11-04"],
+      partlyOff: [{ date: "2026-11-05", childIds: [frank] }] }); // S10-10b (L3): Thu 5 is Frank's day off only
     expect(await days([])).toMatchObject({ daysOff: ["2026-11-04"] });
   });
 

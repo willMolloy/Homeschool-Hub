@@ -11,6 +11,8 @@ export interface RunDays {
   weekdays: number[];
   schoolDays: string[];
   daysOff: string[];
+  /** S10-10b (L3): dates that are a day off for some of the picked children only, and for whom. */
+  partlyOff?: { date: string; childIds: string[] }[];
 }
 
 /** Runs up to two weeks get a chip per date; longer runs get a chip per weekday. */
@@ -112,3 +114,28 @@ export function runDaysPath(start: string, end: string, childIds: string[]): str
 }
 
 export const NO_DAYS_TICKED = 'Tick at least one day, or turn off "Count as a school day".';
+
+/** "Frank", "Frank and Rose", "Frank, Rose and Lilac". */
+export function nameList(names: readonly string[]): string {
+  return names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/**
+ * S10-10b (L3): with several children, a ticked date that is a day off for some of them counts for them too, so say so:
+ * "Wed 11 is Frank's day off; it counts for Frank too." Several such dates: "Wed 11 and Thu 12 are Frank's days off; …".
+ */
+export function partlyOffHint(partly: readonly { date: string; childIds: string[] }[], ticked: ReadonlySet<string>, nameOf: (id: string) => string): string {
+  const byKids = new Map<string, string[]>();
+  for (const p of partly) {
+    if (!ticked.has(p.date)) continue;
+    const who = nameList(p.childIds.map(nameOf));
+    byKids.set(who, [...(byKids.get(who) ?? []), p.date]);
+  }
+  return [...byKids].map(([who, dates]) => {
+    const many = dates.length > 1;
+    const owner = who.includes(" and ") ? `a day off for ${who}` : `${who}'s day off`;
+    const ownerMany = who.includes(" and ") ? `days off for ${who}` : `${who}'s days off`;
+    const which = dates.length > 3 ? `${dates.length} ticked days` : nameList(dates.map(dateChipLabel));
+    return `${which} ${many ? `are ${ownerMany}` : `is ${owner}`}; ticked, ${many ? "they count" : "it counts"} for ${who} too.`;
+  }).join(" ");
+}

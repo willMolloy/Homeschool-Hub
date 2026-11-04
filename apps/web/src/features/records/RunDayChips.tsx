@@ -11,7 +11,7 @@ import { useApi } from "../../api/useApi";
 import { Chip } from "../../ui/components";
 import {
   WEEK_ORDER, WEEKDAY_LETTER, WEEKDAY_PLURAL, chipMode, dateChipLabel, dateChipName, datesBetween, daysSummary, runDaysPath,
-  tickedDays, type DayTicks, type RunDays,
+  partlyOffHint, tickedDays, type DayTicks, type RunDays,
 } from "./runDays";
 import { weekdayOf } from "@hh/engine";
 
@@ -23,11 +23,13 @@ export interface RunDayChipsProps {
   ticks: DayTicks;
   /** A chip was pressed: the new choices. */
   onTicks: (ticks: Map<string, boolean>) => void;
+  /** S10-10b (L3): a child's name, for the hint about a ticked day that is only some children's day off. */
+  nameOf?: (childId: string) => string;
   /** The dates that count, or null while the calendar is still needed and unknown. */
   onChange: (days: string[] | null) => void;
 }
 
-export function RunDayChips({ start, end, childIds, ticks, onTicks, onChange }: RunDayChipsProps) {
+export function RunDayChips({ start, end, childIds, ticks, onTicks, nameOf = (id) => id, onChange }: RunDayChipsProps) {
   const mode = chipMode(start, end);
   const run = useApi<RunDays>(runDaysPath(start, end, childIds));
   // the last answer is kept while a new one loads: only trust it for the dates and children it was asked for
@@ -37,6 +39,7 @@ export function RunDayChips({ start, end, childIds, ticks, onTicks, onChange }: 
   const daysOff = useMemo(() => new Set(cal?.daysOff ?? []), [cal]);
   const result = useMemo(() => tickedDays(dates, ticks, schoolDays), [dates, ticks, schoolDays]);
   const picked = useMemo(() => new Set(result ?? []), [result]);
+  const partlyOff = childIds.length > 1 && cal?.partlyOff ? partlyOffHint(cal.partlyOff, picked, nameOf) : "";
   const key = result ? result.join(",") : "";
 
   useEffect(() => { onChange(result); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -78,6 +81,7 @@ export function RunDayChips({ start, end, childIds, ticks, onTicks, onChange }: 
         {result ? `Counts ${daysSummary(result)}.` : ""}
         {mode === "weekdays" ? " Days off are left out." : dates.some((d) => daysOff.has(d) && !ticks.has(d)) ? " Days off start unticked." : ""}
       </p>
+      {partlyOff ? <p className="hint" aria-live="polite">{partlyOff}</p> : null}
     </fieldset>
   );
 }

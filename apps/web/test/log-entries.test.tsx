@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { FamilySettings, LogSetup, RecordEntry, Subject } from "../src/api/types";
 import { boxesFor, formatMinutes, summaryOf, toMinutes } from "../src/features/records/entryText";
 import { NO_FIELDS } from "../src/features/records/logSetup";
-import { fakeApi } from "./helpers/fake-api";
+import { fakeApi, runDaysFor } from "./helpers/fake-api";
 import { renderAt } from "./render";
 import { withCovered } from "./helpers/recordEntry";
 
@@ -276,6 +276,24 @@ describe("S9b-07: ticking the days of a run", () => {
       expect(name.toLowerCase().startsWith(shown.toLowerCase())).toBe(true);
     }
     expect(buttons[0]).toHaveAccessibleName("Mon 2, Monday, November 2");
+  });
+
+  it("S10-10b L3: with All children, a ticked day that is one child's day off says so", async () => {
+    fakeApi.on("GET /api/log-entries/run-days", 200, {
+      ...runDaysFor("2026-11-02", "2026-11-08"), partlyOff: [{ date: "2026-11-04", childIds: ["c1"] }],
+    });
+    const user = userEvent.setup();
+    const form = await openLog(user);
+    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-08" } });
+    await user.click(form.getByRole("button", { name: "All children" }));
+    expect(await form.findByText("Wed 4 is Frank's day off; ticked, it counts for Frank too.")).toBeInTheDocument();
+    await user.click(form.getByRole("button", { name: /^Wed 4,/ }));
+    expect(form.queryByText(/Frank's day off/)).toBeNull();
+    // one child: no hint (the endpoint names partly-off days only for several children anyway)
+    await user.click(form.getByRole("button", { name: /^Wed 4,/ }));
+    await user.click(form.getByRole("button", { name: "Margaret" }));
+    await waitFor(() => expect(form.queryByText(/Frank's day off/)).toBeNull());
   });
 
   it("unticking every day says what to do and sends nothing", async () => {

@@ -20,7 +20,7 @@ type Handler = Reply | ((body: unknown, path: string, query: URLSearchParams) =>
 export function runDaysFor(from: string, to: string, weekdays: number[] = [1, 2, 3, 4, 5], daysOff: string[] = []) {
   const schoolDays: string[] = [];
   if (from && to) for (let d = from; d <= to; d = addDays(d, 1)) if (weekdays.includes(weekdayOf(d)) && !daysOff.includes(d)) schoolDays.push(d);
-  return { weekdays, schoolDays, daysOff };
+  return { weekdays, schoolDays, daysOff, partlyOff: [] as { date: string; childIds: string[] }[] };
 }
 
 /** The answer the real endpoint gives with no history and no subject default. */

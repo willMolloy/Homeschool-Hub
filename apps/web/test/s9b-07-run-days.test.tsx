@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { RunDayChips } from "../src/features/records/RunDayChips";
-import { chipMode, dateChipLabel, daysFromWeekdays, daysSummary, runDaysPath, tickedDays, ticksFrom, weekdayWords } from "../src/features/records/runDays";
+import { chipMode, dateChipLabel, daysFromWeekdays, daysSummary, partlyOffHint, runDaysPath, tickedDays, ticksFrom, weekdayWords } from "../src/features/records/runDays";
 import { fakeApi, runDaysFor } from "./helpers/fake-api";
 
 describe("run days (pure)", () => {
@@ -33,6 +33,16 @@ describe("run days (pure)", () => {
     expect(tickedDays(run, ticks, undefined)).toBeNull();
     expect(tickedDays(run, ticks, new Set(["2026-11-09", "2026-11-11"]))).toEqual(["2026-11-10", "2026-11-11"]);
     expect(tickedDays(run.slice(0, 2), ticks, undefined)).toEqual(["2026-11-10"]);
+  });
+  it("S10-10b L3: names whose day off a ticked date is", () => {
+    const name = (id: string) => ({ c1: "Frank", c2: "Rose", c3: "Lilac" })[id] ?? id;
+    const ticked = new Set(["2026-11-04", "2026-11-05", "2026-11-06"]);
+    expect(partlyOffHint([{ date: "2026-11-04", childIds: ["c1"] }], ticked, name)).toBe("Wed 4 is Frank's day off; ticked, it counts for Frank too.");
+    expect(partlyOffHint([{ date: "2026-11-03", childIds: ["c1"] }], ticked, name)).toBe(""); // unticked: nothing to say
+    expect(partlyOffHint([{ date: "2026-11-04", childIds: ["c1"] }, { date: "2026-11-05", childIds: ["c1"] }], ticked, name))
+      .toBe("Wed 4 and Thu 5 are Frank's days off; ticked, they count for Frank too.");
+    expect(partlyOffHint([{ date: "2026-11-06", childIds: ["c1", "c2"] }], ticked, name))
+      .toBe("Fri 6 is a day off for Frank and Rose; ticked, it counts for Frank and Rose too.");
   });
 });
 
