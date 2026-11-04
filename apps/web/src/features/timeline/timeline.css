@@ -70,7 +70,7 @@
 .tl-lane-pick { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; min-height: 44px; }
 /* T-07e / S8-07: the edit bar is a bottom sheet in the Soft Paper style (above the tab bar), fixed to the bottom of the viewport. Not modal. */
 .tl-edit {
-  position: fixed; left: 0; right: 0; z-index: var(--z-edit);
+  position: fixed; left: var(--rail-width, 0px); right: 0; z-index: var(--z-edit);
   bottom: calc(var(--tab-bar-height, 70px) + env(safe-area-inset-bottom));
   max-width: 960px; margin: 0 auto; box-sizing: border-box;
   padding: 6px 20px 12px; background: var(--tl-card); border-radius: var(--tl-radius-sheet) var(--tl-radius-sheet) 0 0;

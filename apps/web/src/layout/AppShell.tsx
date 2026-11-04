@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { TABS } from "./nav";
+import { railLabelsShown } from "./railLabels";
 import "./app-shell.css";
 
 export interface AppShellProps {
@@ -12,8 +13,14 @@ export interface AppShellProps {
   contentKey?: number;
 }
 
-/** S8-04: the page and the bottom bar (Home, Schedule, Records: names and icons live in `nav.tsx`). No header: Home holds the logo and the family button. */
+/**
+ * S8-04: the page and the navigation (Home, Schedule, Records, Set up: names and icons live in `nav.tsx`). No header: Home
+ * holds the logo and the family button. S10-09: one `nav`, drawn as the bottom bar under 600 px and as an 80 px icon rail on
+ * the left from 600 px (app-shell.css), so the two are never shown together and always hold the same items.
+ */
 export function AppShell({ footer, banner, contentKey }: AppShellProps) {
+  const { search } = useLocation();
+  const labels = railLabelsShown(search);
   return (
     <div className="shell">
       <a className="skip-link" href="#main">Skip to content</a>
@@ -22,7 +29,7 @@ export function AppShell({ footer, banner, contentKey }: AppShellProps) {
         <Outlet key={contentKey} />
       </main>
       <footer className="shell-footer">{footer}</footer>
-      <nav className="shell-nav" aria-label="Main">
+      <nav className="shell-nav" aria-label="Main" data-rail-labels={labels ? "on" : "off"}>
         <ul>
           {TABS.map((t) => (
             <li key={t.to}>

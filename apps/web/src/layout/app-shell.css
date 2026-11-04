@@ -1,7 +1,16 @@
-/* App shell (S8-04). Mobile first: the page, then a bottom bar of three tabs with icons and labels. */
-/* S8b-03: the tab bar's height, in one place: the edit bar, the undo bar and the page padding all clear it by this. */
+/* App shell (S8-04). Mobile first: the page, then a bottom bar of four tabs with icons and labels.
+   S10-09: from 600 px the same nav is an 80 px icon rail on the left instead (never both). */
+/* S8b-03: the tab bar's height, in one place: the edit bar, the undo bar and the page padding all clear it by this.
+   S10-09: --rail-width is what fixed bars and the page start after; with the rail there is no bar to clear. */
 :root {
   --tab-bar-height: 70px;
+  --rail-width: 0px;
+}
+@media (min-width: 600px) {
+  :root {
+    --tab-bar-height: 0px;
+    --rail-width: 80px;
+  }
 }
 .shell {
   min-height: 100vh;
@@ -98,6 +107,49 @@ html {
 @media (min-width: 640px) {
   .shell-main {
     padding: 28px 24px 16px;
+  }
+}
+
+/* S10-09: the rail. Fixed on the left, icons centred with a small label under each (Material 3), the active one in a pill.
+   Each item is 56 px tall and the rail's full 80 px wide. The page starts after it; nothing needs to clear a bottom bar. */
+@media (min-width: 600px) {
+  .shell {
+    padding-left: calc(var(--rail-width) + env(safe-area-inset-left));
+  }
+  .shell-nav {
+    top: 0;
+    right: auto;
+    width: calc(var(--rail-width) + env(safe-area-inset-left));
+    height: auto;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) env(safe-area-inset-left);
+    border-top: 0;
+    border-right: 1px solid var(--line);
+  }
+  .shell-nav ul {
+    flex-direction: column;
+    gap: 12px;
+    height: auto;
+    max-width: none;
+    padding: 24px 0;
+  }
+  .shell-nav li {
+    flex: none;
+  }
+  .shell-nav a {
+    justify-content: center;
+    gap: 4px;
+    min-height: 56px;
+  }
+  .shell-nav-pill {
+    height: 32px;
+  }
+  .shell-nav[data-rail-labels="off"] .shell-nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 }
 

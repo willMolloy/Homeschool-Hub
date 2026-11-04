@@ -17,11 +17,9 @@
 .home-sub { font-size: 0.875rem; color: var(--tl-muted-foreground); }
 .home-chevron { color: var(--tl-muted-foreground); flex: none; }
 .home-icon { width: 44px; height: 44px; border-radius: var(--tl-radius-bar); background: var(--tl-primary-soft); color: var(--tl-primary); display: inline-grid; place-items: center; flex: none; }
-.home-icon-small { width: 36px; height: 36px; }
 .home-mini { position: relative; display: grid; gap: 4px; margin: 14px 0 4px; }
 .home-mini span { display: block; height: 8px; border-radius: 99px; }
 .home-today { position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: 2px; background: var(--tl-today); }
-.home-setup { padding: 8px 18px; margin-bottom: 14px; }
 .home-signout { margin-top: 12px; }
 
 /* Setup list and the Schedule page (S8-04). */

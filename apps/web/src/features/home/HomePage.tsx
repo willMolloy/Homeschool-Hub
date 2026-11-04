@@ -1,11 +1,11 @@
 /**
  * S8-04: Home. The logo and the family button, a greeting with the date, the briefing when something needs
- * attention, and (S9-01, Will's correction) the two main jobs as equal cards, Schedule and Records, then the Set up
- * row. Nothing here is a number the family did not enter.
+ * attention, and (S9-01, Will's correction) the two main jobs as equal cards, Schedule and Records. S10-09: no Set up row;
+ * Set up is in the bar and the rail. Nothing here is a number the family did not enter.
  */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CaretRight, ListBullets, Notebook, SlidersHorizontal } from "@phosphor-icons/react";
+import { CaretRight, ListBullets, Notebook } from "@phosphor-icons/react";
 import type { Assignment, BlockedRange, Child, Subject } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useAuth, useMe } from "../../auth/AuthProvider";
@@ -84,11 +84,6 @@ function Home() {
           </div>
           <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />
         </div>
-      </Card>
-
-      <Card className="home-setup">
-        <ListRow to="/setup" lead={<span className="home-icon home-icon-small"><SlidersHorizontal size={20} weight="light" aria-hidden="true" /></span>}
-          title="Set up" description="Children, subjects, books, breaks" />
       </Card>
     </div>
   );
