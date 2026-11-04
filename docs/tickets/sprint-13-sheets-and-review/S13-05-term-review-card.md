@@ -11,3 +11,10 @@ One shareable card image per child, from Records.
 - The demo family's Fall card for each child saves as an image and prints, in light and dark.
 ## Tests
 - Web: parts shown only with data; the image is generated locally; no network request for sharing.
+
+## Design and decisions (2026-11-05)
+- **Build to the mockup:** `docs/design/mockups/term-review.html` (PNGs beside it) and `docs/design/term-review-notes.md` (measurements, long lists as "and N more", the sparse "roomy" layout, must-not-get-wrongs).
+- **Saved images are always the light version** (Will), whatever the app theme; Print is light too. Dark mode applies only to the on-screen preview.
+- **Save image:** on phones, the device share sheet (Web Share with the PNG file) so the parent can save to Photos or send it; on desktop, a download. Made on the device; nothing uploaded (coordinator's call, per Will).
+- **Keep the small "Homeschool Hub" mark** on the card (Will): small and quiet.
+- **Colours:** each child's own stored colour and each subject's stored colour (Will: "use the chosen colors"); the mockup's blue and coral were placeholders.
