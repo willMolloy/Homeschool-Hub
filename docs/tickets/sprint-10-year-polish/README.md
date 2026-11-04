@@ -71,6 +71,20 @@ These are defaults made while writing the tickets (2026-11-03). Each can be reve
 - **S10-16:** pages are capped at 640 px, and forms, buttons and segmented controls at 480 px.
 - **S10-17 and S10-18:** both start at 840 px. The two-pane Home is about 1040 px wide at most, and the side panel is 360 px.
 
+## Carried over from 9b re-test (Low)
+
+The Sprint 9b re-test (`docs/reviews/sprint-9b-verification.md`) passed READY with 7 Low findings. Sprint 9 and 9b were merged to `main` in [PR #4](https://github.com/willMolloy/Homeschool-Hub/pull/4).
+
+| ID | Finding | Where it goes |
+|----|---------|---------------|
+| R1 | The "Each entry" CSV's School days column adds up to more than the real total, because a day in two entries is in both rows. | S10-19 |
+| R2 | A clipped CSV row doesn't say which longer entry it is part of, which the screen does say. | S10-19 |
+| R3 | "All children" wraps onto two lines at 320 px on Records and Schedule. | S10-10 checks it. S10-02 and S10-16 may touch the switch. |
+| R4 | At 320 px with a long term name, only a weak fade shows that the zoom row scrolls. | S10-10 checks it. |
+| R5 | "Your log tracks School days." has a capital S mid-sentence. | S10-19 |
+| R6 | At 360 px, the date placeholder ends about 1 px before the calendar icon. | S10-10 checks it. S10-07 restyles the form. |
+| R7 | The `s2a-13-settings` smoke scenario is flaky after `axe-2a`. | S10-19 |
+
 ## Order
 
 Build in order, one commit per ticket, each with `bash scripts/check.sh` green. Compare against the mockup at 360/390 and 1280 px in light and dark; where they differ, DeeDee's decisions win. Progress goes in `docs/progress/sprint-10.md`. Dragging stays off, and the drag code is kept.
@@ -96,11 +110,12 @@ Build in order, one commit per ticket, each with `bash scripts/check.sh` green. 
 | 17 | [S10-16 — A centred content column with single-column forms](S10-16-content-column-and-forms.md) | S10-09 | S |
 | 18 | [S10-17 — Home in two panes on wide screens](S10-17-home-two-panes.md) | S10-16 | S |
 | 19 | [S10-18 — The Year edit sheet as a side panel on wide screens](S10-18-edit-side-panel.md) | S10-06, S10-16 | S |
-| 20 | [S10-10 — Tester pass](S10-10-tester-pass.md) | all | S |
+| 20 | [S10-19 — Small carry-overs from the 9b re-test](S10-19-carry-overs-from-9b-retest.md) | — | S |
+| 21 | [S10-10 — Tester pass](S10-10-tester-pass.md) | all | S |
 
 **Slip rule:**
-1. S10-17 and S10-18 slip first.
+1. S10-17 and S10-18 slip first. S10-19 can slip with them.
 2. Then S10-16.
 3. S10-09 and S10-14 stay together; one is not built without the other.
 
-The IDs are kept stable from the 2026-11-01 draft. New tickets are S10-04b, S10-04c and S10-11 to S10-18, so the table order is the build order, not the ID order.
+The IDs are kept stable from the 2026-11-01 draft. New tickets are S10-04b, S10-04c and S10-11 to S10-19, so the table order is the build order, not the ID order.

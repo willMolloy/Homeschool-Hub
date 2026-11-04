@@ -4,9 +4,14 @@ Where Homeschool Hub stands, for whoever picks it up next (Product Owner, Develo
 
 ## State
 
-- **Branches:** `hh2/sprint-10` (Sprint 10 tickets only, see below). Sprint 9 and 9b code is on `hh2/sprint-9b`, started from `claude/test-coverage-analysis-6dehbu` (it holds Sprint 9 and Sprint 9b).
-  https://github.com/willMolloy/Homeschool-Hub/tree/hh2/sprint-9b
-- **`main` has neither Sprint 9 nor 9b yet.** No PR is open. Per the branch rule in [../HOW_WE_WORK.md](../HOW_WE_WORK.md#branches) (decided by DeeDee, 2026-11-03), the PR to `main` comes only after the sprint passes testing.
+- **Sprint 9 and 9b are merged to `main`:** [PR #4](https://github.com/willMolloy/Homeschool-Hub/pull/4), "Sprint 9 + 9b: Schedule & Records, plus fixes", merged on 2026-11-03 with a merge commit (the same method as PR #3).
+  - The merge commit is `bd47c550f4c92c3cb0fc4e8ff5baf0447364d5a8`.
+  - CI passed on the head, `e8dab0d`.
+  - The re-test (`docs/reviews/sprint-9b-verification.md`) said READY: no High or Medium findings, and 7 Low ones (R1–R7).
+- **Branches:**
+  - Work now continues on `hh2/sprint-10`, which has `main` merged in: https://github.com/willMolloy/Homeschool-Hub/tree/hh2/sprint-10
+  - `hh2/sprint-9b` is kept, but it is done.
+  - The branch rule is in [../HOW_WE_WORK.md](../HOW_WE_WORK.md#branches) (decided by DeeDee, 2026-11-03).
 - **Gate:** `bash scripts/check.sh` was ALL GREEN before every Sprint 9b commit.
 
 ## Done: Sprint 9b (fixes from the S9-10 test)
@@ -20,22 +25,18 @@ Details, files and Decisions are in [sprint-9.md](sprint-9.md) under "Sprint 9b"
 | S9b-03 Home's "on track" is honest | db6bdf0 | The Schedule card says "running late" when any work is forecast late. |
 | S9b-04 Smoke scenarios use the DateField | 6e9c58b | Scenarios type US dates. They pass against a private local stack. |
 | S9b-05 Small fixes from the Sprint 9 tester | 3a247ae | N6, N7, N9–N17 and the demo's late assignment (S9-05). |
+| S9b-06 Independent re-test | e8dab0d | READY. 18 of 18 pass, 23 of 23 smoke scenarios, and 7 Low findings (R1–R7). See `docs/reviews/sprint-9b-verification.md`. |
 
 ## What's next, in order
 
-1. **S9b-06: the independent re-test** (`docs/tickets/sprint-9b-fixes/S9b-06-retest.md`). The Tester, not the Developer, re-checks N1–N17 and S9-05 in a browser:
-   - at 320, 360, 390 and 1280 px, in light and dark;
-   - plus the smoke scenarios and the gate.
-   - The results go in a "Re-test (S9b-06)" section of `docs/reviews/sprint-9-verification.md`.
-   - Things the Developer could not check:
-     - the CSV byte-order mark in Excel (N14);
-     - dark theme and forced-colours look of the new switch (N15). The 320 px checks were made in Chrome on a throwaway page only.
-2. **The Sprint 9 + 9b PR to `main`**, once the re-test passes. It is one PR from `hh2/sprint-9b`, with no force-push. DeeDee approves the merge.
-3. **Sprint 10: Year view polish.** The tickets are ready (updated 2026-11-03 with DeeDee's decisions) in `docs/tickets/sprint-10-year-polish/` on branch **`hh2/sprint-10`**: https://github.com/willMolloy/Homeschool-Hub/tree/hh2/sprint-10
-   - It was cut from `hh2/sprint-9b` before the re-test, and holds only docs so far.
-   - Once the Sprint 9 + 9b PR lands, merge `main` into it (no force-push, so no rebase of the pushed branch), then build in the README's order.
+1. **Sprint 10: Year view polish, built on `hh2/sprint-10`.**
+   - The tickets are ready in `docs/tickets/sprint-10-year-polish/`. They were updated 2026-11-03 with DeeDee's decisions.
+   - Build in the README's order.
    - The README lists the PO's conservative calls for DeeDee to confirm.
-   - **Leave the re-test's file to the Tester.** The re-test's only push is `docs/reviews/sprint-9b-verification.md` on `hh2/sprint-9b`; bring it across when rebasing or merging.
+   - The 9b re-test's Low findings are carried over:
+     - **S10-19** covers R1, R2, R5 and R7;
+     - the S10-10 tester checks R3, R4 and R6.
+2. **The Sprint 10 tester pass (S10-10)**, then a Sprint 10 PR to `main` once it passes, as with PR #4.
 
 ## Open for DeeDee
 

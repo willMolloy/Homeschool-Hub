@@ -39,10 +39,20 @@ An independent tester checks Sprint 10 against the mockup and DeeDee's 2026-11-0
    - Home's two panes at 840 px and up;
    - the side panel's open, swap and close behaviour.
 7. Run the smoke scenarios and the screen tests.
+8. Carry-overs from the 9b re-test (see the README):
+   - **R3:** "All children" on one line at 320 px on Records and Schedule.
+   - **R4:** the zoom row's scroll cue at 320 px with a 30-character term name.
+   - **R6:** the date placeholder has a margin before the icon at 360 px.
+   - **S10-19:**
+     - the Each entry CSV note (R1);
+     - the clipped row (R2);
+     - the lowercase sentence (R5);
+     - `s2a-13-settings` passing 3 full runs in a row (R7).
 
 ## Done when
 - The report lists each ticket as pass, fail or partial, with steps to reproduce for any failure.
 - It states explicitly whether the 24 px badge finding is closed.
+- It states, for each of R1–R7, whether it is closed or still open.
 - Only what's essential: verification, no app changes.
 
 ## Tests
