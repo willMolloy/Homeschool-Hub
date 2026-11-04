@@ -37,6 +37,12 @@ export interface Assignment {
    */
   weekdaysFrom?: LocalDate | null;
   previousWeekdays?: Weekday[] | null;
+  /**
+   * S12-01: how the parent said the assignment ended, and the day. null/missing = open. Only the parent's answer sets it. The
+   * plan treats an ended assignment as closed at `endedOn` (S12-04).
+   */
+  endedAs?: "finished" | "stopped" | null;
+  endedOn?: LocalDate | null;
 }
 
 /**

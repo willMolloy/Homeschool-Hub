@@ -28,6 +28,7 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `021_tips_seen.sql` | S11-06: `family.tips_seen` (`bars`, `edit`, `icons`): the one-time hints on Schedule the family has seen. Families that exist when it runs have seen them all; a new family has seen none |
 | `022_school_year_shape.sql` | S11b-01: `family.school_year_shape` (`fall-spring`, `three-terms`, `36-weeks`, `sabbath`; NULL until chosen): the shape the parent gave the school year, so Back and Set up show it |
 | `023_checklist_hidden.sql` | S11b-02: `family.checklist_hidden`: the family hid Home's getting-started reminders (per family, not per browser) |
+| `024_assignment_ended.sql` | S12-01: `assignment.ended_as` (`finished` / `stopped`, NULL while open) and `ended_on`, both or neither: how the parent said an assignment ended |
 | `016_log_setup.sql` | S9-03: `family.log_setup` (JSON: the template style and the fields the records track; NULL until picked) and `subject.core` (core or non-core, for core and non-core hours) |
 | `015_subject_icon.sql` | S8-11: `subject.icon` (a key from the fixed icon list, NULL = first-letter badge; existing subjects get the default their name suggests) |
 

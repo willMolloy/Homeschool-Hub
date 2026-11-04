@@ -209,7 +209,13 @@ export interface Assignment {
   archived: boolean;
   /** S4-04: the assignment's own days (0 = Sunday … 6 = Saturday, sorted), or null = follow the subject's default. */
   weekdays: number[] | null;
+  /** S12-01: how the parent said it ended and the day (null while it is open). Older answers and fixtures may leave both out. */
+  endedAs?: AssignmentEnding | null;
+  endedOn?: string | null;
 }
+
+/** S12-01: "finished" only when the parent said so; "stopped" is dropped work and never counts as finished. */
+export type AssignmentEnding = "finished" | "stopped";
 
 /** GET/POST/PATCH/DELETE /api/blocked-ranges (S2a-07) */
 export interface BlockedRange {
