@@ -1,6 +1,6 @@
 # Sprint 14 — Accounts, and undo for Add several and CSV import
 
-> **Status: approved** (Will, 2026-11-05: "Let's hold off on hosting but we can do accounts"; "Undo add several can be done here as well"). Starts after Sprint 13's PR merges. One branch for the sprint; PR after its tester passes. The hosting fixes in code (health check, shutdown, migration lock, proxy-aware throttle) are **on hold with hosting**.
+> **Status: approved** (Will, 2026-11-05: "Let's hold off on hosting but we can do accounts"; "Undo add several can be done here as well"). Sprint 13 merged in PR #11. One branch for the sprint; PR after its tester passes. The hosting fixes in code (health check, shutdown, migration lock, proxy-aware throttle) are **on hold with hosting**.
 
 ## Decisions (coordinator's recommendations, accepted by Will, 2026-11-05)
 1. **Who creates family invites:** only Will and DeeDee, with a command (no admin screen yet).
@@ -14,6 +14,7 @@ Build in order, one commit per ticket, gate ALL GREEN, push after each. Progress
 
 | # | Ticket | Size |
 |---|--------|------|
+| 0 | [S14-00 — Sprint 13 leftovers](S14-00-sprint-13-lows.md) | XS |
 | 1 | [S14-01 — Parents get their own logins](S14-01-parent-logins.md) | M |
 | 2 | [S14-02 — Family invites (command) and the join page](S14-02-family-invites.md) | M |
 | 3 | [S14-03 — Invite another parent](S14-03-invite-another-parent.md) | S |
