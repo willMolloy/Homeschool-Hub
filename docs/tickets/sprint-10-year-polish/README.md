@@ -103,6 +103,8 @@ The S10-10a test (`docs/reviews/sprint-10a-verification.md`) found one Medium (M
 | L8 | On the phone the Year edit sheet sits above the tab bar; the mockup caption has it covering it (S10-01). | Backlog (a mockup difference only). |
 | R3 | Still open: at 320 with 2 children "All children" wraps; with 3 children the child switch wraps to a second row at 390 and 414. | S10-16 / S10-10b (10b). |
 | R4 | Still open: at 320 with a 30-character Fall name, later chips are off-screen with only the fade as a cue. | S10-19 (10b). |
+| L9 | From the re-test (5a5ce00): the Copy tests in `timeline-edit-bar.test.tsx` and `assignment-weekdays.test.tsx` are flaky under CPU load, because S10-06's read-only `POST /api/plan/pace` is counted as a write. Leave `/api/plan/pace` out of the POST / non-GET filters (tests only). | S10-19 (10b). |
+| L10 | From the re-test (5a5ce00): on Set up › Assignments and Days off at 360 and 390, the side-by-side Start/End fields clip "Dec 30, 2026" and the "Choose a date" placeholder. Stack them on narrow widths, or shorten the placeholder. | S10-19 (10b). |
 
 ## Order
 
