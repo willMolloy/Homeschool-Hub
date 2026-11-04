@@ -13,6 +13,7 @@ import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import type { ScheduleEvent } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
+import { PrintSheetsButton } from "../print/PrintSheets";
 import { ChildSwitch } from "./ChildSwitch";
 import { weekRangeText } from "../checkin/checkinText";
 import { Briefing } from "../plan/Briefing";
@@ -35,15 +36,15 @@ export const aheadTitle = (childName: string, weekStart: string, weekEnd: string
   `${childName} · ${current ? "This week · " : ""}${weekRangeText(weekStart, weekEnd)}`;
 
 /** S10-13: `headSlot` is the spot at the end of Schedule's Week | Year row; the week group (‹ range ›) goes there. */
-export function WeekView({ headSlot = null }: { headSlot?: HTMLElement | null }) {
+export function WeekView({ headSlot = null, titleSlot = null }: { headSlot?: HTMLElement | null; titleSlot?: HTMLElement | null }) {
   return (
     <PlanRefreshProvider>
-      <Week headSlot={headSlot} />
+      <Week headSlot={headSlot} titleSlot={titleSlot} />
     </PlanRefreshProvider>
   );
 }
 
-function Week({ headSlot }: { headSlot: HTMLElement | null }) {
+function Week({ headSlot, titleSlot }: { headSlot: HTMLElement | null; titleSlot: HTMLElement | null }) {
   const week = useShownWeek();
   const look = useWeekLookups();
   const [choice, setChoice] = useChildChoice(look.activeChildren);
@@ -67,6 +68,8 @@ function Week({ headSlot }: { headSlot: HTMLElement | null }) {
     <div className="week">
       <h2 className="sr-only">{title}</h2>
       {headSlot ? createPortal(group, headSlot) : group}
+      {/* S13-01: Print sheets sits at the end of the title row (where Year has its "+"). */}
+      {titleSlot && look.activeChildren.length > 0 ? createPortal(<PrintSheetsButton weekStart={week.weekStart} kids={look.activeChildren} />, titleSlot) : null}
       <ChildSwitch kids={look.activeChildren} value={choice} onChange={setChoice} />
       {!past && <Briefing weekStart={week.weekStart} />}
       {past ? <PastWeek weekStart={week.weekStart} choice={choice} look={look} /> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} />}

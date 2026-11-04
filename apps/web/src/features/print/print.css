@@ -1,0 +1,50 @@
+/* S13-01..03: the printed sheets. Always light, black on white, Soft Paper type; a subject's colour is a thin rule only (so it reads in black and white). */
+.print-screen { min-height: 100vh; background: #fff; color: #1f1b16; font-family: var(--tl-font); font-size: 11pt; line-height: 1.35; padding: 0 16px 32px; box-sizing: border-box; }
+.print-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 8.5in; margin: 0 auto; padding: 8px 0; min-height: 44px; }
+.print-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 8px; color: var(--tl-primary, #3f6b5c); font-weight: 700; text-decoration: none; }
+.print-go { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+.print-note { max-width: 8.5in; margin: 24px auto; font-size: 1rem; }
+.print-sheets { display: flex; flex-direction: column; gap: 24px; align-items: center; }
+/* On screen each page is a sheet of paper; its width is Letter's inner width, never wider than the screen. */
+.sheet { width: 100%; max-width: 7.5in; box-sizing: border-box; padding: 20px 18px 24px; background: #fff; color: #1f1b16; border: 1px solid #d9d2c6; border-radius: 6px; }
+.sheet-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--sheet-rule, #1f1b16); margin-bottom: 14px; }
+.sheet-head h1 { margin: 0; font-family: var(--tl-font-display); font-weight: 600; font-size: 24pt; line-height: 1.1; overflow-wrap: break-word; min-width: 0; }
+.sheet-when { margin: 2px 0 0; font-size: 13pt; color: #4a4339; }
+.sheet-break, .sheet-empty { margin: 0 0 10px; font-size: 11pt; color: #4a4339; }
+.sheet-break { font-style: italic; }
+.sheet-subject { margin: 0 0 12px; padding-left: 10px; border-left: 3px solid var(--sheet-subject, #1f1b16); break-inside: avoid-page; }
+.sheet-subject h2 { margin: 0 0 3px; font-family: var(--tl-font); font-size: 10.5pt; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #1f1b16; }
+.sheet-assignment { margin: 0 0 6px; break-inside: avoid; }
+.sheet-assignment h3 { margin: 0; font-family: var(--tl-font-display); font-weight: 600; font-size: 12pt; }
+.sheet-assignment ul { list-style: none; margin: 2px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(2.3in, 1fr)); column-gap: 14px; }
+.sheet-assignment li { display: flex; align-items: center; gap: 8px; min-height: 22px; font-size: 11pt; }
+.sheet-day { font-weight: 700; }
+.sheet-range { color: #1f1b16; }
+.sheet-box { flex: none; display: inline-block; width: 13px; height: 13px; border: 1.3px solid #1f1b16; border-radius: 2px; box-sizing: border-box; }
+.sheet-assignment-day { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; min-height: 30px; }
+.sheet-assignment-day h3 { flex: 0 1 auto; min-width: 0; font-size: 13pt; }
+.sheet-assignment-day .sheet-range { font-size: 12pt; font-weight: 600; }
+.sheet-assignment-day .sheet-box { width: 16px; height: 16px; }
+.sheet-notes { margin-top: 14px; break-inside: avoid; }
+.sheet-notes h2 { margin: 0; font-size: 10.5pt; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.sheet-line { height: 26px; border-bottom: 0.75pt solid #8d857a; }
+
+@page { margin: 14mm; }
+@media print {
+  html, body { background: #fff !important; }
+  .no-print { display: none !important; }
+  .print-screen { padding: 0; min-height: 0; }
+  .print-sheets { display: block; }
+  .sheet { max-width: none; width: auto; padding: 0; border: 0; border-radius: 0; break-after: page; }
+  .sheet:last-child { break-after: auto; }
+}
+
+/* The Print sheets sheet (on screen only). */
+.print-form { display: flex; flex-direction: column; gap: 16px; }
+.print-when { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.print-when-text { display: flex; flex-direction: column; align-items: center; text-align: center; font-weight: 700; min-width: 0; }
+.print-when-text small { font-weight: 400; color: var(--tl-muted-foreground); font-size: 0.8125rem; }
+.print-label { display: block; margin-bottom: 6px; font-weight: 700; }
+.print-kids { display: flex; flex-wrap: wrap; gap: 8px; }
+.print-kids .chip { min-height: 44px; }
+.print-hint { margin: 0; color: var(--tl-muted-foreground); font-size: 0.875rem; }
