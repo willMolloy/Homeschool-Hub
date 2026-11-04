@@ -55,6 +55,8 @@ import { EditZoomViewsSheet } from "../features/timeline/EditZoomViews";
 import { ChildSwitch } from "../features/week/ChildSwitch";
 import { ALL, useChildChoice } from "../features/week/useChildChoice";
 import { filterChildren, forChild } from "../features/timeline/childView";
+import { useTips } from "../features/tips/useTips";
+import { TIP_TEXT } from "../features/tips/tips";
 import "../features/timeline/timeline.css";
 
 /** Width used before anything can be measured (the smallest phone we design for). */
@@ -221,6 +223,16 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
   };
   const empty = model !== undefined && model.lanes.length === 0;
   const ready = !failed && !loading && model && layout && !empty;
+  // S11-06: one hint at a time, the first time each thing shows: the bars, the open bar's dates, the icons. Opening a bar is
+  // doing what the bars hint says, so it counts as seen.
+  const tips = useTips();
+  const settled = !!ready && !leavingLayout;
+  const tip = tips.active({ bars: settled && layout.bands.some((b) => b.d), edit: !!selection, icons: settled && layout.badges.length > 0 });
+  const barsSeen = tips.seen.includes("bars");
+  const { markSeen } = tips;
+  useEffect(() => {
+    if (selection && !barsSeen) void markSeen("bars");
+  }, [selection, barsSeen, markSeen]);
   const calendar = !failed && !loading && model && layout && empty;
 
   return (
@@ -255,7 +267,8 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
             <div ref={stage} className="tl-stage" data-drag-ready={BAR_DRAG_ENABLED && selection ? "" : undefined} {...(BAR_DRAG_ENABLED ? drag : {})}>
               <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
                 <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews, viewOverrides)} timeline`} subjects={subjects}
-                  selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} grips={BAR_DRAG_ENABLED} />
+                  selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} grips={BAR_DRAG_ENABLED}
+                  tip={tip === "bars" || tip === "icons" ? { id: tip, text: TIP_TEXT[tip], onGotIt: () => void markSeen(tip) } : null} />
               </div>
               {leavingLayout && (
                 <div className="tl-leaving" aria-hidden="true" onAnimationEnd={settle}>
@@ -270,6 +283,7 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
               <>
                 {panel ? null : <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />}
                 <EditBar ref={keep.ref} selection={selection} pace={selectedPace} panel={panel}
+                  tip={tip === "edit" ? { text: TIP_TEXT.edit, onGotIt: () => void markSeen("edit") } : null}
                   busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)} onUpdateStatus={() => setStatusing(selection.assignmentId)}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
               </>

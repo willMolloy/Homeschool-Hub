@@ -1,5 +1,5 @@
 /** A brand-new family for the setup-flow tests: PATCH /api/family changes what GET /api/me and /api/family say, as the real API does. */
-import type { BlockedRange, Child, SetupDeferral, Subject } from "../../src/api/types";
+import type { BlockedRange, Child, SetupDeferral, Subject, TipId } from "../../src/api/types";
 import { defaultIconFor } from "../../src/features/subjects/icons";
 import { DEMO_ME, fakeApi } from "./fake-api";
 
@@ -19,7 +19,7 @@ export function newFamily(over: Partial<NewFamily["me"]> = {}): NewFamily {
   };
   const settings = () => ({
     name: f.me.name, weekStart: f.me.weekStart, schoolDays: f.me.schoolDays, timeZone: f.me.timeZone, weekStartLocked: false,
-    zoomViews: f.zoomViews, logSetup: null, setupStep: f.me.setupStep, setupDone: f.me.setupDone, setupDeferred: f.me.setupDeferred, schoolYear: f.schoolYear,
+    zoomViews: f.zoomViews, logSetup: null, setupStep: f.me.setupStep, setupDone: f.me.setupDone, setupDeferred: f.me.setupDeferred, schoolYear: f.schoolYear, tipsSeen: f.me.tipsSeen,
   });
   fakeApi.on("GET /api/me", () => [200, f.me]);
   fakeApi.on("GET /api/family", () => [200, settings()]);
@@ -30,6 +30,7 @@ export function newFamily(over: Partial<NewFamily["me"]> = {}): NewFamily {
     if (b.schoolDays !== undefined) f.me.schoolDays = b.schoolDays as number[];
     if (b.setupStep !== undefined) f.me.setupStep = b.setupStep as number;
     if (b.setupDone) f.me.setupDone = true;
+    if (b.tipsSeen !== undefined) f.me.tipsSeen = b.tipsSeen as TipId[];
     if (b.setupDeferred !== undefined) f.me.setupDeferred = b.setupDeferred as SetupDeferral[];
     if (b.zoomViews !== undefined) f.zoomViews = b.zoomViews as NewFamily["zoomViews"];
     if (b.schoolYear !== undefined) f.schoolYear = b.schoolYear as NewFamily["schoolYear"];

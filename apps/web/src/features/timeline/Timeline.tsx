@@ -7,6 +7,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { UsersThree } from "@phosphor-icons/react";
 import type { Subject } from "../../api/types";
 import { SubjectBadge } from "../subjects/SubjectIcon";
+import { TipBubble } from "../tips/TipBubble";
 import { bandExtent } from "./drag";
 import { BADGE_HIT_PX, nearestBadge, type TimelineLayout } from "./layout";
 import type { ChildStep } from "./model";
@@ -41,9 +42,11 @@ export interface TimelineProps {
   grips?: boolean;
   /** S8-07: the family's subjects, for each lane badge's icon (a missing subject shows its first letter). */
   subjects?: readonly Pick<Subject, "id" | "name" | "icon">[];
+  /** S11-06: a one-time hint placed at the first bar ("bars") or beside the first icon ("icons"), with its "Got it". */
+  tip?: { id: "bars" | "icons"; text: string; onGotIt: () => void } | null;
 }
 
-export function Timeline({ layout, label, selectedId = null, onPick, flashId = null, grips = true, subjects = [] }: TimelineProps) {
+export function Timeline({ layout, label, selectedId = null, onPick, flashId = null, grips = true, subjects = [], tip = null }: TimelineProps) {
   const bottom = layout.lanesBottom;
   const m = layout.metrics;
   const height = layout.height;
@@ -206,6 +209,30 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         </div>
       </div>
     ))}
+    {/* S11-06: last, so it is drawn over the sticky group headers. */}
+    {tip ? <TimelineTip layout={layout} tip={tip} /> : null}
     </div>
   );
+}
+
+/** The widest a hint bubble is drawn over the picture (tips.css caps it at 280 px too). */
+const TIP_W = 280;
+const TIP_EDGE = 8;
+
+/** S11-06: the one-time hint, at the first bar (under it, pointing up) or beside the first icon (to its right, pointing left). */
+function TimelineTip({ layout, tip }: { layout: TimelineLayout; tip: NonNullable<TimelineProps["tip"]> }) {
+  const w = layout.width;
+  if (tip.id === "icons") {
+    const b = layout.badges[0];
+    if (!b) return null;
+    const left = layout.metrics.gutter + 10;
+    return <TipBubble text={tip.text} onGotIt={tip.onGotIt} arrow="left" arrowAt={20} style={{ left, top: b.cy - 26, maxWidth: Math.max(160, w - left - TIP_EDGE) }} />;
+  }
+  const band = layout.bands.find((x) => x.d && x.runs.length > 0);
+  const row = band ? layout.rows.find((r) => r.key === band.rowKey) : undefined;
+  if (!band || !row) return null;
+  const x = band.runs[0]!.x0;
+  const width = Math.min(TIP_W, w - 2 * TIP_EDGE);
+  const left = Math.max(TIP_EDGE, Math.min(x, w - width - TIP_EDGE));
+  return <TipBubble text={tip.text} onGotIt={tip.onGotIt} arrow="up" arrowAt={Math.max(14, Math.min(x + 20 - left, width - 28))} style={{ left, top: row.cy + row.height / 2 + 8, maxWidth: width }} />;
 }

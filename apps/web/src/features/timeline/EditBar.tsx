@@ -13,6 +13,7 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { Clock } from "@phosphor-icons/react";
 import { datesError, type DateSpan, type Selection } from "./select";
 import { DateField } from "../../ui/DateField";
+import { TipBubble } from "../tips/TipBubble";
 
 export interface EditBarProps {
   selection: Selection;
@@ -32,6 +33,8 @@ export interface EditBarProps {
   pace?: string | null;
   /** S10-18: a side panel (840 px and up) rather than a bottom bar. */
   panel?: boolean;
+  /** S11-06: the one-time hint for the first bar opened, in the sheet above the dates. */
+  tip?: { text: string; onGotIt: () => void } | null;
 }
 
 /** S10-18: the width from which the edit sheet is a side panel (DeeDee, 2026-11-03). */
@@ -39,7 +42,7 @@ export const EDIT_PANEL_QUERY = "(min-width: 840px)";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose, pace = null, panel = false }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose, pace = null, panel = false, tip = null }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
   const [more, setMore] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -95,6 +98,7 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
         <button type="button" className="tl-edit-close" aria-label="Close" onClick={onClose}>×</button>
       </div>
       <div className="tl-edit-body">
+        {tip ? <TipBubble className="tip-inline" text={tip.text} onGotIt={tip.onGotIt} /> : null}
         {/* S10-06 (mockup frame 2): the dates are tiles, each the shared DateField under a small label. */}
         <div className="tl-edit-dates">
           <label className="tl-tile"><span className="tl-tile-label">Start</span><DateField className="tl-tile-field" opens={panel ? "down" : "up"} value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>

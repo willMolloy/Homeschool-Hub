@@ -7,6 +7,7 @@
  * S7-03: `zoomViews` is the timeline's hidden built-in zoom views and the family's own (014_zoom_views).
  * S9-03: `logSetup` is what the family's records track (016_log_setup); null until the family picks a template style.
  * S11-01: `setupStep`, `setupDone` and `setupDeferred` are where the family is in the first-run flow (019_setup_flow).
+ * S11-06: `tipsSeen` is the one-time hints on Schedule the family has seen (021_tips_seen); an empty list shows them all again.
  * S11-03: `schoolYear` is the first and last day the parent gave in that flow (020_school_year); null until given.
  */
 import type { FastifyInstance } from "fastify";
@@ -30,11 +31,12 @@ export interface FamilySettings {
   setupDone: boolean;
   setupDeferred: SetupDeferral[];
   schoolYear: { start: string; end: string } | null;
+  tipsSeen: Tip[];
 }
 interface FamilyRow {
   name: string; week_start: "mon" | "sun"; school_days: number[]; time_zone: string; zoom_views: ZoomViewsJson; log_setup: LogSetupJson | null;
   setup_step: number; setup_done: boolean; setup_deferred: SetupDeferral[];
-  school_year_start: string | null; school_year_end: string | null;
+  school_year_start: string | null; school_year_end: string | null; tips_seen: Tip[];
 }
 
 /** S11-01: the setup steps a family can put off (the school year, the breaks). */
@@ -42,10 +44,15 @@ export const SETUP_DEFERRALS = ["year", "breaks"] as const;
 export type SetupDeferral = (typeof SETUP_DEFERRALS)[number];
 export const SETUP_STEPS = 6;
 
+/** S11-06: the one-time hints on Schedule (a bar's thickness, the open bar's dates, the subject icons). */
+export const TIPS = ["bars", "edit", "icons"] as const;
+export type Tip = (typeof TIPS)[number];
+
 const toSettings = (r: FamilyRow, weekStartLocked: boolean): FamilySettings =>
   ({ name: r.name, weekStart: r.week_start, schoolDays: r.school_days, timeZone: r.time_zone, weekStartLocked, zoomViews: r.zoom_views, logSetup: r.log_setup,
     setupStep: r.setup_step, setupDone: r.setup_done, setupDeferred: r.setup_deferred,
-    schoolYear: r.school_year_start && r.school_year_end ? { start: r.school_year_start, end: r.school_year_end } : null });
+    schoolYear: r.school_year_start && r.school_year_end ? { start: r.school_year_start, end: r.school_year_end } : null,
+    tipsSeen: r.tips_seen });
 
 export const WEEK_START_LOCKED_MESSAGE = "weekStart: the week start can't change after weeks have been checked in.";
 
@@ -80,10 +87,11 @@ const PatchBody = z
     // Finishing is one way: a family that finished the flow never goes back into it.
     setupDone: z.literal(true, "setupDone can only be set to true.").optional(),
     schoolYear: SchoolYear.optional(),
+    tipsSeen: z.array(z.enum(TIPS, "Only the tips on Schedule can be marked as seen.")).refine((d) => new Set(d).size === d.length, "A tip can only be marked once.").optional(),
     setupDeferred: z.array(z.enum(SETUP_DEFERRALS, "Only the year and the breaks can be put off.")).refine((d) => new Set(d).size === d.length, "A step can only be put off once.").optional() })
-  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, weekStart, schoolDays, timeZone, zoomViews, logSetup, setupStep, setupDone, setupDeferred, schoolYear.");
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, weekStart, schoolDays, timeZone, zoomViews, logSetup, setupStep, setupDone, setupDeferred, schoolYear, tipsSeen.");
 
-const COLS = "name, week_start, school_days, time_zone, zoom_views, log_setup, setup_step, setup_done, setup_deferred, school_year_start, school_year_end";
+const COLS = "name, week_start, school_days, time_zone, zoom_views, log_setup, setup_step, setup_done, setup_deferred, school_year_start, school_year_end, tips_seen";
 const gone = () => new HttpError(401, "unauthenticated", "Your family no longer exists.");
 
 export async function familyRoutes(app: FastifyInstance): Promise<void> {
@@ -115,10 +123,11 @@ export async function familyRoutes(app: FastifyInstance): Promise<void> {
            setup_deferred = COALESCE($10::text[], setup_deferred),
            school_year_start = COALESCE($11::date, school_year_start),
            school_year_end = COALESCE($12::date, school_year_end),
+           tips_seen = COALESCE($13::text[], tips_seen),
            updated_at = now()
          WHERE id = $1 RETURNING ${COLS}`,
         [req.familyId, b.name ?? null, b.weekStart ?? null, b.schoolDays ?? null, b.timeZone ?? null, b.zoomViews ? JSON.stringify(b.zoomViews) : null, b.logSetup ? JSON.stringify(b.logSetup) : null,
-         b.setupStep ?? null, b.setupDone ?? null, b.setupDeferred ?? null, b.schoolYear?.start ?? null, b.schoolYear?.end ?? null]);
+         b.setupStep ?? null, b.setupDone ?? null, b.setupDeferred ?? null, b.schoolYear?.start ?? null, b.schoolYear?.end ?? null, b.tipsSeen ?? null]);
       return toSettings(rows[0]!, locked);
     });
   });

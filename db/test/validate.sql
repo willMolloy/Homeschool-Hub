@@ -378,6 +378,11 @@ SELECT pg_temp.expect_error($$UPDATE family SET school_year_start = '2026-08-17'
 SELECT pg_temp.expect_error($$UPDATE family SET school_year_start = '2027-05-21', school_year_end = '2026-08-17' WHERE id = 'f0000000-0000-0000-0000-0000000000c6'$$, '23514', 'school year last day not before the first');
 UPDATE family SET school_year_start = '2026-08-17', school_year_end = '2027-05-21' WHERE id = 'f0000000-0000-0000-0000-0000000000c6';
 DO $$ BEGIN RAISE NOTICE 'ok   family.school_year takes both days (020)'; END $$;
+DO $$ BEGIN
+  IF (SELECT tips_seen FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c6') <> '{}' THEN RAISE EXCEPTION 'FAIL a new family should have seen no tips'; END IF;
+  RAISE NOTICE 'ok   a new family has seen no tips (021)';
+END $$;
+SELECT pg_temp.expect_error($$UPDATE family SET tips_seen = '{tour}' WHERE id = 'f0000000-0000-0000-0000-0000000000c6'$$, '23514', 'tips_seen holds only the three tips');
 DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c6';
 
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

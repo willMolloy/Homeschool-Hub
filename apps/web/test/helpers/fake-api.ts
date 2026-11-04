@@ -46,6 +46,8 @@ export const DEMO_ME: Me = {
   setupStep: 1,
   setupDone: true,
   setupDeferred: [],
+  // S11-06: the demo has seen the hints; a test of them says otherwise.
+  tipsSeen: ["bars", "edit", "icons"],
 };
 
 const ROSTER_PATCH = ["name", "color", "sortOrder", "archived"];
@@ -58,7 +60,7 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/plan/preview-event": ["event", "eventId"],
   "POST /api/blocked-ranges/bulk": ["blockedRanges"],
   "POST /api/calendar-templates": ["name", "breaks"],
-  "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone", "zoomViews", "logSetup", "setupStep", "setupDone", "setupDeferred", "schoolYear"],
+  "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone", "zoomViews", "logSetup", "setupStep", "setupDone", "setupDeferred", "schoolYear", "tipsSeen"],
   "POST /api/log-entries": ["childIds", "startDate", "endDate", "countsSchoolDay", "days", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
   "PATCH /api/log-entries/:id": ["startDate", "endDate", "countsSchoolDay", "days", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
   "POST /api/children": ["name", "color"],

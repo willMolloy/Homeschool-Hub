@@ -17,7 +17,7 @@ console.log(`Second family ${s.familyId}: ${email} / demo-password`);
 const pool = new pg.Pool({ connectionString: url });
 await pool.query("DELETE FROM family WHERE login_email = $1", ["empty@example.com"]);
 await pool.query(
-  "INSERT INTO family (name, week_start, school_days, time_zone, login_email, password_hash, setup_done) VALUES ('Empty family', 'mon', '{1,2,3,4,5}', 'America/Chicago', $1, $2, true)",
+  "INSERT INTO family (name, week_start, school_days, time_zone, login_email, password_hash, setup_done, tips_seen) VALUES ('Empty family', 'mon', '{1,2,3,4,5}', 'America/Chicago', $1, $2, true, '{bars,edit,icons}')",
   ["empty@example.com", await hashPassword("demo-password")],
 );
 // S11-01: a brand-new family that has not been through the first-run flow (setup_done false, step 1): signing in as it opens /welcome.

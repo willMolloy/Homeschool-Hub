@@ -1,0 +1,25 @@
+/* S11-06: the one-time hint bubble. A raised card with a warm hairline; the pointer is a rotated square. It never covers the
+   whole screen and takes no backdrop. "Got it" is a 44 px target. */
+.tip {
+  position: relative; box-sizing: border-box; display: flex; align-items: center; gap: 4px; width: max-content; max-width: min(280px, calc(100vw - 32px));
+  padding: 8px 6px 8px 14px; border-radius: 14px; background: var(--tl-card); color: var(--tl-foreground); box-shadow: 0 0 0 1px var(--tl-border), 0 2px 10px rgb(0 0 0 / 14%);
+}
+.tip-text { margin: 0; font-size: 0.875rem; line-height: 1.35; }
+.tip-got {
+  flex: none; min-height: 44px; min-width: 44px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--tl-primary);
+  font: inherit; font-size: 0.875rem; font-weight: 700; cursor: pointer;
+}
+.tip-got:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: 0; }
+.tip[data-arrow="up"]::before, .tip[data-arrow="left"]::before {
+  content: ""; position: absolute; width: 12px; height: 12px; background: var(--tl-card); transform: rotate(45deg);
+}
+.tip[data-arrow="up"]::before { top: -6px; left: var(--tip-arrow-at); box-shadow: -1px -1px 0 var(--tl-border); }
+.tip[data-arrow="left"]::before { left: -6px; top: var(--tip-arrow-at); box-shadow: -1px 1px 0 var(--tl-border); }
+/* Over the timeline: placed at a point, above the bars. */
+.tl-wrap > .tip { position: absolute; z-index: calc(var(--z-raised, 2) + 1); }
+/* In the edit sheet: in the flow, full width of the sheet. */
+.tip-inline { width: auto; max-width: none; margin: 0 0 12px; }
+@media (prefers-reduced-motion: no-preference) {
+  .tip { animation: tip-in 160ms ease-out; }
+  @keyframes tip-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
