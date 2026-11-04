@@ -10,9 +10,15 @@ import { formatDate } from "../../lib/dates";
 
 export type Answer = "finished" | "notyet" | "stopped";
 
-/** The day the answer's date field starts on: the stored end for finished, today for stopped, a week from today for Not yet. */
+/**
+ * The day the answer's date field starts on: for Yes, the day it already ended on (when changing an answer), else the stored end
+ * (or today when that hasn't come yet); for We stopped, the day it ended on, else today (never before the start); for Not yet,
+ * a week from today.
+ */
 export function defaultDay(answer: Answer, a: Assignment, today: LocalDate): LocalDate {
-  return answer === "finished" ? a.endDate : answer === "stopped" ? (today > a.startDate ? today : a.startDate) : addDays(today, 7);
+  if (answer === "notyet") return addDays(today, 7);
+  if (a.endedOn) return a.endedOn;
+  return answer === "finished" ? (a.endDate < today ? a.endDate : today) : today > a.startDate ? today : a.startDate;
 }
 
 /** The label of the date field. */
@@ -31,7 +37,14 @@ export function dayProblem(answer: Answer, a: Assignment, day: string, today: Lo
   return day > today ? "That day hasn't come yet." : null;
 }
 
-/** Save the answer. Rejects with the API's ApiError (its message is in the parent's words). */
-export function saveAnswer(answer: Answer, a: Assignment, day: LocalDate): Promise<Assignment> {
-  return apiPatch<Assignment>(`/api/assignments/${a.id}`, answer === "notyet" ? { endDate: day } : { endedAs: answer, endedOn: day });
+/**
+ * Save the answer. `reopen` (changing an answer, S12-06): Not yet also clears how it ended, so it is open again with the new end.
+ * Rejects with the API's ApiError (its message is in the parent's words).
+ */
+export function saveAnswer(answer: Answer, a: Assignment, day: LocalDate, reopen = false): Promise<Assignment> {
+  const body = answer === "notyet" ? (reopen ? { endedAs: null, endDate: day } : { endDate: day }) : { endedAs: answer, endedOn: day };
+  return apiPatch<Assignment>(`/api/assignments/${a.id}`, body);
 }
+
+/** S12-06: Not ended: open again (it waits for an answer again if its end has passed). */
+export const reopen = (a: Assignment): Promise<Assignment> => apiPatch<Assignment>(`/api/assignments/${a.id}`, { endedAs: null });

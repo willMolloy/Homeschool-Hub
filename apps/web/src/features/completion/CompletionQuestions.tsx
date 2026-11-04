@@ -8,7 +8,7 @@
 import { useEffect, useId, useState } from "react";
 import type { LocalDate } from "@hh/engine";
 import { ApiError } from "../../api/client";
-import type { Subject } from "../../api/types";
+import type { Assignment, Subject } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { formatShort } from "../../lib/dates";
 import { SubjectBadge } from "../subjects/SubjectIcon";
@@ -126,7 +126,9 @@ function OneQuestion({ q, subject, slot, row = false, onChoose }: { q: WaitingQu
 }
 
 /** The date for the answer and Save. */
-function AnswerForm({ q, answer, today, onSaved, onCancel }: { q: WaitingQuestion; answer: Answer; today: LocalDate; onSaved: () => void; onCancel: () => void }) {
+export function AnswerForm({ q, answer, today, reopen = false, onSaved, onCancel }: {
+  q: Pick<WaitingQuestion, "assignment" | "text">; answer: Answer; today: LocalDate; reopen?: boolean; onSaved: (saved: Assignment) => void; onCancel: () => void;
+}) {
   const a = q.assignment;
   const [day, setDay] = useState<string>(defaultDay(answer, a, today));
   const [busy, setBusy] = useState(false);
@@ -138,15 +140,14 @@ function AnswerForm({ q, answer, today, onSaved, onCancel }: { q: WaitingQuestio
     setBusy(true);
     setError(null);
     try {
-      await saveAnswer(answer, a, day);
-      onSaved();
+      onSaved(await saveAnswer(answer, a, day, reopen));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Couldn't save that. Please try again.");
       setBusy(false);
     }
   };
   return (
-    <form className="answer-form" onSubmit={(e) => { e.preventDefault(); void save(); }} noValidate>
+    <form className="answer-form" onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); void save(); }} noValidate>
       <p className="answer-question">{q.text}</p>
       <div className="field">
         <label htmlFor={fieldId}>{DAY_LABEL[answer]}</label>

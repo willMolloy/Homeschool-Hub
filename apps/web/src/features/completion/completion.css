@@ -22,3 +22,8 @@
 .answer-form { display: grid; gap: 14px; }
 .answer-question { margin: 0; color: var(--tl-muted-foreground); }
 .answer-actions { justify-content: flex-start; }
+
+/* S12-06: "Finished Nov 2" with Change, and the sheet's four choices. */
+.ended-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 4px 4px 12px; border-radius: 12px; background: var(--tl-secondary); }
+.ended-text { font-weight: 600; font-size: 0.94rem; overflow-wrap: anywhere; }
+.change-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
