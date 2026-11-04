@@ -1,0 +1,18 @@
+# Sprint 10b progress: colours, navigation and the wide layout
+
+Tickets: `docs/tickets/sprint-10-year-polish/` (and `docs/tickets/sprint-9b-fixes/S9b-07-runs-show-day-chips.md`). Branch `hh2/sprint-10b`, cut from `main` at the PR #5 merge (`6069278`, Sprint 10a). DeeDee's 2026-11-03 decisions in the README win where the tickets or mockups differ. Sprint 10a's progress is in [sprint-10.md](sprint-10.md).
+
+**10b build order (README):** S10-11, S10-12, S10-13, S10-09, S10-14, S10-16, S10-17, S10-18, S10-19, S9b-07, then S10-10b (tester). The 10a test's Lows assigned here: L5 and R3 (S10-16), L6, L7, L10 and R4 (S10-19); L9 was closed on 10a.
+
+| Ticket | Commit | Notes |
+|--------|--------|-------|
+| S10-11 Twelve soft subject colours | e553209 | `scripts/palette.ts`: slots 9–12 are rose, leaf, aqua and plum, at the first eight's OKLCH lightness and chroma and in the hue gaps between them (about 8°, 140°, 200° and 305°), each at least ~7 CIEDE2000 from every other fill in both themes; tokens regenerated (`--tl-subject-9…12-*`). `features/roster/palette.ts`: four stored swatches (`#b03a5c`, `#4a8a3a`, `#1f8a8f`, `#6a4fa0`) mapped to slots 9–12, so `nextUnusedColor` hands out 12 before it cycles. `PALETTE_SLOTS = 12`. Demo Art is `#b0482f` (coral). Tests: `palette.test.ts` (12 hues, AA in both themes, distinct fills, mapping, `nextUnusedColor`), `timeline-model.test.ts` (slots deal 1–12 then repeat), `db/test/demo-family.test.ts` (every demo subject its own colour) |
+| S10-12 Subjects screen cleanup | (this commit) | `RosterForm`: the 12 swatches as one small wrapping row (26 px chips on touching 44 px targets), a tick on the chosen one, and each named by its drawn hue ("Mint"), or "Mint, used by Math and Art" when other active items use it (`usedByNames` in `palette.ts`; the item itself and archived ones don't count; a used chip draws a little smaller with a ring). `PALETTE_NAMES` now name the Soft Paper hue each swatch draws as (Blue, Coral, Mint, Lilac, Honey, Sky, Butter, Sage, Rose, Leaf, Aqua, Plum). `RosterPage`: rows with a lead (the subject badge) drop the colour dot; children keep theirs. "Show archived" is a `role="switch"` checkbox drawn by the shared switch style, its label the 44 px target. Smoke `subjects-edit` / `kids-edit` pick swatches by value. Test `s10-12-subjects-cleanup.test.tsx`; add/edit tests use the new names |
+
+## Decisions
+
+- **S10-11 the four new hues are rose, leaf, aqua and plum,** not the README's example "apricot": apricot sits between honey and coral and was the closest pair on the wheel; leaf fills the empty green between butter/sage and mint. Each new fill meets the same checks as the first eight (ink 9:1 light, 6.5:1 dark; the amount at 5.2:1; strong tone 3:1 on its fill; AA labels on every child step).
+- **S10-11 a colour that is not a swatch** (an older or hand-made one, like the demo's old Art green `#5c8a2f`) is still drawn as the nearest of the **first eight** only, so no family's existing colour changes hue when the palette grows. Stored colours are untouched; existing demo databases keep the old Art until reseeded or changed in S10-12.
+- **S10-12 the swatch row wraps.** Twelve 44 px targets need 528 px, more than a 360 px phone has, so the "small row" is two rows of six on a phone and one row from about 560 px. Targets stay 44 px (they touch; the chips are 26 px).
+- **S10-12 swatch names are the hue the parent sees** (Mint, not the stored swatch's old name Green), so "used by" names match what's on screen.
+- **S10-12 the dot is dropped only where a badge replaces it** (subjects). Children have no badge, so their dot stays; the ticket's step 4 limits the children change to the 12 swatches.

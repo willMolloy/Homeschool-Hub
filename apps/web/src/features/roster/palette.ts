@@ -14,20 +14,41 @@ export const PALETTE = [
   "#6a4fa0", // plum
 ] as const;
 
+/**
+ * Each swatch's name, as it is drawn (S10-12: the Soft Paper hue, so "Mint, used by Math" names the colour the parent sees;
+ * the stored value is still the old swatch).
+ */
 export const PALETTE_NAMES: Record<string, string> = {
   "#2f6fb0": "Blue",
-  "#b0482f": "Brick",
-  "#2f8f6f": "Green",
-  "#7a5cc2": "Purple",
-  "#b08a2f": "Ochre",
-  "#2f8fb0": "Teal",
-  "#c25c8a": "Pink",
-  "#5b6b7d": "Slate",
+  "#b0482f": "Coral",
+  "#2f8f6f": "Mint",
+  "#7a5cc2": "Lilac",
+  "#b08a2f": "Honey",
+  "#2f8fb0": "Sky",
+  "#c25c8a": "Butter",
+  "#5b6b7d": "Sage",
   "#b03a5c": "Rose",
   "#4a8a3a": "Leaf",
   "#1f8a8f": "Aqua",
   "#6a4fa0": "Plum",
 };
+
+/**
+ * S10-12: who already uses each swatch, as "Math" or "Math and Art": the active items other than `except`, keyed by the
+ * swatch their colour is drawn as (so an older or hand-made colour counts against its nearest swatch).
+ */
+export function usedByNames(items: readonly { id: string; name: string; color: string | null; archived?: boolean }[], except: string | null = null): Record<string, string> {
+  const bySwatch = new Map<string, string[]>();
+  for (const i of items) {
+    if (i.archived || i.id === except) continue;
+    const slot = slotOfColor(i.color);
+    const swatch = slot ? PALETTE.find((c) => SWATCH_SLOT[c] === slot) : undefined;
+    if (swatch) bySwatch.set(swatch, [...(bySwatch.get(swatch) ?? []), i.name]);
+  }
+  const out: Record<string, string> = {};
+  for (const [c, names] of bySwatch) out[c] = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0]!;
+  return out;
+}
 
 /** First swatch no active item uses yet; if all are taken, cycle by count. */
 export function nextUnusedColor(used: readonly (string | null)[]): string {

@@ -15,7 +15,7 @@ export default async function ({ page, shot, login, log, BASE }) {
   const input = await page.$("form[aria-label='Edit Keyboard Kid'] input[type=text]");
   await input.click({ clickCount: 3 });
   await page.keyboard.type("Ada");
-  await page.click("input[aria-label='Purple']");
+  await page.click("input[name=color][value='#7a5cc2']");
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => [...document.querySelectorAll(".roster-name")].some((e) => e.textContent === "Ada"));
   await page.reload({ waitUntil: "networkidle0" }); await ready();

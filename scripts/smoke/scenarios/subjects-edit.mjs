@@ -23,13 +23,13 @@ export default async function ({ page, shot, login, log, BASE }) {
   const input = await page.$(`form[aria-label='Edit ${N}'] input[type=text]`);
   await input.click({ clickCount: 3 });
   await page.keyboard.type(`${N} I`);
-  await page.$eval("input[aria-label='Teal']", (i) => { i.scrollIntoView({ block: "center" }); i.click(); });
+  await page.$eval("input[name=color][value='#2f8fb0']", (i) => { i.scrollIntoView({ block: "center" }); i.click(); });
   await page.$eval(`form[aria-label='Edit ${N}'] button[type=submit]`, (b) => b.click()); // Enter on a swatch does not submit
   await page.waitForFunction((n) => [...document.querySelectorAll(".roster-name")].some((e) => e.textContent === `${n} I`), {}, N);
   await page.reload({ waitUntil: "networkidle0" }); await ready();
   const color = await page.evaluate((n) => {
     const b = [...document.querySelectorAll(".roster-row-btn")].find((x) => x.textContent === `${n} I`);
-    return b && getComputedStyle(b.querySelector(".color-dot")).backgroundColor;
+    return b && getComputedStyle(b.querySelector(".subject-badge")).backgroundColor;
   }, N);
   log("after rename+recolor reload:", await names(), "Spanish I color:", color);
   await clickText(".roster-row-btn", `${N} I`);
