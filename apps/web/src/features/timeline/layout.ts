@@ -64,6 +64,11 @@ export interface TimelineMetrics {
 }
 export const PHONE_METRICS: TimelineMetrics = { gutter: 36, badge: 24, header: 34, pitch: 36, sub: 28, groupGap: 10, pad: 8, barMax: 28, ribbonMax: 12, font: 12 };
 export const DESKTOP_METRICS: TimelineMetrics = { gutter: 40, badge: 26, header: 36, pitch: 40, sub: 30, groupGap: 12, pad: 10, barMax: 32, ribbonMax: 14, font: 13 };
+/** S10-15: every lane badge takes taps through at least a 44 x 44 px zone, centred on the badge. */
+export const BADGE_HIT_PX = 44;
+/** S10-15: neighbouring zones can overlap (rows are 36/40 px apart); a tap goes to the badge whose centre is nearest. */
+export const nearestBadge = <T extends { cy: number }>(badges: readonly T[], y: number): T | null =>
+  badges.reduce<T | null>((best, b) => (best === null || Math.abs(b.cy - y) < Math.abs(best.cy - y) ? b : best), null);
 export const metricsFor = (width: number): TimelineMetrics => (width < PHONE_WIDTH_PX ? PHONE_METRICS : DESKTOP_METRICS);
 /** S10-02: a lane's extra rows are a touch thinner, so its first row leads (mockup: 0.8). */
 export const SUB_ROW_SCALE = 0.8;

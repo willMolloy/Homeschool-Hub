@@ -145,7 +145,9 @@
 /* S8-07: the gutter of lane badges. It never blocks a tap on a bar: only the badges take the pointer. */
 .tl-wrap { position: relative; }
 .tl-gutter { position: absolute; left: 0; top: 0; bottom: 0; pointer-events: none; }
-.tl-badge { position: absolute; left: 0; padding: 0; border: 0; background: none; display: grid; place-items: center; pointer-events: auto; cursor: pointer; border-radius: 999px; }
+/* S10-15: the button is the 44 x 44 tap zone (a few px over the grid on the right, where it wins over a bar); the badge
+   itself stays centred in the gutter column. */
+.tl-badge { position: absolute; left: 0; padding: 0; border: 0; background: none; display: grid; grid-template-columns: var(--tl-badge-w, 100%); place-items: center; pointer-events: auto; cursor: pointer; border-radius: 999px; }
 .tl-badge[aria-pressed="true"] .subject-badge { box-shadow: inset 0 0 0 2px var(--cs); }
 .tl-badge:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: -2px; }
 .tl-lane-pop { position: absolute; left: 28px; z-index: var(--z-raised); width: max-content; max-width: calc(100vw - 44px); padding: 4px 10px; border-radius: 999px; background: var(--tl-card); color: var(--tl-foreground);

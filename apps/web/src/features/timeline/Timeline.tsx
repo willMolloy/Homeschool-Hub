@@ -8,7 +8,7 @@ import { UsersThree } from "@phosphor-icons/react";
 import type { Subject } from "../../api/types";
 import { SubjectBadge } from "../subjects/SubjectIcon";
 import { bandExtent } from "./drag";
-import { AXIS_HEIGHT_PX, type TimelineLayout } from "./layout";
+import { AXIS_HEIGHT_PX, BADGE_HIT_PX, nearestBadge, type TimelineLayout } from "./layout";
 import type { ChildStep } from "./model";
 
 /** Room under the lanes for the Today pill. */
@@ -163,8 +163,14 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
     <div className="tl-gutter" style={{ width: m.gutter }}>
       {layout.badges.map((b) => (
         <button key={b.laneKey} type="button" className="tl-badge" aria-label={b.label} aria-pressed={picked === b.laneKey}
-          style={{ top: b.cy - m.pitch / 2, height: m.pitch, width: m.gutter } as CSSProperties}
-          onClick={() => setLane(picked === b.laneKey ? null : b.laneKey)}>
+          style={{ top: b.cy - BADGE_HIT_PX / 2, height: BADGE_HIT_PX, width: Math.max(BADGE_HIT_PX, m.gutter), "--tl-badge-w": `${m.gutter}px` } as CSSProperties}
+          onClick={(e) => {
+            // S10-15: zones overlap a little; a pointer tap goes to the nearest badge centre (a keyboard press to this one).
+            const r = e.currentTarget.getBoundingClientRect();
+            const inside = e.detail > 0 && r.height > 0 && e.clientY >= r.top && e.clientY <= r.bottom;
+            const hit = inside ? nearestBadge(layout.badges, b.cy - BADGE_HIT_PX / 2 + (e.clientY - r.top)) ?? b : b;
+            setLane(picked === hit.laneKey ? null : hit.laneKey);
+          }}>
           <SubjectBadge subject={subjects.find((s) => s.id === b.subjectId) ?? { name: b.subjectName, icon: null }} slot={b.paletteSlot} size={m.badge} />
         </button>
       ))}

@@ -75,14 +75,14 @@ describe("lane badges", () => {
     expect(pop).not.toMatch(/overflow: hidden;[^}]*width: \d+px/);
   });
 
-  it("S8b-02: every badge's tap area is at least 32 px tall and none overlaps the next lane's", async () => {
+  it("S8b-02 / S10-15: every badge's tap area is at least 44 x 44 px, centred on its badge, the centres in lane order", async () => {
     stub();
     const { wrap } = await openYear();
     const buttons = [...wrap.querySelectorAll<HTMLElement>("button.tl-badge")];
-    const spans = buttons.map((b) => [parseFloat(b.style.top), parseFloat(b.style.height)] as const);
+    const spans = buttons.map((b) => [parseFloat(b.style.top), parseFloat(b.style.height), parseFloat(b.style.width)] as const);
     expect(spans.length).toBeGreaterThan(3);
-    for (const [, h] of spans) expect(h).toBeGreaterThanOrEqual(32);
-    for (let i = 1; i < spans.length; i++) expect(spans[i]![0]).toBeGreaterThanOrEqual(spans[i - 1]![0] + spans[i - 1]![1] - 0.01);
+    for (const [, h, w] of spans) { expect(h).toBeGreaterThanOrEqual(44); expect(w).toBeGreaterThanOrEqual(44); }
+    for (let i = 1; i < spans.length; i++) expect(spans[i]![0]).toBeGreaterThan(spans[i - 1]![0]);
   });
 
   it("the gutter never blocks a tap on a bar: only the badges take the pointer", () => {
