@@ -26,6 +26,7 @@ const NON_TEXT = new Set([
   ".home-today",
   ".home-briefing-dot",
   ".welcome-bar span",
+  ".shell-nav-dot", // S12-05: the needs-you dot, a decoration with no text (its name is on the Home link)
 ]);
 /** Translucent backgrounds, with the colour they sit on. */
 const TRANSLUCENT_ON: Record<string, string> = { '.shell-nav a[aria-current="page"]': "var(--brand)" };

@@ -105,6 +105,9 @@ html {
   border-radius: 999px;
   transition: background-color var(--tl-motion) ease-out;
 }
+.shell-nav-pill { position: relative; }
+/* S12-05: the needs-you dot: the fern accent (never red), ringed in the bar's colour so it reads on the pill and off it. */
+.shell-nav-dot { position: absolute; top: 1px; right: 11px; width: 10px; height: 10px; border-radius: 99px; background: var(--tl-primary); box-shadow: 0 0 0 2px var(--tl-card); }
 .shell-nav a[aria-current="page"] {
   color: var(--tl-primary);
 }

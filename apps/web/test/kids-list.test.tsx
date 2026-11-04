@@ -17,13 +17,14 @@ describe("Kids list", () => {
   });
 
   it("shows skeleton rows while loading", async () => {
-    let answer!: () => void;
-    fakeApi.on("GET /api/children", () => new Promise((r) => (answer = () => r([200, [FRANK]]))));
+    // S12-05: the shell asks for the children too (the needs-you dot), so more than one request waits.
+    const waiting: (() => void)[] = [];
+    fakeApi.on("GET /api/children", () => new Promise((r) => waiting.push(() => r([200, [FRANK]]))));
     renderAt("/kids");
     expect(await screen.findByRole("list", { name: "Loading children" })).toHaveAttribute("aria-busy", "true");
     // The skeleton can render before the request reaches the fake API; wait for it.
-    await waitFor(() => expect(answer).toBeTypeOf("function"));
-    answer();
+    await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
+    waiting.forEach((answer) => answer());
     expect(await screen.findByText("Frank")).toBeInTheDocument();
   });
 
