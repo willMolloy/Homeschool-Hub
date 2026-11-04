@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Term in review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Soft Paper tokens (same values as soft-paper*.html and year-polish.html). Blue is a child colour here (Frank). */
+.light{--lilac:#E5C8DB;--lilac-s:#9B4F80;--mint:#B5DFD1;--mint-s:#1F8063;--honey:#F0D6A8;--honey-s:#A86A00;--sky:#BDDCF0;--sky-s:#2A7DB0;--butter:#EAE2A5;--butter-s:#8A7A00;--coral:#F0C8B4;--coral-s:#B4532A;--sage:#D1D5C9;--sage-s:#5F6B50;--blue:#C1D0EA;--blue-s:#3F64A8;
+--bg:#FAF6EE;--card:#FFFDF8;--raised:#F2ECE1;--ink:#2F2A24;--muted:#6E655A;--line:#E8E0D2;--accent:#3F6B5C;--accent-ink:#fff;--accent-soft:#E3EEE8;--tabbg:rgb(255 253 248/.96);--scrim:rgb(47 42 36/.34);--tint:45%}
+.dark{--lilac:#543649;--lilac-s:#E0A6CB;--mint:#265044;--mint-s:#7FD3B6;--honey:#5B4826;--honey-s:#F5C46B;--sky:#2A485D;--sky-s:#8FCBF0;--butter:#565126;--butter-s:#E9DB6A;--coral:#5E3728;--coral-s:#F2A786;--sage:#41453B;--sage-s:#B6C0A6;--blue:#2E3E5D;--blue-s:#9DB7EA;
+--bg:#1C1A17;--card:#26231F;--raised:#302C27;--ink:#F1EBE1;--muted:#B3A99B;--line:#3A352F;--accent:#9CCBB8;--accent-ink:#1C1A17;--accent-soft:#25342E;--tabbg:rgb(38 35 31/.96);--scrim:rgb(0 0 0/.5);--tint:55%}
+*{box-sizing:border-box}
+html,body{margin:0;background:#ECEAE6;color:#2B2935;font-family:'Nunito Sans',system-ui,sans-serif}
+.doc{padding:40px 40px 8px;max-width:1200px}.doc h1{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0 0 6px;font-size:32px}.doc p{margin:0 0 6px;color:#555;line-height:1.5;max-width:880px}
+section.set{padding:24px 40px 40px}
+section.set.dark-set{background:#141210}section.set.dark-set .lbl,section.set.dark-set h2.sh{color:#C9C1B5}
+h2.sh{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:20px;margin:0 0 16px;color:#2B2935}
+.frames{display:flex;gap:36px;align-items:flex-start;flex-wrap:wrap}
+figure{margin:0}.lbl{font-size:13px;color:#555;margin:0 0 8px;max-width:540px;line-height:1.4;min-height:38px}
+
+/* ============ the card: drawn at its saved size (1080 × 1350), scaled for screen ============ */
+.fit{position:relative;overflow:hidden;border-radius:18px;box-shadow:0 1px 2px rgb(0 0 0/.08),0 8px 28px rgb(60 40 20/.12)}
+.fit>.trc{position:absolute;left:0;top:0;transform-origin:0 0}
+.trc{--kid-t:color-mix(in srgb,var(--kid) var(--tint),var(--bg));
+  width:1080px;height:1350px;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;overflow:hidden;font-family:'Nunito Sans',system-ui,sans-serif}
+.trc svg{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.band{background:var(--kid-t);padding:56px 72px 38px;flex:none}
+.band-top{display:flex;justify-content:space-between;align-items:center;height:32px}
+.eyebrow{font-size:24px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--kid-s)}
+.mark{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;color:var(--muted)}.mark svg{width:26px;height:26px;color:var(--kid-s)}
+.trc h1{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:88px;line-height:1.04;letter-spacing:-.01em;color:var(--kid-s);margin:22px 0 12px;white-space:nowrap}
+.trc h1.s1{font-size:72px}.trc h1.s2{font-size:60px}
+.dates{font-size:28px;font-weight:600;color:var(--muted)}
+.body{flex:1;min-height:0;padding:36px 72px 52px;display:flex;flex-direction:column;gap:34px}
+.stats{display:flex;gap:20px;flex:none}
+.stat{flex:1;background:var(--card);border:2px solid var(--line);border-radius:28px;padding:22px 28px 20px}
+.stat b{display:block;font-family:Fraunces,Georgia,serif;font-weight:600;font-size:88px;line-height:1;font-variant-numeric:lining-nums}
+.stat span{display:block;font-size:26px;font-weight:700;color:var(--muted);margin-top:10px}
+.sec{min-height:0;display:flex;flex-direction:column}
+.sec h2{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 18px;font-size:22px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);flex:none}
+.sec h2 em{font-style:normal;letter-spacing:0;text-transform:none;font-size:24px;font-weight:700}
+.bars{display:grid;grid-template-columns:auto 1fr auto;column-gap:20px;row-gap:10px;align-items:center}
+.bars .nm{display:flex;align-items:center;gap:14px;font-size:26px;font-weight:700;white-space:nowrap}
+.bars .tr{height:28px}.bars .tr i{display:block;height:100%;border-radius:14px;min-width:28px}
+.bars .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.badge{display:grid;place-items:center;border-radius:50%;flex:none}.badge svg{width:58%;height:58%}
+.cols{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;column-gap:48px}
+.list{list-style:none;margin:0;padding:0;flex:1;min-height:0;overflow:hidden}
+.list li{display:flex;align-items:center;gap:14px;white-space:nowrap}
+.list li .t{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fin li{height:48px;font-size:26px;font-weight:700}
+.bk li{height:40px;font-family:Fraunces,Georgia,serif;font-size:27px;font-weight:500}
+.bk li svg{width:24px;height:24px;color:var(--muted);flex:none}
+.list li.more{color:var(--muted);font-family:'Nunito Sans',system-ui,sans-serif;font-weight:700;font-size:24px;padding-left:50px}
+.bk li.more{padding-left:38px}
+/* roomy: one or two parts, so everything gets larger and the card still feels full */
+.roomy .body{gap:44px;padding-top:56px}
+.hero{display:flex;align-items:flex-end;gap:28px;flex:none}
+.hero b{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:200px;line-height:.8;color:var(--kid-s)}
+.hero span{font-size:40px;font-weight:700;line-height:1.2;padding-bottom:2px}
+.roomy .fin li{height:106px;gap:24px;border-top:2px solid var(--line)}.roomy .fin li:first-child{border-top:0}
+.roomy .fin .t2{display:flex;flex-direction:column;min-width:0}
+.roomy .fin .t2 .t{font-size:36px;font-weight:700}
+.roomy .fin .t2 small{font-size:26px;font-weight:600;color:var(--muted);margin-top:4px}
+.roomy .fin.two{columns:2;column-gap:48px}.roomy .fin.two li{height:80px;border-top:0}.roomy .fin.two .t2 .t{font-size:30px}.roomy .fin.two .t2 small{font-size:24px}
+.roomy .list li.more{padding-left:88px;font-size:28px}
+.close{flex:none;display:flex;align-items:center;gap:24px;color:var(--kid-s);margin-top:auto}
+.close i{flex:1;height:2px;background:var(--line)}.close svg{width:40px;height:40px}
+
+/* ============ phone frames for "how it sits in Records" ============ */
+.phone{width:410px;height:864px;border-radius:46px;border:10px solid #1d1b22;background:var(--bg);color:var(--ink);position:relative;overflow:hidden}
+.phone svg.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.scr{position:absolute;inset:0;padding:48px 16px 0}
+.top{display:flex;align-items:center;height:44px;margin-bottom:6px}
+.top h2{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:28px;margin:0}
+.lead{font-size:14px;color:var(--muted);margin:0 0 12px;line-height:1.45}.lead b{color:var(--ink)}.lead u{color:var(--accent);text-decoration:none;font-weight:700}
+.acts{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.btn{height:44px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:15px;background:var(--raised);color:var(--ink);white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}.btn.hl{box-shadow:0 0 0 2px var(--accent),0 0 0 6px color-mix(in srgb,var(--accent) 22%,transparent)}
+.btn.wide{flex:1;justify-content:center;height:52px;font-size:16px}
+.seg{display:flex;background:var(--raised);border-radius:999px;padding:4px;height:44px;margin-bottom:10px}
+.seg div{flex:1;display:grid;place-items:center;border-radius:999px;font-size:15px;color:var(--muted)}
+.seg .on{background:var(--card);color:var(--ink);font-weight:700;box-shadow:0 0 0 1px var(--line)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.chip{height:36px;padding:0 13px;border-radius:999px;display:inline-flex;align-items:center;font-size:14.5px;background:var(--raised);white-space:nowrap}
+.chip.on{background:var(--accent-soft);color:var(--accent);font-weight:800;box-shadow:inset 0 0 0 1.5px var(--accent)}
+.rnote{font-size:13.5px;color:var(--muted);margin:2px 0 12px}
+.nums{display:flex;gap:8px;margin-bottom:16px}.nums div{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.nums b{display:block;font-family:Fraunces,Georgia,serif;font-weight:600;font-size:28px}.nums span{font-size:12.5px;color:var(--muted)}
+.mini h4{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mini .r{display:grid;grid-template-columns:84px 1fr 74px;gap:8px;align-items:center;font-size:13.5px;height:26px}.mini .r i{display:block;height:12px;border-radius:6px}.mini .r span:last-child{text-align:right;color:var(--muted)}
+.tabs{position:absolute;left:0;right:0;bottom:0;height:80px;background:var(--tabbg);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding-top:8px;z-index:5}
+.tab{text-align:center;font-size:12px;color:var(--muted);width:96px}.tab i{display:grid;place-items:center;width:56px;height:32px;margin:0 auto 4px;border-radius:999px}
+.tab.on{color:var(--accent);font-weight:800}.tab.on i{background:var(--accent-soft)}
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:8}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -10px 30px rgb(40 25 10/.16);padding:8px 16px 26px;z-index:9}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 8px}
+.sh-head{display:flex;align-items:center;justify-content:space-between}
+.sh-head h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0;font-size:24px}
+.ib{width:44px;height:44px;border-radius:50%;background:var(--raised);display:grid;place-items:center}
+.fl{font-size:13px;font-weight:800;color:var(--muted);margin:12px 0 6px}
+.pv{display:flex;justify-content:center;gap:12px;margin:14px 0 8px;overflow:hidden}.pv.all{justify-content:flex-start}
+.pv .fit{border-radius:10px;flex:none}
+.dots{display:flex;justify-content:center;gap:6px;margin-bottom:6px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--ink)}
+.priv{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;color:var(--muted);margin:0 0 12px}.priv svg.ic{width:16px;height:16px}
+.sheet .row{display:flex;gap:10px}
+
+/* only one card, at full size: used to render the saved-size PNGs (#card=full|sparse|dark|long) */
+body.solo{background:transparent}body.solo .doc,body.solo section{display:none}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Term in review (Sprint 13, S13-05)</h1>
+  <p>One keepsake card per child, for a term or the year. It shows only what the family really tracks and the parent really marked: assignments marked finished, books read, time by subject and school days. Nothing is estimated, scored or graded. The card is drawn at its saved size (1080 × 1350, portrait 4:5) and scaled down here. Notes: <code>../term-review-notes.md</code>.</p>
+</div>
+
+<section class="set"><h2 class="sh">1 · Full card (light): a family that tracks everything</h2><div class="frames" id="s1"></div></section>
+<section class="set"><h2 class="sh">2 · Sparse card: a family that only answers “Did Frank finish…?”</h2><div class="frames" id="s2"></div></section>
+<section class="set dark-set"><h2 class="sh">3 · Dark mode</h2><div class="frames" id="s3"></div></section>
+<section class="set"><h2 class="sh">4 · How it sits in Records</h2><div class="frames" id="s4"></div></section>
+
+<script>
+const I = {
+  book:'<path d="M3 5.5c3-1.2 6-1 9 1 3-2 6-2.2 9-1V19c-3-1.2-6-1-9 1-3-2-6-2.2-9-1Z"/><path d="M12 6.5V20"/>',
+  calc:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 7.5h7M8.5 12.5h2M9.5 11.5v2M13.5 12.5h2M8.5 16.5h2M13.6 15.6l1.8 1.8M15.4 15.6l-1.8 1.8"/>',
+  scroll:'<path d="M8 4h9a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H9"/><path d="M8 4a2 2 0 0 0-2 2v2h4V6a2 2 0 0 0-2-2Z"/><path d="M10 8v10a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-1h4"/><path d="M13 9h3M13 13h3"/>',
+  flask:'<path d="M9 3h6M10 3v6l-5.2 9.2A2 2 0 0 0 6.6 21h10.8a2 2 0 0 0 1.8-2.8L14 9V3"/><path d="M7.4 15h9.2"/>',
+  note:'<path d="M9 17.5V5.5l10-2v12"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/><path d="M9 9.5l10-2"/>',
+  palette:'<path d="M12 3a9 9 0 1 0 0 18c1.3 0 2-.8 2-1.8 0-1.4-1.4-1.7-1.4-2.9 0-1 .8-1.6 1.9-1.6H17a4 4 0 0 0 4-4C21 6.4 17 3 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
+  leaf:'<path d="M5 19C5 10 10 5 20 4c0 10-5 15-14 15"/><path d="M5 19l8-8"/>',
+  sprig:'<path d="M12 21V8"/><path d="M12 13c-3.5 0-5.5-2-6-5 3.5 0 5.5 2 6 5Z"/><path d="M12 10c3.5 0 5.5-2 6-5-3.5 0-5.5 2-6 5Z"/><path d="M12 8c-1-1.6-1-3.4 0-5 1 1.6 1 3.4 0 5Z"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>', home:'<path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4Z"/>',
+  list:'<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r=".6"/><circle cx="4.8" cy="12" r=".6"/><circle cx="4.8" cy="17.5" r=".6"/>',
+  rec:'<rect x="4.5" y="3.5" width="15" height="17" rx="1.5"/><path d="M8.5 3.5v17M11.5 8.5h5M11.5 12h5"/>',
+  down:'<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>', print:'<path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="7" rx="2"/><path d="M7 14h10v6H7z"/>',
+  image:'<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 18 5-5 4 4 2.5-2.5L20 18"/>',
+  review:'<path d="M5 3.5h14v17l-7-4-7 4z"/><path d="m9 10 2 2 4-4"/>', lock:'<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'
+};
+const ic = n => `<svg class="ic" viewBox="0 0 24 24">${I[n]}</svg>`;
+const sv = n => `<svg viewBox="0 0 24 24">${I[n]}</svg>`;
+const SUBJ = { lit:{n:'Literature',c:'lilac',i:'book'}, math:{n:'Math',c:'mint',i:'calc'}, hist:{n:'History',c:'honey',i:'scroll'},
+  sci:{n:'Science',c:'sky',i:'flask'}, mus:{n:'Music',c:'butter',i:'note'}, art:{n:'Art',c:'coral',i:'palette'}, nat:{n:'Nature study',c:'sage',i:'leaf'} };
+const badge = (k, px) => { const S = SUBJ[k]; return `<span class="badge" style="width:${px}px;height:${px}px;background:var(--${S.c});color:var(--${S.c}-s)">${sv(S.i)}</span>`; };
+const hm = m => { const h = Math.floor(m/60), r = m%60; return r ? `${h} h ${r} m` : `${h} h`; };
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+/* ============ data: every number is a count or a sum of what the parent entered ============ */
+const FRANK = { name:'Frank', kid:'blue', term:'Fall 2026', dates:'Aug 31 – Dec 18, 2026', days:72,
+  finished:[['math','Fractions review','Sep 25'],['lit',"Aesop's Fables",'Oct 16'],['sci','Simple machines','Oct 30'],['lit','Treasure Island','Nov 6'],['hist','Ancient Egypt unit','Nov 20'],['lit',"A Child's Garden of Verses",'Dec 4']],
+  books:['Treasure Island',"Aesop's Fables",'Mr. Popper’s Penguins','The Cricket in Times Square','Pagoo','Stuart Little',"A Child's Garden of Verses",'The Story of the World, Vol. 1','The Hobbit'],
+  hours:[['lit',3510],['math',2760],['hist',1875],['sci',1620],['mus',1125]] };
+const THEO = { name:'Theo', kid:'lilac', term:'Fall 2026', dates:'Aug 31 – Dec 18, 2026',
+  finished:[['lit','The Boxcar Children','Sep 25'],['math','Math 2 · Unit 1','Oct 2'],['nat','Pumpkins and seeds','Oct 23'],['lit','Farmer Boy','Nov 13'],['hist','Ancient Egypt unit','Dec 4'],['math','Math 2 · Unit 2','Dec 11']] };
+const MARGARET = { name:'Margaret', kid:'coral', term:'2026–27', dates:'Aug 31, 2026 – May 28, 2027', days:168,
+  finished:[['lit','The Secret Garden'],['math','Math 3 · Unit 1'],['math','Times tables'],['hist','Ancient Egypt unit'],['lit',"Charlotte's Web"],['math','Math 3 · Unit 2'],['art','Drawing basics'],['hist','Ancient Greece unit'],['lit','Heidi'],['math','Math 3 · Unit 3'],['nat','Birds of the yard'],['hist','Ancient Rome unit'],['math','Math 3 · Unit 4'],['lit','Little House in the Big Woods'],['nat','Pond study'],['art','Watercolour basics'],['lit','The Wind in the Willows']],
+  books:['The Secret Garden',"Charlotte's Web",'Heidi','Little House in the Big Woods','Ramona the Pest','Frog and Toad Together','The Velveteen Rabbit','Winnie-the-Pooh','Mrs. Piggle-Wiggle','Paddington','Pippi Longstocking','The Courage of Sarah Noble','Sarah, Plain and Tall','Owl Moon','The Llama Who Had No Pajama','Make Way for Ducklings','Flat Stanley','My Father’s Dragon','The Mouse and the Motorcycle','Amelia Bedelia','The Wind in the Willows','Little Bear','Blueberries for Sal'] };
+
+/* ============ the card ============ */
+function card(d, theme){
+  const parts = ['days','finished','books','hours'].filter(k => d[k] != null && (Array.isArray(d[k]) ? d[k].length : d[k] > 0));
+  const roomy = parts.length <= 2;
+  const title = `${esc(d.name)} · ${esc(d.term)}`;
+  const tcls = title.length > 22 ? 's2' : title.length > 17 ? 's1' : '';
+  const band = `<div class="band"><div class="band-top"><span class="eyebrow">${d.term.match(/^\d/) ? 'Year' : 'Term'} in review</span><span class="mark">${sv('leaf')}Homeschool Hub</span></div>
+    <h1 class="${tcls}">${title}</h1><div class="dates">${esc(d.dates)}</div></div>`;
+  let body = '';
+  if (!roomy){
+    const stats = [['days', d.days, 'school days'], ['finished', d.finished?.length, 'finished'], ['books', d.books?.length, 'books read']]
+      .filter(([k]) => parts.includes(k)).map(([,n,l]) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`).join('');
+    let hours = '';
+    if (parts.includes('hours')){
+      const max = Math.max(...d.hours.map(h => h[1])), tot = d.hours.reduce((a,h) => a+h[1], 0);
+      hours = `<div class="sec"><h2>Time by subject<em>${hm(tot)} in all</em></h2><div class="bars">${d.hours.map(([s,m]) =>
+        `<span class="nm">${badge(s,36)}${SUBJ[s].n}</span><span class="tr"><i style="width:${(m/max*100).toFixed(1)}%;background:var(--${SUBJ[s].c})"></i></span><span class="v">${hm(m)}</span>`).join('')}</div></div>`;
+    }
+    const fin = parts.includes('finished') ? `<div class="sec"><h2>Finished</h2><ul class="list fin" data-total="${d.finished.length}">${d.finished.map(([s,t]) => `<li>${badge(s,36)}<span class="t">${esc(t)}</span></li>`).join('')}</ul></div>` : '';
+    const bk = parts.includes('books') ? `<div class="sec"><h2>Books read</h2><ul class="list bk" data-total="${d.books.length}">${d.books.map(t => `<li>${sv('book')}<span class="t">${esc(t)}</span></li>`).join('')}</ul></div>` : '';
+    body = `<div class="stats">${stats}</div>${hours}${fin || bk ? `<div class="cols">${fin}${bk}</div>` : ''}`;
+  } else {
+    // the sparse card: one big number, then the list large, then a quiet closing sprig
+    const two = d.finished.length > 6;
+    body = `<div class="hero"><b>${d.finished.length}</b><span>assignments<br>finished</span></div>
+      <ul class="list fin ${two?'two':''}" data-total="${d.finished.length}">${d.finished.map(([s,t,when]) => `<li>${badge(s, two?56:64)}<span class="t2"><span class="t">${esc(t)}</span><small>${SUBJ[s].n}${when ? ` · finished ${when}` : ''}</small></span></li>`).join('')}</ul>
+      <div class="close"><i></i>${sv('sprig')}<i></i></div>`;
+  }
+  return `<div class="trc ${theme} ${roomy?'roomy':''}" style="--kid:var(--${d.kid});--kid-s:var(--${d.kid}-s)">${band}<div class="body">${body}</div></div>`;
+}
+const scaled = (d, theme, w) => { const s = w/1080; return `<div class="fit" style="width:${w}px;height:${Math.round(1350*s)}px">${card(d, theme).replace('class="trc', `style="transform:scale(${s})" class="trc`)}</div>`; };
+const fig = (label, inner) => `<figure><p class="lbl">${label}</p>${inner}</figure>`;
+
+/* A list shows the rows that fit; when they don't all fit, the last visible row becomes "and N more". */
+function fitLists(root){
+  root.querySelectorAll('.list').forEach(ul => {
+    const total = +ul.dataset.total, fits = () => ul.scrollHeight <= ul.clientHeight + 1 && ul.scrollWidth <= ul.clientWidth + 1;
+    if (fits()) return;
+    const more = document.createElement('li'); more.className = 'more'; ul.appendChild(more);
+    const items = [...ul.querySelectorAll('li:not(.more)')];
+    let shown = items.length;
+    do { items[--shown].remove(); more.textContent = `and ${total - shown} more`; } while (!fits() && shown > 1);
+  });
+}
+
+/* ============ Records screens ============ */
+const tabs = () => `<div class="tabs">${[['Home','home'],['Schedule','list'],['Records','rec']].map(([n,i]) => `<div class="tab ${n==='Records'?'on':''}"><i>${ic(i)}</i>${n}</div>`).join('')}</div>`;
+const records = (hl) => `<div class="scr">
+  <div class="top"><h2>Records</h2></div>
+  <p class="lead">Your log tracks <b>hours by subject, school days and books read</b>. <u>Change log setup</u></p>
+  <div class="acts"><span class="btn pri">Log</span><span class="btn">${ic('down')}Export</span><span class="btn ${hl?'hl':''}">${ic('review')}Term in review</span></div>
+  <div class="seg"><div class="on">Frank</div><div>Margaret</div><div>Both</div></div>
+  <div class="chips"><span class="chip on">Fall 2026</span><span class="chip">Spring 2027</span><span class="chip">Year</span><span class="chip">Custom dates</span></div>
+  <p class="rnote">Aug 31 – Dec 18, 2026</p>
+  <div class="nums"><div><b>72</b><span>school days</span></div><div><b>181 h</b><span>hours</span></div><div><b>9</b><span>books</span></div></div>
+  <div class="mini"><h4>Hours by subject</h4>${FRANK.hours.map(([s,m]) => `<div class="r"><span>${SUBJ[s].n}</span><i style="width:${m/3510*100}%;background:var(--${SUBJ[s].c})"></i><span>${hm(m)}</span></div>`).join('')}</div>
+</div>${tabs()}`;
+const sheet = (all, theme) => `${records(false)}<div class="scrim"></div><div class="sheet">
+  <div class="grab"></div>
+  <div class="sh-head"><h3>Term in review</h3><span class="ib">${ic('x')}</span></div>
+  <div class="fl">Range</div>
+  <div class="chips"><span class="chip on">Fall 2026</span><span class="chip">Spring 2027</span><span class="chip">Year 2026–27</span></div>
+  <div class="fl">Child</div>
+  <div class="chips"><span class="chip ${all?'':'on'}">Frank</span><span class="chip">Margaret</span><span class="chip ${all?'on':''}">All children</span></div>
+  <div class="pv ${all?'all':''}">${all ? scaled(FRANK, theme, 236) + scaled({...MARGARET, term:'Fall 2026', dates:'Aug 31 – Dec 18, 2026', days:70, finished:MARGARET.finished.slice(0,5), books:MARGARET.books.slice(0,8), hours:[['lit',3120],['math',2550],['hist',1800],['mus',1080],['art',600]]}, theme, 236) : scaled(FRANK, theme, 260)}</div>
+  ${all ? '<div class="dots"><i class="on"></i><i></i></div>' : ''}
+  <p class="priv">${ic('lock')}Made on this device. Nothing is uploaded.</p>
+  <div class="row"><span class="btn wide">${ic('print')}${all?'Print 2 pages':'Print'}</span><span class="btn wide pri">${ic('image')}${all?'Save 2 images':'Save image'}</span></div>
+</div>`;
+const phone = (theme, label, body) => fig(label, `<div class="phone ${theme}"><div class="${theme}">${body}</div></div>`);
+
+/* ============ render ============ */
+const solo = (location.hash.match(/card=(\w+)/) || [])[1];
+if (solo){
+  document.body.classList.add('solo');
+  const d = {full:[FRANK,'light'], sparse:[THEO,'light'], dark:[FRANK,'dark'], long:[MARGARET,'light'], sparsedark:[THEO,'dark']}[solo];
+  document.body.insertAdjacentHTML('beforeend', `<div id="solo">${card(d[0], d[1])}</div>`);
+} else {
+  s1.innerHTML = fig('<b>Frank · Fall 2026.</b> School days, finished, books read as three big numbers; time by subject as bars in subject colours (exact typed hours, sorted by most time); then the two lists.', scaled(FRANK,'light',540))
+    + fig('<b>Long lists: Margaret · 2026–27</b> (17 finished, 23 books, hours not tracked). The lists take the room the bars would have used; rows that don’t fit become “and N more”. The big numbers stay true totals.', scaled(MARGARET,'light',540));
+  s2.innerHTML = fig('<b>Theo · Fall 2026,</b> completion answers only. One or two parts switch to the roomy layout: one large number, large rows with subject and the date it was marked finished, and a closing sprig so the page ends on purpose.', scaled(THEO,'light',540))
+    + fig('<b>The same, 3 finished.</b> Short lists still sit at the top; the sprig stays at the bottom, so the space reads as margin, not as missing data.', scaled({...THEO, finished:THEO.finished.slice(0,3)},'light',540));
+  s3.innerHTML = fig('<b>Frank, dark.</b> Same layout with the dark tokens; pastels darken, the child colour lifts. Saved image follows the app theme; Print is always light.', scaled(FRANK,'dark',540))
+    + fig('<b>Theo, dark.</b>', scaled(THEO,'dark',540));
+  s4.innerHTML = phone('light', '<b>1 · Records.</b> “Term in review” sits after Export in the actions row. It opens on the range and child already chosen on the page.', records(true))
+    + phone('light', '<b>2 · The sheet.</b> Range chips are the family’s term views plus Year; child chips include All children. The preview is the real card, scaled. Save image is primary.', sheet(false,'light'))
+    + phone('dark', '<b>3 · All children, dark.</b> One card per child, swiped sideways. Save makes one PNG per child; Print makes one page per child.', sheet(true,'dark'));
+}
+const go = () => fitLists(document);
+(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(go);
+</script>
+</body>
+</html>
