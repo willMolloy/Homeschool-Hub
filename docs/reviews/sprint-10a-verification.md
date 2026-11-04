@@ -197,3 +197,96 @@ I also ran `tap-targets` with `TAP_WIDTH` set to 320, 360, 390 and 1280, each wi
 2. **The All children / Frank / Margaret side-by-side** (`h-demo-390-Year-*.png`) and **the cram week** (`h-smoke-cram-390-*.png`). Check you are happy with how much bars rescale, and with the 80 % cap on extra rows (L1).
 3. **The 3-child family at 390** (`scroll-3kids-390-*.png`): about 1.5 screens of scrolling at Year. The child switch wraps at 390 with 3 children (R3).
 4. **Set up › Assignments at 360 with a date filled in** (`r6-setup-assignments-row-360.png`): the date runs under the icon (R6 and L3). This is a one-line CSS fix.
+
+## Re-test (2026-11-04, after fc6f467 and 9b5bfc7)
+
+### Verdict: READY for a PR to main
+
+M1 is fixed and L3 (R6) is fixed in the browser. The full gate is green. There are two new Low findings, and neither blocks the PR:
+
+- **L9** is a test flake that only appears under heavy CPU load.
+- **L10** is a cosmetic clip of the year in narrow date fields.
+
+The rest of the earlier findings (L1, L2, L4 to L8, R3, R4) were outside this fix round. I did not re-check them, and they stay open as Lows.
+
+### What was tested
+
+- **Branch and commit:** branch `hh2/sprint-10` at 9b5bfc7.
+- **The two fix commits:**
+  - fc6f467: S10-05 fix (M1, `bridgeBreaks` skips idle days).
+  - 9b5bfc7: S10-19 partial (date-field padding on Set up forms).
+- **Environment:** the same isolated setup as above, all on 127.0.0.1 (Postgres on 5472, API on 3919, Vite on 5919). Before the browser checks, I reseeded the demo family and the smoke family.
+- **No changes:** I changed no product code, test code or repo scripts.
+
+### M1: bars run through the breaks: **Closed**
+
+I checked Schedule › Year for the demo family at 1280 and 390, in light and dark.
+
+**Bars across the breaks.** I parsed every `path.tl-band` into its drawn pieces and compared any gap between pieces with the break washes. The washes are Labor Day, Thanksgiving, winter break and spring break.
+
+- There are 20 bars and **0 gaps at a break** at either width.
+- Piano practice is one piece from September to May. Before the fix, it broke at Thanksgiving, winter and spring.
+- Separately, I sampled `isPointInFill` on every pixel column inside each wash for every bar that spans it. Every such bar is filled across every column of every break. This covers Piano practice, Violin practice, Math 5, Math 3, Science 5, Nature study, History spine, Black Beauty, Science fair project, Heidi and Drawing basics.
+- Screenshots: `retest-wash-demo-1280-l.png`, `retest-wash-demo-1280-d.png`, `retest-wash-demo-390-l.png`, `retest-wash-demo-390-d.png`.
+
+**A real pause still shows.** The demo family is read-only, so I added the pause to the smoke family, which is a copy of the demo. It is an event, "Grandma visit", for Frank only: weekdays, Oct 12–23, with the rule "skip" for every subject. That gives a two-week stretch where the work is skipped and nothing is closed.
+
+- At both widths, each of Frank's four bars (The Hobbit, Math 5, Science 5 and Piano practice) shows a gap for those two weeks. These are 4 non-break gaps.
+- Margaret's bars and the shared History spine stay whole.
+- The same bars still run straight through Thanksgiving, winter and spring.
+- So idle days alone are never bridged, which matches the new unit test.
+- Screenshots: `retest-wash-smoke-pause-{1280,390}-{l,d}.png`.
+- Afterwards I reseeded the smoke family to remove the event.
+
+### L3 / R6: date text under the calendar icon on Set up: **Closed**
+
+I checked Set up › Assignments (the add form) and Set up › Days off (the add form) at 360 and at 390. I measured both the placeholder and a typed date ("12/30/2026", shown as "Dec 30, 2026"):
+
+- The input now keeps its 48 px right padding.
+- The visible text stops 16 px before the calendar glyph in every field.
+- Nothing runs under the icon.
+- Screenshots: `r6fix-assign-360-empty.png`, `r6fix-assign-360-typed.png`, `r6fix-daysoff-360-empty.png`, `r6fix-daysoff-360-typed.png`, plus the matching `-390-` files.
+
+The Year date tiles keep their own padding. The tile rule `.tl-tile .date-field .date-field-box input[type="text"]` (0,4,1) still beats the new `.date-field .date-field-box input[type="text"]` (0,3,1), and the new CSS test in `date-field.test.tsx` covers this. I did not re-measure the Log form in the browser this time. After the reseed, the smoke family's Records page asks for a state before Log appears.
+
+### Gate: `bash scripts/check.sh`: **all green**
+
+| Suite | Tests passed |
+|---|---|
+| engine | 420 |
+| api | 1048 |
+| web | 1206 (+3 from the fix commits) |
+| db | 141 |
+
+The exit code was 0.
+
+### Flake check: "Copy in the edit bar … Cancel"
+
+**Results:**
+
+- **Alone:** `vitest run test/timeline-edit-bar.test.tsx` passed 10 of 10 runs, 16 tests each.
+- **With assignment-weekdays:** running it together with `test/assignment-weekdays.test.tsx` passed 3 of 3 runs.
+- **Timeline folder:** `vitest run test/timeline` (19 files, 274 tests) passed 3 of 3 runs.
+- **Under heavy load** (two full web suites at once, plus edit-bar runs in parallel), it failed every time:
+  - Both full runs had 4 of 1206 tests fail.
+  - All 3 edit-bar runs had 2 failures each.
+  - The failing tests were the two Copy tests in `timeline-edit-bar.test.tsx` ("opens the Add sheet prefilled; saving sends one POST…" and "Cancel closes the sheet…"), and the two "Copies from the timeline (S4-07)" tests in `assignment-weekdays.test.tsx`.
+
+**Cause.** This is a test issue, not an app bug. In every failure, the extra request is `POST /api/plan/pace` with `{ drafts: [...] }`. S10-06 (8a50218) added it in `TimelinePage.tsx`: `usePace(selectedDraft, 150)` asks for the selected bar's pace 150 ms after a bar is selected.
+
+- The endpoint is read-only ("Nothing is saved").
+- The tests count every POST (`method === "POST"` or `method !== "GET"`) as a write.
+- On a fast machine the test finishes before the 150 ms timer fires. Under load it doesn't, so the pace request is counted as an extra write.
+- Cancel does not save anything: the extra body is the pace draft, not an assignment.
+- The fix commits don't touch this code, so the flake predates them.
+
+### New findings in the re-test
+
+| # | Severity | Area | Finding |
+|---|---|---|---|
+| L9 | Low (test only) | Tests for Copy in the edit bar and Copies from the timeline | These tests are flaky under CPU load. The read-only `POST /api/plan/pace` that S10-06 sends 150 ms after a bar is selected gets counted as a write. **Suggested fix:** in `timeline-edit-bar.test.tsx` and `assignment-weekdays.test.tsx`, leave `/api/plan/pace` out of the POST and non-GET filters, or filter on the assignments paths. The app needs no change. |
+| L10 | Low (cosmetic) | Set up › Assignments and Days off, Start/End fields at 360 and 390 | With the padding fixed, the two date fields side by side are too narrow to show a whole date. "Dec 30, 2026" is clipped to "Dec 30, 2" at 360 and "Dec 30, 20" at 390. The placeholder is clipped to "Choose a". Nothing overlaps the icon. **Suggested fix:** stack the two fields below about 400 px, or shorten the placeholder. |
+
+### Not re-run
+
+I did not re-run the smoke scenarios or the full browser sweep. The two fix commits only change the timeline's break bridging and one CSS selector, and the gate and the targeted checks above cover both.
