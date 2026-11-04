@@ -190,6 +190,14 @@ Each follows the module rules above. In order:
 - (Moved, not dropped: the tester verification of the timeline sprint, like `reviews/sprint-2b-verification.md`, is now required before the friends beta, phase 4.)
 - Native app and full offline mode. v1 is web and PWA only.
 
+## Open backlog (Low)
+
+- **N8: a saved school year can't be cleared.** The PATCH in `apps/api/src/routes/family.ts` (~127–131) uses `COALESCE`, so sending null keeps the old value. "I'll set this later" after saving keeps the year and still shows the reminder.
+- **Flaky web test:** `timeline-add.test.tsx` fails under load.
+- **Week filter:** with Week filtered to Frank, Margaret's late card still shows.
+- **N2:** no control to show Home's checklist again once it's hidden.
+- **N7 and N9:** cosmetic (see the Sprint 11 review in `docs/reviews/`).
+
 ## Done
 
 Commit hashes and notes are in each progress doc.

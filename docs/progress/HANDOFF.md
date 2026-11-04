@@ -9,6 +9,7 @@
 ## Next: Sprint 12
 
 - Tickets: `docs/tickets/sprint-12-completion/` (the completion question, the needs-you dot, and S12-09 for the Sprint 11 Lows). Claude's developer builds it on `claude/test-coverage-analysis-6dehbu`, committing and pushing after every ticket; the PR to `main` comes after its tester passes.
+- **Open Low items:** see ROADMAP, "Open backlog (Low)".
 - **Order after it:** Sprint 12 completion question + needs-you dot, Sprint 13 printable sheets + term in review, Sprint 14 accounts and hosting fixes (ROADMAP, "Order of work after Sprint 10"; `docs/progress/decisions-2026-11-04.md`).
 
 
