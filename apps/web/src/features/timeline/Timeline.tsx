@@ -8,13 +8,15 @@ import { UsersThree } from "@phosphor-icons/react";
 import type { Subject } from "../../api/types";
 import { SubjectBadge } from "../subjects/SubjectIcon";
 import { bandExtent } from "./drag";
-import { AXIS_HEIGHT_PX, BADGE_HIT_PX, nearestBadge, type TimelineLayout } from "./layout";
+import { BADGE_HIT_PX, nearestBadge, type TimelineLayout } from "./layout";
 import type { ChildStep } from "./model";
 
 /** Room under the lanes for the Today pill. */
-export const TODAY_PILL_PX = 22;
-const PILL_W = 44;
+/** S10-03: the Today pill, on the axis's second line. */
+const PILL_W = 50;
 const PILL_H = 18;
+/** S10-03: the months' baseline on the axis's first line. */
+const AXIS_LINE1_Y = 15;
 /** T-08b: the grip at each end of the selected bar: a small pill in the bar's label colour. */
 export const HANDLE_W_PX = 4;
 export const HANDLE_INSET_PX = 3;
@@ -47,7 +49,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
   const quiet = layout.detail === "smooth";
   const bottom = layout.lanesBottom;
   const m = layout.metrics;
-  const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
+  const height = layout.height;
   // S8-07: tapping a lane's badge names its subject in a small popover and highlights that lane (the other lanes dim).
   const [lane, setLane] = useState<string | null>(null);
   const laneIds = new Map(layout.bands.map((b) => [b.assignmentId, b.laneKey]));
@@ -78,7 +80,24 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
   const pillX = layout.todayX === null ? 0 : Math.max(0, Math.min(layout.width - PILL_W, layout.todayX - PILL_W / 2));
 
   return (
-    <div className="tl-wrap" style={{ width: layout.width, height }}>
+    <div className="tl-wrap" style={{ width: layout.width, height, "--tl-sticky-top": `${m.axis}px` } as CSSProperties}>
+    {/* S10-03: the axis sticks to the top while the lanes scroll: months on line 1, the Today pill on line 2. The group
+        header rows stick just under it. It lies over the top of the picture (the layout leaves it room). */}
+    <div className="tl-axis" data-axis style={{ height: m.axis, marginBottom: -m.axis }}>
+      <svg className="tl-axis-svg" width={layout.width} height={m.axis} aria-hidden="true">
+        {layout.ticks.map((t) => (t.label ? (
+          <text key={`label-${t.index}`} className="tl-axis-label" x={t.x + 3} y={AXIS_LINE1_Y}>{t.label}</text>
+        ) : null))}
+        <line className="tl-axis-rule" x1={0} x2={layout.width} y1={m.axis - 0.5} y2={m.axis - 0.5} />
+        {layout.todayX === null ? null : (
+          <g className="tl-today" data-today-pill>
+            <line className="tl-today-stub" x1={layout.todayX} x2={layout.todayX} y1={AXIS_LINE1_Y + 4} y2={m.axis} />
+            <rect x={pillX} y={m.axis - PILL_H - 2} width={PILL_W} height={PILL_H} rx={PILL_H / 2} />
+            <text x={pillX + PILL_W / 2} y={m.axis - 7} textAnchor="middle">Today</text>
+          </g>
+        )}
+      </svg>
+    </div>
     <svg className="tl-svg" width={layout.width} height={height} viewBox={`0 0 ${layout.width} ${height}`} role="img" aria-label={label} data-pickable={onPick ? "" : undefined}
       onClick={onPick ? (e) => {
         const r = e.currentTarget.getBoundingClientRect();
@@ -102,11 +121,8 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
       <g className="tl-grid">
         {layout.ticks.map((t) => (
           <line key={`${t.kind}-${t.index}`} className={t.kind === "month" ? "tl-tick-month" : "tl-tick-week"}
-            x1={t.x} x2={t.x} y1={AXIS_HEIGHT_PX - 4} y2={bottom} />
+            x1={t.x} x2={t.x} y1={m.axis} y2={bottom} />
         ))}
-        {layout.ticks.map((t) => (t.label ? (
-          <text key={`label-${t.index}`} className="tl-axis-label" x={t.x + 3} y={AXIS_HEIGHT_PX - 7}>{t.label}</text>
-        ) : null))}
       </g>
 
       <g className="tl-rules">
@@ -126,6 +142,13 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         ) : null))}
       </g>
 
+      {/* S10-03: the dashed Today line runs through every lane, over the bars and under their names (which carry a halo). */}
+      {layout.todayX === null ? null : (
+        <g className="tl-today" data-today>
+          <line x1={layout.todayX} x2={layout.todayX} y1={layout.todayTop} y2={bottom} />
+        </g>
+      )}
+
       <g className="tl-names" aria-hidden="true">
         {layout.names.map((n) => (
           // T-11d: an inside name stays at full strength while its bar dims (it only gains contrast); an outside
@@ -133,7 +156,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
           <g key={`${n.rowKey}-${n.assignmentId}-${n.piece}`} className={(n.outside ? dim(n.assignmentId) : dim(n.assignmentId).replace(" tl-dim", "")).trim() || undefined} data-name-for={n.assignmentId}>
             {n.outside
               ? <text className="tl-outside-name" x={n.textX} y={n.textY}>{n.text}</text>
-              : <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step) }}>{n.text}</text>}
+              : <text className="tl-name" x={n.textX} y={n.textY} dominantBaseline="central" style={{ fill: nameFill(n.paletteSlot, n.step), stroke: bandFill(n.paletteSlot, n.step) }}>{n.text}</text>}
           </g>
         ))}
       </g>
@@ -150,13 +173,6 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         ) : null))}
       </g>
 
-      {layout.todayX === null ? null : (
-        <g className="tl-today" data-today>
-          <line x1={layout.todayX} x2={layout.todayX} y1={layout.todayTop} y2={bottom + 4} />
-          <rect x={pillX} y={bottom + 4} width={PILL_W} height={PILL_H} rx={PILL_H / 2} />
-          <text x={pillX + PILL_W / 2} y={bottom + 4 + PILL_H - 5} textAnchor="middle">Today</text>
-        </g>
-      )}
 
     </svg>
     {/* S8-07: the gutter. S10-02: one round badge per lane, pinned to the centre of the lane's first row. */}

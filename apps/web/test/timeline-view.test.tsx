@@ -96,12 +96,13 @@ describe("the Year timeline page", () => {
     expect(breaks.length).toBeGreaterThan(0);
     expect(breaks[0]).toHaveClass("tl-break-quiet");
     expect(breaks[0]).not.toHaveAttribute("fill", `url(#${hatchId})`);
-    const months = [...svg.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
+    const months = [...svg.closest(".tl-wrap")!.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
     // T-05c: a phone shows every other month label, so the axis stays calm.
     expect(months).toEqual(["Sep", "Nov", "Jan", "Mar", "May"]);
     const today = svg.querySelector("[data-today]")!;
     expect(today.querySelectorAll("line")).toHaveLength(1);
-    expect(today.textContent).toBe("Today");
+    // S10-03: the pill lives in the sticky axis, not on the picture.
+    expect(svg.closest(".tl-wrap")!.querySelector(".tl-axis [data-today-pill]")!.textContent).toBe("Today");
   });
 
   it("stays under 300 SVG nodes at Year zoom, at 360 px and with events, which Year hides (T-05c)", async () => {
@@ -140,7 +141,7 @@ describe("the Year timeline page", () => {
     const svg = await screen.findByRole("img", { name: "Year timeline" });
     expect(svg.querySelectorAll("path.tl-band")).toHaveLength(0);
     expect(svg.querySelector("[data-today]")).not.toBeNull();
-    const months = [...svg.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
+    const months = [...svg.closest(".tl-wrap")!.querySelectorAll("text.tl-axis-label")].map((t) => t.textContent);
     expect(months.length).toBeGreaterThan(2);
     expect(svg.querySelectorAll("text.tl-lane-label")).toHaveLength(0);
     expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();

@@ -347,13 +347,15 @@ describe("axis labels and the Today line (S7-19)", () => {
     expect(dropped.length).toBeGreaterThan(0);
   });
 
-  it("the Today line starts just under the axis (S8-07: there are no lane name rows to start below)", () => {
+  it("the dashed Today line starts at the foot of the two-line axis (S10-03: 42 px phone, 44 px desktop)", () => {
     const l = layoutTimeline(sample, { zoom: "year", width: 1280 });
     expect(l.todayX).not.toBeNull();
-    expect(l.todayTop).toBe(AXIS_HEIGHT_PX - 4);
+    expect(l.todayTop).toBe(DESKTOP_METRICS.axis);
+    expect(layoutTimeline(sample, { zoom: "year", width: 360 }).todayTop).toBe(PHONE_METRICS.axis);
+    expect(PHONE_METRICS.axis).toBe(AXIS_HEIGHT_PX);
     const empty = layoutTimeline({ ...sample, lanes: [] }, { zoom: "year", width: 1280 });
     expect(empty.badges).toHaveLength(0);
-    expect(empty.todayTop).toBeLessThan(AXIS_HEIGHT_PX);
+    expect(empty.todayTop).toBe(DESKTOP_METRICS.axis);
   });
 });
 

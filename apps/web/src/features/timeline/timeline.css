@@ -43,9 +43,9 @@
 .tl-tick-week { stroke: var(--tl-grid); stroke-width: 1; stroke-opacity: 0.5; }
 .tl-axis-label { font-size: 11px; fill: var(--tl-muted-foreground); }
 .tl-band { fill-opacity: var(--tl-bar-opacity); stroke-width: 1; stroke-opacity: 0.4; stroke-linejoin: round; }
-.tl-name { font-size: 11px; font-weight: 500; }
+.tl-name { font-size: 11px; font-weight: 500; paint-order: stroke; stroke-width: 3px; stroke-linejoin: round; }
 /* T-11d: a thin piece's name, in the lane above its row: page text, small and calm. */
-.tl-outside-name { font-size: 11px; fill: var(--tl-foreground); }
+.tl-outside-name { font-size: 11px; fill: var(--tl-foreground); paint-order: stroke; stroke: var(--tl-background); stroke-width: 3px; stroke-linejoin: round; }
 /* T-11: one assignment split by a break stays joined by a faint line in its colour (never between assignments). */
 .tl-connector { stroke-width: 2; stroke-opacity: 0.35; stroke-linecap: round; }
 /* S10-02: hairlines between lanes and between child groups. */
@@ -53,6 +53,7 @@
 .tl-rule-group { stroke: var(--tl-grid); stroke-width: 1; }
 .tl-event { fill: var(--tl-muted-foreground); fill-opacity: 0.6; }
 .tl-today line { stroke: var(--tl-today); stroke-width: 1.5; stroke-dasharray: 2 3; stroke-linecap: round; }
+.tl-today .tl-today-stub { stroke-dasharray: none; }
 .tl-today rect { fill: var(--tl-today); }
 .tl-today text { font-size: 11px; font-weight: 600; fill: var(--tl-primary-foreground); }
 
@@ -144,6 +145,10 @@
 
 /* S8-07: the gutter of lane badges. It never blocks a tap on a bar: only the badges take the pointer. */
 .tl-wrap { position: relative; }
+/* S10-03: the sticky two-line axis (months, then the Today pill), over the top of the picture. */
+.tl-axis { position: sticky; top: 0; z-index: var(--z-raised); background: var(--tl-background); pointer-events: none; }
+.tl-axis svg { display: block; }
+.tl-axis-rule { stroke: var(--tl-border); }
 .tl-gutter { position: absolute; left: 0; top: 0; bottom: 0; pointer-events: none; }
 /* S10-15: the button is the 44 x 44 tap zone (a few px over the grid on the right, where it wins over a bar); the badge
    itself stays centred in the gutter column. */
@@ -159,7 +164,7 @@
    header can't be tapped through it. */
 .tl-group { position: absolute; left: 0; right: 0; pointer-events: none; }
 .tl-group-head { position: sticky; top: var(--tl-sticky-top, 0px); z-index: var(--z-raised); pointer-events: auto;
-  background: color-mix(in srgb, var(--tl-background) 90%, transparent); }
+  background: var(--tl-background); }
 .tl-ribbon { position: absolute; left: 0; top: 0; display: block; }
 .tl-ribbon path { fill: var(--tl-foreground); fill-opacity: 0.11; }
 .tl-group-avatar { position: absolute; left: 0; top: 0; bottom: 0; display: grid; place-items: center; }

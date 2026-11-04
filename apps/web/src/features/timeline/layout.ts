@@ -30,8 +30,8 @@ import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, typ
  * phones, with nothing beside it).
  */
 export const SIDE_PAD_PX = 4;
-/** Month ticks along the top. */
-export const AXIS_HEIGHT_PX = 20;
+/** Month ticks along the top. S10-03: the phone axis (months on line 1, the Today pill on line 2); see `metrics.axis`. */
+export const AXIS_HEIGHT_PX = 42;
 /** A month label is shown only when its slot is at least this wide. T-05c: on phones, labels also keep this far apart. */
 export const MIN_TICK_LABEL_PX = 24;
 export const PHONE_MIN_TICK_LABEL_PX = 48;
@@ -61,9 +61,11 @@ export const BOTTOM_PAD_PX = 8;
 export interface TimelineMetrics {
   gutter: number; badge: number; header: number; pitch: number; sub: number; groupGap: number; pad: number;
   barMax: number; ribbonMax: number; font: number;
+  /** S10-03: the sticky two-line axis (months, then the Today pill). */
+  axis: number;
 }
-export const PHONE_METRICS: TimelineMetrics = { gutter: 36, badge: 24, header: 34, pitch: 36, sub: 28, groupGap: 10, pad: 8, barMax: 28, ribbonMax: 12, font: 12 };
-export const DESKTOP_METRICS: TimelineMetrics = { gutter: 40, badge: 26, header: 36, pitch: 40, sub: 30, groupGap: 12, pad: 10, barMax: 32, ribbonMax: 14, font: 13 };
+export const PHONE_METRICS: TimelineMetrics = { gutter: 36, badge: 24, header: 34, pitch: 36, sub: 28, groupGap: 10, pad: 8, barMax: 28, ribbonMax: 12, font: 12, axis: AXIS_HEIGHT_PX };
+export const DESKTOP_METRICS: TimelineMetrics = { gutter: 40, badge: 26, header: 36, pitch: 40, sub: 30, groupGap: 12, pad: 10, barMax: 32, ribbonMax: 14, font: 13, axis: 44 };
 /** S10-15: every lane badge takes taps through at least a 44 x 44 px zone, centred on the badge. */
 export const BADGE_HIT_PX = 44;
 /** S10-15: neighbouring zones can overlap (rows are 36/40 px apart); a tap goes to the badge whose centre is nearest. */
@@ -244,7 +246,7 @@ export interface TimelineLayout {
   ticks: Tick[];
   /** Centre of today's column, or its boundary on a day off; null when today isn't shown. */
   todayX: number | null;
-  /** Where the Today line starts: just under the axis (S8-07: lanes have no name rows any more). */
+  /** Where the dashed Today line starts: the foot of the sticky axis (S10-03; the pill is in the axis). */
   todayTop: number;
   /** S10-02: the measurements used (phone or desktop). */
   metrics: TimelineMetrics;
@@ -426,11 +428,11 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   // Event strips, one row each, under the axis. T-05c: only with daily detail; zoomed out they are noise.
   const shownEvents = detail === "smooth" ? [] : model.events;
   const events: EventStrip[] = shownEvents.map((e, row) => {
-    const y = AXIS_HEIGHT_PX + row * (EVENT_ROW_PX + EVENT_ROW_GAP_PX);
+    const y = m.axis + row * (EVENT_ROW_PX + EVENT_ROW_GAP_PX);
     const spans = e.days.filter((i) => xs.isColumn(i)).map((i) => ({ x: xs.start(i), width: xs.columnWidth }));
     return { eventId: e.id, name: e.name, y, height: EVENT_ROW_PX, spans, d: rectsPath(spans.map((s) => ({ x: s.x, y, w: s.width, h: EVENT_ROW_PX }))) };
   });
-  const eventsBottom = AXIS_HEIGHT_PX + shownEvents.length * (EVENT_ROW_PX + EVENT_ROW_GAP_PX) + (shownEvents.length ? LANE_GAP_PX : 0);
+  const eventsBottom = m.axis + shownEvents.length * (EVENT_ROW_PX + EVENT_ROW_GAP_PX) + (shownEvents.length ? LANE_GAP_PX : 0);
 
   // T-05c: which series and outline a band uses at this detail.
   const schoolColumns = model.dates.map((_, i) => i).filter((i) => model.schoolDay[i]);
@@ -609,7 +611,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     events,
     ticks,
     todayX,
-    todayTop: AXIS_HEIGHT_PX - 4,
+    todayTop: m.axis,
     groups,
     rules,
     lanesTop,
