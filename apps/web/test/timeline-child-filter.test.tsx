@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import type { Child } from "../src/api/types";
 import { filterChildren, forChild, shownChild } from "../src/features/timeline/childView";
-import { layoutTimeline } from "../src/features/timeline/layout";
+import { SMOOTH_DEADBAND_PX, layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import {
@@ -46,8 +46,10 @@ describe("forChild", () => {
     expect(l.groups.map((g) => g.key)).toEqual(["margaret"]);
     const ribbonYs = (d: string) => [...d.matchAll(/,(-?[\d.]+)|V(-?[\d.]+)/g)].map((x) => Number(x[1] ?? x[2]));
     const ys = ribbonYs(l.groups[0]!.header.ribbon);
-    // Her own heaviest point reaches the full ribbon height (14 px on desktop), centred in the header row.
-    expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(l.metrics.ribbonMax, 5);
+    // Her own heaviest point reaches the full ribbon height (14 px on desktop; S10-04: within the smooth look's dead band).
+    const span = Math.max(...ys) - Math.min(...ys);
+    expect(span).toBeLessThanOrEqual(l.metrics.ribbonMax + 1e-6);
+    expect(span).toBeGreaterThan(l.metrics.ribbonMax - SMOOTH_DEADBAND_PX);
   });
 
   it("only offers children on the timeline, and only accepts one of them from the URL", () => {

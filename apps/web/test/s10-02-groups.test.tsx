@@ -4,6 +4,7 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { forChild } from "../src/features/timeline/childView";
 import {
+  SMOOTH_DEADBAND_PX,
   DESKTOP_METRICS, PHONE_METRICS, TOGETHER_KEY, initialOf, layoutTimeline, sharedAssignmentIds, togetherAssignments, togetherInitials,
 } from "../src/features/timeline/layout";
 import { buildTimelineModel, type SubjectLane, type TimelineAssignment } from "../src/features/timeline/model";
@@ -58,9 +59,12 @@ describe("load ribbons", () => {
     const together = l.groups.find((g) => g.key === TOGETHER_KEY)!;
     expect(together.header.ribbon).toBe("");
     const spans = l.groups.filter((g) => g.kind === "child").map((g) => { const v = ys(g.header.ribbon); return [Math.min(...v), Math.max(...v)] as const; });
-    // Centred in the header row, and the busiest child reaches the full ribbon height.
+    // Centred in the header row, and the busiest child reaches the full ribbon height (S10-04: within the smooth
+    // look's dead band, never above it).
     for (const [lo, hi] of spans) expect((lo + hi) / 2).toBeCloseTo(DESKTOP_METRICS.header / 2, 0);
-    expect(Math.max(...spans.map(([lo, hi]) => hi - lo))).toBeCloseTo(DESKTOP_METRICS.ribbonMax, 5);
+    const busiest = Math.max(...spans.map(([lo, hi]) => hi - lo));
+    expect(busiest).toBeLessThanOrEqual(DESKTOP_METRICS.ribbonMax + 1e-6);
+    expect(busiest).toBeGreaterThan(DESKTOP_METRICS.ribbonMax - SMOOTH_DEADBAND_PX);
   });
 });
 

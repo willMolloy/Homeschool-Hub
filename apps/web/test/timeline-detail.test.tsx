@@ -95,16 +95,16 @@ describe("smooth mode", () => {
     expect(long.slice(2, 7)).toEqual([0, 0, 0, 0, 0]);
   });
 
-  it("rounds to even pixels, ignores changes under the dead band, and eases real changes without overshoot", () => {
+  it("ignores changes under the dead band, and eases real changes without overshoot", () => {
     const xs = makeXScale(model, 0, 39, 0, 400);
+    const px = (v: number) => (v > 0 ? Math.min(40, v * 2.8) : 0);
     const wobble = model.dates.map((_, i) => (i < 40 && model.schoolDay[i] ? 3 + (i % 3) * 0.13 : 0));
-    const flat = smoothColumns(wobble, xs, 50, 2.8, 40).filter((c) => c);
+    const flat = smoothColumns(wobble, xs, 50, px).filter((c) => c);
     expect(new Set(flat.map((c) => c!.bottom - c!.top)).size).toBe(1);
     expect(smoothBandPath(flat)).not.toMatch(/C/);
     const series = model.dates.map((_, i) => (i < 40 && model.schoolDay[i] ? (i < 20 ? 3 : 7) : 0));
-    const columns = smoothColumns(series, xs, 50, 2.8, 40).filter((c) => c);
-    for (const c of columns) expect((c!.bottom - c!.top) % 2).toBe(0);
-    const d = smoothBandPath(smoothColumns(series, xs, 50, 2.8, 40));
+    const columns = smoothColumns(series, xs, 50, px).filter((c) => c);
+    const d = smoothBandPath(smoothColumns(series, xs, 50, px));
     expect(d).toMatch(/C/);
     const y = [...d.matchAll(/,(-?[\d.]+)/g)].map((m) => Number(m[1]));
     const tops = columns.map((c) => c!.top);

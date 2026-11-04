@@ -19,6 +19,18 @@ import { sampleInput } from "./helpers/timeline-fixtures";
 const perChar = (t: string) => t.length;
 const col = (x0: number, x1: number, h: number, cy = 50): BandColumn => ({ x0, x1, top: cy - h / 2, bottom: cy + h / 2 });
 const sample = buildTimelineModel(sampleInput({ events: [] }));
+/** S10-04: bars are now scaled to the view, so the sample's lightest work is still fairly thick; for the outside-name
+ * tests, make the first lane's assignments very light so they draw near BAR_H_MIN. */
+const withThin = {
+  ...sample,
+  lanes: sample.lanes.map((lane, li) => li !== 0 ? lane : {
+    ...lane,
+    children: lane.children.map((c) => ({
+      ...c,
+      assignments: c.assignments.map((a) => ({ ...a, daily: a.daily.map((v) => v * 0.02), weekly: a.weekly.map((v) => v * 0.02) })),
+    })),
+  }),
+};
 
 describe("fitting a name", () => {
   it("keeps the whole title when it fits", () => {
@@ -158,7 +170,7 @@ describe("names in the layout", () => {
   }
 
   it("gives some thin pieces an outside name, and leaves most rows compact (T-11d)", () => {
-    const l = layoutTimeline(sample, { zoom: "year", width: 1280 });
+    const l = layoutTimeline(withThin, { zoom: "year", width: 1280 });
     expect(l.names.some((n) => n.outside)).toBe(true);
     expect(l.rows.filter((r) => r.labelLane === 0).length).toBeGreaterThan(0);
   });
@@ -205,7 +217,7 @@ describe("drawing names", () => {
 
 describe("names while another bar is selected (T-11d)", () => {
   it("outside names dim with their bar; inside names stay at full strength over the dimmed bar", () => {
-    const layout = layoutTimeline(sample, { zoom: "year", width: 1280 });
+    const layout = layoutTimeline(withThin, { zoom: "year", width: 1280 });
     const outside = layout.names.find((n) => n.outside)!;
     const other = layout.names.find((n) => n.assignmentId !== outside.assignmentId)!.assignmentId;
     const { container } = render(<Timeline layout={layout} label="Year timeline" selectedId={other} />);

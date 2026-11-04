@@ -33,7 +33,8 @@ import { BAR_DRAG_ENABLED, grabSelected, previewModel } from "../features/timeli
 import { useBarDrag, type DragPreview } from "../features/timeline/useBarDrag";
 import { hitTest } from "../features/timeline/hit";
 import { selectionFor } from "../features/timeline/select";
-import { layoutTimeline } from "../features/timeline/layout";
+import { layoutTimeline, type BarsOverride } from "../features/timeline/layout";
+import { useBarsOverride } from "../features/timeline/useBarsOverride";
 import type { TimelineModel } from "../features/timeline/model";
 import { yearHalves, yearSpan } from "../features/records/ranges";
 import type { MeasureText } from "../features/timeline/names";
@@ -58,7 +59,7 @@ const FALLBACK_WIDTH = 360;
 /** T-10: how long a just-added bar stays highlighted (keep in step with tl-flash in timeline.css). */
 export const FLASH_MS = 2400;
 
-interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail; customViews?: ZoomViews["custom"]; viewOverrides?: ZoomViews["overrides"] }
+interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail; customViews?: ZoomViews["custom"]; viewOverrides?: ZoomViews["overrides"]; bars?: BarsOverride | null }
 const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: LayoutArgs) =>
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
@@ -96,12 +97,14 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   };
   // The last detail drawn, for the detail threshold's hysteresis.
   const lastDetail = useRef<DrawnDetail | undefined>(undefined);
+  // S10-04: dev-only `?debug=1&bars=min,max,curve` tries other bar heights live.
+  const bars = useBarsOverride();
   const layout = useMemo(
-    () => layoutFor(drawn, shownZoom, { width, measureText, month, customViews, viewOverrides, previousDetail: lastDetail.current }),
-    [drawn, shownZoom, width, measureText, month, customViews, viewOverrides],
+    () => layoutFor(drawn, shownZoom, { width, measureText, month, customViews, viewOverrides, bars, previousDetail: lastDetail.current }),
+    [drawn, shownZoom, width, measureText, month, customViews, viewOverrides, bars],
   );
   lastDetail.current = layout?.detail;
-  const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month, customViews, viewOverrides }), [model, leaving, width, measureText, month, customViews, viewOverrides]);
+  const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month, customViews, viewOverrides, bars }), [model, leaving, width, measureText, month, customViews, viewOverrides, bars]);
   // T-07: the selection lives beside the zoom, so it survives zoom changes and month flips.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const edit = useAssignmentEdit(applyAssignment);
