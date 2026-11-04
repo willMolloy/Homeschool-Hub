@@ -1,6 +1,6 @@
 # New decisions, 2026-11-04 and 2026-11-05 (Will)
 
-> **Order of work (2026-11-05):** Sprint 11 first run (setup flow + one-time Schedule hints), Sprint 12 accounts and hosting fixes (discuss with Will first), Sprint 13 completion question + needs-you dot, Sprint 14 printable sheets + term in review, then the end-to-end run and hosting; the calendar feed after hosting. Details: ROADMAP.md, "Order of work after Sprint 10".
+> **Order of work (2026-11-05):** Sprint 11 first run (setup flow + one-time Schedule hints), Sprint 12 completion question + needs-you dot, Sprint 13 printable sheets + term in review, Sprint 14 accounts and hosting fixes (discuss with Will first; Will moved it after the features on 2026-11-05), then the end-to-end run and hosting; the calendar feed after hosting. Details: ROADMAP.md, "Order of work after Sprint 10".
 >
 > **First run (2026-11-05):** a six-step setup flow on a new family's first login (family, children (required), school days, school year and terms, breaks with Add / I'll get back to you / Skip, subjects). No first-assignment step or prompt. Logging setup stays in Records. Three one-time hints on Schedule instead of a tour.
 
