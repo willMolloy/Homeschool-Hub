@@ -4,7 +4,7 @@ Where Homeschool Hub stands, for whoever picks it up next (Product Owner, Develo
 
 ## State
 
-- **Branch:** `hh2/sprint-9b`, started from `claude/test-coverage-analysis-6dehbu` (it holds Sprint 9 and Sprint 9b).
+- **Branches:** `hh2/sprint-10` (Sprint 10 tickets only, see below). Sprint 9 and 9b code is on `hh2/sprint-9b`, started from `claude/test-coverage-analysis-6dehbu` (it holds Sprint 9 and Sprint 9b).
   https://github.com/willMolloy/Homeschool-Hub/tree/hh2/sprint-9b
 - **`main` has neither Sprint 9 nor 9b yet.** No PR is open. Per the branch rule in [../HOW_WE_WORK.md](../HOW_WE_WORK.md#branches) (decided by DeeDee, 2026-11-03), the PR to `main` comes only after the sprint passes testing.
 - **Gate:** `bash scripts/check.sh` was ALL GREEN before every Sprint 9b commit.
@@ -31,7 +31,11 @@ Details, files and Decisions are in [sprint-9.md](sprint-9.md) under "Sprint 9b"
      - the CSV byte-order mark in Excel (N14);
      - dark theme and forced-colours look of the new switch (N15). The 320 px checks were made in Chrome on a throwaway page only.
 2. **The Sprint 9 + 9b PR to `main`**, once the re-test passes. It is one PR from `hh2/sprint-9b`, with no force-push. DeeDee approves the merge.
-3. **Sprint 10: Year view polish** (`docs/tickets/sprint-10-year-polish/`). Its branch starts from `main` after that merge.
+3. **Sprint 10: Year view polish.** The tickets are ready (updated 2026-11-03 with DeeDee's decisions) in `docs/tickets/sprint-10-year-polish/` on branch **`hh2/sprint-10`**: https://github.com/willMolloy/Homeschool-Hub/tree/hh2/sprint-10
+   - It was cut from `hh2/sprint-9b` before the re-test, and holds only docs so far.
+   - Once the Sprint 9 + 9b PR lands, merge `main` into it (no force-push, so no rebase of the pushed branch), then build in the README's order.
+   - The README lists the PO's conservative calls for DeeDee to confirm.
+   - **Leave the re-test's file to the Tester.** The re-test's only push is `docs/reviews/sprint-9b-verification.md` on `hh2/sprint-9b`; bring it across when rebasing or merging.
 
 ## Open for DeeDee
 
