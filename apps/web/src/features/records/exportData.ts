@@ -4,17 +4,20 @@
  * can be ticked; a column with no data in the range is left out (all data stays stored); and a cell that starts with = + - or @ gets
  * a leading ' so a spreadsheet never runs it as a formula (ROADMAP, CSV safety). The totals work mirrors apps/api services/recordTotals.ts.
  * S9b-01: an entry overlapping the dates is exported as its part inside them (share.ts), and school days are distinct days.
+ * S9b-05: "Last day" is a column the parent ticks like the others (N6); a Totals file starts each row with the dates it covers
+ * (From, To); the file starts with a UTF-8 byte-order mark so Excel reads accents and dashes right (N14).
  */
 import type { LogFields, RecordEntry, Subject } from "../../api/types";
 import { distinctSchoolDays, partInRange, type EntryPart } from "./share";
 import { RECORDS_WORDING } from "./wording";
 
-export type ColumnKey = "schoolDays" | "subjectHours" | "totalHours" | "coreSplit" | "homeAway" | "notes" | "books";
+export type ColumnKey = "lastDay" | "schoolDays" | "subjectHours" | "totalHours" | "coreSplit" | "homeAway" | "notes" | "books";
 export type ExportMode = "entries" | "totals";
 
-/** The ticks the family can offer: only what its log tracks. Notes only make sense entry by entry. */
+/** The ticks the family can offer: only what its log tracks. Notes and the last day of a run only make sense entry by entry. */
 export function availableColumns(f: LogFields, mode: ExportMode = "entries"): { key: ColumnKey; label: string }[] {
   const all: { key: ColumnKey; label: string; on: boolean }[] = [
+    { key: "lastDay", label: "Last day", on: mode === "entries" },
     { key: "schoolDays", label: "School days", on: f.schoolDays },
     { key: "subjectHours", label: "Hours by subject", on: f.subjectHours },
     { key: "totalHours", label: "Total hours", on: f.subjectHours || f.totalHours },
@@ -98,9 +101,13 @@ export function buildTable(i: ExportInput): Table {
     ? exportEntries(i).map((e) => ({ child: name(e.childId), entry: e, totals: totalsFor([e], coreOf) }))
     : i.childIds.map((id) => ({ child: name(id), totals: totalsFor(exportEntries(i).filter((e) => e.childId === id), coreOf) }));
   const cols: Col[] = [];
+  if (i.mode === "totals") {
+    cols.push({ head: "From", cell: () => i.start, always: true });
+    cols.push({ head: "To", cell: () => i.end, always: true });
+  }
   if (i.mode === "entries") {
     cols.push({ head: "Date", cell: (r) => r.entry!.startDate, always: true });
-    if (rows.some((r) => r.entry!.endDate !== r.entry!.startDate)) cols.push({ head: "Last day", cell: (r) => (r.entry!.endDate !== r.entry!.startDate ? r.entry!.endDate : "") });
+    if (want("lastDay")) cols.push({ head: "Last day", cell: (r) => (r.entry!.endDate !== r.entry!.startDate ? r.entry!.endDate : "") });
   }
   cols.push({ head: "Child", cell: (r) => r.child, always: true });
   if (want("schoolDays")) cols.push({ head: "School days", cell: (r) => (i.mode === "entries" ? r.entry!.schoolDays : r.totals.schoolDays) });
@@ -126,5 +133,9 @@ export function buildCsv(i: ExportInput): string {
   const t = buildTable(i);
   return [[RECORDS_WORDING], t.header, ...t.rows].map((row) => row.map(csvCell).join(",")).join("\r\n") + "\r\n";
 }
+
+/** S9b-05 (N14): the downloaded file: the CSV text after a UTF-8 byte-order mark, so Excel does not read it in the system code page. */
+export const UTF8_BOM = "\uFEFF";
+export const csvBlob = (text: string): Blob => new Blob([UTF8_BOM, text], { type: "text/csv;charset=utf-8" });
 
 export const csvFileName = (start: string, end: string) => `records-${start}-to-${end}.csv`;

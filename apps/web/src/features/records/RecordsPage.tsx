@@ -3,8 +3,11 @@
  * never a state). Then: Log (a sheet), Log setup, and the entries list with Edit and Delete (Delete is undone from the undo bar).
  * S9-08: a range (This week, Year, Fall, Spring, the family's own terms, or custom dates), one child or All children, then the
  * totals for the tracked fields, hours by subject, and that range's entries, newest first. The wording sits under it.
+ * S9b-05 (N17): the range, custom dates and child live in the address (`?range=&from=&to=&child=`), so Undo (which reloads the
+ * page's content) and a refresh keep them. (N12): a family with no children is sent to add one before it can log.
  */
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { ApiError, apiDelete } from "../../api/client";
 import { useMe } from "../../auth/AuthProvider";
 import type { Assignment, Child, FamilySettings, RecordEntry, RecordTotals, Subject } from "../../api/types";
@@ -14,7 +17,7 @@ import { Button, Chip } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
 import { EmptyState } from "../../ui/EmptyState";
 import { ChildSwitch } from "../week/ChildSwitch";
-import { ALL, useChildChoice } from "../week/useChildChoice";
+import { ALL, shownChoice, useChildChoice } from "../week/useChildChoice";
 import { ExportSheet } from "./ExportSheet";
 import { LogEntryForm } from "./LogEntryForm";
 import { LogSetupForm } from "./LogSetupForm";
@@ -35,14 +38,25 @@ export function RecordsPage() {
   const me = useMe();
   const assignments = useApi<Assignment[]>("/api/assignments");
   const [changing, setChanging] = useState(false);
-  const [rangeKey, setRangeKey] = useState("year");
-  const [custom, setCustom] = useState({ start: "", end: "" });
+  const [params, setParams] = useSearchParams();
+  const setParam = useCallback((next: Record<string, string | null>) => setParams((p) => {
+    const q = new URLSearchParams(p);
+    for (const [k, v] of Object.entries(next)) { if (v) q.set(k, v); else q.delete(k); }
+    return q;
+  }, { replace: true }), [setParams]);
+  const rangeKey = params.get("range") ?? "year";
+  const setRangeKey = (k: string) => setParam({ range: k === "year" ? null : k });
+  const custom = { start: params.get("from") ?? "", end: params.get("to") ?? "" };
+  const setCustom = (c: { start: string; end: string }) => setParam({ from: c.start || null, to: c.end || null });
   const [exporting, setExporting] = useState(false);
   const [logging, setLogging] = useState<RecordEntry | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const setup = family.data?.logSetup ?? null;
   const kids = (children.data ?? []).filter((c) => !c.archived);
-  const [choice, setChoice] = useChildChoice(kids, "all");
+  const [remembered, remember] = useChildChoice(kids, "all");
+  const urlChild = params.get("child");
+  const choice = urlChild ? shownChoice(kids, urlChild, "all") : remembered;
+  const setChoice = (v: string) => { remember(v); setParam({ child: v }); };
   const options = family.data && assignments.data ? rangeOptions({ views: family.data.zoomViews, assignments: assignments.data, today: me.today, weekStart: me.weekStart }) : [];
   const picked = options.find((o) => o.key === rangeKey) ?? options.find((o) => o.key === "year");
   const range = rangeKey === "dates" ? (custom.start && custom.end && custom.end >= custom.start ? custom : null) : picked ? { start: picked.start, end: picked.end } : null;
@@ -79,7 +93,9 @@ export function RecordsPage() {
     <section className="records-page">
       <h1>Records</h1>
       <p className="records-lead">Your log tracks <strong>{trackedWords(setup.fields)}</strong>. <button type="button" className="btn-link" onClick={() => setChanging(true)}>Change log setup</button></p>
-      {entries.data.length === 0 ? (
+      {kids.length === 0 ? (
+        <EmptyState text="Add a child first: each entry in your log is for a child." action={<Link className="btn" to="/setup/children">Add a child</Link>} />
+      ) : entries.data.length === 0 ? (
         <EmptyState text="Nothing logged yet." action={<Button onClick={() => setLogging("new")}>Log</Button>} />
       ) : (
         <>

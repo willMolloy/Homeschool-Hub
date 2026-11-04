@@ -12,6 +12,8 @@ import { SAMPLE_ASSIGNMENTS, SAMPLE_BLOCKED, SAMPLE_CHILDREN, SAMPLE_SUBJECTS, s
 import { writes } from "./helpers/schedule-fixtures";
 import { render } from "@testing-library/react";
 import { renderAt } from "./render";
+import { rangeOptions, yearHalves, yearSpan } from "../src/features/records/ranges";
+import { formatDate as usDate } from "../src/lib/dates";
 
 const id = (n: number) => `70000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const TERM1 = { id: id(1), name: "Term 1", start: "2026-08-17", end: "2026-11-06" };
@@ -305,13 +307,31 @@ describe("Fall and Spring can be renamed and re-dated (S9-06)", () => {
     await waitFor(() => expect(row()).toEqual(["Year", "Term 1", "Spring", "This month"]));
   });
 
+  it("S9b-05 (N13): the sheet's default Spring ends on the same day as Records' Spring (one source: the assignments' year)", async () => {
+    const user = await open();
+    const form = await edit(user);
+    const records = rangeOptions({ views: { hidden: [], custom: [] }, assignments: SAMPLE_ASSIGNMENTS, today: DEMO_ME.today, weekStart: "mon" });
+    const spring = records.find((r) => r.key === "spring")!;
+    expect(spring.end).toBe(yearHalves(yearSpan(SAMPLE_ASSIGNMENTS, DEMO_ME.today))!.spring.end);
+    expect(within(half(form, "Spring")).getByLabelText("Last day")).toHaveValue(usDate(spring.end));
+    expect(within(half(form, "Fall")).getByLabelText("First day")).toHaveValue(usDate(records.find((r) => r.key === "fall")!.start));
+  });
+
+  it("S9b-05 (N13): halves only when the year spans New Year", () => {
+    expect(yearHalves({ start: "2026-08-31", end: "2026-12-18" })).toBeNull();
+    expect(yearHalves({ start: "2026-08-31", end: "2027-05-21" })).toEqual({ fall: { start: "2026-08-31", end: "2026-12-31" }, spring: { start: "2027-01-01", end: "2027-05-21" } });
+  });
+
   it("a half left at its defaults sends no entry; Reset to default puts it back and drops the entry", async () => {
     const user = await open({ hidden: [], custom: [], overrides: { spring: { name: "Term 2", start: "2027-01-04", end: "2027-05-28" } } });
     expect(row()).toContain("Term 2");
     const form = await edit(user);
     const spring = half(form, "Spring");
     expect(within(spring).getByLabelText("Name")).toHaveValue("Term 2");
-    await user.click(within(spring).getByRole("button", { name: "Reset Spring to default" }));
+    // S9b-05 (N10): the accessible name starts with the visible text (voice control: "click Reset to default")
+    const reset = within(spring).getByRole("button", { name: "Reset to default: Spring" });
+    expect(reset.getAttribute("aria-label")!.startsWith(reset.textContent!)).toBe(true);
+    await user.click(reset);
     expect(within(half(form, "Spring")).getByLabelText("Name")).toHaveValue("Spring");
     await user.click(within(form).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(writes()).toHaveLength(1));

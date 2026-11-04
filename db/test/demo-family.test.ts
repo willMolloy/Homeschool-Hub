@@ -1,6 +1,6 @@
 /** T-07d: the demo family plans cleanly and shows the variety the timeline needs (pure; no database). */
 import { describe, expect, it } from "vitest";
-import { planAll, type ChildPlan } from "@hh/engine";
+import { forecastOutcome, planAll, type ChildPlan } from "@hh/engine";
 import { DEMO_FAMILY as F } from "../demo-family";
 
 const TODAY = "2026-10-28";
@@ -50,9 +50,11 @@ describe("the demo family", () => {
     expect(F.events.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("checks in one past week ahead of plan and one behind", () => {
-    const [ahead, behind] = F.checkIns!;
+  it("checks in one past week ahead of plan and two behind", () => {
+    const [ahead, behind, again] = F.checkIns!;
     const end = (week: string) => new Date(Date.parse(week) + 6 * 86400000).toISOString().slice(0, 10);
+    expect(again).toMatchObject({ assignmentId: behind!.assignmentId, childId: behind!.childId });
+    expect(again!.position).toBeLessThan(positionAt(plan(planned, again!.assignmentId), end(again!.weekStart)));
     expect(ahead!.position).toBeGreaterThan(positionAt(plan(planned, ahead!.assignmentId), end(ahead!.weekStart)));
     expect(behind!.position).toBeLessThan(positionAt(plan(planned, behind!.assignmentId), end(behind!.weekStart)));
     for (const c of F.checkIns!) expect(end(c.weekStart) < TODAY).toBe(true);
@@ -60,6 +62,15 @@ describe("the demo family", () => {
     expect(plan(actual, "hobbit").end < a("hobbit").end).toBe(true);
     expect(plan(actual, "garden").end).toBe(a("garden").end);
     expect(F.reviews!.map((r) => r.weekStart)).toEqual(F.checkIns!.map((c) => c.weekStart));
+  });
+
+  // S9b-05 (S9-05): one assignment is forecast late, so the demo shows a "will finish late" briefing line on Home and Week.
+  it("has one assignment forecast to finish late at the pace its check-ins show", () => {
+    const late = actual.filter((p) => {
+      const f = forecastOutcome(p, p.checkInWeeks.map((weekStart) => ({ assignmentId: p.assignmentId, childId: p.childId, weekStart, position: 0, mode: null })), F.calendar);
+      return f !== null && "finish" in f && f.finish > p.end;
+    });
+    expect(late.map((p) => p.assignmentId)).toEqual(["garden"]);
   });
 
   it("gives Frank more to do than Margaret", () => {

@@ -58,10 +58,16 @@ describe("ranges (pure)", () => {
 describe("the big numbers (pure): tracked fields only", () => {
   const t = totals();
   it("shows each tracked field and nothing else", () => {
-    expect(bigNumbers(t, ALLF).map((n) => [n.label, n.value])).toEqual([["school days", "5"], ["hours", "5 h 30 m"], ["core hours", "3 h 30 m"], ["non-core hours", "2 h"], ["hours at home", "1 h 30 m"], ["hours away", "30 m"], ["book", "1"]]);
+    expect(bigNumbers(t, ALLF).map((n) => [n.label, n.value])).toEqual([["school days", "5"], ["in total", "5 h 30 m"], ["core hours", "3 h 30 m"], ["non-core hours", "2 h"], ["hours at home", "1 h 30 m"], ["hours away", "30 m"], ["book", "1"]]);
     expect(bigNumbers(t, { ...NO_FIELDS, schoolDays: true }).map((n) => n.label)).toEqual(["school days"]);
-    expect(bigNumbers(t, { ...NO_FIELDS, schoolDays: true, totalHours: true }).map((n) => n.label)).toEqual(["school days", "hours"]);
+    expect(bigNumbers(t, { ...NO_FIELDS, schoolDays: true, totalHours: true }).map((n) => n.label)).toEqual(["school days", "in total"]);
     expect(bigNumbers(t, { ...NO_FIELDS, notes: true })).toEqual([]);
+  });
+  it("S9b-05 (N7): hours and books nothing was typed for show a dash, never 0 m; school days stay a number", () => {
+    const none = { ...t, schoolDays: 0, totalMinutes: 0, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [] };
+    const shown = bigNumbers(none, ALLF).map((n) => [n.label, n.value]);
+    expect(shown).toEqual([["school days", "0"], ["in total", "—"], ["core hours", "—"], ["non-core hours", "—"], ["hours at home", "—"], ["hours away", "—"], ["books", "—"]]);
+    expect(shown.flat().join(" ")).not.toMatch(/\b0 m\b|hours hours/);
   });
 });
 

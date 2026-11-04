@@ -19,8 +19,10 @@
 .log-form fieldset { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
 .log-form legend { font-weight: 700; font-size: 0.95rem; margin: 0 0 6px; padding: 0; }
 .log-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.log-chips .chip { white-space: nowrap; } /* S9b-05 (N9): "All children" stays on one line */
 .hm-row { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
 .hm-label { flex: 1 1 7rem; min-width: 0; overflow-wrap: anywhere; }
+.hm-boxes { display: flex; flex: none; align-items: center; gap: 6px; white-space: nowrap; }
 .log-form.schedule-form .hm-row input[type="number"] { flex: none; max-width: 4.2rem; width: 4.2rem; min-height: 44px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--tl-input); border-radius: var(--tl-radius-bar); background: var(--tl-card); color: var(--tl-foreground); font: inherit; text-align: center; }
 .log-form.schedule-form textarea, .log-form.schedule-form .log-book-add input[type="text"] { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--tl-input); border-radius: var(--tl-radius-bar); background: var(--tl-card); color: var(--tl-foreground); font: inherit; }
 .log-book-add { display: flex; gap: 8px; }
@@ -38,9 +40,11 @@
 .range-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
 .range-dates { margin: 0 0 12px; }
 .range-note { margin: 0 0 14px; color: var(--tl-muted-foreground); font-size: 0.875rem; }
-.big-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 8px; margin: 0 0 18px; }
+/* S9b-05 (N9): a big number never wraps ("142 h 05 m" on one line): tiles are at least 8.5rem (two to a row at 320 px) and the
+   number shrinks a little on small phones. */
+.big-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 8px; margin: 0 0 18px; }
 .big-number { padding: 12px 14px; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); display: flex; flex-direction: column; }
-.big-number strong { font-family: var(--tl-font-display); font-weight: 600; font-size: 1.6rem; line-height: 1.2; overflow-wrap: anywhere; }
+.big-number strong { font-family: var(--tl-font-display); font-weight: 600; font-size: clamp(1.15rem, 6.5vw, 1.4rem); line-height: 1.2; white-space: nowrap; }
 .big-number span { color: var(--tl-muted-foreground); font-size: 0.875rem; }
 .by-subject { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; }
 .by-subject li { display: grid; grid-template-columns: minmax(0, 7rem) 1fr auto; align-items: center; gap: 10px; min-height: 28px; }

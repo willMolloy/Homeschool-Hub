@@ -31,7 +31,8 @@ export const partWords = (whole: Pick<RecordEntry, "startDate" | "endDate">) => 
 /** "5 school days · Math 3 h 30 m, Reading 2 h · 6 h at home". Only what was typed. */
 export function summaryOf(e: RecordEntry, subjects: readonly Subject[]): string {
   const parts: string[] = [];
-  if (e.countsSchoolDay) parts.push(`${e.schoolDays} school ${e.schoolDays === 1 ? "day" : "days"}`);
+  // S9b-05 (N16): with the switch off the summary says so, rather than just leaving the days out.
+  parts.push(e.countsSchoolDay ? `${e.schoolDays} school ${e.schoolDays === 1 ? "day" : "days"}` : "Not counted as a school day");
   const named = Object.entries(e.subjectMinutes).map(([id, m]) => `${subjects.find((s) => s.id === id)?.name ?? "A subject"} ${formatMinutes(m)}`);
   if (named.length) parts.push(named.join(", "));
   if (e.totalMinutes != null) parts.push(`${formatMinutes(e.totalMinutes)} in all`);
@@ -39,5 +40,5 @@ export function summaryOf(e: RecordEntry, subjects: readonly Subject[]): string 
   if (e.awayMinutes != null) parts.push(`${formatMinutes(e.awayMinutes)} away`);
   if (e.books.length) parts.push(`${e.books.length} ${e.books.length === 1 ? "book" : "books"}`);
   if (e.notes) parts.push(e.notes.length > 60 ? `${e.notes.slice(0, 59)}…` : e.notes);
-  return parts.join(" · ") || "Nothing typed";
+  return parts.join(" · ");
 }

@@ -52,8 +52,9 @@ describe("entry words (pure)", () => {
   });
   it("summaries say only what was typed", () => {
     expect(summaryOf(entry(), SUBJECTS)).toBe("5 school days · Math 3 h 30 m, Reading 2 h");
-    expect(summaryOf(entry({ countsSchoolDay: false, schoolDays: 0, subjectMinutes: {}, notes: "Walk", books: ["A"] }), SUBJECTS)).toBe("1 book · Walk");
-    expect(summaryOf(entry({ countsSchoolDay: false, subjectMinutes: {} }), SUBJECTS)).toBe("Nothing typed");
+    expect(summaryOf(entry({ countsSchoolDay: false, schoolDays: 0, subjectMinutes: {}, notes: "Walk", books: ["A"] }), SUBJECTS)).toBe("Not counted as a school day · 1 book · Walk");
+    // S9b-05 (N16): the switch off is said, even with nothing else typed
+    expect(summaryOf(entry({ countsSchoolDay: false, subjectMinutes: {} }), SUBJECTS)).toBe("Not counted as a school day");
   });
 });
 
