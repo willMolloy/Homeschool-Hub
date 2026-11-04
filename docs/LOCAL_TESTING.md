@@ -49,7 +49,13 @@ Open http://localhost:5173 and sign in with `demo@example.com` / `demo-password`
 - [ ] Light and dark both feel calm (Family settings → Appearance, or your device setting).
 - [ ] Anything that still looks "2013", cluttered, or shows a number a parent wouldn't use.
 
-**A brand-new family:** sign out, then sign in as `empty@example.com` / `demo-password` after running `DATABASE_URL=postgres://hh:hh@localhost:5432/hh_dev npx tsx scripts/smoke/seed-second-family.ts` (local only; run it after `npm run demo`, since the demo reset wipes it). Home's checklist should get you to a planned week without help.
+**A brand-new family, the first run (Sprint 11):** after `npm run demo`, run `DATABASE_URL=postgres://hh:hh@localhost:5432/hh_dev npx tsx scripts/smoke/seed-second-family.ts` (local only; the demo reset wipes it, and running it again gives you a fresh family again). Sign out, then sign in as `fresh@example.com` / `demo-password`: it opens the setup flow at step 1. Existing logins (the demo, `smoke@example.com`, `empty@example.com`) never see it.
+- [ ] Six steps, one question each, "Step N of 6" with a progress bar, and Back from step 2. Step 2 (children) has no Skip and no Finish later; "Finish later" shows from step 3 and takes you Home; sign out and in again and the flow reopens at that step.
+- [ ] Step 4: type the year's first and last day (like "Aug 17, 2026" and "May 21, 2027"), pick Three terms: the line says what it adds. After the flow, Schedule · Year shows Term 1, 2 and 3 on its zoom row and Set up → Days off lists the break weeks.
+- [ ] Step 5: tap "I'll get back to you on this"; after the last step, Home shows only "Add your breaks" (and "Set your school year" if you chose "I'll set this later" in step 4), and each opens that step on its own.
+- [ ] Step 6: tick Math and Literature; they appear under Set up → Subjects with their icons. Nothing asks you to add a book or lesson.
+- [ ] Schedule · Year with some work shows one hint at a time ("Thicker bars…", then "Tap an icon…", and "Change the start or end…" the first time you open a bar), each with Got it. Family settings → Show tips again brings them back (the demo and the other seeded families have seen them already).
+- [ ] 320 px and dark mode: nothing scrolls sideways and every button is easy to tap.
 
 ## Known and accepted
 - Year badges are 24 px wide by design (each has a 32 px+ tall tap area).
