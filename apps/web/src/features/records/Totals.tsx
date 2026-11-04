@@ -8,10 +8,9 @@ import { subjectSlots } from "../timeline/model";
 import { formatMinutes } from "./entryText";
 import "./records.css";
 
-/** `anyChild`: under All children the days are the union across children, and the label says so (S9b-01). */
-export function bigNumbers(t: RecordTotals, f: LogFields, anyChild = false): { label: string; value: string }[] {
+export function bigNumbers(t: RecordTotals, f: LogFields): { label: string; value: string }[] {
   const out: { label: string; value: string }[] = [];
-  if (f.schoolDays) out.push({ label: anyChild ? "days any child did school" : "school days", value: String(t.schoolDays) });
+  if (f.schoolDays) out.push({ label: "school days", value: String(t.schoolDays) });
   if (f.subjectHours || f.totalHours) out.push({ label: "hours", value: formatMinutes(t.totalMinutes) });
   if (f.coreSplit) { out.push({ label: "core hours", value: formatMinutes(t.coreMinutes) }); out.push({ label: "non-core hours", value: formatMinutes(t.nonCoreMinutes) }); }
   if (f.homeAway) { out.push({ label: "hours at home", value: formatMinutes(t.homeMinutes) }); out.push({ label: "hours away", value: formatMinutes(t.awayMinutes) }); }
@@ -19,19 +18,16 @@ export function bigNumbers(t: RecordTotals, f: LogFields, anyChild = false): { l
   return out;
 }
 
-export function Totals({ totals, fields, subjects, anyChild = false, childName = () => "" }: { totals: RecordTotals; fields: LogFields; subjects: readonly Subject[]; anyChild?: boolean; childName?: (id: string) => string }) {
+export function Totals({ totals, fields, subjects }: { totals: RecordTotals; fields: LogFields; subjects: readonly Subject[] }) {
   const slot = subjectSlots(subjects);
   const most = Math.max(1, ...totals.bySubject.map((s) => s.minutes));
   return (
     <div className="totals">
       <div className="big-numbers" role="group" aria-label="Totals">
-        {bigNumbers(totals, fields, anyChild).map((n) => (
+        {bigNumbers(totals, fields).map((n) => (
           <div key={n.label} className="big-number"><strong>{n.value}</strong><span>{n.label}</span></div>
         ))}
       </div>
-      {anyChild && fields.schoolDays && totals.perChild.length > 0 ? (
-        <p className="per-child-days">{totals.perChild.map((c) => `${childName(c.childId)} ${c.schoolDays} ${c.schoolDays === 1 ? "day" : "days"}`).join(" · ")}</p>
-      ) : null}
       {fields.subjectHours && totals.bySubject.length > 0 ? (
         <section aria-label="Hours by subject">
           <h2>Hours by subject</h2>

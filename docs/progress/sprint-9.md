@@ -17,7 +17,7 @@ Tickets: `docs/tickets/sprint-9-schedule-and-records/`. S9-10 (tester pass) is t
 | S9-07 Log entries: typed by the parent, never prefilled | 61b461e | `db/017_record_entries.sql` (`record_entry`); API `routes/recordEntries.ts` (`/api/log-entries`), `repos/recordEntryRepo.ts`, `services/recordEntryService.ts`, undo step `logEntry`; web `records/LogEntryForm.tsx`, `entryText.ts`, `RecordsPage.tsx` (Log, entries list, Edit, Delete) |
 | S9-08 Records: totals for a range | 61bc41f | API `GET /api/records/totals` (`services/recordTotals.ts`, read-only, log entries only); web `records/ranges.ts`, `Totals.tsx`, `wording.ts`, `RecordsPage.tsx` |
 | S9-11 Records: export with chosen columns and dates | fed89f9 | web `records/exportData.ts` (pure CSV and table), `ExportSheet.tsx` (sheet, download, printable summary), `records.css` print rules, `RecordsPage.tsx` Export button |
-| S9-09 Docs follow the new shape | 59d0506 | DESIGN_DIRECTION, APP_OVERVIEW, ROADMAP (Records in the core checklist), LOCAL_TESTING, README, SPEC (logging rule, wording, helper table), `scripts/README.md`; smoke `track.mjs` becomes `records.mjs`, `axe.mjs` and `tap-targets.mjs` list Records |
+| S9-09 Docs follow the new shape | (this commit) | DESIGN_DIRECTION, APP_OVERVIEW, ROADMAP (Records in the core checklist), LOCAL_TESTING, README, SPEC (logging rule, wording, helper table), `scripts/README.md`; smoke `track.mjs` becomes `records.mjs`, `axe.mjs` and `tap-targets.mjs` list Records |
 
 ## Decisions
 
@@ -70,18 +70,3 @@ Tickets: `docs/tickets/sprint-9-schedule-and-records/`. S9-10 (tester pass) is t
 - **S9-09 what the docs now say.** Home · Schedule · Records everywhere; Track work only in history (progress, tickets, reviews are left as written). SPEC: the logging rule is configurable, typed, never prefilled and separate from the plan; the old "prefilled / progress fills the bars / generated from the plan" items are marked superseded; the neutral note is replaced by Will's wording in the positioning rule, the helper table and the warning. ROADMAP: Records is in the core checklist (S9 items ticked, tester pass open) and the optional-module entry points there, keeping work samples, photos and the term-exam list as held.
 - **S9-09 smoke scenarios.** `track.mjs` (the removed page) becomes `records.mjs` (Home cards and tabs, Records, Log setup or the log form and Export, Update status from a Week bar, the child switch; read-only), run against the dev servers: no problems. `axe.mjs` and `tap-targets.mjs` visit `/records` instead of `/track`; the tap-target run found Home, Records and Week clean at 360 px; the only undersized controls are the Year view's 11 subject badges (24 px wide, from before this sprint; Sprint 10 "badges pinned to lanes" covers them). axe was not run in this pass.
 - **S9-09 test expectations.** None changed.
-
-## Sprint 9b: fixes from the Sprint 9 tester
-
-Tickets: `docs/tickets/sprint-9b-fixes/`; report: `docs/reviews/sprint-9-verification.md`. S9b-06 (re-test) is the tester's.
-
-| Ticket | Commit | Notes |
-|--------|--------|-------|
-| S9b-01 School days are real days | (this commit) | API `recordTotals.ts` (distinct days, union, shares), `recordEntryService.countedDays`, `recordEntryRepo` (overlap, `countedDays`), `recordEntries.ts`; web `Totals.tsx`, `RecordsPage.tsx`, `exportData.ts`, `ExportSheet.tsx` |
-
-### Decisions (9b)
-
-- **S9b-01 days come from dates.** Every entry now carries `countedDays`, derived on read from its dates, its switch and the calendar as it is now (so a day off added later is respected); `schoolDays` is its length. The stored `school_days` column is still written at save but nothing reads it. A single chosen date still counts itself even on a weekend; a run counts its school-calendar days.
-- **S9b-01 totals.** Per child: the distinct counted days inside the range. All children: the union across children, labelled "days any child did school", with "Frank 4 days · Margaret 3 days" under the numbers (`perChild`). An entry that overlaps the range counts (the list and export use overlap, not first day), only its days inside count, and its typed hours (subjects, total, home, away) count in proportion to its school days inside over its school days in all (a run with no school days is cut by calendar days). Each figure is rounded to a minute. The list says "Part of an entry from Nov 2 to Nov 6". The export's Totals rows use the same arithmetic (`exportData.ts` mirrors the API); its "Each entry" rows are whole entries that overlap the dates.
-- **S9b-01 changed test expectations.** API `record-totals.test`: the "by first day" check (a Nov 10-12 range showed 0 entries) now shows Frank's Nov 9-11 run as 1 part entry, 2 days and 40 of its 60 minutes; the pure tests are rewritten for distinct days, union and shares (the old "most any one child logged" case is gone, by design). `record-entries.test`: the exact entry shape gains `countedDays`. Web: entry and totals fixtures gain `countedDays`, `partialEntries`, `perChild` (new helper `test/helpers/entry-days.ts`); the days-only test expects the label "days any child did school" under All children. New tests cover the tester's three cases at the API, the Records page and the export.
-

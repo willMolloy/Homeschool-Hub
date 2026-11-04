@@ -23,10 +23,8 @@ export interface RecordEntryJson {
   startDate: string;
   endDate: string;
   countsSchoolDay: boolean;
-  /** How many days the entry counts (0 when the switch is off), worked out from its dates and the calendar now. */
+  /** How many days the entry counts (0 when the switch is off). */
   schoolDays: number;
-  /** The days it counts, as dates (S9b-01): what totals take distinct days from. */
-  countedDays: string[];
   subjectMinutes: Record<string, number>;
   totalMinutes: number | null;
   homeMinutes: number | null;
@@ -54,8 +52,8 @@ export interface RecordEntryState {
 const COLS = `id, family_id, child_id, start_date::text AS start_date, end_date::text AS end_date, counts_school_day, school_days,
   subject_minutes, total_minutes, home_minutes, away_minutes, notes, books`;
 
-export const toJson = (r: RecordEntryRow, days: string[] = []): RecordEntryJson => ({
-  id: r.id, childId: r.child_id, startDate: r.start_date, endDate: r.end_date, countsSchoolDay: r.counts_school_day, schoolDays: days.length, countedDays: days,
+export const toJson = (r: RecordEntryRow): RecordEntryJson => ({
+  id: r.id, childId: r.child_id, startDate: r.start_date, endDate: r.end_date, countsSchoolDay: r.counts_school_day, schoolDays: r.school_days,
   subjectMinutes: r.subject_minutes, totalMinutes: r.total_minutes, homeMinutes: r.home_minutes, awayMinutes: r.away_minutes, notes: r.notes, books: r.books,
 });
 
@@ -66,11 +64,11 @@ export const stateOf = (r: RecordEntryRow): RecordEntryState => ({
 
 export interface ListFilter { from?: string; to?: string; childId?: string }
 
-/** The family's entries, newest first (by first day, then when they were saved). A range keeps every entry that overlaps it (S9b-01). */
+/** The family's entries, newest first (by first day, then when they were saved). A range keeps entries whose first day is in it. */
 export async function listEntries(db: Queryable, familyId: string, f: ListFilter = {}): Promise<RecordEntryRow[]> {
   const { rows } = await db.query<RecordEntryRow>(
     `SELECT ${COLS} FROM record_entry
-      WHERE family_id = $1 AND ($2::date IS NULL OR end_date >= $2) AND ($3::date IS NULL OR start_date <= $3) AND ($4::uuid IS NULL OR child_id = $4)
+      WHERE family_id = $1 AND ($2::date IS NULL OR start_date >= $2) AND ($3::date IS NULL OR start_date <= $3) AND ($4::uuid IS NULL OR child_id = $4)
       ORDER BY start_date DESC, created_at DESC, id`,
     [familyId, f.from ?? null, f.to ?? null, f.childId ?? null]);
   return rows;

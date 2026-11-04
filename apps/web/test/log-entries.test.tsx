@@ -7,7 +7,6 @@ import type { FamilySettings, LogSetup, RecordEntry, Subject } from "../src/api/
 import { boxesFor, formatMinutes, summaryOf, toMinutes } from "../src/features/records/entryText";
 import { NO_FIELDS } from "../src/features/records/logSetup";
 import { fakeApi } from "./helpers/fake-api";
-import { daysOf } from "./helpers/entry-days";
 import { renderAt } from "./render";
 
 const KIDS = [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }, { id: "c2", name: "Margaret", color: null, sortOrder: 1, archived: false }];
@@ -15,7 +14,7 @@ const sub = (id: string, name: string): Subject => ({ id, name, color: null, sor
 const SUBJECTS = [sub("math", "Math"), sub("read", "Reading")];
 const DETAILED: LogSetup = { template: "detailed", fields: { ...NO_FIELDS, subjectHours: true, notes: true, books: true, homeAway: true } };
 const FAMILY = (logSetup: LogSetup): FamilySettings => ({ name: "F", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false, zoomViews: { hidden: [], custom: [] }, logSetup });
-const entry = (over: Partial<RecordEntry> = {}): RecordEntry => ({ id: "e1", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-06", countsSchoolDay: true, schoolDays: 5, countedDays: daysOf(over.startDate ?? "2026-11-02", over.endDate ?? "2026-11-06", over.countsSchoolDay ?? true), subjectMinutes: { math: 210, read: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
+const entry = (over: Partial<RecordEntry> = {}): RecordEntry => ({ id: "e1", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-06", countsSchoolDay: true, schoolDays: 5, subjectMinutes: { math: 210, read: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
 const calls = (m: string) => fakeApi.calls.filter((c) => c.method === m && c.path.startsWith("/api/log-entries"));
 
 function stub(setup: LogSetup, entries: RecordEntry[] = [], kids = KIDS) {
@@ -24,7 +23,7 @@ function stub(setup: LogSetup, entries: RecordEntry[] = [], kids = KIDS) {
   fakeApi.on("GET /api/children", 200, kids);
   fakeApi.on("GET /api/log-entries", 200, entries);
   fakeApi.on("GET /api/assignments", 200, []);
-  fakeApi.on("GET /api/records/totals", 200, { from: null, to: null, childId: null, entries: 0, partialEntries: 0, schoolDays: 0, perChild: [], totalMinutes: 0, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [], bySubject: [] });
+  fakeApi.on("GET /api/records/totals", 200, { from: null, to: null, childId: null, entries: 0, schoolDays: 0, totalMinutes: 0, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [], bySubject: [] });
   fakeApi.on("POST /api/log-entries", 201, []);
   fakeApi.on("PATCH /api/log-entries/e1", 200, entry());
   fakeApi.on("DELETE /api/log-entries/e1", 204);
