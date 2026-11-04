@@ -92,7 +92,7 @@ export function RecordsPage() {
   return (
     <section className="records-page">
       <h1>Records</h1>
-      <p className="records-lead">Your log tracks <strong>{trackedWords(setup.fields)}</strong>. <button type="button" className="btn-link" onClick={() => setChanging(true)}>Change log setup</button></p>
+      <p className="records-lead">Your log tracks <strong>{trackedWords(setup.fields, true)}</strong>. <button type="button" className="btn-link" onClick={() => setChanging(true)}>Change log setup</button></p>
       {kids.length === 0 ? (
         <EmptyState text="Add a child first: each entry in your log is for a child." action={<Link className="btn" to="/setup/children">Add a child</Link>} />
       ) : entries.data.length === 0 ? (

@@ -10,6 +10,7 @@
 import type { LogFields, RecordEntry, Subject } from "../../api/types";
 import { distinctSchoolDays, partInRange, type EntryPart } from "./share";
 import { RECORDS_WORDING } from "./wording";
+import { formatShort } from "../../lib/dates";
 
 export type ColumnKey = "lastDay" | "schoolDays" | "subjectHours" | "totalHours" | "coreSplit" | "homeAway" | "notes" | "books";
 export type ExportMode = "entries" | "totals";
@@ -108,6 +109,8 @@ export function buildTable(i: ExportInput): Table {
   if (i.mode === "entries") {
     cols.push({ head: "Date", cell: (r) => r.entry!.startDate, always: true });
     if (want("lastDay")) cols.push({ head: "Last day", cell: (r) => (r.entry!.endDate !== r.entry!.startDate ? r.entry!.endDate : "") });
+    // S10-19 (R2): a row clipped to the dates says which longer entry it is part of, as the screen does. Only when one is clipped.
+    cols.push({ head: "Part of", cell: (r) => { const w = (r.entry as EntryPart).whole; return w ? partOfWords(w) : ""; } });
   }
   cols.push({ head: "Child", cell: (r) => r.child, always: true });
   if (want("schoolDays")) cols.push({ head: "School days", cell: (r) => (i.mode === "entries" ? r.entry!.schoolDays : r.totals.schoolDays) });
@@ -128,10 +131,17 @@ export function buildTable(i: ExportInput): Table {
   return { header: kept.map((c) => c.head), rows: rows.map((r) => kept.map((c) => c.cell(r))) };
 }
 
-/** The CSV text: the wording on the first line, then the header and one row per entry (or per child). */
+/** S10-19 (R2): the cell for a clipped row, in the screen's words ("part of an entry from Nov 16 to Nov 20" under the "Part of" head). */
+export const partOfWords = (whole: Pick<RecordEntry, "startDate" | "endDate">) => `an entry from ${formatShort(whole.startDate)} to ${formatShort(whole.endDate)}`;
+
+/** S10-19 (R1): under the wording in an Each entry file with School days, because that column does not add up. */
+export const PER_ENTRY_DAYS_NOTE = "School days are per entry; a day in two entries is in both rows. For the real count, use the Totals export.";
+
+/** The CSV text: the wording on the first line (and, entry by entry with School days, the per-entry note), then the header and one row per entry (or per child). */
 export function buildCsv(i: ExportInput): string {
   const t = buildTable(i);
-  return [[RECORDS_WORDING], t.header, ...t.rows].map((row) => row.map(csvCell).join(",")).join("\r\n") + "\r\n";
+  const note = i.mode === "entries" && t.header.includes("School days") ? [[PER_ENTRY_DAYS_NOTE]] : [];
+  return [[RECORDS_WORDING], ...note, t.header, ...t.rows].map((row) => row.map(csvCell).join(",")).join("\r\n") + "\r\n";
 }
 
 /** S9b-05 (N14): the downloaded file: the CSV text after a UTF-8 byte-order mark, so Excel does not read it in the system code page. */

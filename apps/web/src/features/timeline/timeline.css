@@ -18,11 +18,17 @@
 .tl-zoom[data-more="end"] { mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
 .tl-zoom[data-more="start"] { mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
 .tl-zoom[data-more="both"] { mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+/* S10-19 (R4): a caret over the faded edge says there is more to scroll to; it takes no space and no taps. */
+.tl-zoom-row { position: relative; }
+.tl-zoom-more { position: absolute; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.tl-zoom-more-start { left: 0; }
+.tl-zoom-more-end { right: 0; }
+.tl-zoom-row[data-edit] .tl-zoom-more-end { right: 48px; }
 /* T-05c: phones get the presets as one compact row under the title. */
 @media (max-width: 639px) {
   .timeline-page-header .tl-zoom-row { flex: 1 0 100%; }
   .tl-zoom { flex: 1 1 auto; justify-content: space-between; }
-  .tl-zoom button { padding: 0 10px; }
+  .tl-zoom button { padding: 0 10px; max-width: 7.5rem; }
 }
 /* T-05: crossfade between zooms (keep in step with FADE_MS in useZoomFade.ts). */
 .tl-stage { position: relative; }

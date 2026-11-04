@@ -54,12 +54,12 @@ export function templateFor(fields: LogFields): LogTemplate {
 
 export const hasAnyField = (f: LogFields) => (Object.keys(NO_FIELDS) as (keyof LogFields)[]).some((k) => f[k]);
 
-/** "Hours by subject, school days and notes" in the parent's words. */
-export function trackedWords(f: LogFields): string {
+/** "Hours by subject, school days and notes" in the parent's words; `inSentence` (S10-19, R5) keeps it all lowercase for mid-sentence use. */
+export function trackedWords(f: LogFields, inSentence = false): string {
   const words = FIELD_SWITCHES.filter((s) => f[s.key] && !(s.key === "subjectHours" && f.coreSplit)).map((s) => s.label.toLowerCase());
   if (words.length === 0) return "";
   const text = words.length === 1 ? words[0]! : `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}`;
-  return text.charAt(0).toUpperCase() + text.slice(1);
+  return inSentence ? text : text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export const setupOf = (fields: LogFields): LogSetup => ({ template: templateFor(fields), fields });
