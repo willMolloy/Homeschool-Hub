@@ -1,11 +1,12 @@
 /* S9-04: the shared date field and its calendar (Soft Paper tokens; 44 px targets). */
 .date-field { display: block; min-width: 0; position: relative; }
 .date-field-box { position: relative; display: block; }
-.date-field-box input[type="text"] {
+/* S10-19 partial (L3/R6): .date-field lifts this to (0,3,1) so forms.css' `.field input[type="text"]` (0,2,1, loaded later) can't take the 48 px room for the icon. */
+.date-field .date-field-box input[type="text"] {
   width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 48px 10px 12px;
   border: 1px solid var(--tl-input); border-radius: var(--tl-radius-bar); background: var(--tl-card); color: var(--tl-foreground); font: inherit; min-width: 0;
 }
-.date-field-box input[aria-invalid="true"] { border-color: var(--danger); }
+.date-field .date-field-box input[aria-invalid="true"] { border-color: var(--danger); }
 .date-field-open {
   position: absolute; top: 0; right: 0; width: 44px; height: 44px; display: inline-grid; place-items: center;
   border: 0; background: transparent; color: var(--tl-primary); border-radius: var(--tl-radius-bar); cursor: pointer;

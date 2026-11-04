@@ -108,3 +108,28 @@ describe("every screen uses the shared field", () => {
     }
   });
 });
+
+describe("the date field keeps room for its icon inside forms (S10-19 partial, L3/R6)", () => {
+  // [ids, classes + attributes + pseudo-classes, elements] of a simple selector chain.
+  const specificity = (sel: string): number[] => {
+    const s = sel.replace(/::[\w-]+/g, "");
+    const ids = (s.match(/#[\w-]+/g) ?? []).length;
+    const cls = (s.match(/\.[\w-]+|\[[^\]]+\]|:[\w-]+/g) ?? []).length;
+    const els = s.replace(/\[[^\]]+\]/g, "").split(/[\s>+~]+/).filter((p) => /^[a-z]/i.test(p)).length;
+    return [ids, cls, els];
+  };
+  const beats = (a: number[], b: number[]) => a[0]! > b[0]! || (a[0] === b[0] && (a[1]! > b[1]! || (a[1] === b[1] && a[2]! > b[2]!)));
+  const rulesWithPadding = (file: string) =>
+    [...readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^}]*)\}/g)]
+      .filter((m) => /(^|;)\s*padding(-right)?\s*:/.test(m[2]!))
+      .flatMap((m) => m[1]!.split(",").map((s) => s.trim()));
+
+  it("its 48 px right padding outranks forms.css' text-input padding, which loads later", () => {
+    const own = rulesWithPadding("src/ui/date-field.css").find((s) => /date-field-box input\[type="text"\]$/.test(s))!;
+    expect(own).toBeTruthy();
+    expect(readFileSync("src/ui/date-field.css", "utf8")).toMatch(/date-field-box input\[type="text"\] \{[^}]*padding: 10px 48px 10px 12px/);
+    const field = rulesWithPadding("src/ui/forms.css").filter((s) => /input\[type="text"\]/.test(s));
+    expect(field.length).toBeGreaterThan(0);
+    for (const f of field) expect(beats(specificity(own), specificity(f)), `${own} vs ${f}`).toBe(true);
+  });
+});
