@@ -1,4 +1,13 @@
-# Handoff (updated 2026-11-04)
+# Handoff (updated 2026-11-05)
+
+## Now: Sprint 11, first run (in progress)
+
+- **Branch:** `claude/test-coverage-analysis-6dehbu` (Claude's developer builds it, Will 2026-11-05). It also carries the Home fix `baf21b7` and the roadmap order of work. A draft PR shows it on GitHub; it becomes ready after the S11-08 tester passes.
+- **Tickets:** `docs/tickets/sprint-11-first-run/` (README has the decisions and the build order).
+- **Progress:** `docs/progress/sprint-11.md`, one row per ticket. **Every ticket is committed and pushed as soon as the gate is ALL GREEN,** so anyone can pick up from the last pushed commit if a session stops.
+- **To pick up:** check out the branch, read the README and the progress doc, and continue with the first ticket without a hash. Don't start a second branch for Sprint 11.
+- **Order after it:** Sprint 12 completion question + needs-you dot, Sprint 13 printable sheets + term in review, Sprint 14 accounts and hosting fixes (ROADMAP, "Order of work after Sprint 10"; `docs/progress/decisions-2026-11-04.md`).
+
 
 Where Homeschool Hub stands, for whoever picks it up next (Product Owner, Developer or Tester).
 
