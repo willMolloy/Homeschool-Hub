@@ -118,7 +118,7 @@ Built by a second agent and merged in PRs #5 and #6; tickets and decisions in `t
 ### Order of work after Sprint 10 (agreed with Will, 2026-11-05)
 Sprint 10a and 10b are merged (PRs #5 and #6). Each sprint gets its own branch off `main` and a PR after its tester passes (HOW_WE_WORK, "Branches"). Tickets are written when each sprint starts.
 
-1. [x] **Sprint 11: First run** (built, S11-01 to S11-07, on `claude/test-coverage-analysis-6dehbu`; the S11-08 tester pass is next, then the PR to `main`; progress in `progress/sprint-11.md`).
+1. [x] **Sprint 11: First run** (done: Sprint 11 + 11b merged to `main` via PR #8, merge `fc8a510`; progress in `progress/sprint-11.md`).
    - **Setup flow on a new family's first login,** one question per screen with a progress bar and Back: (1) family name and week start; (2) children, the only required step; (3) school days, Mon–Fri pre-selected, any of the seven; (4) the school year's first and last day and its shape (Fall / Spring by default, renamable; three terms; 36 weeks; 6 on 1 off; or "I'll set this later"); (5) breaks and time off, with US holidays to tick and **Add breaks / I'll get back to you on this / Skip**; (6) subjects from the starter list. "I'll get back to you" leaves a reminder on Home's checklist; Skip leaves none. Leaving halfway resumes at the same step next time. Existing families never see it. **It does not ask for a first assignment and does not prompt for one afterwards** (Will: parents may want to poke around first). **Logging setup is not in it:** Records already asks the first time it is opened (S9-03).
    - **Three one-time hints on Schedule** instead of a tour: the first time Year has bars ("Thicker bars mean more work each day. Tap one to change it."), the first time a bar is opened, and the first time the subject icons show. One at a time, each with "Got it", never repeated; "Show tips again" in Family settings; nothing blocks the screen.
    - Carries Home's fix (baf21b7): on wide screens the briefing spans both panes so Schedule and Records start level.
@@ -163,7 +163,7 @@ For DeeDee only; nobody else gets the link until phase 4. No public tunnels or h
 
 Each follows the module rules above. In order:
 
-1. **Records**: **moved into the core in Sprint 9** (see "Schedule and Records" in the core checklist). It is logging the parent types, not something generated from the plan: log setup, entries (hours and minutes, never prefilled, never moving the plan), totals for a range, CSV and a printable summary. Still to come inside it: the term summary ("Planned next" above) and a **Charlotte Mason term-exam list** (at the end of a term, each child's books and subjects covered, to draw exam questions from). **CSV safety (built in S9-11):** titles, notes and subject names can start with `=`, `+`, `-` or `@` (for example `=HYPERLINK(...)`); they are stored as typed, so every CSV export escapes such cells (prefix a `'`) so a spreadsheet never runs them as formulas. Every total and export carries the wording: "Made for your state records. It doesn't guarantee your homeschool meets every state requirement; check your state's rules." Nothing claims to meet a state's requirements (APP_OVERVIEW.md, "Product rules").
+1. **Records**: **moved into the core in Sprint 9** (see "Schedule and Records" in the core checklist). It is logging the parent types, not something generated from the plan: log setup, entries (hours and minutes, never prefilled, never moving the plan), totals for a range, CSV and a printable summary. Still to come inside it: the term summary ("Order of work after Sprint 10" above) and a **Charlotte Mason term-exam list** (at the end of a term, each child's books and subjects covered, to draw exam questions from). **CSV safety (built in S9-11):** titles, notes and subject names can start with `=`, `+`, `-` or `@` (for example `=HYPERLINK(...)`); they are stored as typed, so every CSV export escapes such cells (prefix a `'`) so a spreadsheet never runs them as formulas. Every total and export carries the wording: "Made for your state records. It doesn't guarantee your homeschool meets every state requirement; check your state's rules." Nothing claims to meet a state's requirements (APP_OVERVIEW.md, "Product rules").
 2. **Daily checklist**, for families who want it: a Today list per child with one-tap done. A tick confirms what the plan already assumes. Never required.
 3. **Later, as the hub grows:**
    - **"Smooth this month":** the app suggests moving a bar out of an overloaded week, accepted with one tap. It waits until the briefing shows where overload actually happens.
@@ -176,7 +176,7 @@ Each follows the module rules above. In order:
 
 - Lesson or chapter titles on assignments. They need tedious entry; revisit with templates.
 - Curriculum templates and partnerships. A later-stage idea, tied to partnering with particular curricula.
-- ~~Weekly print.~~ Reversed by Will on 2026-11-04: the parent prints weekly and daily work sheets ("Planned next").
+- ~~Weekly print.~~ Reversed by Will on 2026-11-04: the parent prints weekly and daily work sheets ("Order of work after Sprint 10").
 - **Portfolio, work samples and photos** (Will, 2026-11-04): a phone or computer folder does this well; storing children's photos adds cost and privacy responsibility for little advantage.
 - **A student view, child logins or a per-child app link** (Will, 2026-11-04): children don't need to be in the app; the parent prints daily or weekly sheets instead.
 - **Two-way calendar sync** (reading a family's Google Calendar into the app): which child an event belongs to can't be known, and edits would clash. The one-way feed covers the need.
@@ -189,6 +189,14 @@ Each follows the module rules above. In order:
 - More label and layout polish.
 - (Moved, not dropped: the tester verification of the timeline sprint, like `reviews/sprint-2b-verification.md`, is now required before the friends beta, phase 4.)
 - Native app and full offline mode. v1 is web and PWA only.
+
+## Open backlog (Low)
+
+- **N8: a saved school year can't be cleared.** The PATCH in `apps/api/src/routes/family.ts` (~127–131) uses `COALESCE`, so sending null keeps the old value. "I'll set this later" after saving keeps the year and still shows the reminder.
+- **Flaky web test:** `timeline-add.test.tsx` fails under load.
+- **Week filter:** with Week filtered to Frank, Margaret's late card still shows.
+- **N2:** no control to show Home's checklist again once it's hidden.
+- **N7 and N9:** cosmetic (see the Sprint 11 review in `docs/reviews/`).
 
 ## Done
 

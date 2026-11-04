@@ -4,7 +4,7 @@
 >
 > **First run (2026-11-05):** a six-step setup flow on a new family's first login (family, children (required), school days, school year and terms, breaks with Add / I'll get back to you / Skip, subjects). No first-assignment step or prompt. Logging setup stays in Records. Three one-time hints on Schedule instead of a tour.
 
-For every agent picking up work: read this with `HANDOFF.md`. Full detail is in [../ROADMAP.md](../ROADMAP.md), sections "Planned next, after Sprint 10", "Optional modules → Later" and "Not planned now". None of this changes Sprint 10; it is the queue after it.
+For every agent picking up work: read this with `HANDOFF.md`. Full detail is in [../ROADMAP.md](../ROADMAP.md), sections "Order of work after Sprint 10", "Optional modules → Later" and "Not planned now". Sprint 10 is done; this is the queue after it.
 
 ## The features (order: see the note at the top)
 1. **Completion question.** When an assignment's end date passes, Home shows "Did Frank finish Treasure Island?" with **Yes, finished / Not yet / We stopped**. Not yet opens a date picker to move the end; the question returns at the new end. Only the parent's answer marks an assignment finished.
