@@ -78,7 +78,7 @@ Tickets: `docs/tickets/sprint-9b-fixes/`; report: `docs/reviews/sprint-9-verific
 | Ticket | Commit | Notes |
 |--------|--------|-------|
 | S9b-01 School days are real days | d329548 | API `recordTotals.ts` (distinct days, union, shares), `recordEntryService.countedDays`, `recordEntryRepo` (overlap, `countedDays`), `recordEntries.ts`; web `Totals.tsx`, `RecordsPage.tsx`, `exportData.ts`, `ExportSheet.tsx` |
-| S9b-02 A typed book is never dropped | 400a1d9 | `LogEntryForm.tsx` |
+| S9b-02 A typed book is never dropped | (this commit) | `LogEntryForm.tsx` |
 | S9b-03 Home never says "on track" beside a late line | (this commit) | `HomeBriefing.tsx` (`ScheduleSubtitle`), `HomePage.tsx` |
 
 ### Decisions (9b)

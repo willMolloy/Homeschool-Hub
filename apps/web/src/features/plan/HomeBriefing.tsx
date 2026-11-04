@@ -8,7 +8,7 @@ import type { LocalDate } from "@hh/engine";
 import type { Assignment, Child } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useBriefingGroups } from "./Briefing";
-import { lineRank, topBriefingLine } from "./briefingLines";
+import { topBriefingLine } from "./briefingLines";
 import "./plan.css";
 
 export const REVIEW_TO = "/schedule?view=week";
@@ -31,18 +31,4 @@ function Line({ assignments, children, weekStart }: { assignments: Assignment[];
       <Link className="home-briefing-action" to={REVIEW_TO}>Review</Link>
     </section>
   );
-}
-
-/** S9b-03: the Schedule card's second line. "N running late" when the briefing finds late work (the same lines as the pill), else the finish glance. */
-export function ScheduleSubtitle({ weekStart, finishText }: { weekStart: LocalDate; finishText: string }) {
-  const assignments = useApi<Assignment[]>("/api/assignments");
-  const children = useApi<Child[]>("/api/children");
-  if (!assignments.data || !children.data) return <>{finishText}</>;
-  return <Late assignments={assignments.data} children={children.data} weekStart={weekStart} finishText={finishText} />;
-}
-
-function Late({ assignments, children, weekStart, finishText }: { assignments: Assignment[]; children: Child[]; weekStart: LocalDate; finishText: string }) {
-  const { groups } = useBriefingGroups(assignments, children, weekStart);
-  const late = (groups ?? []).flatMap((g) => g.lines).filter((l) => lineRank(l) === 0).length;
-  return <>{late > 0 ? `This week and your year · ${late} running late` : finishText}</>;
 }
