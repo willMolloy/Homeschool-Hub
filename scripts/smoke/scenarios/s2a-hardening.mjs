@@ -1,4 +1,10 @@
 // Full Schedule flow: settings → add assignment → add days off → add event → plan reflects each → clean up.
+import { PLAIN_INPUTS, fillDates } from "../common.mjs";
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "2026-11-16" as a parent types it: "Nov 16, 2026". */
+const usDate = (iso) => `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}, ${iso.slice(0, 4)}`;
+
 export default async function ({ page, shot, login, log, BASE }) {
   const W = Number(process.env.W || 360), H = W === 360 ? 740 : 800;
   const tag = `${W}`;
@@ -9,10 +15,8 @@ export default async function ({ page, shot, login, log, BASE }) {
   await page.setViewport({ width: W, height: H });
   const sw = () => page.evaluate(() => document.documentElement.scrollWidth);
   const S = (name) => shot(`s2a-hardening-${name}-${tag}`, W, H);
-  const setDates = (form, vals) => page.$$eval(`${form} input[type=date]`, (els, vals) => {
-    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
-    els.forEach((el, i) => { if (vals[i] != null) { set.call(el, vals[i]); el.dispatchEvent(new Event("input", { bubbles: true })); } });
-  }, vals);
+  // S9b-04: dates are typed into the DateField as US text ("Nov 16, 2026"), then the field is left.
+  const setDates = (form, vals) => fillDates(page, form, vals.map((v) => (v == null ? v : usDate(v))));
   const click = async (sel) => { await page.$eval(sel, (b) => b.scrollIntoView({ block: "center" })); await page.click(sel); };
   const hasCard = (t) => page.waitForFunction((t) => [...document.querySelectorAll(".card-title")].some((e) => e.textContent === t), { timeout: 5000 }, t);
   const goneCard = (t) => page.waitForFunction((t) => ![...document.querySelectorAll(".card-title")].some((e) => e.textContent === t), { timeout: 5000 }, t);
@@ -45,7 +49,7 @@ export default async function ({ page, shot, login, log, BASE }) {
   await page.waitForSelector(form);
   const subj = await page.$eval(`${form} select`, (s) => s.options[1].value);
   await page.select(`${form} select`, subj);
-  const inputs = await page.$$(`${form} input[type=text], ${form} input[type=number]`);
+  const inputs = await page.$$(`${form} ${PLAIN_INPUTS}`);
   await inputs[0].type(A); await inputs[1].type("10");
   await setDates(form, [WEEK, "2026-11-20"]);
   await click(`${form} .choice-list input[type=checkbox]`);
@@ -62,7 +66,7 @@ export default async function ({ page, shot, login, log, BASE }) {
   await click(".schedule-actions .btn");
   form = "form[aria-label='Add days off']";
   await page.waitForSelector(form);
-  await (await page.$(`${form} input[type=text]`)).type(D);
+  await (await page.$(`${form} ${PLAIN_INPUTS}`)).type(D);
   await setDates(form, [WEEK, WEEK]);
   await S("5-days-off-add");
   await click(`${form} button[type=submit]`);
@@ -77,7 +81,7 @@ export default async function ({ page, shot, login, log, BASE }) {
   await click(".schedule-actions .btn");
   form = "form[aria-label='Add event']";
   await page.waitForSelector(form);
-  await (await page.$(`${form} input[type=text]`)).type(E);
+  await (await page.$(`${form} ${PLAIN_INPUTS}`)).type(E);
   await click(`${form} input[aria-label=Wednesday]`);
   await page.select(`${form} select`, "skip");
   await S("7-event-add");

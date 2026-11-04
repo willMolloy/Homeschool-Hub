@@ -2,7 +2,8 @@
  * "Make an adjustment" for a current or coming week (S6-03): that child's assignments with the amount planned this
  * week, a stepper on each, and, once an amount moved, the question of what happens to the end date. Save sends ONE
  * PUT /api/week-overrides/batch with every changed row and every row taken "Back to plan" (S7b-01), so it is one change
- * and one Undo. A finished week is the check-in board on Track work (S8-06). The default is to keep the end date, as in the check-in.
+ * and one Undo. The default is to keep the end date, as in the check-in. S9-02: each row also offers "Update status"
+ * ("got to p. 138, move to {date}") to correct the plan's pace, which opens `UpdateStatusFlow` through `onUpdateStatus`.
  */
 import { useState } from "react";
 import type { OverrideMode } from "@hh/engine";
@@ -25,9 +26,11 @@ export interface WeekAdjustmentProps {
   current: boolean;
   /** Called after a successful save, so the sheet can close. */
   onSaved: () => void;
+  /** S9-02: a row's Update status. Without it the rows have no such button. */
+  onUpdateStatus?: (target: { assignmentId: string; title: string }) => void;
 }
 
-export function WeekAdjustment({ childId, weekStart, weekEnd, current, onSaved }: WeekAdjustmentProps) {
+export function WeekAdjustment({ childId, weekStart, weekEnd, current, onSaved, onUpdateStatus }: WeekAdjustmentProps) {
   const plan = useApi<PlanResponse>(`/api/plan?from=${weekStart}&to=${weekEnd}`);
   const stored = useApi<{ overrides: StoredOverride[] }>(`/api/week-overrides?weekStart=${weekStart}`);
   const assignments = useApi<Assignment[]>("/api/assignments");
@@ -97,6 +100,12 @@ export function WeekAdjustment({ childId, weekStart, weekEnd, current, onSaved }
                     <button type="button" aria-label="One more" disabled={busy || n >= r.max}
                       onClick={() => setAmount(r, stepAmount(r.unitType, n, 1, r.max))}>+</button>
                   </div>
+                )}
+                {onUpdateStatus && (
+                  <button type="button" className="checkin-undo" disabled={busy} aria-label={`Update status for ${r.title}`}
+                    onClick={() => onUpdateStatus({ assignmentId: r.assignmentId, title: r.title })}>
+                    Update status
+                  </button>
                 )}
                 {r.overrideId && (
                   <button type="button" className="checkin-undo" disabled={busy} onClick={() => toggleTaken(r)}

@@ -12,6 +12,8 @@ import { SAMPLE_ASSIGNMENTS, SAMPLE_BLOCKED, SAMPLE_CHILDREN, SAMPLE_SUBJECTS, s
 import { writes } from "./helpers/schedule-fixtures";
 import { render } from "@testing-library/react";
 import { renderAt } from "./render";
+import { rangeOptions, yearHalves, yearSpan } from "../src/features/records/ranges";
+import { formatDate as usDate } from "../src/lib/dates";
 
 const id = (n: number) => `70000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const TERM1 = { id: id(1), name: "Term 1", start: "2026-08-17", end: "2026-11-06" };
@@ -273,5 +275,89 @@ describe("the Zoom views sheet's small fixes (S7b-07)", () => {
     expect(script).toContain("form[aria-label='Zoom views']");
     expect("Copy to a new year").toMatch(/^(Add|Import|Use a template|Save as a template|New |Copy to )/);
     expect("Copy to another child").toMatch(/^(Add|Import|Use a template|Save as a template|New |Copy to )/);
+  });
+});
+
+describe("Fall and Spring can be renamed and re-dated (S9-06)", () => {
+  const DEFAULTS = { fall: { start: "2026-08-31", end: "2026-12-31" }, spring: { start: "2027-01-01", end: "2027-05-28" } };
+  const half = (form: HTMLElement, name: string) => within(form).getByRole("group", { name: `${name} name and dates` });
+
+  it("shows Fall and Spring with their name and the default halves, and no Reset until something changes", async () => {
+    render(<EditZoomViewsSheet open views={{ hidden: [], custom: [] }} defaults={DEFAULTS} onSaved={() => {}} onClose={() => {}} />);
+    const form = await screen.findByRole("form", { name: "Zoom views" });
+    const fall = half(form, "Fall");
+    expect(within(fall).getByLabelText("Name")).toHaveValue("Fall");
+    expect(within(fall).getByLabelText("First day")).toHaveValue("Aug 31, 2026");
+    expect(within(fall).getByLabelText("Last day")).toHaveValue("Dec 31, 2026");
+    expect(within(half(form, "Spring")).getByLabelText("First day")).toHaveValue("Jan 1, 2027");
+    expect(within(fall).queryByRole("button", { name: /Reset/ })).toBeNull();
+  });
+
+  it("renames Fall to Term 1 with Aug 17 - Dec 18: one PATCH, the zoom row and the picture follow", async () => {
+    const user = await open();
+    const form = await edit(user);
+    const fall = half(form, "Fall");
+    await user.clear(within(fall).getByLabelText("Name"));
+    await user.type(within(fall).getByLabelText("Name"), "Term 1");
+    fireEvent.change(within(fall).getByLabelText("First day"), { target: { value: "2026-08-17" } });
+    fireEvent.change(within(fall).getByLabelText("Last day"), { target: { value: "2026-12-18" } });
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect((writes()[0]!.body as { zoomViews: ZoomViews }).zoomViews).toEqual({ hidden: [], custom: [], overrides: { fall: { name: "Term 1", start: "2026-08-17", end: "2026-12-18" } } });
+    await waitFor(() => expect(row()).toEqual(["Year", "Term 1", "Spring", "This month"]));
+  });
+
+  it("S9b-05 (N13): the sheet's default Spring ends on the same day as Records' Spring (one source: the assignments' year)", async () => {
+    const user = await open();
+    const form = await edit(user);
+    const records = rangeOptions({ views: { hidden: [], custom: [] }, assignments: SAMPLE_ASSIGNMENTS, today: DEMO_ME.today, weekStart: "mon" });
+    const spring = records.find((r) => r.key === "spring")!;
+    expect(spring.end).toBe(yearHalves(yearSpan(SAMPLE_ASSIGNMENTS, DEMO_ME.today))!.spring.end);
+    expect(within(half(form, "Spring")).getByLabelText("Last day")).toHaveValue(usDate(spring.end));
+    expect(within(half(form, "Fall")).getByLabelText("First day")).toHaveValue(usDate(records.find((r) => r.key === "fall")!.start));
+  });
+
+  it("S9b-05 (N13): halves only when the year spans New Year", () => {
+    expect(yearHalves({ start: "2026-08-31", end: "2026-12-18" })).toBeNull();
+    expect(yearHalves({ start: "2026-08-31", end: "2027-05-21" })).toEqual({ fall: { start: "2026-08-31", end: "2026-12-31" }, spring: { start: "2027-01-01", end: "2027-05-21" } });
+  });
+
+  it("a half left at its defaults sends no entry; Reset to default puts it back and drops the entry", async () => {
+    const user = await open({ hidden: [], custom: [], overrides: { spring: { name: "Term 2", start: "2027-01-04", end: "2027-05-28" } } });
+    expect(row()).toContain("Term 2");
+    const form = await edit(user);
+    const spring = half(form, "Spring");
+    expect(within(spring).getByLabelText("Name")).toHaveValue("Term 2");
+    // S9b-05 (N10): the accessible name starts with the visible text (voice control: "click Reset to default")
+    const reset = within(spring).getByRole("button", { name: "Reset to default: Spring" });
+    expect(reset.getAttribute("aria-label")!.startsWith(reset.textContent!)).toBe(true);
+    await user.click(reset);
+    expect(within(half(form, "Spring")).getByLabelText("Name")).toHaveValue("Spring");
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect((writes()[0]!.body as { zoomViews: ZoomViews }).zoomViews).toEqual({ hidden: [], custom: [] });
+    await waitFor(() => expect(row()).toEqual(["Year", "Fall", "Spring", "This month"]));
+  });
+
+  it("explains a half with no name or backwards dates and sends nothing", async () => {
+    const user = await open();
+    const form = await edit(user);
+    const fall = half(form, "Fall");
+    await user.clear(within(fall).getByLabelText("Name"));
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    expect(await within(form).findByText("Give it a name.")).toBeInTheDocument();
+    await user.type(within(fall).getByLabelText("Name"), "T");
+    fireEvent.change(within(fall).getByLabelText("First day"), { target: { value: "2026-12-30" } });
+    fireEvent.change(within(fall).getByLabelText("Last day"), { target: { value: "2026-12-01" } });
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    expect(await within(form).findByText("The last day must be on or after the first day.")).toBeInTheDocument();
+    expect(writes()).toHaveLength(0);
+  });
+
+  it("a hidden half has no name and dates to edit; a renamed one keeps its switch label", async () => {
+    const user = await open({ hidden: ["fall"], custom: [], overrides: { fall: { name: "Term 1", start: "2026-08-17", end: "2026-12-18" } } });
+    const form = await edit(user);
+    expect(within(form).queryByRole("group", { name: "Fall name and dates" })).toBeNull();
+    expect(within(form).getByRole("switch", { name: "Term 1" })).not.toBeChecked();
   });
 });

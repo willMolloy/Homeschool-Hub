@@ -1,4 +1,5 @@
 /** T-07/T-07e: selection and the edit bar (select.ts, EditBar, Timeline's dimming, the page). */
+import { formatDate } from "../src/lib/dates";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -70,8 +71,8 @@ describe("the edit bar", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(within(panel).getByText(a.title)).toBeInTheDocument();
     expect(within(panel).getByText(/ · /)).toBeInTheDocument();
-    expect(within(panel).getByLabelText("Start")).toHaveValue(a.startDate);
-    expect(within(panel).getByLabelText("End")).toHaveValue(a.endDate);
+    expect(within(panel).getByLabelText("Start")).toHaveValue(formatDate(a.startDate));
+    expect(within(panel).getByLabelText("End")).toHaveValue(formatDate(a.endDate));
     for (const name of ["Copy", "More", "Close"]) expect(within(panel).getByRole("button", { name })).toBeEnabled();
     expect(within(panel).queryByRole("button", { name: "Reset" })).toBeNull();
     const bands = [...svg.querySelectorAll("path.tl-band")];
@@ -196,8 +197,8 @@ describe("Copy in the edit bar (S3a-02)", () => {
     await userEvent.click(within(await sheet()).getByRole("button", { name: "Copy" }));
     const dialog = await screen.findByRole("dialog", { name: "Add assignment" });
     expect(within(dialog).getByLabelText("Title")).toHaveValue(`${a.title} (copy)`);
-    expect(within(dialog).getByLabelText("Start")).toHaveValue(a.startDate);
-    expect(within(dialog).getByLabelText("End")).toHaveValue(a.endDate);
+    expect(within(dialog).getByLabelText("Start")).toHaveValue(formatDate(a.startDate));
+    expect(within(dialog).getByLabelText("End")).toHaveValue(formatDate(a.endDate));
     await userEvent.click(within(dialog).getByRole("button", { name: "Add" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     const posts = fakeApi.calls.filter((c) => c.method === "POST");
@@ -256,7 +257,7 @@ describe("the edit bar's order on phones (S5-08, S6b-05)", () => {
     const svg = await open();
     tapBand(svg);
     const region = await sheet();
-    expect(within(region).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual(["Close", "Copy", "More"]);
+    expect(within(region).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual(["Close", "Choose a date", "Choose a date", "Copy", "More"]);
     const order = [...region.querySelectorAll("button, input")].map((e) => (e.matches("input") ? (e as HTMLInputElement).labels?.[0]?.textContent?.trim() : e.getAttribute("aria-label") ?? e.textContent));
     expect(order.indexOf("Start")).toBeLessThan(order.indexOf("End"));
     expect(order.indexOf("End")).toBeLessThan(order.indexOf("Copy"));

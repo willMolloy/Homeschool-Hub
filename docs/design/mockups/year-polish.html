@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Year view polish</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Soft Paper tokens (same values as soft-paper*.html). Subject colours are unique: Art moves to coral. */
+.light{--lilac:#E5C8DB;--lilac-s:#9B4F80;--mint:#B5DFD1;--mint-s:#1F8063;--honey:#F0D6A8;--honey-s:#A86A00;--sky:#BDDCF0;--sky-s:#2A7DB0;--butter:#EAE2A5;--butter-s:#8A7A00;--coral:#F0C8B4;--coral-s:#B4532A;--sage:#D1D5C9;--sage-s:#5F6B50;
+--bg:#FAF6EE;--card:#FFFDF8;--raised:#F2ECE1;--ink:#2F2A24;--muted:#6E655A;--line:#E8E0D2;--accent:#3F6B5C;--accent-ink:#fff;--accent-soft:#E3EEE8;--tabbg:rgb(255 253 248/.96);--scrim:rgb(47 42 36/.34);--brk:#F2ECE1;--wash:.72;--ribbon:#2F2A24}
+.dark{--lilac:#543649;--lilac-s:#E0A6CB;--mint:#265044;--mint-s:#7FD3B6;--honey:#5B4826;--honey-s:#F5C46B;--sky:#2A485D;--sky-s:#8FCBF0;--butter:#565126;--butter-s:#E9DB6A;--coral:#5E3728;--coral-s:#F2A786;--sage:#41453B;--sage-s:#B6C0A6;
+--bg:#1C1A17;--card:#26231F;--raised:#302C27;--ink:#F1EBE1;--muted:#B3A99B;--line:#3A352F;--accent:#9CCBB8;--accent-ink:#1C1A17;--accent-soft:#25342E;--tabbg:rgb(38 35 31/.96);--scrim:rgb(0 0 0/.5);--brk:#302C27;--wash:.5;--ribbon:#F1EBE1}
+*{box-sizing:border-box}
+html,body{margin:0;background:#ECEAE6;color:#2B2935;font-family:'Nunito Sans',system-ui,sans-serif}
+.doc{padding:40px 40px 8px;max-width:1200px}.doc h1{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0 0 6px;font-size:32px}.doc p{margin:0;color:#555;line-height:1.5}
+section.set{padding:24px 40px 40px;display:inline-block;min-width:100%}
+section.set.dark-set{background:#141210}section.set.dark-set .lbl,section.set.dark-set h2.sh{color:#C9C1B5}
+h2.sh{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:20px;margin:0 0 16px;color:#2B2935}
+.frames{display:flex;gap:36px;align-items:flex-start}
+figure{margin:0}.lbl{font-size:13px;color:#555;margin:0 0 8px;max-width:390px;line-height:1.4;min-height:56px}.lbl b{color:inherit}
+
+/* ---------- phone ---------- */
+.phone{height:864px;border-radius:46px;border:10px solid #1d1b22;background:var(--bg);color:var(--ink);position:relative;overflow:hidden;font-family:'Nunito Sans',system-ui,sans-serif}
+.scr{position:absolute;inset:0;padding:48px 16px 0;overflow:hidden}
+.top{display:flex;justify-content:space-between;align-items:center;height:44px;margin-bottom:12px}
+.top h2{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:28px;margin:0;letter-spacing:-.2px}
+.ib{width:44px;height:44px;border-radius:50%;border:0;background:var(--raised);color:var(--ink);display:grid;place-items:center;flex:none;padding:0}
+.ib.acc{background:var(--accent);color:var(--accent-ink)}.ib.q{background:none}
+.ib svg,.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.seg{display:flex;background:var(--raised);border-radius:999px;padding:4px;height:44px;margin-bottom:12px}
+.seg div{flex:1;display:grid;place-items:center;border-radius:999px;font-size:15px;color:var(--muted);white-space:nowrap;padding:0 8px}
+.seg .on{background:var(--card);color:var(--ink);font-weight:700;box-shadow:0 0 0 1px var(--line)}
+.chiprow{display:flex;align-items:center;gap:4px;height:44px;margin-bottom:8px}
+.chips{display:flex;gap:6px;flex:1;overflow:hidden}
+.chip{height:36px;padding:0 13px;border-radius:999px;display:flex;align-items:center;font-size:14.5px;white-space:nowrap;color:var(--ink)}
+.chip.on{background:var(--accent-soft);color:var(--accent);font-weight:800;box-shadow:inset 0 0 0 1.5px var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.tabs{position:absolute;left:0;right:0;bottom:0;height:80px;background:var(--tabbg);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding-top:8px;z-index:5}
+.tab{text-align:center;font-size:12px;color:var(--muted);width:96px}.tab i{display:grid;place-items:center;width:56px;height:32px;margin:0 auto 4px;border-radius:999px}
+.tab.on{color:var(--accent);font-weight:800}.tab.on i{background:var(--accent-soft)}
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:8}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -10px 30px rgb(40 25 10/.16);padding:8px 16px 28px;z-index:9}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+.sh-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.sh-head h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:6px 0 0;font-size:24px;line-height:1.15}
+.who{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px;margin:6px 0 16px}
+.av{width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:800;flex:none}
+.tiles{display:flex;gap:10px;margin-bottom:12px}
+.tile{flex:1;min-height:60px;background:var(--raised);border-radius:14px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.tile small{display:block;color:var(--muted);font-size:12.5px;margin-bottom:2px}.tile b{font-size:16.5px;font-weight:800;white-space:nowrap}
+.tile .ic{color:var(--muted);width:18px;height:18px}
+.tile.focus{box-shadow:inset 0 0 0 2px var(--accent);background:var(--card)}
+.pace{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--ink);margin:2px 0 18px;padding:10px 12px;border-radius:12px;background:var(--accent-soft)}
+.pace .ic{color:var(--accent);width:18px;height:18px}
+.acts{display:flex;gap:10px}.btn{flex:1;height:48px;border-radius:999px;display:grid;place-items:center;font-weight:800;font-size:16px;background:var(--raised);color:var(--ink)}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}.btn.q{flex:0 0 auto;padding:0 20px;background:none;color:var(--accent)}
+.fl{font-size:13.5px;font-weight:700;color:var(--muted);margin:0 0 6px}
+.field{height:48px;border:1px solid var(--line);background:var(--bg);border-radius:12px;display:flex;align-items:center;padding:0 12px;gap:10px;font-size:16px;margin-bottom:14px}
+.field .grow{flex:1}.field .ic{color:var(--muted)}
+.pick{height:52px;background:var(--card)}
+.kchips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.kchip{height:44px;border-radius:999px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;font-size:15.5px;border:1px solid var(--line);background:var(--card)}
+.kchip.on{background:var(--accent-soft);border:1.5px solid var(--accent);font-weight:800;color:var(--ink)}
+.kchip .ic{width:16px;height:16px;color:var(--accent);stroke-width:2.2}
+.days{display:flex;gap:6px;margin-bottom:14px}.day{flex:1;height:44px;border-radius:12px;display:grid;place-items:center;font-size:14.5px;border:1px solid var(--line);background:var(--card);color:var(--muted)}
+.day.on{background:var(--accent-soft);border:1.5px solid var(--accent);color:var(--accent);font-weight:800}
+.row2{display:flex;gap:10px}.row2>*{flex:1}
+.stepper{height:48px;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;justify-content:space-between;background:var(--bg);margin-bottom:14px}
+.stepper span{font-size:16px;font-weight:700}.stepper i{width:44px;height:44px;display:grid;place-items:center;color:var(--accent);font-style:normal;font-size:22px}
+.list{margin:0 -16px}.li{height:56px;display:flex;align-items:center;gap:14px;padding:0 16px;border-top:1px solid var(--line);font-size:16.5px}
+.li .grow{flex:1}.li .ck{color:var(--accent)}.li.new{color:var(--accent);font-weight:800}
+.badge{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:none}.badge svg{width:18px;height:18px;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.badge.new{border:1.5px dashed var(--accent);color:var(--accent)}
+
+/* ---------- spec strip ---------- */
+.spec{margin-top:28px;display:flex;gap:24px;flex-wrap:wrap}
+.sc{background:#FFFDF8;border:1px solid #E2DACB;border-radius:16px;padding:18px 20px;width:420px;color:#2F2A24;font-size:14px;line-height:1.5}
+.sc h3{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:18px;margin:0 0 8px}.sc table{border-collapse:collapse;width:100%}.sc td{padding:4px 0;border-top:1px solid #EFE8DB;vertical-align:top}.sc td:last-child{text-align:right;font-weight:700;white-space:nowrap;padding-left:12px}
+.sc .k{color:#6E655A}
+
+/* ---------- desktop ---------- */
+.desk{width:1280px;height:800px;background:var(--bg);color:var(--ink);display:flex;overflow:hidden;border-radius:12px;box-shadow:0 0 0 1px #D6D0C6;font-family:'Nunito Sans',system-ui,sans-serif}
+.side{width:232px;flex:none;background:var(--card);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:10px;font-family:Fraunces,Georgia,serif;font-weight:600;font-size:17px;white-space:nowrap;padding:0 6px 22px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent)}
+.nav{height:44px;border-radius:12px;display:flex;align-items:center;gap:12px;padding:0 12px;font-size:15.5px;color:var(--muted);margin-bottom:4px}
+.nav.on{background:var(--accent-soft);color:var(--accent);font-weight:800}
+.side .sp{flex:1}.fam{display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid var(--line);margin-top:8px;font-size:14.5px}
+.main{flex:1;min-width:0;padding:28px 32px 24px;display:flex;flex-direction:column}
+.dhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.dhead h2{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:32px;margin:0}
+.pbtn{height:44px;border-radius:999px;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;gap:8px;padding:0 18px 0 14px;font-weight:800;font-size:15px}
+.dctl{display:flex;align-items:center;gap:16px;margin-bottom:16px}.dctl .seg{margin:0}
+.dbody{flex:1;display:flex;gap:20px;min-height:0}
+.dbody .card{flex:1;min-width:0}
+.panel{width:340px;flex:none;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px}
+.panel .sh-head h3{margin-top:0}
+.panel .meta{border-top:1px solid var(--line);margin-top:18px;padding-top:14px;font-size:14px;color:var(--muted);line-height:1.9}
+.panel .meta b{color:var(--ink);font-weight:700}
+
+svg text{font-family:'Nunito Sans',system-ui,sans-serif}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Schedule · Year, polished (Sprint 10)</h1>
+  <p>Fixes the Year drift from <code>ux-review-current.md</code> (improvements 4 and 5, and the Year rows of "Drift from the mockups"). One even bar per row, lanes grouped under each child, badges pinned to their lane, Today in the sticky axis, a soft height cap, date tiles with the pace line, and a subject picker and child chips instead of native controls. Measurements are in <code>../year-polish-notes.md</code>.</p>
+</div>
+<section class="set" id="light"><h2 class="sh">Phone · light</h2><div class="frames" id="light-frames"></div><div class="spec" id="spec"></div></section>
+<section class="set dark-set" id="dark"><h2 class="sh">Phone · dark</h2><div class="frames" id="dark-frames"></div></section>
+<section class="set" id="desktop"><h2 class="sh">Desktop · 1280 × 800 · left sidebar, the timeline and the edit panel side by side</h2><div id="desk-wrap"></div></section>
+
+<script>
+/* ================= icons (Phosphor-Light-like, 24 grid, stroked) ================= */
+const I = {
+  book:'<path d="M3 5.5c3-1.2 6-1 9 1 3-2 6-2.2 9-1V19c-3-1.2-6-1-9 1-3-2-6-2.2-9-1Z"/><path d="M12 6.5V20"/>',
+  calc:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 7.5h7M8.5 12.5h2M9.5 11.5v2M13.5 12.5h2M8.5 16.5h2M13.6 15.6l1.8 1.8M15.4 15.6l-1.8 1.8"/>',
+  scroll:'<path d="M8 4h9a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H9"/><path d="M8 4a2 2 0 0 0-2 2v2h4V6a2 2 0 0 0-2-2Z"/><path d="M10 8v10a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-1h4"/><path d="M13 9h3M13 13h3"/>',
+  flask:'<path d="M9 3h6M10 3v6l-5.2 9.2A2 2 0 0 0 6.6 21h10.8a2 2 0 0 0 1.8-2.8L14 9V3"/><path d="M7.4 15h9.2"/>',
+  note:'<path d="M9 17.5V5.5l10-2v12"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/><path d="M9 9.5l10-2"/>',
+  palette:'<path d="M12 3a9 9 0 1 0 0 18c1.3 0 2-.8 2-1.8 0-1.4-1.4-1.7-1.4-2.9 0-1 .8-1.6 1.9-1.6H17a4 4 0 0 0 4-4C21 6.4 17 3 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
+  leaf:'<path d="M5 19C5 10 10 5 20 4c0 10-5 15-14 15"/><path d="M5 19l8-8"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>', x:'<path d="M6 6l12 12M18 6 6 18"/>', pencil:'<path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>',
+  cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8.5 3v4M15.5 3v4"/>', check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  chev:'<path d="m9 6 6 6-6 6"/>', chevd:'<path d="m6 9 6 6 6-6"/>', clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  home:'<path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4Z"/>', list:'<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r=".6"/><circle cx="4.8" cy="12" r=".6"/><circle cx="4.8" cy="17.5" r=".6"/>',
+  rec:'<rect x="4.5" y="3.5" width="15" height="17" rx="1.5"/><path d="M8.5 3.5v17M11.5 8.5h5M11.5 12h5"/>', sliders:'<path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>'
+};
+const ic = (n, cls='ic') => `<svg class="${cls}" viewBox="0 0 24 24">${I[n]}</svg>`;
+
+/* ================= data ================= */
+const SUBJ = {
+  lit:{n:'Literature',c:'lilac',i:'book'}, math:{n:'Math',c:'mint',i:'calc'}, hist:{n:'History',c:'honey',i:'scroll'},
+  sci:{n:'Science',c:'sky',i:'flask'}, mus:{n:'Music',c:'butter',i:'note'}, art:{n:'Art',c:'coral',i:'palette'}, nat:{n:'Nature study',c:'sage',i:'leaf'}
+};
+// [title, start, end, load relative to that child's typical day]
+const KIDS = [
+ {id:'F', name:'Frank', lanes:[
+   {s:'lit', rows:[[["Aesop's Fables",'2026-08-31','2026-10-16',.8],['Treasure Island','2026-10-19','2026-11-06',1.5],['The Hobbit','2026-11-09','2026-12-18',1],['Robinson Crusoe','2027-01-04','2027-03-05',1],['The Wind in the Willows','2027-03-08','2027-05-28',.9]],
+                   [["A Child's Garden of Verses",'2026-10-05','2026-12-04',.35]]]},
+   {s:'math', rows:[[['Math 5','2026-08-31','2027-05-28',1.1]]]},
+   {s:'hist', rows:[[['History spine','2026-09-08','2027-05-21',.8]]]},
+   {s:'sci',  rows:[[['Science 5','2026-09-08','2027-05-14',.9]]]},
+   {s:'mus',  rows:[[['Piano practice','2026-08-31','2027-05-28',.5]]]},
+ ]},
+ {id:'M', name:'Margaret', lanes:[
+   {s:'lit', rows:[[['The Secret Garden','2026-09-08','2026-11-20',.8],["Charlotte's Web",'2026-11-30','2027-01-29',.8],['Heidi','2027-02-01','2027-04-30',.8]]]},
+   {s:'math', rows:[[['Math 3','2026-08-31','2027-05-28',1]],[['Times tables','2026-10-05','2026-11-20',.3]]]},
+   {s:'hist', rows:[[['History spine','2026-09-08','2027-05-21',.8]]]},
+   {s:'mus',  rows:[[['Violin practice','2026-08-31','2027-05-28',.5]]]},
+   {s:'art',  rows:[[['Drawing basics','2027-01-11','2027-03-19',.45]]]},
+ ]}
+];
+const BREAKS = [['2026-11-23','2026-11-27'],['2026-12-21','2027-01-01'],['2027-02-15','2027-02-19'],['2027-03-22','2027-03-26']];
+const D = s => new Date(s+'T12:00:00').getTime(), DAY = 864e5;
+const Y0 = D('2026-08-31'), Y1 = D('2027-05-29'), TODAY = D('2026-11-01');
+const MONTHS = ['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May'].map((m,k)=>[m, D(`${k<4?2026:2027}-${String(k<4?9+k:k-3).padStart(2,'0')}-01`)]);
+
+/* ================= measuring ================= */
+const cv = document.createElement('canvas').getContext('2d');
+const tw = (t, px, wt=700) => { cv.font = `${wt} ${px}px 'Nunito Sans', system-ui, sans-serif`; return cv.measureText(t).width; };
+function fit(t, px, wt, max){ if (tw(t,px,wt) <= max) return t; for (let n=t.length-1;n>=6;n--){ const s=t.slice(0,n).trimEnd()+'…'; if (tw(s,px,wt)<=max) return s; } return null; }
+const hash = s => [...s].reduce((a,c)=>(a*31+c.charCodeAt(0))%997,7);
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+/* ================= the timeline ================= */
+/* P = phone metrics, DSK = desktop metrics. These are the numbers in year-polish-notes.md. */
+const P   = {gut:36, badge:24, axis:42, head:34, pitch:36, sub:28, groupGap:10, hMin:12, hCap:20, rMin:4, rCap:12, font:12, pad:8};
+const DSK = {gut:40, badge:26, axis:44, head:36, pitch:40, sub:30, groupGap:12, hMin:14, hCap:22, rMin:5, rCap:14, font:13, pad:10};
+// Soft cap: h = hMin + (hCap − hMin)·(1 − e^(−1.2·L)); L = smoothed load, 1 = that child's typical day.
+const barH = (m, L) => m.hMin + (m.hCap - m.hMin) * (1 - Math.exp(-1.2 * L));
+const ribH = (m, L) => m.rMin + (m.rCap - m.rMin) * (1 - Math.exp(-0.45 * L));
+const loadAt = (bar, t) => { const [n,,,L]=bar; const ph=hash(n)/997*6.28; const u=(t-Y0)/DAY; return L*(1+0.2*Math.sin(u/26+ph)); }; // already smooth = after the 3-week average
+
+function shape(x0, x1, cy, hAt, r){ // a ribbon of varying height with rounded corners
+  const n = Math.max(2, Math.round((x1-x0)/4)), pts=[];
+  for (let k=0;k<=n;k++){ const x=x0+(x1-x0)*k/n; pts.push([x,hAt(x)/2]); }
+  r = Math.min(r, (x1-x0)/2, pts[0][1], pts[n][1]);
+  let d = `M${x0},${cy-pts[0][1]+r} Q${x0},${cy-pts[0][1]} ${x0+r},${cy-pts[0][1]}`;
+  for (const [x,h] of pts) if (x>x0+r && x<x1-r) d+=` L${x.toFixed(1)},${(cy-h).toFixed(1)}`;
+  d += ` L${x1-r},${cy-pts[n][1]} Q${x1},${cy-pts[n][1]} ${x1},${cy-pts[n][1]+r} L${x1},${cy+pts[n][1]-r} Q${x1},${cy+pts[n][1]} ${x1-r},${cy+pts[n][1]}`;
+  for (let k=n;k>=0;k--){ const [x,h]=pts[k]; if (x>x0+r && x<x1-r) d+=` L${x.toFixed(1)},${(cy+h).toFixed(1)}`; }
+  d += ` L${x0+r},${cy+pts[0][1]} Q${x0},${cy+pts[0][1]} ${x0},${cy+pts[0][1]-r} Z`;
+  return d;
+}
+
+function timeline({w, m, kids, selected=null, h=null}){
+  const X0 = m.gut + 4, X1 = w - m.pad, X = t => X0 + (t-Y0)/(Y1-Y0)*(X1-X0), T = x => Y0 + (x-X0)/(X1-X0)*(Y1-Y0);
+  let y = m.axis, back = '', fore = '', gut = '', labels = '';
+  for (const [gi,kid] of kids.entries()){
+    if (gi>0){ y += m.groupGap; back += `<line x1="0" x2="${w}" y1="${y-m.groupGap/2}" y2="${y-m.groupGap/2}" stroke="var(--line)" stroke-width="1"/>`; }
+    // child header row: avatar in the gutter + that child's load ribbon with the name
+    const cy = y + m.head/2;
+    gut += `<circle cx="${m.gut/2}" cy="${cy}" r="${m.badge/2}" fill="var(--accent-soft)"/><text x="${m.gut/2}" y="${cy+4.2}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--accent)">${kid.id}</text>`;
+    const allBars = kid.lanes.flatMap(l=>l.rows.flat());
+    fore += `<path d="${shape(X(Y0),X(Y1-DAY),cy,x=>{const t=T(x);return ribH(m, allBars.reduce((s,bar)=>s+(t>=D(bar[1])&&t<=D(bar[2])?loadAt(bar,t):0),0));},3)}" fill="var(--ribbon)" fill-opacity=".11"/>`;
+    fore += `<text x="${X0+6}" y="${cy+4.4}" font-size="${m.font+0.5}" font-weight="800" fill="var(--ink)" style="paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round">${kid.name}</text>`;
+    y += m.head;
+    // lanes: one per subject; overlapping assignments stack as sub-rows inside the lane
+    for (const lane of kid.lanes){
+      const S = SUBJ[lane.s], rowsH = m.pitch + (lane.rows.length-1)*m.sub;
+      back += `<line x1="${m.gut}" x2="${w}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-opacity=".7"/>`;
+      const by = y + m.pitch/2; // badge pinned to the lane's first row centre
+      gut += `<g><circle cx="${m.gut/2}" cy="${by}" r="${m.badge/2-.5}" fill="var(--${S.c})" stroke="var(--${S.c}-s)" stroke-opacity=".55"/><svg x="${m.gut/2-7.5}" y="${by-7.5}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--${S.c}-s)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${I[S.i]}</svg></g>`;
+      lane.rows.forEach((row, ri) => {
+        const ry = ri===0 ? by : y + m.pitch + (ri-.5)*m.sub;
+        const scale = ri===0 ? 1 : 0.8; // sub-rows are a touch thinner so the lane's main row leads
+        row.forEach((bar, bi) => {
+          const [name,s,e] = bar, sel = selected===name;
+          const x0 = X(D(s))+1, x1 = X(D(e)+DAY)-1;
+          const d = shape(x0, x1, ry, x => { const t=T(x); return barH(m, loadAt(bar,t))*scale; }, 5);
+          fore += `<path d="${d}" fill="var(--${S.c})" stroke="var(--${S.c}-s)" stroke-opacity="${sel?1:.45}" stroke-width="${sel?2:1}"/>`;
+          const px = ri===0 ? m.font : m.font-1, wt = sel?800:700;
+          let t = fit(name, px, wt, x1-x0-12), tx = x0+6, col='var(--ink)';
+          if (!t){ // outside, to the right, if the row is free there
+            const next = row[bi+1] ? X(D(row[bi+1][1])) : X1;
+            if (tw(name,px,600) <= next - x1 - 10){ t=name; tx=x1+6; col='var(--muted)'; }
+          }
+          if (t) labels += `<text x="${tx}" y="${ry+px*0.36}" font-size="${px}" font-weight="${col==='var(--ink)'?wt:600}" fill="${col}" style="paint-order:stroke;stroke:var(--${col==='var(--ink)'?S.c:'card'});stroke-width:3px;stroke-linejoin:round">${esc(t)}</text>`;
+        });
+      });
+      y += rowsH;
+    }
+  }
+  const H = h || y + 8;
+  // axis + breaks + month grid
+  let ax = `<rect x="0" y="0" width="${w}" height="${m.axis}" fill="var(--card)"/><line x1="0" x2="${w}" y1="${m.axis}" y2="${m.axis}" stroke="var(--line)"/>`;
+  let grid = '';
+  for (const [a,b] of BREAKS) grid += `<rect x="${X(D(a))-1}" y="${m.axis}" width="${X(D(b)+DAY)-X(D(a))+2}" height="${H}" fill="var(--brk)"/>`;
+  let wash = '';
+  for (const [a,b] of BREAKS) wash += `<rect x="${X(D(a))-1}" y="${m.axis}" width="${X(D(b)+DAY)-X(D(a))+2}" height="${H}" fill="var(--brk)" style="fill-opacity:var(--wash)"/>`;
+  const tx = X(TODAY), pillW = tw('Today',11,800)+16;
+  for (const [mn,t] of MONTHS){
+    const x = X(t); grid += `<line x1="${x}" x2="${x}" y1="${m.axis}" y2="${H}" stroke="var(--line)" stroke-opacity=".8"/>`;
+    ax += `<text x="${x+2}" y="15" font-size="11" font-weight="600" fill="var(--muted)">${mn}</text>`;
+  }
+  // Today: pill in the sticky axis, dashed line down through every lane
+  const today = `<line x1="${tx}" x2="${tx}" y1="${m.axis}" y2="${H}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+  ax += `<line x1="${tx}" x2="${tx}" y1="19" y2="${m.axis}" stroke="var(--accent)" stroke-width="1.5"/><rect x="${tx-pillW/2}" y="${m.axis-20}" width="${pillW}" height="18" rx="9" fill="var(--accent)"/><text x="${tx}" y="${m.axis-7}" text-anchor="middle" font-size="11" font-weight="800" fill="var(--accent-ink)">Today</text>`;
+  return `<svg width="${w}" height="${H}" viewBox="0 0 ${w} ${H}" style="display:block">${grid}${back}${fore}${wash}${today}${labels}${gut}${ax}</svg>`;
+}
+
+/* ================= phone screens ================= */
+const tabs = (on='Schedule') => `<div class="tabs">${[['Home','home'],['Schedule','list'],['Records','rec']].map(([n,i])=>`<div class="tab ${n===on?'on':''}"><i>${ic(i)}</i>${n}</div>`).join('')}</div>`;
+const header = (kidsOn='All children') => `
+  <div class="top"><h2>Schedule</h2><button class="ib acc" aria-label="Add assignment">${ic('plus')}</button></div>
+  <div class="seg"><div>Week</div><div class="on">Year</div></div>
+  <div class="chiprow"><div class="chips"><span class="chip on">Year</span><span class="chip">Fall</span><span class="chip">Spring</span><span class="chip">This month</span></div><button class="ib q" aria-label="Edit terms">${ic('pencil')}</button></div>
+  <div class="seg">${['All children','Frank','Margaret'].map(k=>`<div class="${k===kidsOn?'on':''}">${k}</div>`).join('')}</div>`;
+const yearScreen = (w, {kids=KIDS, kidsOn='All children', selected=null}={}) =>
+  `<div class="scr">${header(kidsOn)}<div class="card">${timeline({w:w-34, m:P, kids, selected})}</div></div>`;
+
+function editScreen(w){
+  return `${yearScreen(w,{selected:'Treasure Island'})}<div class="sheet" style="z-index:9">
+    <div class="grab"></div>
+    <div class="sh-head"><h3>Treasure Island</h3><button class="ib" aria-label="Close">${ic('x')}</button></div>
+    <div class="who"><span class="av">F</span>Frank · Literature · 300 pages</div>
+    <div class="tiles">
+      <div class="tile"><div><small>Start</small><b>Oct 19, 2026</b></div>${ic('cal')}</div>
+      <div class="tile focus"><div><small>End</small><b>Nov 6, 2026</b></div>${ic('cal')}</div>
+    </div>
+    <div class="pace">${ic('clock')}About 20 pages a day · 40 min</div>
+    <div class="acts"><div class="btn">Copy</div><div class="btn q">More</div></div>
+  </div>`;
+}
+const subjBadge = (k, size=32) => { const S=SUBJ[k]; return `<span class="badge" style="width:${size}px;height:${size}px;background:var(--${S.c});box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--${S.c}-s) 45%,transparent)"><svg viewBox="0 0 24 24" style="stroke:var(--${S.c}-s)">${I[S.i]}</svg></span>`; };
+
+function addForm(){
+  return `<div class="grab"></div>
+    <div class="sh-head" style="margin-bottom:14px"><h3>Add assignment</h3><button class="ib" aria-label="Close">${ic('x')}</button></div>
+    <div class="fl">Subject</div>
+    <div class="field pick">${subjBadge('lit',28)}<span class="grow" style="font-weight:700">Literature</span>${ic('chev')}</div>
+    <div class="fl">Title</div>
+    <div class="field">Treasure Island</div>
+    <div class="fl">For</div>
+    <div class="kchips"><div class="kchip on"><span class="av">F</span>Frank${ic('check')}</div><div class="kchip"><span class="av" style="background:var(--raised);color:var(--muted)">M</span>Margaret</div></div>
+    <div class="fl">Dates</div>
+    <div class="tiles"><div class="tile"><div><small>Start</small><b>Nov 2, 2026</b></div>${ic('cal')}</div><div class="tile"><div><small>End</small><b>Nov 20, 2026</b></div>${ic('cal')}</div></div>
+    <div class="fl">School days</div>
+    <div class="days">${['Mon','Tue','Wed','Thu','Fri'].map(d=>`<div class="day on">${d}</div>`).join('')}</div>
+    <div class="row2"><div><div class="fl">How much</div><div class="field" style="justify-content:space-between"><b>300</b><span style="display:flex;align-items:center;gap:4px;color:var(--accent);font-weight:800">pages ${ic('chevd')}</span></div></div>
+    <div><div class="fl">Minutes a day</div><div class="stepper"><i>−</i><span>40</span><i>+</i></div></div></div>
+    <div class="pace" style="margin-top:-2px">${ic('clock')}About 20 pages a day · 40 min</div>
+    <div class="btn pri">Add</div>`;
+}
+const addScreen = w => `${yearScreen(w)}${tabs()}<div class="scrim"></div><div class="sheet" style="top:40px;padding-bottom:22px">${addForm()}</div>`;
+function pickerScreen(w){
+  const rows = ['lit','math','hist','sci','mus','art','nat'].map(k=>`<div class="li">${subjBadge(k)}<span class="grow">${SUBJ[k].n}</span>${k==='lit'?`<span class="ck">${ic('check')}</span>`:''}</div>`).join('');
+  return `${yearScreen(w)}${tabs()}<div class="scrim"></div><div class="sheet" style="top:40px;padding-bottom:22px">${addForm()}</div>
+    <div class="scrim" style="z-index:10;background:rgb(0 0 0/.22)"></div>
+    <div class="sheet" style="z-index:11">
+      <div class="grab"></div>
+      <div class="sh-head" style="margin-bottom:12px"><h3>Subject</h3><button class="ib" aria-label="Close">${ic('x')}</button></div>
+      <div class="list">${rows}<div class="li new"><span class="badge new">${ic('plus')}</span><span class="grow">New subject…</span></div></div>
+    </div>`;
+}
+const phone = (theme, w, label, body) => `<figure><p class="lbl">${label}</p><div class="phone ${theme}" style="width:${w+20}px">${body}</div></figure>`;
+
+function phones(theme){
+  const W=390;
+  return [
+    phone(theme, W, '<b>1 · Year, All children.</b> Lanes sit under each child’s header row (initial + that child’s load ribbon). Badges are pinned to the lane’s first row. Today is in the axis.', `${yearScreen(W)}${tabs()}`),
+    phone(theme, W, '<b>2 · Edit sheet.</b> Date tiles in US style, the pace line restored, a 2 px outline on the chosen bar. The sheet covers the tab bar.', `${editScreen(W)}`),
+    phone(theme, W, '<b>3 · Add assignment.</b> Subject row opens a picker; child chips, date tiles and soft day chips replace the native controls.', addScreen(W)),
+    phone(theme, W, '<b>4 · Subject picker sheet.</b> Icon + name, a tick on the current one, and “New subject…” last.', pickerScreen(W)),
+    phone(theme, 360, '<b>5 · 360 px, one child.</b> Same header row and lanes; no extra groups. Labels that don’t fit move outside or truncate (never under 6 letters).', `${yearScreen(360,{kids:[KIDS[0]], kidsOn:'Frank'})}${tabs()}`),
+  ].join('');
+}
+
+/* ================= desktop ================= */
+function desktop(){
+  const cardW = 1280-232-64-20-340-2;
+  return `<div class="desk light">
+    <aside class="side">
+      <div class="brand"><span class="logo">${ic('sun')}</span>Homeschool Hub</div>
+      <div class="nav">${ic('home')}Home</div><div class="nav on">${ic('list')}Schedule</div><div class="nav">${ic('rec')}Records</div>
+      <div class="sp"></div>
+      <div class="nav">${ic('sliders')}Set up</div>
+      <div class="fam"><span class="av" style="width:32px;height:32px;font-size:14px">D</span>DeeDee’s family</div>
+    </aside>
+    <main class="main">
+      <div class="dhead"><h2>Schedule</h2><div class="pbtn">${ic('plus')}Add assignment</div></div>
+      <div class="dctl">
+        <div class="seg" style="width:200px"><div>Week</div><div class="on">Year</div></div>
+        <div class="chiprow" style="margin:0"><div class="chips"><span class="chip on">Year</span><span class="chip">Fall</span><span class="chip">Spring</span><span class="chip">This month</span></div><button class="ib q" aria-label="Edit terms">${ic('pencil')}</button></div>
+        <div style="flex:1"></div>
+        <div class="seg" style="width:340px">${['All children','Frank','Margaret'].map((k,i)=>`<div class="${i===0?'on':''}">${k}</div>`).join('')}</div>
+      </div>
+      <div class="dbody">
+        <div class="card">${timeline({w:cardW, m:DSK, kids:KIDS, selected:'Treasure Island', h:640})}</div>
+        <aside class="panel">
+          <div class="sh-head"><h3>Treasure Island</h3><button class="ib q" aria-label="Close">${ic('x')}</button></div>
+          <div class="who"><span class="av">F</span>Frank · Literature · 300 pages</div>
+          <div class="tiles" style="flex-direction:column">
+            <div class="tile"><div><small>Start</small><b>Oct 19, 2026</b></div>${ic('cal')}</div>
+            <div class="tile"><div><small>End</small><b>Nov 6, 2026</b></div>${ic('cal')}</div>
+          </div>
+          <div class="pace">${ic('clock')}About 20 pages a day · 40 min</div>
+          <div class="acts"><div class="btn">Copy</div><div class="btn q">More</div></div>
+          <div class="meta">School days <b>Mon–Fri</b><br>Unit <b>pages</b></div>
+        </aside>
+      </div>
+    </main>
+  </div>`;
+}
+
+/* ================= spec strip (light only) ================= */
+function spec(){
+  const L=[.5,1,1.5,3], hs=L.map(l=>barH(P,l));
+  const demo = L.map((l,k)=>{ const h=hs[k]; return `<g transform="translate(${20+k*95},0)"><rect x="0" y="${30-h/2}" width="80" height="${h}" rx="5" fill="#BDDCF0" stroke="#2A7DB0" stroke-opacity=".45"/><text x="40" y="62" text-anchor="middle" font-size="12" fill="#6E655A">${['light','typical','heavy','very heavy'][k]}</text><text x="40" y="78" text-anchor="middle" font-size="12" font-weight="800" fill="#2F2A24">${h.toFixed(0)} px</text></g>`; }).join('');
+  return `<div class="sc"><h3>Bar height: a soft cap</h3>
+    <svg width="400" height="86" viewBox="0 0 400 86">${demo}</svg>
+    <p style="margin:6px 0 0">h = 12 + 8 × (1 − e<sup>−1.2·L</sup>) px on phone, where L is the smoothed load against that child’s typical day. A typical day is about 18 px; nothing ever passes 20 px. Built today: up to about 50 px.</p></div>
+  <div class="sc"><h3>Phone measurements</h3><table>
+    <tr><td class="k">Badge gutter / badge</td><td>36 / 24 px</td></tr>
+    <tr><td class="k">Lane pitch (first row) / extra row</td><td>36 / 28 px</td></tr>
+    <tr><td class="k">Bar height min → cap</td><td>12 → 20 px</td></tr>
+    <tr><td class="k">Child header row / load ribbon</td><td>34 px / 4 → 12 px</td></tr>
+    <tr><td class="k">Axis (sticky): months + Today pill</td><td>42 px / pill 18 px</td></tr>
+    <tr><td class="k">Break band over bars</td><td>72 % (dark 50 %)</td></tr>
+    <tr><td class="k">Bar label</td><td>12 px / 700</td></tr>
+    <tr><td class="k">Tap zone per bar</td><td>≥ 44 × 44 px</td></tr>
+  </table></div>`;
+}
+
+document.fonts.ready.then(() => {
+  document.getElementById('light-frames').innerHTML = phones('light');
+  document.getElementById('dark-frames').innerHTML = phones('dark');
+  document.getElementById('spec').innerHTML = spec();
+  document.getElementById('desk-wrap').innerHTML = desktop();
+  document.body.dataset.ready = '1';
+});
+</script>
+</body>
+</html>

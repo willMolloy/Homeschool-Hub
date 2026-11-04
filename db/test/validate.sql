@@ -324,4 +324,45 @@ SELECT pg_temp.expect_error($$UPDATE family SET zoom_views = NULL WHERE id = 'f0
   '23502', 'zoom_views can''t be NULL');
 DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c3';
 
+-- S9-03: log setup and core subjects (016_log_setup)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c4', 'Log family');
+INSERT INTO subject (id, family_id, name) VALUES ('50000000-0000-0000-0000-0000000000c4', 'f0000000-0000-0000-0000-0000000000c4', 'Math');
+DO $$ BEGIN
+  IF (SELECT log_setup FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c4') IS NOT NULL THEN RAISE EXCEPTION 'FAIL a family should start with no log setup'; END IF;
+  IF (SELECT core FROM subject WHERE id = '50000000-0000-0000-0000-0000000000c4') THEN RAISE EXCEPTION 'FAIL a subject should start non-core'; END IF;
+  RAISE NOTICE 'ok   a family starts with no log setup and a subject starts non-core (016)';
+END $$;
+UPDATE family SET log_setup = '{"template":"coreNonCore","fields":{"subjectHours":true,"coreSplit":true}}' WHERE id = 'f0000000-0000-0000-0000-0000000000c4';
+UPDATE subject SET core = true WHERE id = '50000000-0000-0000-0000-0000000000c4';
+DO $$ BEGIN RAISE NOTICE 'ok   family.log_setup accepts a setup object and subject.core a flag (016)'; END $$;
+SELECT pg_temp.expect_error($$UPDATE family SET log_setup = '[]' WHERE id = 'f0000000-0000-0000-0000-0000000000c4'$$,
+  '23514', 'log_setup must be an object');
+SELECT pg_temp.expect_error($$UPDATE family SET log_setup = '{"template":"x"}' WHERE id = 'f0000000-0000-0000-0000-0000000000c4'$$,
+  '23514', 'log_setup needs its fields');
+SELECT pg_temp.expect_error($$UPDATE subject SET core = NULL WHERE id = '50000000-0000-0000-0000-0000000000c4'$$,
+  '23502', 'subject.core can''t be NULL');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c4';
+
+-- S9-07: log entries typed by the parent (017_record_entries)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c5', 'Entry family');
+INSERT INTO child (id, family_id, name) VALUES ('c0000000-0000-0000-0000-0000000000c5', 'f0000000-0000-0000-0000-0000000000c5', 'Frank');
+INSERT INTO record_entry (id, family_id, child_id, start_date, end_date, counts_school_day, school_days, subject_minutes, notes, books)
+  VALUES ('e0000000-0000-0000-0000-0000000000c5', 'f0000000-0000-0000-0000-0000000000c5', 'c0000000-0000-0000-0000-0000000000c5',
+          '2026-11-02', '2026-11-06', true, 5, '{"50000000-0000-0000-0000-000000000001":210}', 'Nature walk', '["Heidi"]');
+DO $$ BEGIN RAISE NOTICE 'ok   record_entry accepts a typed entry (017)'; END $$;
+SELECT pg_temp.expect_error($$INSERT INTO record_entry (family_id, child_id, start_date, end_date, counts_school_day, school_days) VALUES ('f0000000-0000-0000-0000-0000000000c5','c0000000-0000-0000-0000-0000000000c5','2026-11-06','2026-11-02',true,1)$$,
+  '23514', 'record_entry end can''t be before start');
+SELECT pg_temp.expect_error($$INSERT INTO record_entry (family_id, child_id, start_date, end_date, counts_school_day, school_days, total_minutes) VALUES ('f0000000-0000-0000-0000-0000000000c5','c0000000-0000-0000-0000-0000000000c5','2026-11-02','2026-11-02',true,1,-5)$$,
+  '23514', 'record_entry minutes can''t be negative');
+SELECT pg_temp.expect_error($$INSERT INTO record_entry (family_id, child_id, start_date, end_date, counts_school_day, school_days, books) VALUES ('f0000000-0000-0000-0000-0000000000c5','c0000000-0000-0000-0000-0000000000c5','2026-11-02','2026-11-02',true,1,'{}')$$,
+  '23514', 'record_entry books must be a list');
+SELECT pg_temp.expect_error($$INSERT INTO record_entry (family_id, child_id, start_date, end_date, counts_school_day, school_days) VALUES ('f0000000-0000-0000-0000-0000000000c5','c0000000-0000-0000-0000-000000000009','2026-11-02','2026-11-02',true,1)$$,
+  '23503', 'record_entry child must be in the same family');
+DELETE FROM child WHERE id = 'c0000000-0000-0000-0000-0000000000c5';
+DO $$ BEGIN
+  IF (SELECT count(*) FROM record_entry WHERE family_id = 'f0000000-0000-0000-0000-0000000000c5') <> 0 THEN RAISE EXCEPTION 'FAIL a child''s entries should go with the child'; END IF;
+  RAISE NOTICE 'ok   a child''s entries are deleted with the child (017)';
+END $$;
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c5';
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

@@ -1,3 +1,6 @@
+// S9b-04: dates are typed into the DateField (US text, then blur).
+import { PLAIN_INPUTS, fillDates } from "../common.mjs";
+
 export default async function ({ page, shot, login, log, BASE }) {
   await page.goto(`${BASE}/setup/assignments`, { waitUntil: "networkidle0" });
   await login();
@@ -19,14 +22,10 @@ export default async function ({ page, shot, login, log, BASE }) {
   await page.waitForSelector(form);
   const subj = await page.$eval(`${form} select`, (s) => s.options[1].value);
   await page.select(`${form} select`, subj);
-  const inputs = await page.$$(`${form} input[type=text], ${form} input[type=number]`);
+  const inputs = await page.$$(`${form} ${PLAIN_INPUTS}`);
   await inputs[0].type("Smoke test assignment");
   await inputs[1].type("10");
-  await page.$$eval(`${form} input[type=date]`, (els) => {
-    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
-    const vals = ["2026-11-02", "2026-11-13"];
-    els.forEach((el, i) => { set.call(el, vals[i]); el.dispatchEvent(new Event("input", { bubbles: true })); });
-  });
+  await fillDates(page, form, ["Nov 2, 2026", "Nov 13, 2026"]); // S9b-04: typed into the DateField, US style
   const kid = await page.$(`${form} .choice-list input[type=checkbox]`);
   await kid.evaluate((e) => e.scrollIntoView({ block: "center" }));
   await kid.click();

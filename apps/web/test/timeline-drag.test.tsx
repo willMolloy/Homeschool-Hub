@@ -1,4 +1,5 @@
 /** T-08: dragging bars (drag.ts, useBarDrag, the page). */
+import { formatDate, parseDateInput } from "../src/lib/dates";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { addDays, diffDays, ENGINE_VERSION, type LocalDate } from "@hh/engine";
@@ -134,7 +135,7 @@ describe("dragging on the page", () => {
     fireEvent.pointerDown(svg, { ...pointer("mouse"), clientX: x, clientY: y });
     fireEvent.pointerMove(stage, { ...pointer("mouse"), clientX: x - 60, clientY: y });
     const bar = await screen.findByRole("region", { name: `Edit ${a.title}` });
-    const previewed = (within(bar).getByLabelText("Start") as HTMLInputElement).value;
+    const previewed = parseDateInput((within(bar).getByLabelText("Start") as HTMLInputElement).value)!;
     expect(previewed < a.startDate).toBe(true);
     expect(patches()).toHaveLength(0);
     fireEvent.pointerUp(stage, { ...pointer("mouse"), clientX: x - 60, clientY: y });
@@ -174,9 +175,9 @@ describe("dragging on the page", () => {
     expect(stage.hasAttribute("data-drag-ready")).toBe(true);
     fireEvent.pointerDown(svg, { ...pointer("touch"), clientX: x, clientY: y });
     fireEvent.pointerMove(stage, { ...pointer("touch"), clientX: x - 60, clientY: y });
-    await waitFor(() => expect((within(bar).getByLabelText("Start") as HTMLInputElement).value < a.startDate).toBe(true));
+    await waitFor(() => expect(parseDateInput((within(bar).getByLabelText("Start") as HTMLInputElement).value)! < a.startDate).toBe(true));
     fireEvent.pointerCancel(stage, { ...pointer("touch") });
-    await waitFor(() => expect(within(bar).getByLabelText("Start")).toHaveValue(a.startDate));
+    await waitFor(() => expect(within(bar).getByLabelText("Start")).toHaveValue(formatDate(a.startDate)));
     expect(patches()).toHaveLength(0);
   });
 });

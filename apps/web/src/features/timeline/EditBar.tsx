@@ -1,13 +1,14 @@
 /**
  * T-07e: the edit bar for one selected assignment, fixed to the bottom of the viewport (above the tab bar on
  * phones). Not modal: the page scrolls and zooms behind it. It only exists while something is selected
- * (DeeDee's T-02b rule). Esc or × clears the selection. S7b-02: More holds "Update time estimate" (it replaced the S6-10 Heavier and Lighter nudges).
+ * (DeeDee's T-02b rule). Esc or × clears the selection. S7b-02: More holds "Update status" (S9-02) and "Update time estimate" (it replaced the S6-10 Heavier and Lighter nudges).
  * S6b-05: only Start, End, Copy and a quiet "More" show; More holds Update time estimate and Reset to original. The
  * week-step buttons and the session's date-only Reset are gone (date pickers, dragging, Undo and Reset to original
  * cover them).
  */
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { datesError, type DateSpan, type Selection } from "./select";
+import { DateField } from "../../ui/DateField";
 
 export interface EditBarProps {
   selection: Selection;
@@ -18,6 +19,8 @@ export interface EditBarProps {
   onCopy: () => void;
   /** S7b-02: opens the sheet where the parent says how long a day of this really takes. */
   onUpdateEstimate: () => void;
+  /** S9-02: "got to p. 138, move to {date}" for the selected assignment. */
+  onUpdateStatus: () => void;
   /** S6-08: asks to put the assignment back to how it was created (the page confirms first). */
   onReset: () => void;
   onClose: () => void;
@@ -25,7 +28,7 @@ export interface EditBarProps {
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onReset, onClose }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
   const [more, setMore] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -59,9 +62,9 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
     setInvalid(bad);
     if (!bad) onSave(next);
   };
-  const onDate = (field: keyof DateSpan) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTyped({ for: shown, dates: { ...draft, [field]: e.target.value } });
-    if (ISO.test(e.target.value)) save({ startDate: s.startDate, endDate: s.endDate, [field]: e.target.value });
+  const onDate = (field: keyof DateSpan) => (value: string) => {
+    setTyped({ for: shown, dates: { ...draft, [field]: value } });
+    if (ISO.test(value)) save({ startDate: s.startDate, endDate: s.endDate, [field]: value });
   };
   const message = invalid ?? error;
 
@@ -77,8 +80,8 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
       </div>
       <div className="tl-edit-body">
         <div className="tl-edit-dates">
-          <label>Start <input type="date" value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
-          <label>End <input type="date" value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
+          <label>Start <DateField opens="up" value={draft.startDate} disabled={busy} onChange={onDate("startDate")} /></label>
+          <label>End <DateField opens="up" value={draft.endDate} disabled={busy} onChange={onDate("endDate")} /></label>
         </div>
         <div className="tl-edit-ends">
           <button type="button" className="btn btn-secondary" disabled={busy} onClick={onCopy}>Copy</button>
@@ -86,6 +89,7 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
             <button type="button" className="btn btn-secondary tl-more-btn" aria-expanded={more} aria-controls="tl-more-menu" onClick={() => setMore((m) => !m)}>More</button>
             {more && (
               <div id="tl-more-menu" className="tl-more-menu" role="group" aria-label="More">
+                <button type="button" disabled={busy} onClick={() => { setMore(false); onUpdateStatus(); }}>Update status</button>
                 <button type="button" disabled={busy} onClick={() => { setMore(false); onUpdateEstimate(); }}>Update time estimate</button>
                 <button type="button" disabled={busy} onClick={() => { setMore(false); onReset(); }}>Reset to original</button>
               </div>

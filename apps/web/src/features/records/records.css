@@ -1,0 +1,73 @@
+/* S9-03: Records and Log setup (Soft Paper tokens; 44 px targets). */
+.records-page h2 { font-family: var(--tl-font-display); font-weight: 600; font-size: 1.1rem; margin: 0 0 4px; }
+.records-lead { margin: 0 0 16px; color: var(--tl-muted-foreground); }
+.records-tracks p { margin: 0 0 14px; }
+.log-setup fieldset { border: 0; margin: 0 0 18px; padding: 0; min-width: 0; }
+.log-setup legend { font-weight: 700; font-size: 0.95rem; margin: 0 0 8px; padding: 0; }
+.choice-card { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; margin: 0 0 8px; padding: 14px; box-sizing: border-box; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); cursor: pointer; }
+.choice-card.is-on { background: var(--tl-primary-soft); box-shadow: inset 0 0 0 2px var(--tl-primary); }
+.choice-card input { width: 22px; height: 22px; margin: 1px 0 0; flex: none; accent-color: var(--tl-primary); }
+.choice-card small, .choice-row small { display: block; color: var(--tl-muted-foreground); font-size: 0.8125rem; margin-top: 2px; }
+.choice-row { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; padding: 8px 0; cursor: pointer; }
+.choice-row input { width: 22px; height: 22px; margin: 1px 0 0; flex: none; accent-color: var(--tl-primary); }
+.log-core-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin: 0 0 6px; }
+.log-core-row > span { flex: 1 1 8rem; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.log-core-row .segmented { flex: 0 1 15rem; margin: 0; }
+
+/* S9-07: the log form and the entries list. */
+.records-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.log-form fieldset { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+.log-form legend { font-weight: 700; font-size: 0.95rem; margin: 0 0 6px; padding: 0; }
+.log-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.log-chips .chip { white-space: nowrap; } /* S9b-05 (N9): "All children" stays on one line */
+.hm-row { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
+.hm-label { flex: 1 1 7rem; min-width: 0; overflow-wrap: anywhere; }
+.hm-boxes { display: flex; flex: none; align-items: center; gap: 6px; white-space: nowrap; }
+.log-form.schedule-form .hm-row input[type="number"] { flex: none; max-width: 4.2rem; width: 4.2rem; min-height: 44px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--tl-input); border-radius: var(--tl-radius-bar); background: var(--tl-card); color: var(--tl-foreground); font: inherit; text-align: center; }
+.log-form.schedule-form textarea, .log-form.schedule-form .log-book-add input[type="text"] { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--tl-input); border-radius: var(--tl-radius-bar); background: var(--tl-card); color: var(--tl-foreground); font: inherit; }
+.log-book-add { display: flex; gap: 8px; }
+.log-book-add input { min-height: 44px; flex: 1; min-width: 0; }
+.log-book-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.log-book-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
+.entry-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.entry-row { padding: 12px 14px; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); }
+.entry-head { font-weight: 700; overflow-wrap: anywhere; }
+.entry-sum { margin: 2px 0 6px; color: var(--tl-muted-foreground); font-size: 0.875rem; overflow-wrap: anywhere; }
+.entry-part { margin: 2px 0 0; color: var(--tl-muted-foreground); font-size: 0.8125rem; font-style: italic; }
+.entry-actions { display: flex; gap: 4px; }
+
+/* S9-08: range picker, big numbers, hours by subject. */
+.range-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.range-dates { margin: 0 0 12px; }
+.range-note { margin: 0 0 14px; color: var(--tl-muted-foreground); font-size: 0.875rem; }
+/* S9b-05 (N9): a big number never wraps ("142 h 05 m" on one line): tiles are at least 8.5rem (two to a row at 320 px) and the
+   number shrinks a little on small phones. */
+.big-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 8px; margin: 0 0 18px; }
+.big-number { padding: 12px 14px; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); display: flex; flex-direction: column; }
+.big-number strong { font-family: var(--tl-font-display); font-weight: 600; font-size: clamp(1.15rem, 6.5vw, 1.4rem); line-height: 1.2; white-space: nowrap; }
+.big-number span { color: var(--tl-muted-foreground); font-size: 0.875rem; }
+.by-subject { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; }
+.by-subject li { display: grid; grid-template-columns: minmax(0, 7rem) 1fr auto; align-items: center; gap: 10px; min-height: 28px; }
+.by-name { overflow-wrap: anywhere; font-weight: 600; }
+.by-bar { height: 12px; border-radius: 99px; background: var(--tl-border); overflow: hidden; display: block; }
+.by-bar i { display: block; height: 100%; border-radius: 99px; background: var(--c); box-shadow: inset 2px 0 0 var(--cs); }
+.by-hours { font-variant-numeric: tabular-nums; font-size: 0.9rem; }
+.records-wording { margin: 18px 0 0; color: var(--tl-muted-foreground); font-size: 0.8125rem; }
+.records-lead .btn-link { min-height: 44px; }
+
+/* S9-11: export sheet and the printable summary (one page per child). */
+.export-form fieldset { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+.export-form legend { font-weight: 700; font-size: 0.95rem; margin: 0 0 6px; padding: 0; }
+.print-summary { display: none; }
+@media print {
+  @page { margin: 18mm; }
+  body.printing > *:not(.print-summary) { display: none !important; }
+  body.printing .print-summary { display: block; color: #000; background: #fff; font-family: var(--tl-font); }
+  .print-page { break-after: page; page-break-after: always; }
+  .print-page:last-child { break-after: auto; page-break-after: auto; }
+  .print-page h1 { font-size: 22pt; margin: 0 0 4pt; }
+  .print-page table { width: 100%; border-collapse: collapse; margin: 12pt 0; }
+  .print-page th, .print-page td { text-align: left; padding: 4pt 6pt; border-bottom: 0.5pt solid #999; font-weight: 400; vertical-align: top; }
+  .print-page th { font-weight: 700; width: 38%; }
+  .print-wording { margin-top: 18pt; font-size: 9pt; }
+}

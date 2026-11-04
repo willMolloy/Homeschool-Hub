@@ -35,6 +35,7 @@ import { hitTest } from "../features/timeline/hit";
 import { selectionFor } from "../features/timeline/select";
 import { layoutTimeline } from "../features/timeline/layout";
 import type { TimelineModel } from "../features/timeline/model";
+import { yearHalves, yearSpan } from "../features/records/ranges";
 import type { MeasureText } from "../features/timeline/names";
 import { Timeline } from "../features/timeline/Timeline";
 import { TimelineLanesList } from "../features/timeline/TimelineLanesList";
@@ -45,6 +46,7 @@ import { useZoomFade } from "../features/timeline/useZoomFade";
 import { availableZooms, defaultMonth, gridMonths, viewWithoutPlan, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
+import { UpdateStatusFlow } from "../features/status/UpdateStatusFlow";
 import { EditZoomViewsSheet } from "../features/timeline/EditZoomViews";
 import { ChildSwitch } from "../features/week/ChildSwitch";
 import { ALL, useChildChoice } from "../features/week/useChildChoice";
@@ -56,7 +58,7 @@ const FALLBACK_WIDTH = 360;
 /** T-10: how long a just-added bar stays highlighted (keep in step with tl-flash in timeline.css). */
 export const FLASH_MS = 2400;
 
-interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail; customViews?: ZoomViews["custom"] }
+interface LayoutArgs { width: number; measureText: MeasureText; month: string | null; previousDetail?: DrawnDetail; customViews?: ZoomViews["custom"]; viewOverrides?: ZoomViews["overrides"] }
 const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: LayoutArgs) =>
   model && zoom ? layoutTimeline(model, { zoom, ...a }) : undefined;
 
@@ -74,12 +76,15 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   const { ref, width } = useElementWidth<HTMLDivElement>(FALLBACK_WIDTH);
   const { zoom, leaving, setZoom, settle } = useZoomFade("year");
   const customViews = zoomViews.custom;
+  const viewOverrides = zoomViews.overrides;
   // S7-04: Year, the built-ins the family hasn't hidden, then its own views; a zoom that is gone falls back to Year.
   const zooms = useMemo(() => (model ? visibleZooms(model, zoomViews) : (["year"] as Zoom[])), [model, zoomViews]);
   const shownZoom = zooms.includes(zoom) ? zoom : "year";
   // S7b-07 (F3): Fall and Spring the grid can't offer (it doesn't span New Year) say so in the Zoom views sheet.
-  const unavailable = model && model.dates.length > 0 ? (["fall", "spring"] as const).filter((z) => !availableZooms(model).includes(z)) : [];
-  const noPlanView = model ? viewWithoutPlan(model, shownZoom, zoomViews.custom) : null;
+  const unavailable = model && model.dates.length > 0 ? (["fall", "spring"] as const).filter((z) => !availableZooms(model, viewOverrides).includes(z)) : [];
+  // S9b-05 (N13): the default halves come from the same source as Records' Fall and Spring (the live assignments' year).
+  const halves = model ? yearHalves(yearSpan(assignments, model.today)) : null;
+  const noPlanView = model ? viewWithoutPlan(model, shownZoom, zoomViews.custom, viewOverrides) : null;
   const measureText = useMeasureText();
   // T-05c: This month starts at the month holding today; ‹ › flip it.
   const months = useMemo(() => (model ? gridMonths(model) : []), [model]);
@@ -92,11 +97,11 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   // The last detail drawn, for the detail threshold's hysteresis.
   const lastDetail = useRef<DrawnDetail | undefined>(undefined);
   const layout = useMemo(
-    () => layoutFor(drawn, shownZoom, { width, measureText, month, customViews, previousDetail: lastDetail.current }),
-    [drawn, shownZoom, width, measureText, month, customViews],
+    () => layoutFor(drawn, shownZoom, { width, measureText, month, customViews, viewOverrides, previousDetail: lastDetail.current }),
+    [drawn, shownZoom, width, measureText, month, customViews, viewOverrides],
   );
   lastDetail.current = layout?.detail;
-  const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month, customViews }), [model, leaving, width, measureText, month, customViews]);
+  const leavingLayout = useMemo(() => layoutFor(model, leaving, { width, measureText, month, customViews, viewOverrides }), [model, leaving, width, measureText, month, customViews, viewOverrides]);
   // T-07: the selection lives beside the zoom, so it survives zoom changes and month flips.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const edit = useAssignmentEdit(applyAssignment);
@@ -125,6 +130,9 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   // S7b-02: "Update time estimate" opens a sheet for the selected assignment, at its own pace (its days, else the subject's, else every school day).
   const { schoolDays } = useMe();
   const [estimating, setEstimating] = useState<string | null>(null);
+  // S9-02: Update status from the edit bar's More.
+  const [statusing, setStatusing] = useState<string | null>(null);
+  const statusAssignment = assignments.find((a) => a.id === statusing);
   const estimated = assignments.find((a) => a.id === estimating);
   const estimatedSubject = estimated ? subjects.find((s) => s.id === estimated.subjectId) : undefined;
   const estimatedDays = estimated ? estimated.weekdays ?? estimatedSubject?.defaultWeekdays ?? schoolDays : null;
@@ -180,7 +188,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
       <header className="timeline-page-header">
         {embedded ? null : <h1>Timeline</h1>}
         {!failed && !loading && model && <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />}
-        {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews)} onEdit={() => setEditingViews(true)} />}
+        {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews, viewOverrides)} onEdit={() => setEditingViews(true)} />}
       </header>
       {ready && <ChildSwitch kids={childList} value={choice} onChange={setChoice} />}
       {(ready || calendar) && shownZoom === "month" && month && <MonthNav months={months} value={month} onChange={setMonth} />}
@@ -193,7 +201,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
           <p aria-busy="true">Loading…</p>
         ) : empty ? (
           <>
-            <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`} subjects={subjects} />
+            <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews, viewOverrides)} timeline`} subjects={subjects} />
             <p className="tl-empty">Nothing planned yet.</p>
             <p className="tl-empty tl-empty-hint">Tap + Add assignment above and your books and lessons appear here.</p>
           </>
@@ -203,7 +211,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
             {noPlanView && <p className="tl-empty" role="status">Nothing planned in {noPlanView.name} yet.</p>}
             <div ref={stage} className="tl-stage" data-drag-ready={BAR_DRAG_ENABLED && selection ? "" : undefined} {...(BAR_DRAG_ENABLED ? drag : {})}>
               <div key={shownZoom} className={leavingLayout ? "tl-entering" : undefined}>
-                <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews)} timeline`} subjects={subjects}
+                <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews, viewOverrides)} timeline`} subjects={subjects}
                   selectedId={selection ? selectedId : null} onPick={pick} flashId={flashId} grips={BAR_DRAG_ENABLED} />
               </div>
               {leavingLayout && (
@@ -219,7 +227,7 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
               <>
                 <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />
                 <EditBar ref={keep.ref} selection={selection}
-                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)}
+                  busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)} onUpdateStatus={() => setStatusing(selection.assignmentId)}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
               </>
             )}
@@ -232,10 +240,14 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
           <p>Its dates, effort and days go back, and its week adjustments are removed. You can undo this right after.</p>
         </ConfirmDialog>
       )}
+      {statusAssignment && (
+        <UpdateStatusFlow assignmentId={statusAssignment.id} title={statusAssignment.title} onClose={() => setStatusing(null)} onSaved={reload}
+          childId={childId && statusAssignment.childIds.includes(childId) ? childId : statusAssignment.childIds.length === 1 ? statusAssignment.childIds[0]! : null} />
+      )}
       <UpdateEstimateSheet assignment={estimated} subject={estimatedSubject} pace={estimatedPace}
         childNames={estimated ? estimated.childIds.map((id) => children.find((c) => c.id === id)?.name ?? "").filter(Boolean) : []}
         onSaved={(saved) => { applyAssignment(saved); setEstimating(null); }} onClose={() => setEstimating(null)} />
-      <EditZoomViewsSheet open={editingViews} views={zoomViews} unavailable={unavailable} onClose={() => setEditingViews(false)}
+      <EditZoomViewsSheet open={editingViews} views={zoomViews} unavailable={unavailable} defaults={halves} onClose={() => setEditingViews(false)}
         onSaved={(saved) => { setZoomViews(saved); setEditingViews(false); }} />
       <AddAssignmentSheet open={adding} lookups={lookups} initial={copying} onSaved={added} onClose={closeAdd} />
     </>

@@ -41,7 +41,7 @@ describe.skipIf(!hasDb)("prepareDemo (integration)", () => {
 
   it("wipes everything and leaves only the seeded demo family", async () => {
     const s = await prepareDemo(url, () => {}, () => {});
-    expect(s.counts).toMatchObject({ child: 2, subject: 6, assignment: 20, event: 4, blocked_range: 4, progress_checkin: 2 });
+    expect(s.counts).toMatchObject({ child: 2, subject: 6, assignment: 20, event: 4, blocked_range: 4, progress_checkin: 3 });
     expect(await q(url, "SELECT name, login_email FROM family")).toEqual([{ name: expect.any(String), login_email: DEMO_EMAIL }]);
   });
 

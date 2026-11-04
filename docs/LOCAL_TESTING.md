@@ -17,23 +17,27 @@ Open http://localhost:5173 and sign in with `demo@example.com` / `demo-password`
 
 **Home**
 - [ ] In five seconds, can you tell what the app is for and what to do next?
-- [ ] The tabs at the bottom (Home · Track work · Schedule) are clear, and Home is always one tap away.
+- [ ] The tabs at the bottom (Home · Schedule · Records) are clear, and Home is always one tap away.
 
 **Schedule · Week**
 - [ ] The pastel bars show this week's work; ranges match where each book really is.
 - [ ] Tap a bar: the week adjustment opens. Change it, then Undo from the bar at the bottom.
+- [ ] In that sheet, "Update status" on a row ("They got to p. 138", keep or move the end date) corrects the plan's pace.
 
 **Schedule · Year**
 - [ ] Bars are calm when zoomed out; no bar fills the screen.
 - [ ] Tap a subject badge in the left gutter: the full name shows and its lane highlights.
 - [ ] Tap a bar: the edit bar (Start, End, Copy, More) sits above the tabs, on phone and laptop.
-- [ ] More → Update time estimate: it opens on the current minutes a day.
+- [ ] More → Update status and More → Update time estimate open for the selected bar.
 
-**Track work**
-- [ ] Last week's question: "Yes, all done" checks the week in with one tap.
-- [ ] "Not quite": untick what didn't happen, or Update status on a bar ("Move to {date}").
+**Records**
+- [ ] A new family sees "Set up your log": pick a style (Hours by subject, Core and non-core hours, Days attended, Days and hours, Detailed log), adjust the switches, mark subjects core or non-core. No state is named.
+- [ ] Log: the date, the children and every hours box start empty; "Count as a school day" is on; hours are typed as hours and minutes. Log one week for two children: each child's record shows its own entry.
+- [ ] Records shows the range (This week, Year, Fall, Spring, your terms, custom dates), the big numbers for what you track, hours by subject, and the wording "Made for your state records. It doesn't guarantee your homeschool meets every state requirement; check your state's rules."
+- [ ] Edit and Delete an entry; Undo from the bar at the bottom. The schedule never changes.
+- [ ] Export: pick dates, children, Each entry or Totals and the columns; Download CSV opens in a spreadsheet with no empty columns and the wording on line 1; Print summary previews one page per child.
 
-**Child switch** (Week, Track work, Year)
+**Child switch** (Week, Records, Year)
 - [ ] "All children" comes first; picking a child on one screen carries to the others.
 - [ ] Narrow the window: when names don't fit, it becomes one "All children ▾" button with a list.
 

@@ -35,6 +35,58 @@ export interface CustomZoomView {
 export interface ZoomViews {
   hidden: ("fall" | "spring" | "month")[];
   custom: CustomZoomView[];
+  /** S9-06: Fall and Spring renamed and re-dated; no entry means the default name and dates. */
+  overrides?: BuiltInZoomOverrides;
+}
+export interface BuiltInZoomOverride { name: string; start: string; end: string }
+export type BuiltInZoomOverrides = { fall?: BuiltInZoomOverride; spring?: BuiltInZoomOverride };
+
+/** S9-03: what a family's records track. A template style is only a starting point; the fields are what counts. */
+export interface LogFields {
+  subjectHours: boolean;
+  coreSplit: boolean;
+  totalHours: boolean;
+  schoolDays: boolean;
+  homeAway: boolean;
+  notes: boolean;
+  books: boolean;
+}
+export type LogTemplate = "hoursBySubject" | "coreNonCore" | "daysAttended" | "daysAndHours" | "detailed" | "custom";
+export interface LogSetup { template: LogTemplate; fields: LogFields }
+
+/** S9-07: one log entry, typed by the parent: one child, a day or a run of days. Minutes are whole minutes. */
+export interface RecordEntry {
+  id: string;
+  childId: string;
+  startDate: string;
+  endDate: string;
+  countsSchoolDay: boolean;
+  /** How many days the entry counts (0 when the switch is off), from its covered days (S9b-01). */
+  schoolDays: number;
+  /** S9b-01: the days the entry covers, whatever its switch: one chosen date, or the school-calendar days of a run. */
+  coveredDays: string[];
+  subjectMinutes: Record<string, number>;
+  totalMinutes: number | null;
+  homeMinutes: number | null;
+  awayMinutes: number | null;
+  notes: string | null;
+  books: string[];
+}
+
+/** S9-08: GET /api/records/totals, from log entries only. */
+export interface RecordTotals {
+  from: string | null;
+  to: string | null;
+  childId: string | null;
+  entries: number;
+  schoolDays: number;
+  totalMinutes: number;
+  coreMinutes: number;
+  nonCoreMinutes: number;
+  homeMinutes: number;
+  awayMinutes: number;
+  books: string[];
+  bySubject: { subjectId: string; minutes: number }[];
 }
 
 /** GET/PATCH /api/family */
@@ -43,6 +95,8 @@ export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
   weekStartLocked: boolean;
   /** S7-03 */
   zoomViews: ZoomViews;
+  /** S9-03: what the records track; null until the family picks a template style. */
+  logSetup: LogSetup | null;
 };
 /** The PATCH /api/family body: any of the editable fields. */
 export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">>;
@@ -75,6 +129,8 @@ export interface Subject {
   defaultWeekdays: number[] | null;
   /** S8-11: a key from the fixed icon list, or null for the first-letter badge. */
   icon?: string | null;
+  /** S9-03: a core subject (the records split hours into core and non-core). Missing = non-core. */
+  core?: boolean;
 }
 
 /** GET /api/health */

@@ -109,7 +109,7 @@ describe("adding an assignment from the timeline", () => {
     expect(within(sheet).queryByText("More")).toBeNull();
     expect(within(sheet).queryByLabelText(/^Weight per/)).toBeNull();
     // Nothing non-essential: the form's own buttons and the close button, no helper text or badges.
-    expect(within(sheet).getAllByRole("button").map((b) => b.textContent)).toEqual(["×", "Add", "Cancel"]);
+    expect(within(sheet).getAllByRole("button").map((b) => b.textContent)).toEqual(["×", "", "", "Add", "Cancel"]) /* S9-04: the two calendar buttons (icon only, named "Choose a date") sit after Start and End */;
   });
 
   it("is a bottom sheet on phones", async () => {

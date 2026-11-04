@@ -13,14 +13,14 @@ The planned business model is freemium: Free covers one child, and the Family pl
 - Semi-transparent bars. A bar's thickness shows daily effort: units per day × the assignment's effort weight per unit (1 point ≈ 2 minutes). How parents enter effort is being reworked (ROADMAP.md, "Effort").
 - An "All subjects" bar pinned above the lanes shows the summed load.
 - Zoom presets: Year / Fall / Spring / This month.
-- A child filter.
+- A child filter (All children, or one).
 - Tap a bar to edit it in the edit bar at the bottom, or drag it to change its dates.
 - "+ Add assignment" in the timeline header.
 
 **Supporting features:**
-- **This Week**, with the optional "How did last week go?" check-in. The plan assumes scheduled work was done unless the parent says otherwise.
+- **Schedule · Week**: this week's plan as pastel bars. A bar opens the week adjustment, and "Update status" ("They got to p. 138", keep or move the end date) corrects the plan's pace. The plan assumes scheduled work was done unless the parent says otherwise; there is no weekly check-in card (S9-02).
 - **Recurring events and days off** (built in Sprint 2a).
-- **Records** (planned optional module): attendance days, estimated hours, a book list and CSV export, all generated from the plan. None of it is in the code yet. Daily check-off logging is a later optional module, never required (ROADMAP.md, "Optional modules").
+- **Records** (the second main job, Sprint 9): log setup (template styles: hours by subject, core and non-core hours, days attended, days and hours, detailed log; never a state), log entries the parent types (a day or a run of days, one or several children stored as one entry each, hours and minutes, school-day switch on by default, never prefilled, never changing the plan), totals for a range (This week, Year, Fall, Spring, the family's terms, custom dates) and an export (CSV with chosen columns and dates, and a printable page per child). Daily check-off logging stays a later optional module (ROADMAP.md, "Optional modules").
 
 ## Design principles
 
@@ -42,10 +42,10 @@ Every ticket has an acceptance criterion that checks nothing non-essential is sh
 
 ## Product rules
 
-- **Schedule first.** Planning comes before logging. Logging is optional, and the plan doesn't depend on it (S2b-18, S2b-19).
+- **Schedule first.** Planning comes before logging. Logging is optional and typed by the parent: it is never prefilled from the plan and never moves it, and the plan never reads it (S2b-18, S2b-19, S9-07).
 - **No tedious entry.** A feature that needs parents to type a lot (lesson titles, required daily check-offs) stays out of the core.
 - **The parent pilot gate was dropped** on 2026-10-28. Validation now runs through DeeDee's own use, then a friends beta with agreed go-public signals (ROADMAP.md). `docs/pilot/` is kept for history.
-- **Logging is a record-keeping helper, never a compliance claim.** No copy may claim the app meets a state's requirements.
+- **Logging is a record-keeping helper, never a compliance claim.** No copy may claim the app meets a state's requirements; Records and every export say only: "Made for your state records. It doesn't guarantee your homeschool meets every state requirement; check your state's rules."
 - **Payments and billing come only after live testing.**
 
 ## Tech stack

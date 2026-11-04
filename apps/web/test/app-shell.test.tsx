@@ -5,12 +5,12 @@ import { renderAt } from "./render";
 
 describe("AppShell", () => {
   it("shows the three tabs, in order, with icons and labels; the active one has aria-current=page", async () => {
-    renderAt("/track");
+    renderAt("/records");
     const nav = await screen.findByRole("navigation", { name: "Main" });
     const links = within(nav).getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual(["Home", "Track work", "Schedule"]);
+    expect(links.map((l) => l.textContent)).toEqual(["Home", "Schedule", "Records"]);
     for (const l of links) expect(l.querySelector("svg")).not.toBeNull();
-    expect(within(nav).getByRole("link", { name: "Track work" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("link", { name: "Records" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current");
   });
 
@@ -27,14 +27,14 @@ describe("AppShell", () => {
     expect(within(nav).getByRole("link", { name: "Schedule" })).toHaveAttribute("aria-current", "page");
   });
 
-  it("one tap on Home from anywhere, and Track work and Schedule switch in one tap", async () => {
+  it("one tap on Home from anywhere, and Schedule and Records switch in one tap", async () => {
     const user = userEvent.setup();
     const { router } = renderAt("/setup/events");
     const nav = await screen.findByRole("navigation", { name: "Main" });
     await user.click(within(nav).getByRole("link", { name: "Home" }));
     expect(router.state.location.pathname).toBe("/");
-    await user.click(within(nav).getByRole("link", { name: "Track work" }));
-    expect(router.state.location.pathname).toBe("/track");
+    await user.click(within(nav).getByRole("link", { name: "Records" }));
+    expect(router.state.location.pathname).toBe("/records");
     await user.click(within(nav).getByRole("link", { name: "Schedule" }));
     expect(router.state.location.pathname).toBe("/schedule");
   });
@@ -48,7 +48,7 @@ describe("AppShell", () => {
       await user.tab();
       reached.push(document.activeElement?.textContent ?? "");
     }
-    expect(reached).toEqual(expect.arrayContaining(["Home", "Track work", "Schedule"]));
+    expect(reached).toEqual(expect.arrayContaining(["Home", "Schedule", "Records"]));
   });
 
   it("there is no header bar and no Sign out button outside Home", async () => {

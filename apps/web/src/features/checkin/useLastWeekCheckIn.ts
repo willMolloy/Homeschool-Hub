@@ -1,7 +1,7 @@
 /**
- * Data and mutations for a week's check-in card: GET /api/check-ins (last week, or `?weekStart=` for a past
- * week, S2b-27) and the PUT that confirms, skips or saves it. The home-screen card shows only while last week
- * is unreviewed and had work. A save that changed the plan tells the plan views to refetch (S2b-26).
+ * Data and mutations for a week's check-ins: GET /api/check-ins (last week, or `?weekStart=` for a past week,
+ * S2b-27) and the PUT behind Update status. S9-02: the "Did everything get done?" card and its nudges are gone;
+ * a save that changed the plan tells the plan views to refetch (S2b-26).
  */
 import { useEffect, useRef, useState } from "react";
 import { ApiError, apiPut } from "../../api/client";
@@ -83,11 +83,4 @@ export function useWeekCheckIn(weekStart?: string): WeekCheckInState {
     }
   };
   return { data, loading: api.loading, loadError: api.error ? "Couldn't load that week." : null, busy, error, itemErrors, thanks, save };
-}
-
-/** The home-screen prompt: last week, only while unreviewed and it had work. */
-export function useLastWeekCheckIn(): LastWeekCheckIn {
-  const { data, busy, error, itemErrors, thanks, save } = useWeekCheckIn();
-  const week = data && data.status === null && data.items.length > 0 ? data : null;
-  return { week, busy, error, itemErrors, thanks, save };
 }

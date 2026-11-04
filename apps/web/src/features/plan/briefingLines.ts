@@ -106,3 +106,25 @@ export function buildBriefing(input: BriefingInput): ChildBriefing[] {
   }
   return out;
 }
+
+/** S9b-03: the number of assignments with a "will finish late" line, for any child (one assignment late for two children is one). */
+export function lateAssignments(groups: readonly ChildBriefing[]): number {
+  const ids = new Set<string>();
+  for (const g of groups) for (const l of g.lines) if (l.key.startsWith("late-")) ids.add(l.key.slice("late-".length));
+  return ids.size;
+}
+
+/** S9-05: lower is more important. Late and stalled work first, then plan problems, then a heavy week. */
+export function lineRank(l: BriefingLine): number {
+  return l.key.startsWith("late-") || l.key.startsWith("noprogress-") ? 0 : l.key === "heavy" ? 2 : 1;
+}
+
+/**
+ * S9-05: the single most important line across the family (for Home), or null when nothing needs the parent. Ties go to the
+ * earlier child and the earlier line.
+ */
+export function topBriefingLine(groups: readonly ChildBriefing[]): BriefingLine | null {
+  let best: BriefingLine | null = null;
+  for (const g of groups) for (const l of g.lines) if (best === null || lineRank(l) < lineRank(best)) best = l;
+  return best;
+}

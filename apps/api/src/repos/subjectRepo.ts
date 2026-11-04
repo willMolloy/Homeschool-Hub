@@ -11,6 +11,8 @@ export interface SubjectRow extends RosterRow {
   default_weekdays: number[] | null;
   /** S8-11: a key from the fixed icon list; NULL = the first-letter badge. */
   icon: string | null;
+  /** S9-03: core (true) or non-core (false) for the records' core and non-core hours. */
+  core: boolean;
 }
 
 export interface SubjectJson extends RosterJson {
@@ -20,6 +22,8 @@ export interface SubjectJson extends RosterJson {
   defaultWeekdays: number[] | null;
   /** S8-11: the subject's icon key, or null for the first-letter badge. */
   icon: string | null;
+  /** S9-03: a core subject (the records split hours into core and non-core). */
+  core: boolean;
 }
 
 export type SubjectPatch = RosterPatch & {
@@ -28,17 +32,18 @@ export type SubjectPatch = RosterPatch & {
   defaultWeekdays?: number[] | null;
   /** null = the first-letter badge; undefined leaves it. */
   icon?: string | null;
+  core?: boolean;
 };
 
-export type SubjectInput = { name: string; color?: string | null; defaultWeight?: SubjectDefaultWeight | null; defaultWeekdays?: number[] | null; icon?: string | null };
+export type SubjectInput = { name: string; color?: string | null; defaultWeight?: SubjectDefaultWeight | null; defaultWeekdays?: number[] | null; icon?: string | null; core?: boolean };
 
-const repo = rosterRepo<SubjectRow>("subject", ["default_weight_unit", "default_weight", "default_weekdays", "icon"]);
+const repo = rosterRepo<SubjectRow>("subject", ["default_weight_unit", "default_weight", "default_weekdays", "icon", "core"]);
 
 export function toSubjectJson(row: SubjectRow): SubjectJson {
   const defaultWeight = row.default_weight_unit === null || row.default_weight === null
     ? null
     : { unitType: row.default_weight_unit, weightPerUnit: Number(row.default_weight) };
-  return { ...toRosterJson(row), defaultWeight, defaultWeekdays: row.default_weekdays ? [...row.default_weekdays].sort((a, b) => a - b) : null, icon: row.icon };
+  return { ...toRosterJson(row), defaultWeight, defaultWeekdays: row.default_weekdays ? [...row.default_weekdays].sort((a, b) => a - b) : null, icon: row.icon, core: row.core };
 }
 
 /** The subject's own columns for a write; nothing when `defaultWeight` wasn't sent. */
@@ -52,13 +57,13 @@ export const createSubject = (tx: Tx, familyId: string, input: SubjectInput) =>
   // S8-11: no icon sent = the one the name suggests (or the letter badge); an explicit null is the letter badge.
   repo.create(tx, familyId, { name: input.name, color: input.color }, {
     ...defaultWeightCols(input.defaultWeight), default_weekdays: input.defaultWeekdays,
-    icon: input.icon === undefined ? defaultIconFor(input.name) : input.icon,
+    icon: input.icon === undefined ? defaultIconFor(input.name) : input.icon, core: input.core,
   });
 
 /** DB index enforcing one active subject per (family, case-insensitive trimmed name). */
 export const SUBJECT_NAME_INDEX = "subject_family_name_uq";
-export const updateSubject = (db: Queryable, familyId: string, id: string, { defaultWeight, defaultWeekdays, icon, ...patch }: SubjectPatch) =>
-  repo.update(db, familyId, id, patch, { ...defaultWeightCols(defaultWeight), default_weekdays: defaultWeekdays, icon });
+export const updateSubject = (db: Queryable, familyId: string, id: string, { defaultWeight, defaultWeekdays, icon, core, ...patch }: SubjectPatch) =>
+  repo.update(db, familyId, id, patch, { ...defaultWeightCols(defaultWeight), default_weekdays: defaultWeekdays, icon, core });
 
 /** Lock one of the family's subjects and return its current default weekdays; undefined when there is no such subject. */
 export async function lockSubjectWeekdays(tx: Tx, familyId: string, id: string): Promise<number[] | null | undefined> {

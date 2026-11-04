@@ -11,7 +11,7 @@ Read [APP_OVERVIEW.md](APP_OVERVIEW.md) and [ROADMAP.md](ROADMAP.md) first.
 - **Developer.**
   - Builds one ticket per commit, using SOLID and best practices.
   - Runs `bash scripts/check.sh` before each commit.
-  - Pushes normally to `main` (pull/rebase first, never force) and confirms CI is green.
+  - Works on the sprint's branch and pushes there (pull/rebase first, never force); see Branches below.
   - When a ticket is ambiguous, makes the conservative call and records it under "Decisions" in the progress doc.
 - **Tester.**
   - Independently verifies each sprint against its acceptance criteria and edge cases.
@@ -34,6 +34,14 @@ Read [APP_OVERVIEW.md](APP_OVERVIEW.md) and [ROADMAP.md](ROADMAP.md) first.
   - A "Decisions" section records the conservative calls.
   - Screenshots go in `docs/progress/screens/`.
 - **Reviews and verifications** go in `docs/reviews/`.
+
+## Branches
+
+Decided by DeeDee on 2026-11-03: **one branch per sprint; a PR to `main` only after the sprint passes testing.**
+
+- Each sprint (with its fix sprint, for example 9 and 9b) is built on its own branch, such as `hh2/sprint-9b`. Commits are pushed to that branch as they are made; nobody pushes to `main` directly.
+- When the Tester's re-test passes, the sprint's branch gets one PR to `main`. It is merged only after that, and never force-pushed.
+- The next sprint's branch starts from `main` once that PR is merged.
 
 ## Local dev and preview
 
@@ -65,5 +73,5 @@ bash scripts/check.sh                             # the full gate: lint, typeche
 1. Read [APP_OVERVIEW.md](APP_OVERVIEW.md).
 2. Read [ROADMAP.md](ROADMAP.md).
 3. Read this guide.
-4. Read the latest progress doc (now [progress/timeline.md](progress/timeline.md)), including its Decisions section.
-5. Run `git log --oneline -20` and `git status`. Then `git pull --rebase` and run `bash scripts/check.sh` before changing anything.
+4. Read the latest progress doc (now [progress/sprint-9.md](progress/sprint-9.md)), including its Decisions sections, and [progress/HANDOFF.md](progress/HANDOFF.md) for where things stand.
+5. Check out the current sprint's branch (see Branches). Run `git log --oneline -20` and `git status`. Then `git pull --rebase` and run `bash scripts/check.sh` before changing anything.

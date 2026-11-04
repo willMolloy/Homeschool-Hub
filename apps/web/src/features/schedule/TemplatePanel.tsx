@@ -12,6 +12,7 @@ import type { BlockedKind, BlockedRange, CalendarTemplate } from "../../api/type
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { dateRangeError, saveError } from "./formBits";
 import { ALL_HOLIDAYS, breakText, leaveOutExisting, MAX_YEAR_DAYS, plannedBreaks, shiftedBreaks, type PlannedBreak } from "./templates";
+import { DateField } from "../../ui/DateField";
 
 /** Custom weeks on and off: whole numbers from 1 to 20. */
 export const MAX_CUSTOM_WEEKS = 20;
@@ -130,7 +131,7 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
         <>
           <div className="field">
             <label htmlFor={ids.start}>First day of the new year</label>
-            <input id={ids.start} type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+            <DateField id={ids.start} value={start} onChange={setStart} />
           </div>
           <div className="btn-row template-delete">
             <button className="btn btn-secondary btn-danger" type="button" onClick={() => { setDeleteError(null); setDeleting(true); }}>
@@ -155,11 +156,11 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
           <div className="field-row">
             <div className="field">
               <label htmlFor={ids.start}>First day of the year</label>
-              <input id={ids.start} type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+              <DateField id={ids.start} value={start} onChange={setStart} />
             </div>
             <div className="field">
               <label htmlFor={ids.end}>Last day of the year</label>
-              <input id={ids.end} type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+              <DateField id={ids.end} value={end} onChange={setEnd} />
             </div>
           </div>
           <fieldset className="choice-list">

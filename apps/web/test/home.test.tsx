@@ -3,9 +3,9 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
-import { finishGlance, greetingFor, longDate, weekGlance, weekOfSpan, weekSpan } from "../src/features/home/homeSummary";
+import { finishGlance, greetingFor, scheduleSub, longDate, weekGlance, weekOfSpan, weekSpan } from "../src/features/home/homeSummary";
 import { SETUP_LINKS, TABS } from "../src/layout/nav";
-import { fakeApi, EMPTY_WEEK } from "./helpers/fake-api";
+import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
 // The fake family's today is Wed 2026-10-28; its week is Oct 26 - Nov 1.
@@ -36,7 +36,6 @@ function stub(over: { plans?: ChildPlan[]; lastWeek?: unknown; weeks?: unknown }
   if (over.weeks) fakeApi.on("GET /api/check-ins/weeks", 200, over.weeks);
 }
 const findInMain = async (name: string) => within(await screen.findByRole("main")).findByRole("link", { name });
-const LAST_WEEK = { ...EMPTY_WEEK, items: [{ assignmentId: "ti", childId: "c1", childName: "Frank", title: "Treasure Island", unitType: "pages", plannedFrom: 0, plannedTo: 50, totalUnits: 270, actual: null, mode: null }] };
 
 describe("Home", () => {
   beforeEach(() => stub());
@@ -45,31 +44,25 @@ describe("Home", () => {
     renderAt("/");
     expect(await screen.findByText("Homeschool Hub")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Good (morning|afternoon|evening)$/);
-    expect(await screen.findByText(/Wednesday 28 October · Week 9 of 39/)).toBeInTheDocument();
+    expect(await screen.findByText(/Wednesday, Oct 28 · Week 9 of 39/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Family and settings" })).toHaveTextContent("D");
   });
 
-  it("Track work: a line per child with what is left, no engine numbers", async () => {
+  it("has two equal cards, Schedule and Records, and no Track work card", async () => {
     renderAt("/");
-    const card = (await findInMain("Track work")).closest(".card") as HTMLElement;
-    expect(within(card).getByText("This week · 26 Oct – 1 Nov")).toBeInTheDocument();
-    expect(await within(card).findByText("Frank")).toBeInTheDocument();
-    expect(within(card).getAllByText("1 left")).toHaveLength(2);
-    expect(card.textContent).not.toMatch(/thickness|rate|\d+\.\d+/i);
-    expect(within(card).queryByText(/Last week needs a quick check/)).toBeNull();
-    expect(within(screen.getByRole("main")).getByRole("link", { name: "Track work" })).toHaveAttribute("href", "/track");
-  });
-
-  it("Track work says when last week needs a quick check", async () => {
-    stub({ lastWeek: LAST_WEEK });
-    renderAt("/");
-    expect(await screen.findByText("Last week needs a quick check")).toBeInTheDocument();
+    const main = await screen.findByRole("main");
+    await within(main).findByRole("link", { name: "Schedule" });
+    const cards = [...main.querySelectorAll(".home-card")];
+    expect(cards.map((c) => c.querySelector("h2")!.textContent)).toEqual(["Schedule", "Records"]);
+    expect(within(main).getByRole("link", { name: "Records" })).toHaveAttribute("href", "/records");
+    expect(within(main).queryByRole("link", { name: "Track work" })).toBeNull();
+    expect(screen.queryByText(/All done|left$/)).toBeNull();
   });
 
   it("Schedule: the tiny timeline and the finish line (late work says about when)", async () => {
     renderAt("/");
     const card = (await findInMain("Schedule")).closest(".card") as HTMLElement;
-    expect(await within(card).findByText(/finishing about 8 Dec/)).toBeInTheDocument();
+    expect(await within(card).findByText(/finishing about Dec 8/)).toBeInTheDocument();
     expect(card.querySelector(".home-mini")).not.toBeNull();
     expect(within(screen.getByRole("main")).getByRole("link", { name: "Schedule" })).toHaveAttribute("href", "/schedule");
   });
@@ -77,13 +70,13 @@ describe("Home", () => {
   it("Schedule: on track when nothing moved", async () => {
     stub({ plans: [FRANK] });
     renderAt("/");
-    expect(await screen.findByText(/on track to finish 1 Dec/)).toBeInTheDocument();
+    expect(await screen.findByText(/on track to finish Dec 1/)).toBeInTheDocument();
   });
 
-  it("shows the briefing line when something needs attention, and none otherwise", async () => {
+  it("shows no briefing line when nothing needs attention (the line itself is tested in home-briefing.test)", async () => {
     renderAt("/");
-    await screen.findByText("Frank");
-    expect(screen.queryByRole("region", { name: "Weekly briefing" })).toBeNull();
+    await findInMain("Records");
+    expect(screen.queryByRole("region", { name: "Needs you" })).toBeNull();
   });
 
   it("has a Set up row that opens the list", async () => {
@@ -109,14 +102,14 @@ describe("Home", () => {
     fakeApi.on("GET /api/assignments", 200, []);
     fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [] });
     renderAt("/");
-    expect(await findInMain("Track work")).toBeInTheDocument();
+    expect(await findInMain("Records")).toBeInTheDocument();
     expect(within(screen.getByRole("main")).getByRole("link", { name: "Schedule" })).toBeInTheDocument();
     expect(screen.queryByText(/Week \d+ of/)).toBeNull();
   });
 });
 
 describe("tap targets (the end-of-sprint run at 360 px)", () => {
-  it("the Track work and Schedule card links are 44 px high, and the whole card is the target", async () => {
+  it("the Schedule and Records card links are 44 px high, and the whole card is the target", async () => {
     const { readFileSync } = await import("node:fs");
     const css = readFileSync("src/features/home/home.css", "utf8");
     expect(css).toMatch(/\.home-card-link \{[^}]*min-height: 44px/);
@@ -142,7 +135,7 @@ describe("Set up", () => {
   });
 
   it("the tab set and names live in one config", () => {
-    expect(TABS.map((t) => t.label)).toEqual(["Home", "Track work", "Schedule"]);
+    expect(TABS.map((t) => t.label)).toEqual(["Home", "Schedule", "Records"]);
   });
 });
 
@@ -193,8 +186,8 @@ describe("Home's facts", () => {
     expect([greetingFor(6), greetingFor(12), greetingFor(16), greetingFor(17), greetingFor(23)]).toEqual(["Good morning", "Good afternoon", "Good afternoon", "Good evening", "Good evening"]);
   });
   it("says dates in words", () => {
-    expect(longDate("2026-10-31")).toBe("Saturday 31 October");
-    expect(weekSpan("2026-10-26")).toBe("26 Oct – 1 Nov");
+    expect(longDate("2026-10-31")).toBe("Saturday, Oct 31");
+    expect(weekSpan("2026-10-26")).toBe("Oct 26 – Nov 1");
   });
   it("week N of M comes from the span of the live assignments, only while today is inside it", () => {
     const a = (s: string, e: string, archived = false) => ({ startDate: s, endDate: e, archived }) as never;
@@ -207,6 +200,14 @@ describe("Home's facts", () => {
     expect(weekGlance([FRANK], "c1", "2026-10-26", "2026-10-28")).toEqual({ progress: 0.4, left: 1, planned: true });
     expect(weekGlance([FRANK], "c1", "2026-10-26", "2026-11-02")).toEqual({ progress: 1, left: 0, planned: true });
     expect(weekGlance([FRANK], "c2", "2026-10-26", "2026-10-28")).toEqual({ progress: 0, left: 0, planned: false });
+  });
+  it("S9b-03: the Schedule card line says on track only when nothing is forecast late", () => {
+    expect(scheduleSub({ date: "2026-12-01", onTrack: true }, 0)).toBe("This week and your year · on track to finish Dec 1");
+    expect(scheduleSub({ date: "2026-12-01", onTrack: true }, 2)).toBe("This week and your year · 2 running late");
+    expect(scheduleSub({ date: "2026-12-08", onTrack: false }, 1)).toBe("This week and your year · 1 running late");
+    expect(scheduleSub({ date: "2026-12-08", onTrack: false }, 0)).toBe("This week and your year · finishing about Dec 8");
+    expect(scheduleSub({ date: "2026-12-01", onTrack: true }, undefined)).toBe("This week and your year");
+    expect(scheduleSub(null, 0)).toBe("This week and your year");
   });
   it("the finish: the latest end of open work, and whether it is still the planned one", () => {
     expect(finishGlance([FRANK])).toEqual({ date: "2026-12-01", onTrack: true });

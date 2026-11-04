@@ -51,8 +51,8 @@ describe("Copy an assignment (S3a-01)", () => {
     expect(within(form).getByLabelText("Title")).toHaveValue("Charlotte's Web (copy)");
     expect(within(form).getByRole("checkbox", { name: "Maggie" })).toBeChecked();
     expect(within(form).getByRole("checkbox", { name: "Frank" })).not.toBeChecked();
-    expect(within(form).getByLabelText("Start")).toHaveValue("2026-10-15");
-    expect(within(form).getByLabelText("End")).toHaveValue("2026-12-18");
+    expect(within(form).getByLabelText("Start")).toHaveValue("Oct 15, 2026");
+    expect(within(form).getByLabelText("End")).toHaveValue("Dec 18, 2026");
     expect(within(form).getByLabelText("Unit")).toHaveValue("pages");
     expect(within(form).getByLabelText("Total")).toHaveValue(184);
     // S6-09: weight 1.4 over 47 school days (3.9 pages a day) is about 11 minutes a day, closest to "15 min a day".

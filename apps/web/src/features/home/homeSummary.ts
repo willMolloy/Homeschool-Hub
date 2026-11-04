@@ -1,27 +1,21 @@
 /** S8-04: the plain facts Home shows, as pure functions of the plans and assignments the API already made. */
 import { addDays, toDayNumber, type ChildPlan, type LocalDate } from "@hh/engine";
 import type { Assignment } from "../../api/types";
-
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+import { formatShort, formatSpan, formatWeekday } from "../../lib/dates";
 
 /** "Good morning" until noon, "Good afternoon" until 5 pm, then "Good evening". */
 export function greetingFor(hour: number): string {
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
-/** "Saturday 31 October" for a YYYY-MM-DD date (locale-free, so it is the same everywhere). */
-export function longDate(date: LocalDate): string {
-  const d = new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10))));
-  return `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
-}
+/** "Saturday, Oct 31" (US style, S9-04). */
+export const longDate = (date: LocalDate): string => formatWeekday(date);
 
-/** "26 Oct" */
-export const dayMonth = (date: LocalDate): string => `${Number(date.slice(8, 10))} ${SHORT[Number(date.slice(5, 7)) - 1]}`;
+/** "Oct 26" */
+export const dayMonth = (date: LocalDate): string => formatShort(date);
 
-/** "26 Oct – 1 Nov" for a week. */
-export const weekSpan = (weekStart: LocalDate): string => `${dayMonth(weekStart)} – ${dayMonth(addDays(weekStart, 6))}`;
+/** "Oct 26 – Nov 1" for a week. */
+export const weekSpan = (weekStart: LocalDate): string => formatSpan(weekStart, addDays(weekStart, 6));
 
 /**
  * "Week N of M" from the span of the family's live assignments (the app stores no school-year dates), only while
@@ -73,4 +67,17 @@ export function finishGlance(plans: readonly ChildPlan[]): { date: LocalDate; on
   const date = open.reduce((x, p) => (p.end > x ? p.end : x), open[0]!.end);
   const planned = open.reduce((x, p) => (p.plannedEnd > x ? p.plannedEnd : x), open[0]!.plannedEnd);
   return { date, onTrack: date <= planned };
+}
+
+/**
+ * S9b-03: the Schedule card's line. "on track to finish {date}" only when the forecast is known and nothing is forecast late;
+ * "{N} running late" when something is (the briefing line names the most important one); otherwise when it finishes.
+ */
+export function scheduleSub(finish: { date: LocalDate; onTrack: boolean } | null, late: number | undefined): string {
+  const head = "This week and your year";
+  if (late !== undefined && late > 0) return `${head} · ${late} running late`;
+  if (!finish) return head;
+  if (finish.onTrack && late === 0) return `${head} · on track to finish ${dayMonth(finish.date)}`;
+  if (!finish.onTrack) return `${head} · finishing about ${dayMonth(finish.date)}`;
+  return head;
 }

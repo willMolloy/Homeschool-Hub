@@ -10,6 +10,7 @@ import type { Assignment } from "../../api/types";
 import { alreadyCopied, childAlreadyHas, chunkFailureText, copyCandidates, saveInChunks, shiftedCopy, yearName, type CopyBody } from "./copyPlan";
 import { dateRange } from "./formBits";
 import type { Lookups } from "./lookups";
+import { DateField } from "../../ui/DateField";
 
 export interface CopyPanelProps {
   l: Lookups;
@@ -130,11 +131,11 @@ export function CopyToNewYearPanel(p: CopyPanelProps) {
       <div className="field-row">
         <div className="field">
           <label htmlFor={ids.old}>This year's first day</label>
-          <input id={ids.old} type="date" value={oldFirst} onChange={(e) => setOldFirst(e.target.value)} />
+          <DateField id={ids.old} value={oldFirst} onChange={setOldFirst} />
         </div>
         <div className="field">
           <label htmlFor={ids.next}>Next year's first day</label>
-          <input id={ids.next} type="date" value={newFirst} onChange={(e) => setNewFirst(e.target.value)} />
+          <DateField id={ids.next} value={newFirst} onChange={setNewFirst} />
         </div>
       </div>
       {!ready ? (
@@ -228,7 +229,7 @@ export function CopyToChildPanel(p: CopyPanelProps) {
             <>
               <div className="field">
                 <label htmlFor={ids.start}>New start date (optional)</label>
-                <input id={ids.start} type="date" value={newStart} onChange={(e) => setNewStart(e.target.value)} />
+                <DateField clearable id={ids.start} value={newStart} onChange={setNewStart} />
                 <p className="hint">The earliest one starts then; the rest keep their gaps.</p>
               </div>
               {tried && problem ? <p className="field-error" role="alert">{problem}</p> : null}

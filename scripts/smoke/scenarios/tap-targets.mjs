@@ -8,7 +8,7 @@ const MIN = 44;
 const WIDTH = Number(process.env.TAP_WIDTH ?? 360);
 if (!Number.isInteger(WIDTH) || WIDTH < 280 || WIDTH > 1600) throw new Error(`TAP_WIDTH must be a whole number from 280 to 1600, got "${process.env.TAP_WIDTH}"`);
 const SCREENS = [
-  ["Home", "/"], ["Track work", "/track"], ["Schedule (Week)", "/schedule?view=week"], ["Schedule (Year, bar selected)", "/schedule?view=year"],
+  ["Home", "/"], ["Records", "/records"], ["Schedule (Week)", "/schedule?view=week"], ["Schedule (Year, bar selected)", "/schedule?view=year"],
   ["Set up", "/setup"], ["Children", "/setup/children"], ["Subjects", "/setup/subjects"], ["Assignments", "/setup/assignments"],
   ["Days off", "/setup/days-off"], ["Events", "/setup/events"], ["Family settings", "/setup/settings"],
 ];

@@ -93,7 +93,7 @@ Sprint 3a (`tickets/sprint-3a-setup/`) builds the first three.
 
 ### UI refinement and dark mode (Sprint 8, after Sprint 7): Soft Paper chosen
 Added by Will on 2026-10-31: the UI isn't up to modern standards yet. Done once the core features stop changing, so nothing is restyled twice; accounts and hosting hardening follow it.
-- **Chosen 2026-10-31:** Soft Paper (`design/ux-research.md`), with slightly stronger assignment colours; tickets in `tickets/sprint-8-soft-paper/`. Navigation: Home · Track work · Schedule (Schedule has Week | Year), decided by Will on 2026-10-31.
+- **Chosen 2026-10-31:** Soft Paper (`design/ux-research.md`), with slightly stronger assignment colours; tickets in `tickets/sprint-8-soft-paper/`. Navigation: Home · Schedule · Records (Schedule has Week | Year), decided by Will on 2026-10-31 and corrected on 2026-11-01 (Sprint 9).
 - **Design brief:** calm and airy, with the soft, rounded shapes of a warm and friendly app; pastel colours; very clean and tidy.
 - [ ] **Audit and direction first:** screenshot every screen at phone and desktop widths, critique against a modern standard, and show 2–3 visual directions on one page for Will and DeeDee to choose from before code changes.
 - [ ] **One design system:** tokens for type, spacing, radius, elevation and colour (light and dark), and shared components (buttons, fields, chips, cards, sheets, lists) in place of per-screen CSS.
@@ -102,7 +102,14 @@ Added by Will on 2026-10-31: the UI isn't up to modern standards yet. Done once 
 - [ ] **Checks:** the tap-target script and contrast in both themes, and a tester pass with before-and-after screenshots.
 
 ### Schedule and Records (Sprint 9, approved 2026-11-01)
-Will, 2026-11-01: Home's two main options are **Schedule** and **Records**; the weekly check-in is an optional helper attached to Schedule. Records (attendance, estimated hours, book list, CSV) therefore moves from "Optional modules" into the core, and the Track work tab goes. Outline and open questions: `tickets/sprint-9-schedule-and-records/README.md`. Sprint 10 is Year view polish (UX review); accounts and hosting hardening move to Sprint 11.
+Will, 2026-11-01: Home's two main options are **Schedule** and **Records**; the weekly check-in card was retired (Update status on a bar corrects the plan's pace). Records therefore moved from "Optional modules" into the core, and the Track work tab went. Built in Sprint 9: log setup (template styles, never a state), log entries the parent types (hours and minutes, one entry per child, never prefilled, never moving the plan), totals for a range, and an export with chosen columns and dates (CSV and a printable page per child). Tickets: `tickets/sprint-9-schedule-and-records/README.md`; progress: `progress/sprint-9.md`.
+- [x] Navigation Home · Schedule · Records; Home's two cards and one briefing line (S9-01, S9-05).
+- [x] One US-style date field everywhere; Fall and Spring renamed and re-dated (S9-04, S9-06).
+- [x] The weekly check-in card and Track work page retired; Update status from a Week bar and the Year edit bar (S9-02).
+- [x] Records: log setup, log entries, totals for a range, export with chosen columns and dates (S9-03, S9-07, S9-08, S9-11).
+- [ ] Tester pass (S9-10).
+
+Sprint 10 is Year view polish (UX review); accounts and hosting hardening move to Sprint 11.
 
 ### Accounts
 - [ ] **Invite-only accounts, with separate parent logins.** An invite link creates a family account, and the same kind of link adds a second parent to an existing family. Each parent has their own login to the one family; today the login is stored on the family itself, so it moves to its own table. Password resets are done by hand with the existing `set-family-login` CLI. Self-serve signup and emailed resets wait until going public, so no email provider is needed yet.
@@ -133,14 +140,7 @@ For DeeDee only; nobody else gets the link until phase 4. No public tunnels or h
 
 Each follows the module rules above. In order:
 
-1. **Records** (first, before the friends beta if time allows). All generated from the plan plus check-ins, since the plan assumes scheduled work was done unless the parent says otherwise:
-   - attendance days per child (school days minus days off and sick days);
-   - estimated hours by subject and child (effort × 2 minutes per point), labelled as estimates;
-   - book list per child (books finished, from assignments);
-   - CSV export of all of it;
-   - a **term and year summary** per child (books read, attendance, estimated hours), as CSV and a printable page that saves as PDF;
-   - then a **Charlotte Mason term-exam list**: at the end of a term, each child's books and subjects covered, to draw exam questions from.
-   The first module also adds the on/off switch for modules in settings. **CSV safety:** imported titles can start with `=`, `+`, `-` or `@` (for example `=HYPERLINK(...)`); they are stored as typed, so every CSV export must escape such cells (prefix a `'`) so a spreadsheet never runs them as formulas. Every total and export carries the neutral note: "A record of logged hours to support your own records. Check your state's requirements." Nothing claims to meet a state's requirements (APP_OVERVIEW.md, "Product rules").
+1. **Records**: **moved into the core in Sprint 9** (see "Schedule and Records" in the core checklist). It is logging the parent types, not something generated from the plan: log setup, entries (hours and minutes, never prefilled, never moving the plan), totals for a range, CSV and a printable summary. Still to come inside it, held by Will: work samples and photos, and a **Charlotte Mason term-exam list** (at the end of a term, each child's books and subjects covered, to draw exam questions from). **CSV safety (built in S9-11):** titles, notes and subject names can start with `=`, `+`, `-` or `@` (for example `=HYPERLINK(...)`); they are stored as typed, so every CSV export escapes such cells (prefix a `'`) so a spreadsheet never runs them as formulas. Every total and export carries the wording: "Made for your state records. It doesn't guarantee your homeschool meets every state requirement; check your state's rules." Nothing claims to meet a state's requirements (APP_OVERVIEW.md, "Product rules").
 2. **Daily checklist**, for families who want it: a Today list per child with one-tap done. A tick confirms what the plan already assumes. Never required.
 3. **Later, as the hub grows:**
    - **"Smooth this month":** the app suggests moving a bar out of an overloaded week, accepted with one tap. It waits until the briefing shows where overload actually happens.

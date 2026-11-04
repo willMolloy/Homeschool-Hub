@@ -2,6 +2,7 @@
 import { useId } from "react";
 import type { Child } from "../../api/types";
 import { ApiError } from "../../api/client";
+import { formatDate } from "../../lib/dates";
 
 /** 0 = Sunday … 6 = Saturday, shown Monday first. */
 export const WEEKDAYS: { value: number; short: string; long: string }[] = [
@@ -95,11 +96,8 @@ export function WeekdayPicker({ legend, value, onChange, error, offer }: Weekday
 export const sameSet = (a: readonly (string | number)[], b: readonly (string | number)[]) =>
   a.length === b.length && [...a].map(String).sort().join() === [...b].map(String).sort().join();
 
-/** "Nov 2, 2026" for a YYYY-MM-DD, without time-zone drift. */
-export function shortDate(d: string): string {
-  const [y, m, day] = d.split("-").map(Number) as [number, number, number];
-  return new Date(Date.UTC(y, m - 1, day)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-}
+/** "Nov 2, 2026" for a YYYY-MM-DD (S9-04: the one helper is `lib/dates`). */
+export const shortDate = formatDate;
 
 /** "Nov 2 – Nov 26, 2026" style range (or one date when equal). */
 export function dateRange(start: string, end: string): string {

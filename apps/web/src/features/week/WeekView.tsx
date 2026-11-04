@@ -1,7 +1,8 @@
 /**
  * S8-05: Schedule's Week view. This week's planned work as pastel bars, one per assignment, with a child switch
- * (All children / Frank / Margaret). A current or coming week opens its adjustment from a bar (S6-03); a finished week is the
- * check-in board, so a bar there opens Update status (S8-06). Nothing on the page is a number the family didn't enter.
+ * (All children / Frank / Margaret). A current or coming week opens its adjustment from a bar (S6-03), where each row also
+ * offers Update status (S9-02); a finished week shows its bars, and a bar there opens Update status (S8-06).
+ * Nothing on the page is a number the family didn't enter.
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -20,7 +21,8 @@ import { useDebugFlag, useShownWeek } from "../plan/useShownWeek";
 import { PlanDebugView } from "../plan/PlanDebugView";
 import { WeekAdjustment } from "../plan/WeekAdjustment";
 import { weekSpan } from "../home/homeSummary";
-import { PastWeek } from "../track/PastWeek";
+import { PastWeek } from "../status/PastWeek";
+import { UpdateStatusFlow } from "../status/UpdateStatusFlow";
 import { SubjectGlyph } from "../subjects/SubjectIcon";
 import { WeekBar, WeekBars } from "./WeekBar";
 import { barsFromPlans, eventLines } from "./weekBars";
@@ -69,6 +71,7 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look }: { weekStart:
   const { plans, failed, retry } = useWeekPlansState(weekStart);
   const events = useApi<ScheduleEvent[]>("/api/events");
   const [adjusting, setAdjusting] = useState<{ childId: string; childName: string } | null>(null);
+  const [statusFor, setStatusFor] = useState<{ childId: string; assignmentId: string; title: string } | null>(null);
   if (failed) {
     return (
       <div className="form-error" role="alert">
@@ -113,8 +116,10 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look }: { weekStart:
       })}
       <ResponsiveSheet open={adjusting !== null} onOpenChange={(o) => !o && setAdjusting(null)}
         title={adjusting ? aheadTitle(adjusting.childName, weekStart, weekEnd, current) : ""}>
-        {adjusting && <WeekAdjustment childId={adjusting.childId} weekStart={weekStart} weekEnd={weekEnd} current={current} onSaved={() => setAdjusting(null)} />}
+        {adjusting && <WeekAdjustment childId={adjusting.childId} weekStart={weekStart} weekEnd={weekEnd} current={current} onSaved={() => setAdjusting(null)}
+          onUpdateStatus={(t) => { setStatusFor({ childId: adjusting.childId, ...t }); setAdjusting(null); }} />}
       </ResponsiveSheet>
+      {statusFor && <UpdateStatusFlow assignmentId={statusFor.assignmentId} childId={statusFor.childId} title={statusFor.title} onClose={() => setStatusFor(null)} />}
     </>
   );
 }

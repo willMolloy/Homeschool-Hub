@@ -1,26 +1,25 @@
 /**
  * S8-04: Home. The logo and the family button, a greeting with the date, the briefing when something needs
- * attention, a Track work card, a Schedule card and the Set up row. Nothing here is a number the family did not
- * enter: the progress is a bar and "N left" counts assignments.
+ * attention, and (S9-01, Will's correction) the two main jobs as equal cards, Schedule and Records, then the Set up
+ * row. Nothing here is a number the family did not enter.
  */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CaretRight, CheckSquare, ListBullets, SlidersHorizontal } from "@phosphor-icons/react";
+import { CaretRight, ListBullets, Notebook, SlidersHorizontal } from "@phosphor-icons/react";
 import type { Assignment, BlockedRange, Child, Subject } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useAuth, useMe } from "../../auth/AuthProvider";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { Logo } from "../../layout/Logo";
 import { Button, Card, ListRow } from "../../ui/components";
-import { useLastWeekCheckIn } from "../checkin/useLastWeekCheckIn";
-import { Briefing } from "../plan/Briefing";
+import { HomeBriefing } from "../plan/HomeBriefing";
 import { Checklist, checklistSteps } from "./Checklist";
 import { PlanRefreshProvider } from "../plan/planRefresh";
 import { useWeekPlans } from "../plan/useWeekPlans";
 import { deviceToday, shownWeek } from "../plan/useShownWeek";
 import { isValidLocalDate } from "@hh/engine";
 import { subjectSlots } from "../timeline/model";
-import { dayMonth, finishGlance, greetingFor, longDate, weekGlance, weekOfSpan, weekSpan } from "./homeSummary";
+import { finishGlance, greetingFor, longDate, scheduleSub, weekOfSpan } from "./homeSummary";
 import "./home.css";
 
 export function HomePage() {
@@ -39,12 +38,12 @@ function Home() {
   const assignments = useApi<Assignment[]>("/api/assignments");
   const subjects = useApi<Subject[]>("/api/subjects");
   const blocked = useApi<BlockedRange[]>("/api/blocked-ranges");
-  const lastWeek = useLastWeekCheckIn();
   const plans = useWeekPlans(currentWeekStart);
   const live = (assignments.data ?? []).filter((a) => !a.archived);
   const kids = (children.data ?? []).filter((c) => !c.archived);
   const weekNo = weekOfSpan(assignments.data ?? [], today);
   const finish = plans ? finishGlance(plans) : null;
+  const [late, setLate] = useState<number | undefined>(undefined);
 
   return (
     <div className="home">
@@ -54,7 +53,7 @@ function Home() {
       </header>
       <h1 className="home-greeting">{greetingFor(new Date().getHours())}</h1>
       <p className="home-date">{longDate(today)}{weekNo ? ` · Week ${weekNo.n} of ${weekNo.m}` : ""}</p>
-      <Briefing weekStart={currentWeekStart} showNudge={false} />
+      <HomeBriefing weekStart={currentWeekStart} onLate={setLate} />
       {/* S8-09: only once all four lists have answered, so it never flashes for a family that has set up. */}
       {children.data && subjects.data && assignments.data && blocked.data ? (
         <Checklist steps={checklistSteps({
@@ -64,38 +63,27 @@ function Home() {
 
       <Card className="home-card">
         <div className="home-card-head">
-          <span className="home-icon"><CheckSquare size={24} weight="light" aria-hidden="true" /></span>
-          <div className="home-card-text">
-            <h2><Link className="home-card-link" to="/track">Track work</Link></h2>
-            <div className="home-sub">This week · {weekSpan(currentWeekStart)}</div>
-          </div>
-          <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />
-        </div>
-        {plans && kids.map((k) => {
-          const g = weekGlance(plans, k.id, currentWeekStart, today);
-          return (
-            <div className="home-progress" key={k.id}>
-              <span className="home-kid">{k.name}</span>
-              <span className="home-track" aria-hidden="true"><i style={{ width: `${Math.round(g.progress * 100)}%` }} /></span>
-              <span className="home-left">{!g.planned ? "Nothing planned" : g.left === 0 ? "All done" : `${g.left} left`}</span>
-            </div>
-          );
-        })}
-        {lastWeek.week ? <p className="home-note"><span className="home-dot" aria-hidden="true" />Last week needs a quick check</p> : null}
-      </Card>
-
-      <Card className="home-card">
-        <div className="home-card-head">
           <span className="home-icon"><ListBullets size={24} weight="light" aria-hidden="true" /></span>
           <div className="home-card-text">
             <h2><Link className="home-card-link" to="/schedule">Schedule</Link></h2>
             <div className="home-sub">
-              {finish ? (finish.onTrack ? `This week and your year · on track to finish ${dayMonth(finish.date)}` : `This week and your year · finishing about ${dayMonth(finish.date)}`) : "This week and your year"}
+              {scheduleSub(finish, late)}
             </div>
           </div>
           <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />
         </div>
         <MiniTimeline assignments={live} subjects={subjects.data ?? []} today={today} />
+      </Card>
+
+      <Card className="home-card">
+        <div className="home-card-head">
+          <span className="home-icon"><Notebook size={24} weight="light" aria-hidden="true" /></span>
+          <div className="home-card-text">
+            <h2><Link className="home-card-link" to="/records">Records</Link></h2>
+            <div className="home-sub">Attendance, hours and books</div>
+          </div>
+          <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />
+        </div>
       </Card>
 
       <Card className="home-setup">

@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
 import { ALL_LABEL, ChildSwitch, chipsWidth } from "../src/features/week/ChildSwitch";
 import { ALL } from "../src/features/week/useChildChoice";
-import { fakeApi, EMPTY_WEEK } from "./helpers/fake-api";
+import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
 const KIDS = [
@@ -34,40 +34,25 @@ describe("N7: a Week bar's name is its visible text", () => {
   });
 });
 
-describe("N9: Home says Nothing planned, not All done, for a child with nothing this week", () => {
-  it("shows it for every child of a family with children and no assignments", async () => {
+describe("N9 (S9-01): Home no longer has per-child progress, so it cannot say All done next to a check-in nudge", () => {
+  it("a family with children and no assignments sees neither line", async () => {
     fakeApi.on("GET /api/children", 200, KIDS);
     fakeApi.on("GET /api/subjects", 200, []);
     fakeApi.on("GET /api/assignments", 200, []);
     fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "x", to: "y", plans: [] });
     renderAt("/");
-    expect(await screen.findAllByText("Nothing planned")).toHaveLength(2);
+    expect(await within(await screen.findByRole("main")).findByRole("link", { name: "Records" })).toBeInTheDocument();
     expect(screen.queryByText("All done")).toBeNull();
-  });
-});
-
-describe("N10: after Not quite one line says what to do", () => {
-  it("is shown above the bars", async () => {
-    const week = { ...EMPTY_WEEK, items: [{ assignmentId: "ti", childId: "c1", childName: "Frank", title: "Treasure Island", unitType: "pages", plannedFrom: 0, plannedTo: 80, totalUnits: 270, actual: null, mode: null }] };
-    fakeApi.on("GET /api/children", 200, KIDS.slice(0, 1));
-    fakeApi.on("GET /api/subjects", 200, []);
-    fakeApi.on("GET /api/assignments", 200, [{ id: "ti", subjectId: "x", title: "Treasure Island" }]);
-    fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "x", from: "x", to: "y", plans: [] });
-    fakeApi.on("GET /api/check-ins", 200, week);
-    const user = userEvent.setup();
-    renderAt("/track");
-    expect(screen.queryByText(/Untick what didn't get done/)).toBeNull();
-    await user.click(await screen.findByRole("button", { name: "Not quite" }));
-    expect(await screen.findByText("Untick what didn't get done, or tap a bar to update it.")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing planned")).toBeNull();
   });
 });
 
 describe("N11: the native bits of the set-up forms take the theme", () => {
   const forms = css("src/ui/forms.css");
-  it("radios and checkboxes use the accent, the roster forms' fieldsets have no default border, dates and selects keep their text", () => {
+  it("radios and checkboxes use the accent, the roster forms' fieldsets have no default border, the date field and selects keep their text", () => {
     expect(forms).toMatch(/input\[type="radio"\], input\[type="checkbox"\] \{ accent-color: var\(--tl-primary\); \}/);
     expect(forms).toMatch(/\.roster-form fieldset[^{]*\{ border: 0;/);
-    expect(forms).toMatch(/\.schedule-form input\[type="date"\] \{[^}]*padding-right: 6px/);
+    expect(css("src/ui/date-field.css")).toMatch(/\.date-field-box input\[type="text"\] \{[^}]*min-height: 44px[^}]*min-width: 0/);
     expect(forms).toMatch(/\.schedule-form select \{[^}]*text-overflow: ellipsis/);
     expect(forms).toMatch(/\.field-row:has\(select\) \{ grid-template-columns: 1fr; \}/);
   });

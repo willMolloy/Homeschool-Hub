@@ -28,6 +28,7 @@ import { requestPace, usableDraft, usePace, type PaceDraft } from "./usePace";
 import type { EffortPick } from "./effort";
 import { effortCardText } from "./weightText";
 import { useMe } from "../../auth/AuthProvider";
+import { DateField } from "../../ui/DateField";
 
 export { LIMITS };
 
@@ -299,9 +300,9 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       <ChildPicker options={l.children} value={childIds} onChange={setChildIds} error={errors.children} />
       <div className="field-row">
         {field(ids.start, "Start", undefined,
-          <input id={ids.start} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} {...inv(errors.dates, ids.end)} />)}
+          <DateField id={ids.start} value={startDate} onChange={setStartDate} {...inv(errors.dates, ids.end)} />)}
         {field(ids.end, "End", errors.dates,
-          <input id={ids.end} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} {...inv(errors.dates, ids.end)} />)}
+          <DateField id={ids.end} value={endDate} onChange={setEndDate} {...inv(errors.dates, ids.end)} />)}
       </div>
       <WeekdayPicker legend="Days" offer={dayChoice.offer} value={dayChoice.shown} onChange={changeDays} />
       {marked ? (

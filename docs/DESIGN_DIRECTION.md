@@ -8,11 +8,11 @@ Where the app is heading, distilled from Will's reviews of 2026-10-31. Read this
 
 The features are largely there. What's missing is the feeling that the app was designed for a parent rather than assembled by builders. The reviews kept pointing at the same gap from different sides: "looks very 2013", "cluttered", "too much going on", "I don't understand what the table is conveying", "the user may not know what the options at the bottom do", "no home base", "the dropdown doesn't populate", "the bar gets enormously thick".
 
-> **Correction (Will, 2026-11-01):** the two main jobs are **Schedule** and **Records** (attendance, hours, books, CSV), not Schedule and Track work. The weekly check-in is an optional helper inside Schedule that keeps the plan up to date. Sprint 8 built Home · Track work · Schedule from a misreading; Sprint 9 (`tickets/sprint-9-schedule-and-records/`) fixes it. Point 1 below and the "Chosen look" navigation are superseded by this.
+> **Correction (Will, 2026-11-01), built in Sprint 9:** the two main jobs are **Schedule** and **Records**, not Schedule and Track work. Sprint 8 built Home · Track work · Schedule from a misreading; Sprint 9 (`tickets/sprint-9-schedule-and-records/`) fixed it. The weekly check-in card is gone (Update status on a bar corrects the plan's pace instead), and Records is logging the parent types (never prefilled, never moving the plan), totals for a range and an export. Point 1 below and the "Chosen look" navigation now say so.
 
 ## What the critiques add up to
 
-1. **One home, two jobs.** The app has a home page (with a real logo) and two main places: **Schedule** (this week's plan and the year, steered from there) and **Track work** (the check-in). Settings sit to the side. From anywhere there is an obvious way home, and a direct switch between Schedule and Log. A parent never wonders what a tab means.
+1. **One home, two jobs.** The app has a home page (with a real logo) and two main places: **Schedule** (this week's plan and the year, steered from there) and **Records** (what was done: the log, totals for a range, export). Settings sit to the side. From anywhere there is an obvious way home, and a direct switch between Schedule and Records. A parent never wonders what a tab means.
 2. **One way to do each thing.** When two controls do the same job, keep the clearer one and remove the other (the "Missed a day?" button went because the weekly check-in already covers missed work; the week-step buttons go because date pickers and dragging cover them). Redundant options make parents think they *must* use them.
 3. **Show the parent's words, never the engine's numbers.** Pages, lessons, chapters, minutes, dates. Internal values (effort points, thickness, rates) never appear on a parent-facing screen. Debug views live behind a developer flag only.
 4. **The default is right; changes take one tap.** The plan assumes work happened. Checking in is "Completed" or a small "Update status" pop-up, not a row of chips, sliders and steppers. Rare actions hide behind a quiet "More".
@@ -34,7 +34,7 @@ Before a screen ships, it should pass these checks (the tester includes them in 
 
 ## Chosen look (2026-10-31)
 
-**Soft Paper** (`design/ux-research.md`, Direction 1): a well-loved notebook. Cream page, warm hairlines instead of shadows, Fraunces serif titles with Nunito Sans text, a fern-green accent, Phosphor Light icons, and pastel subject bars with a thin coloured rule (slightly stronger than first mocked, at Will's request). Light and dark. Navigation: **Home · Track work · Schedule**, with Schedule holding a Week | Year switch (Will, 2026-10-31). Built in Sprint 8.
+**Soft Paper** (`design/ux-research.md`, Direction 1): a well-loved notebook. Cream page, warm hairlines instead of shadows, Fraunces serif titles with Nunito Sans text, a fern-green accent, Phosphor Light icons, and pastel subject bars with a thin coloured rule (slightly stronger than first mocked, at Will's request). Light and dark. Navigation: **Home · Schedule · Records**, with Schedule holding a Week | Year switch (Will, 2026-10-31 and 2026-11-01). Built in Sprints 8 and 9.
 
 ## How this changes the plan
 

@@ -71,8 +71,8 @@ describe("Add several assignments (S3a-04)", () => {
     // Row 1 is left alone (the shared dates); rows 2 and 3 get their own.
     await user.click(within(form).getByRole("button", { name: "Dates for row 2" }));
     // Prefilled from the shared dates.
-    expect(within(row(form, 2)).getByLabelText("Start")).toHaveValue("2026-11-02");
-    expect(within(row(form, 2)).getByLabelText("End")).toHaveValue("2026-12-18");
+    expect(within(row(form, 2)).getByLabelText("Start")).toHaveValue("Nov 2, 2026");
+    expect(within(row(form, 2)).getByLabelText("End")).toHaveValue("Dec 18, 2026");
     expect(within(row(form, 1)).queryByLabelText("Start")).toBeNull();
     date(row(form, 2), "Start", "2026-11-02"); date(row(form, 2), "End", "2026-12-18");
     await user.click(within(form).getByRole("button", { name: "Dates for row 3" }));
@@ -91,7 +91,7 @@ describe("Add several assignments (S3a-04)", () => {
     await fillRow(user, form, 1, "One", "5");
     await user.click(within(form).getByRole("button", { name: "Dates for row 1" }));
     fireEvent.change(within(form).getAllByLabelText("Start")[0]!, { target: { value: "2026-11-09" } }); // the shared Start comes first
-    expect(within(row(form, 1)).getByLabelText("Start")).toHaveValue("2026-11-09");
+    expect(within(row(form, 1)).getByLabelText("Start")).toHaveValue("Nov 9, 2026");
     date(row(form, 1), "End", "2026-11-20");
     await user.click(within(form).getByRole("button", { name: "Dates for row 1" }));
     expect(within(form).queryByRole("group", { name: "Row 1" })!.querySelector('input[type="date"]')).toBeNull();
@@ -170,7 +170,7 @@ describe("Add several assignments (S3a-04)", () => {
     expect(await within(form).findByText("Row 3: The end date must be on or after the start date.")).toBeInTheDocument();
     expect(within(row(form, 2)).getByLabelText("Title")).toHaveValue("Two");
     expect(within(row(form, 3)).getByLabelText("Total")).toHaveValue(6);
-    expect(within(form).getByLabelText("Start")).toHaveValue("2026-11-02");
+    expect(within(form).getByLabelText("Start")).toHaveValue("Nov 2, 2026");
   });
 
   it("Cancel sends nothing and discards everything", async () => {
