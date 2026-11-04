@@ -8,6 +8,9 @@ import type { FamilySettingsPatch } from "../../api/types";
 export const SETUP_STEPS = 6;
 /** The step that must be finished (children): Finish later starts after it. */
 export const REQUIRED_STEP = 2;
+/** The steps a Home reminder can reopen on their own (`/welcome?only=…`), and the step each is. */
+export const ONLY_STEPS = { year: 4, breaks: 5 } as const;
+export type OnlyStep = keyof typeof ONLY_STEPS;
 
 /** What every step gets from the frame. */
 export interface StepApi {
@@ -15,6 +18,8 @@ export interface StepApi {
   step: number;
   /** Save `patch` with the step moved on (or finish the flow after the last step), then show the next screen. Resolves true when it saved. */
   next: (patch?: FamilySettingsPatch) => Promise<boolean>;
+  /** The step opened on its own from a reminder on Home (`/welcome?only=year`), not as part of the flow: "next" saves and goes Home. */
+  only: boolean;
   /** A request is in flight: steps disable their buttons. */
   busy: boolean;
   /** Show a problem in the frame's alert (a step's own save failed), or clear it. */

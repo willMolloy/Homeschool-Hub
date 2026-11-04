@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle, Circle } from "@phosphor-icons/react";
+import type { SetupDeferral } from "../../api/types";
 import { Button, Card } from "../../ui/components";
 
 export const CHECKLIST_KEY = "hh.checklist.hidden";
@@ -17,8 +18,13 @@ export interface ChecklistStep {
   done: boolean;
 }
 
-export function checklistSteps(counts: { children: number; subjects: number; assignments: number; breaks: number }): ChecklistStep[] {
+/**
+ * S11-03: a step the family put off in the setup flow is a reminder here until it is done: "Set your school year" opens that
+ * step on its own (`/welcome?only=year`), and goes when the year is saved.
+ */
+export function checklistSteps(counts: { children: number; subjects: number; assignments: number; breaks: number }, deferred: readonly SetupDeferral[] = []): ChecklistStep[] {
   return [
+    ...(deferred.includes("year") ? [{ key: "year", label: "Set your school year", to: "/welcome?only=year", done: false }] : []),
     { key: "children", label: "Add your children", to: "/setup/children", done: counts.children > 0 },
     { key: "subjects", label: "Add subjects", to: "/setup/subjects", done: counts.subjects > 0 },
     { key: "assignments", label: "Add your books and lessons", to: "/setup/assignments", done: counts.assignments > 0 },

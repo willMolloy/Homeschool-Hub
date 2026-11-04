@@ -58,7 +58,7 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/plan/preview-event": ["event", "eventId"],
   "POST /api/blocked-ranges/bulk": ["blockedRanges"],
   "POST /api/calendar-templates": ["name", "breaks"],
-  "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone", "zoomViews", "logSetup", "setupStep", "setupDone", "setupDeferred"],
+  "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone", "zoomViews", "logSetup", "setupStep", "setupDone", "setupDeferred", "schoolYear"],
   "POST /api/log-entries": ["childIds", "startDate", "endDate", "countsSchoolDay", "days", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
   "PATCH /api/log-entries/:id": ["startDate", "endDate", "countsSchoolDay", "days", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
   "POST /api/children": ["name", "color"],

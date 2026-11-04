@@ -59,7 +59,7 @@ function Home() {
   const checklist = children.data && subjects.data && assignments.data && blocked.data ? (
     <Checklist steps={checklistSteps({
       children: kids.length, subjects: subjects.data.filter((s) => !s.archived).length, assignments: live.length, breaks: blocked.data.length,
-    })} />
+    }, me.setupDeferred ?? [])} />
   ) : null;
   const schedule = (
     <Card className="home-card">

@@ -374,6 +374,10 @@ DO $$ BEGIN
 END $$;
 SELECT pg_temp.expect_error($$UPDATE family SET setup_step = 7 WHERE id = 'f0000000-0000-0000-0000-0000000000c6'$$, '23514', 'setup_step must be 1..6');
 SELECT pg_temp.expect_error($$UPDATE family SET setup_deferred = '{children}' WHERE id = 'f0000000-0000-0000-0000-0000000000c6'$$, '23514', 'setup_deferred is year or breaks');
+SELECT pg_temp.expect_error($$UPDATE family SET school_year_start = '2026-08-17' WHERE id = 'f0000000-0000-0000-0000-0000000000c6'$$, '23514', 'school year needs both days');
+SELECT pg_temp.expect_error($$UPDATE family SET school_year_start = '2027-05-21', school_year_end = '2026-08-17' WHERE id = 'f0000000-0000-0000-0000-0000000000c6'$$, '23514', 'school year last day not before the first');
+UPDATE family SET school_year_start = '2026-08-17', school_year_end = '2027-05-21' WHERE id = 'f0000000-0000-0000-0000-0000000000c6';
+DO $$ BEGIN RAISE NOTICE 'ok   family.school_year takes both days (020)'; END $$;
 DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c6';
 
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

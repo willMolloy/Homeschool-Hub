@@ -6,7 +6,7 @@
  * A family that is done is sent Home (it never sees this).
  */
 import { useCallback, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { apiPatch } from "../../api/client";
 import type { FamilySettingsPatch } from "../../api/types";
 import { useAuth, useMe } from "../../auth/AuthProvider";
@@ -14,7 +14,7 @@ import { Logo } from "../../layout/Logo";
 import { Button, Card } from "../../ui/components";
 import { saveError } from "../schedule/formBits";
 import { setSetupLater } from "./setupLater";
-import { REQUIRED_STEP, SETUP_STEPS, StepContext, StepHeading, type StepApi } from "./stepContext";
+import { ONLY_STEPS, REQUIRED_STEP, SETUP_STEPS, StepContext, StepHeading, type OnlyStep, type StepApi } from "./stepContext";
 import { STEP_BODIES } from "./steps";
 import "../../ui/forms.css";
 import "../home/home.css";
@@ -68,6 +68,32 @@ export function WelcomePage() {
     navigate("/", { replace: true });
   };
 
+  // A reminder on Home reopens one step on its own (a family that is done); the flow itself is not shown again.
+  const [params] = useSearchParams();
+  const asked = params.get("only");
+  const only = me.setupDone === true && asked !== null && Object.hasOwn(ONLY_STEPS, asked) ? (asked as OnlyStep) : null;
+  if (only) {
+    const OnlyBody = STEP_BODIES[ONLY_STEPS[only]]!;
+    const alone: StepApi = {
+      step: ONLY_STEPS[only], only: true, busy, fail: setError,
+      next: async (patch = {}) => {
+        if (Object.keys(patch).length > 0 && !(await save(patch))) return false;
+        navigate("/", { replace: true });
+        return true;
+      },
+    };
+    return (
+      <main className="welcome">
+        <header className="welcome-top"><Logo /></header>
+        <p className="welcome-back"><Link className="btn btn-quiet" to="/"><span aria-hidden="true">‹ </span>Home</Link></p>
+        <Card className="welcome-card">
+          {error ? <p className="form-error" role="alert">{error}</p> : null}
+          <StepContext.Provider value={alone}><OnlyBody /></StepContext.Provider>
+        </Card>
+      </main>
+    );
+  }
+
   // A family that is done never sees the flow (the "all set" screen is shown by the family that has just finished).
   if (me.setupDone !== false && !allSet) return <Navigate to="/" replace />;
 
@@ -85,7 +111,7 @@ export function WelcomePage() {
   }
 
   const Body = STEP_BODIES[step]!;
-  const api: StepApi = { step, next, busy, fail: setError };
+  const api: StepApi = { step, only: false, next, busy, fail: setError };
   return (
     <main className="welcome">
       <header className="welcome-top"><Logo /></header>

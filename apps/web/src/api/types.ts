@@ -108,13 +108,18 @@ export type FamilySettings = Omit<Me, "familyId" | "today" | "demo" | "setupStep
   zoomViews: ZoomViews;
   /** S9-03: what the records track; null until the family picks a template style. */
   logSetup: LogSetup | null;
+  /** S11-03: the school year's first and last day as the parent gave them in the setup flow; null until given. */
+  schoolYear?: SchoolYear | null;
 };
+export interface SchoolYear { start: string; end: string }
 /** The PATCH /api/family body: any of the editable fields. */
 export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">> & {
   /** S11-01: the setup step the family is on, and what it put off. `setupDone` only ever goes to true. */
   setupStep?: number;
   setupDone?: true;
   setupDeferred?: SetupDeferral[];
+  /** S11-03: the school year (never cleared by a patch). */
+  schoolYear?: SchoolYear;
 };
 
 /** POST /api/auth/login */
