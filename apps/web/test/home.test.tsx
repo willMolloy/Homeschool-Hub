@@ -133,7 +133,7 @@ describe("Set up", () => {
   it("a set-up screen links back to the list", async () => {
     const user = userEvent.setup();
     const { router } = renderAt("/setup/days-off");
-    await user.click(await screen.findByRole("link", { name: "‹ Set up" }));
+    await user.click(within(await screen.findByRole("main")).getByRole("link", { name: "Set up" }));
     expect(router.state.location.pathname).toBe("/setup");
   });
 

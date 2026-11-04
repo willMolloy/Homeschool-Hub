@@ -12,11 +12,21 @@ describe("S10-14: Set up's back link", () => {
     const user = userEvent.setup();
     const { router } = renderAt("/setup");
     const h1 = await screen.findByRole("heading", { level: 1, name: "Set up" });
-    const back = within(screen.getByRole("main")).getByRole("link", { name: "‹ Home" });
+    const back = within(screen.getByRole("main")).getByRole("link", { name: "Home" });
+    expect(back).toHaveTextContent("‹ Home"); // S10-10b (L6): the "‹" is shown but not part of the name
     expect(back.parentElement).toHaveClass("schedule-back");
     expect(back.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     await user.click(back);
     expect(router.state.location.pathname).toBe("/");
+  });
+
+  it("S10-10b L6: '‹ Set up' is named 'Set up'; the arrow is hidden from screen readers", async () => {
+    renderAt("/setup/days-off");
+    const main = await screen.findByRole("main");
+    const back = await within(main).findByRole("link", { name: "Set up" });
+    expect(back).toHaveTextContent("‹ Set up");
+    expect(back.querySelector("[aria-hidden=true]")).toHaveTextContent("‹");
+    expect(within(main).queryByRole("link", { name: /‹/ })).toBeNull();
   });
 
   it("both back links are at least 44 × 44 px (CSS)", () => {

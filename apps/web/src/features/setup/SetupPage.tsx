@@ -13,7 +13,7 @@ export function SetupPage() {
   return (
     <section className="setup">
       <p className="schedule-back">
-        <Link to="/">‹ Home</Link>
+        <Link to="/"><span aria-hidden="true">‹ </span>Home</Link>
       </p>
       <h1>Set up</h1>
       <Card className="setup-list">
@@ -27,11 +27,11 @@ export function SetupPage() {
   );
 }
 
-/** "‹ Set up" at the top of every set-up screen. */
+/** "‹ Set up" at the top of every set-up screen. S10-10b (L6): the "‹" is hidden from screen readers, so the link is "Set up". */
 export function BackToSetup() {
   return (
     <p className="schedule-back">
-      <Link to="/setup">‹ Set up</Link>
+      <Link to="/setup"><span aria-hidden="true">‹ </span>Set up</Link>
     </p>
   );
 }
