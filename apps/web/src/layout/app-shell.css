@@ -16,7 +16,7 @@
 .skip-link:focus {
   left: 8px;
   top: 8px;
-  z-index: 100;
+  z-index: var(--z-skip);
   background: var(--tl-card);
   padding: 8px 12px;
 }
@@ -50,7 +50,7 @@ html {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 10;
+  z-index: var(--z-nav);
   background: var(--tl-card);
   border-top: 1px solid var(--line);
   box-sizing: border-box;

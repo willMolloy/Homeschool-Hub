@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { createRouter } from "./router";
 import "./styles/tailwind.css";
+import "./styles/layers.css";
 import "./styles.css";
 import { applyTheme, readTheme } from "./lib/theme";
 
