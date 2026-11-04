@@ -191,7 +191,7 @@ describe("the print pages (S13-01, S13-02, S13-03)", () => {
     const frank = within(sheets[0]!);
     expect(frank.getByText("Treasure Island")).toBeInTheDocument();
     expect(frank.getAllByText(/pages 2\d\d–2\d\d/)).toHaveLength(5);
-    expect(frank.getByRole("region", { name: "Notes" })).toBeInTheDocument();
+    expect(frank.getByRole("region", { name: "Notes for Frank" })).toBeInTheDocument();
     expect(within(sheets[1]!).getByText("Math 5")).toBeInTheDocument();
     expect(within(sheets[1]!).queryByText("Treasure Island")).not.toBeInTheDocument();
   });

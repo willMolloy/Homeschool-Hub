@@ -58,7 +58,7 @@ Open http://localhost:5173 and sign in with `demo@example.com` / `demo-password`
 - [ ] 320 px and dark mode: nothing scrolls sideways and every button is easy to tap.
 
 **"Did Frank finish…?" and the needs-you dot (Sprint 12):** the demo family (`demo@example.com`) has one question waiting on Nov 4, 2026 and later: "Did Margaret finish A Child's Garden of Verses?" (the older demo books were already answered as finished). To answer without touching the demo, use `smoke@example.com` after the seed script above (run it again for a fresh set). Scenario: `node flow.mjs completion` (scripts/smoke) adds two assignments that ended yesterday, answers Yes / Not yet / We stopped from Home, and checks the dot, Year and axe.
-- [ ] Home: the question card is first, above the briefing; on a wide screen it spans both panes. Yes, finished, Not yet and We stopped each open a small sheet with the day (Oct 30 style) and Save; Cancel changes nothing.
+- [ ] Home: the question card is first, above the briefing; on a wide screen it spans both panes. **Yes, finished saves at once** (the undo bar says "Marked … finished"); Not yet and We stopped open a small sheet with the day (Oct 30 style) and Save; Cancel changes nothing. A book finished two weeks early ends its Year bar that day and the weeks after it are lighter.
 - [ ] Several waiting: one card "N assignments ended" with Answer them; each answered row leaves the list; the card goes after the last.
 - [ ] The Home item on the bar (phone) and the rail (600 px and up) shows a small green dot while a question waits, and is named "Home, 1 thing needs you" (2 things need you). It is green, never red, and clears the moment the last question is answered, without a reload. A late line or a heavy week never lights it.
 - [ ] Undo ("Marked … finished. Undo") puts the question and the dot back.
@@ -73,3 +73,11 @@ Open http://localhost:5173 and sign in with `demo@example.com` / `demo-password`
 - A date placeholder clips its last letter at 360 px.
 
 Write anything you notice in a list; Claude will turn it into tickets.
+
+**Printable sheets and term in review (Sprint 13):**
+- [ ] Schedule · Week: a printer button ("Print sheets") at the end of the title row. It opens a sheet: Week or Day, the week (arrows) or the day, All children or any mix. Print opens a white page with no bar or rail: one sheet per child, "‹ Back" and "Print" on screen only. Check Print preview (Ctrl/Cmd+P) in US Letter and A4: one page per child, the ranges ("Mon · chapters 16–17") match this week's Week bars, no minutes anywhere, Piano practice (counted in minutes) shows its days with a box and no number.
+- [ ] Day: the demo family's Tuesday shows only Tuesday's work for each child; Margaret's Math (Mon, Wed, Fri) is missing on Tuesday, and a day off says "Nothing planned for Thursday" with the break's name.
+- [ ] Records (set up the log first for the full card; the demo family has no log entries, so its card shows finished work only): **Term in review** after Export opens a full-screen page on the range and child you had. Range chips, the child switch, the card as large as fits, arrows between children's cards, Print and Save image at the bottom ("Save 2 images" with All children).
+- [ ] Save image: on a phone the share sheet offers the picture(s); on a computer each downloads as `Frank-Fall-2026-term-in-review.png` (1080 x 1350). In dark mode the screen shows a dark card but the saved picture and the printed page are light. Nothing is uploaded.
+- [ ] A part with nothing in it (no books, no time, nothing finished) is absent from the card, never 0. A long list ends in "and N more".
+- [ ] 320 px and dark mode: nothing scrolls sideways and every button is easy to tap. Scenarios: `node flow.mjs sheets` (demo family, read-only) and `node flow.mjs term-review` (smoke@example.com after the seed script; it sets up a log and adds entries).

@@ -62,12 +62,13 @@ function PrintPage({ kind }: { kind: SheetKind }) {
   const heading = !choice || !from ? "" : kind === "week" ? `Week of ${formatDate(from)}` : `${dayName(from)}, ${formatShort(from)}`;
   return (
     <div className="print-screen" data-kind={kind}>
-      <div className="print-bar no-print">
+      <header className="print-bar no-print">
         <Link className="print-back" to={backTo}><span aria-hidden="true">‹</span> Back</Link>
         <button type="button" className="btn print-go" onClick={() => window.print()} disabled={!ready || kids.length === 0}>
           <Printer size={20} weight="light" aria-hidden="true" /> Print
         </button>
-      </div>
+      </header>
+      <main className="print-main">
       {!choice || !from || !to ? (
         <p className="print-note" role="alert">That sheet needs a {kind === "week" ? "week" : "day"}. Go back to Schedule and choose Print sheets again.</p>
       ) : failed ? (
@@ -77,10 +78,11 @@ function PrintPage({ kind }: { kind: SheetKind }) {
       ) : kids.length === 0 ? (
         <p className="print-note" role="alert">No children to print for.</p>
       ) : (
-        <main className="print-sheets" aria-label={heading}>
+        <div className="print-sheets" role="group" aria-label={heading}>
           {sheets.map((s) => <ChildSheetView key={s.childId} sheet={s} kind={kind} heading={heading} dayWord={dayName(from)} child={kids.find((k) => k.id === s.childId)!} />)}
-        </main>
+        </div>
       )}
+      </main>
     </div>
   );
 }

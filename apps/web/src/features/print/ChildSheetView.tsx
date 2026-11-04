@@ -40,7 +40,7 @@ export function ChildSheetView({ sheet, kind, heading, dayWord, child }: { sheet
           ))}
         </section>
       ))}
-      <section className="sheet-notes" aria-label="Notes">
+      <section className="sheet-notes" aria-label={`Notes for ${sheet.childName}`}>
         <h2>Notes</h2>
         {Array.from({ length: NOTE_LINES[kind] }, (_, i) => <div key={i} className="sheet-line" />)}
       </section>

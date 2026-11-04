@@ -10,6 +10,10 @@
 
 S12-01 to S12-07 and S12-09 are built and pushed on `claude/test-coverage-analysis-6dehbu` (migration 024, engine 0.13.0). The S12-08 tester pass is next; the PR to `main` comes after it passes.
 
+## Build status: Sprint 13 (see `sprint-13.md`)
+
+S13-00 to S13-06 are built and pushed on `claude/test-coverage-analysis-6dehbu` (engine 0.14.0: a book finished early ends its bar that day; Print sheets, `/print/week` and `/print/day`; Term in review at `/records/review`). The S13-07 tester pass is next; the PR to `main` comes after it passes, and after Sprint 12's tester (S12-08) has already merged in PR #10.
+
 ## Next: Sprint 12
 
 - Tickets: `docs/tickets/sprint-12-completion/` (the completion question, the needs-you dot, and S12-09 for the Sprint 11 Lows). Claude's developer builds it on `claude/test-coverage-analysis-6dehbu`, committing and pushing after every ticket; the PR to `main` comes after its tester passes.
