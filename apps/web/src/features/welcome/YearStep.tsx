@@ -5,7 +5,7 @@
  */
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { apiGet, apiPost } from "../../api/client";
-import type { BlockedRange, FamilySettings, SetupDeferral } from "../../api/types";
+import type { BlockedRange, FamilySettings, SetupDeferral, YearShape } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useMe } from "../../auth/AuthProvider";
 import { Button } from "../../ui/components";
@@ -21,13 +21,15 @@ export function YearStep() {
   return <YearForm saved={family.data?.schoolYear ?? null} />;
 }
 
-function YearForm({ saved }: { saved: { start: string; end: string } | null }) {
+function YearForm({ saved }: { saved: { start: string; end: string; shape?: YearShape | null } | null }) {
   const me = useMe();
   const { next, busy, fail, only } = useStep();
   const existing = useApi<BlockedRange[]>("/api/blocked-ranges");
   const [start, setStart] = useState(saved?.start ?? "");
   const [end, setEnd] = useState(saved?.end ?? "");
-  const [shape, setShape] = useState<ShapeId>("fall-spring");
+  // Back shows the shape chosen before (a year put off shows "later" when Back returns to it; the reminder, which is there to give
+  // the year, starts on Fall and Spring); otherwise Fall and Spring.
+  const [shape, setShape] = useState<ShapeId>(saved?.shape ?? (!only && me.setupDeferred.includes("year") && !saved ? "later" : "fall-spring"));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const ids = { start: useId(), end: useId() };
@@ -45,6 +47,11 @@ function YearForm({ saved }: { saved: { start: string; end: string } | null }) {
       await next({ setupDeferred: [...rest, "year"] as SetupDeferral[] });
       return;
     }
+    // The same shape and dates as already saved: nothing to add or replace.
+    if (saved && saved.shape === shape && saved.start === start && saved.end === end) {
+      await next({ setupDeferred: rest });
+      return;
+    }
     if (problem || !plan) return setError(problem === "Pick a start and an end date." ? "Pick the first and last day of the school year." : problem);
     setError(null);
     setSaving(true);
@@ -54,8 +61,8 @@ function YearForm({ saved }: { saved: { start: string; end: string } | null }) {
       if (add.length > 0) {
         await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges: add.map((b) => ({ label: b.label, kind: b.kind, startDate: b.start, endDate: b.end, childIds: [] })) });
       }
-      const zoom = zoomViewsFor(plan, (await apiGet<FamilySettings>("/api/family")).zoomViews);
-      await next({ schoolYear: { start, end }, ...(zoom ? { zoomViews: zoom } : {}), setupDeferred: rest });
+      const zoom = zoomViewsFor(plan, (await apiGet<FamilySettings>("/api/family")).zoomViews, saved?.shape ?? null);
+      await next({ schoolYear: { start, end, shape }, ...(zoom ? { zoomViews: zoom } : {}), setupDeferred: rest });
     } catch (err) {
       fail(saveError(err));
     } finally {

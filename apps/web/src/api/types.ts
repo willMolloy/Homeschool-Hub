@@ -116,7 +116,9 @@ export type FamilySettings = Omit<Me, "familyId" | "today" | "demo" | "setupStep
   /** S11-03: the school year's first and last day as the parent gave them in the setup flow; null until given. */
   schoolYear?: SchoolYear | null;
 };
-export interface SchoolYear { start: string; end: string }
+/** S11b-01: the shapes a school year is given (the setup flow's cards, "I'll set this later" aside). */
+export type YearShape = "fall-spring" | "three-terms" | "36-weeks" | "sabbath";
+export interface SchoolYear { start: string; end: string; shape?: YearShape | null }
 /** The PATCH /api/family body: any of the editable fields. */
 export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">> & {
   /** S11-01: the setup step the family is on, and what it put off. `setupDone` only ever goes to true. */
@@ -124,7 +126,7 @@ export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked"
   setupDone?: true;
   setupDeferred?: SetupDeferral[];
   /** S11-03: the school year (never cleared by a patch). */
-  schoolYear?: SchoolYear;
+  schoolYear?: { start: string; end: string; shape?: YearShape };
   /** S11-06: the hints seen; an empty list shows them all again ("Show tips again"). */
   tipsSeen?: TipId[];
 };

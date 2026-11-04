@@ -116,7 +116,7 @@ describe("step 4: the school year", () => {
       { label: "Break", kind: "vacation", startDate: "2027-02-15", endDate: "2027-02-28", childIds: [] },
     ]]);
     const patch = familyPatches().at(-1) as { schoolYear: unknown; zoomViews: { hidden: string[]; custom: { name: string; start: string; end: string }[] }; setupStep: number; setupDeferred: string[] };
-    expect(patch.schoolYear).toEqual({ start: START, end: END });
+    expect(patch.schoolYear).toEqual({ start: START, end: END, shape: "three-terms" });
     expect(patch.zoomViews.hidden).toEqual(["fall", "spring"]);
     expect(patch.zoomViews.custom.map(({ name, start, end }) => [name, start, end])).toEqual([
       ["Term 1", "2026-08-17", "2026-11-08"], ["Term 2", "2026-11-23", "2027-02-14"], ["Term 3", "2027-03-01", "2027-05-21"],
@@ -143,7 +143,7 @@ describe("step 4: the school year", () => {
     await user.click(shapeCard("36 weeks"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByText("Step 5 of 6");
-    expect(familyPatches().at(-1)).toEqual({ schoolYear: { start: START, end: END }, setupDeferred: [], setupStep: 5 });
+    expect(familyPatches().at(-1)).toEqual({ schoolYear: { start: START, end: END, shape: "36-weeks" }, setupDeferred: [], setupStep: 5 });
     expect(bulkPosts()).toEqual([]);
   });
 
@@ -179,6 +179,80 @@ describe("step 4: the school year", () => {
   });
 });
 
+describe("Back remembers the shape (S11b-01)", () => {
+  /** Choose a shape, Continue, Back: the step as the parent finds it again. */
+  async function chooseThenBack(shape: string) {
+    const { f, user } = await atYear();
+    fillYear();
+    await user.click(shapeCard(shape));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Step 5 of 6");
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    await waitFor(() => expect(screen.getByLabelText("First day")).toHaveValue("Aug 17, 2026"));
+    return { f, user };
+  }
+
+  it.each(["Fall and Spring", "Three terms", "36 weeks", "6 weeks on, 1 off"])("%s is chosen again on Back", async (name) => {
+    await chooseThenBack(name);
+    expect(shapeCard(name)).toBeChecked();
+  });
+
+  it("Three terms, Back, Continue leaves Term 1/2/3 and adds nothing: no request but the step", async () => {
+    const { f, user } = await chooseThenBack("Three terms");
+    const views = JSON.stringify(f.zoomViews);
+    const before = fakeApi.calls.length;
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Step 5 of 6");
+    expect(JSON.stringify(f.zoomViews)).toBe(views);
+    expect(f.zoomViews.hidden).toEqual(["fall", "spring"]);
+    expect(f.blocked).toHaveLength(2);
+    expect(fakeApi.calls.slice(before).filter((c) => c.method !== "GET").map((c) => [c.method, c.path, c.body])).toEqual([["PATCH", "/api/family", { setupDeferred: [], setupStep: 5 }]]);
+  });
+
+  it.each(["36 weeks", "6 weeks on, 1 off"])("%s, Back, Continue adds nothing", async (name) => {
+    const { f, user } = await chooseThenBack(name);
+    const blocked = f.blocked.length;
+    const before = fakeApi.calls.length;
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Step 5 of 6");
+    expect(f.blocked).toHaveLength(blocked);
+    expect(f.zoomViews).toEqual({ hidden: [], custom: [] });
+    expect(fakeApi.calls.slice(before).some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it("a different shape replaces the earlier one's term views: Three terms then Fall and Spring", async () => {
+    const { f, user } = await chooseThenBack("Three terms");
+    await user.click(shapeCard("Fall and Spring"));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Step 5 of 6");
+    expect(f.zoomViews.custom).toEqual([]);
+    expect(f.zoomViews.hidden).toEqual([]);
+    expect(f.zoomViews.overrides).toMatchObject({ fall: { name: "Fall" }, spring: { name: "Spring" } });
+  });
+
+  it("Three terms after Fall and Spring, then 36 weeks, take the earlier views away", async () => {
+    const { f, user } = await chooseThenBack("Fall and Spring");
+    await user.click(shapeCard("Three terms"));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Step 5 of 6");
+    expect(f.zoomViews.custom.map((v) => (v as { name: string }).name)).toEqual(["Term 1", "Term 2", "Term 3"]);
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    await waitFor(() => expect(shapeCard("Three terms")).toBeChecked());
+    await user.click(shapeCard("36 weeks"));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Step 5 of 6");
+    expect(f.zoomViews.custom).toEqual([]);
+    expect(f.zoomViews.hidden).toEqual([]);
+  });
+
+  it("a year put off shows I'll set this later when Back returns to it", async () => {
+    newFamily({ setupStep: 4, setupDeferred: ["year"] });
+    renderAt("/welcome");
+    await screen.findByRole("heading", { level: 1, name: "When is your school year?" });
+    await waitFor(() => expect(shapeCard("I'll set this later")).toBeChecked());
+  });
+});
+
 describe("I'll set this later", () => {
   it("saves no dates, no breaks and no views, and leaves a reminder on Home", async () => {
     const { f, user } = await atYear();
@@ -209,7 +283,7 @@ describe("I'll set this later", () => {
     await screen.findByRole("button", { name: "Family and settings" });
     expect(router.state.location.pathname).toBe("/");
     expect(familyPatches()).toEqual([{
-      schoolYear: { start: START, end: END }, setupDeferred: [],
+      schoolYear: { start: START, end: END, shape: "fall-spring" }, setupDeferred: [],
       zoomViews: { hidden: [], custom: [], overrides: { fall: { name: "Fall", start: START, end: "2026-12-31" }, spring: { name: "Spring", start: "2027-01-01", end: END } } },
     }]);
     expect(screen.queryByRole("link", { name: /Set your school year/ })).toBeNull();

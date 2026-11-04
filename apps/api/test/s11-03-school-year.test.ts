@@ -25,9 +25,16 @@ describe.skipIf(!hasDb)("the school year on the family (integration)", () => {
   it("round-trips, and another setting leaves it alone", async () => {
     const res = await patch({ schoolYear: { start: "2026-08-17", end: "2027-05-21" }, setupStep: 5 });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({ schoolYear: { start: "2026-08-17", end: "2027-05-21" }, setupStep: 5 });
-    expect((await patch({ name: "Year family 2" })).json().schoolYear).toEqual({ start: "2026-08-17", end: "2027-05-21" });
-    expect((await get()).json().schoolYear).toEqual({ start: "2026-08-17", end: "2027-05-21" });
+    expect(res.json()).toMatchObject({ schoolYear: { start: "2026-08-17", end: "2027-05-21", shape: null }, setupStep: 5 });
+    expect((await patch({ name: "Year family 2" })).json().schoolYear).toEqual({ start: "2026-08-17", end: "2027-05-21", shape: null });
+    expect((await get()).json().schoolYear).toEqual({ start: "2026-08-17", end: "2027-05-21", shape: null });
+  });
+
+  it("S11b-01: the shape is kept with the year; a year sent without one keeps the shape it had", async () => {
+    expect((await patch({ schoolYear: { start: "2026-08-17", end: "2027-05-21", shape: "three-terms" } })).json().schoolYear).toEqual({ start: "2026-08-17", end: "2027-05-21", shape: "three-terms" });
+    expect((await patch({ schoolYear: { start: "2026-08-24", end: "2027-05-21" } })).json().schoolYear).toEqual({ start: "2026-08-24", end: "2027-05-21", shape: "three-terms" });
+    expect((await patch({ schoolYear: { start: "2026-08-24", end: "2027-05-21", shape: "sabbath" } })).json().schoolYear.shape).toBe("sabbath");
+    expect((await patch({ schoolYear: { start: "2026-08-24", end: "2027-05-21", shape: "later" } })).statusCode).toBe(400);
   });
 
   it.each([

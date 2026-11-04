@@ -30,13 +30,13 @@ export interface FamilySettings {
   setupStep: number;
   setupDone: boolean;
   setupDeferred: SetupDeferral[];
-  schoolYear: { start: string; end: string } | null;
+  schoolYear: { start: string; end: string; shape: YearShape | null } | null;
   tipsSeen: Tip[];
 }
 interface FamilyRow {
   name: string; week_start: "mon" | "sun"; school_days: number[]; time_zone: string; zoom_views: ZoomViewsJson; log_setup: LogSetupJson | null;
   setup_step: number; setup_done: boolean; setup_deferred: SetupDeferral[];
-  school_year_start: string | null; school_year_end: string | null; tips_seen: Tip[];
+  school_year_start: string | null; school_year_end: string | null; school_year_shape: YearShape | null; tips_seen: Tip[];
 }
 
 /** S11-01: the setup steps a family can put off (the school year, the breaks). */
@@ -51,7 +51,7 @@ export type Tip = (typeof TIPS)[number];
 const toSettings = (r: FamilyRow, weekStartLocked: boolean): FamilySettings =>
   ({ name: r.name, weekStart: r.week_start, schoolDays: r.school_days, timeZone: r.time_zone, weekStartLocked, zoomViews: r.zoom_views, logSetup: r.log_setup,
     setupStep: r.setup_step, setupDone: r.setup_done, setupDeferred: r.setup_deferred,
-    schoolYear: r.school_year_start && r.school_year_end ? { start: r.school_year_start, end: r.school_year_end } : null,
+    schoolYear: r.school_year_start && r.school_year_end ? { start: r.school_year_start, end: r.school_year_end, shape: r.school_year_shape } : null,
     tipsSeen: r.tips_seen });
 
 export const WEEK_START_LOCKED_MESSAGE = "weekStart: the week start can't change after weeks have been checked in.";
@@ -72,8 +72,12 @@ export const SchoolDays = z
   .refine((d) => new Set(d).size === d.length, "School days can't repeat.")
   .transform((d) => [...d].sort((a, b) => a - b));
 
+/** S11b-01: the shapes a school year can be given (the setup flow's cards, "later" aside). */
+export const YEAR_SHAPES = ["fall-spring", "three-terms", "36-weeks", "sabbath"] as const;
+export type YearShape = (typeof YEAR_SHAPES)[number];
+
 /** S11-03: the school year's first and last day (at most 400 days, like a calendar template's year). */
-const SchoolYear = z.strictObject({ start: LocalDate, end: LocalDate }).superRefine((y, ctx) => {
+const SchoolYear = z.strictObject({ start: LocalDate, end: LocalDate, shape: z.enum(YEAR_SHAPES, "shape must be one of the year shapes.").optional() }).superRefine((y, ctx) => {
   if (!isValidLocalDate(y.start) || !isValidLocalDate(y.end)) return;
   const days = toDayNumber(y.end) - toDayNumber(y.start) + 1;
   if (days < 1) ctx.addIssue({ code: "custom", path: ["end"], message: "The last day must be on or after the first day." });
@@ -91,7 +95,7 @@ const PatchBody = z
     setupDeferred: z.array(z.enum(SETUP_DEFERRALS, "Only the year and the breaks can be put off.")).refine((d) => new Set(d).size === d.length, "A step can only be put off once.").optional() })
   .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, weekStart, schoolDays, timeZone, zoomViews, logSetup, setupStep, setupDone, setupDeferred, schoolYear, tipsSeen.");
 
-const COLS = "name, week_start, school_days, time_zone, zoom_views, log_setup, setup_step, setup_done, setup_deferred, school_year_start, school_year_end, tips_seen";
+const COLS = "name, week_start, school_days, time_zone, zoom_views, log_setup, setup_step, setup_done, setup_deferred, school_year_start, school_year_end, school_year_shape, tips_seen";
 const gone = () => new HttpError(401, "unauthenticated", "Your family no longer exists.");
 
 export async function familyRoutes(app: FastifyInstance): Promise<void> {
@@ -123,11 +127,12 @@ export async function familyRoutes(app: FastifyInstance): Promise<void> {
            setup_deferred = COALESCE($10::text[], setup_deferred),
            school_year_start = COALESCE($11::date, school_year_start),
            school_year_end = COALESCE($12::date, school_year_end),
+           school_year_shape = COALESCE($14::text, school_year_shape),
            tips_seen = COALESCE($13::text[], tips_seen),
            updated_at = now()
          WHERE id = $1 RETURNING ${COLS}`,
         [req.familyId, b.name ?? null, b.weekStart ?? null, b.schoolDays ?? null, b.timeZone ?? null, b.zoomViews ? JSON.stringify(b.zoomViews) : null, b.logSetup ? JSON.stringify(b.logSetup) : null,
-         b.setupStep ?? null, b.setupDone ?? null, b.setupDeferred ?? null, b.schoolYear?.start ?? null, b.schoolYear?.end ?? null, b.tipsSeen ?? null]);
+         b.setupStep ?? null, b.setupDone ?? null, b.setupDeferred ?? null, b.schoolYear?.start ?? null, b.schoolYear?.end ?? null, b.tipsSeen ?? null, b.schoolYear?.shape ?? null]);
       return toSettings(rows[0]!, locked);
     });
   });

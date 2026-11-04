@@ -5,11 +5,11 @@
  * re-dated to the year, or three views of the family's own.
  */
 import { addDays, CALENDAR_SHAPES, diffDays } from "@hh/engine";
-import type { BlockedRange, BuiltInZoomOverrides, CustomZoomView, WeekStart, ZoomViews } from "../../api/types";
+import type { BlockedRange, BuiltInZoomOverrides, CustomZoomView, WeekStart, YearShape, ZoomViews } from "../../api/types";
 import { breakDates, leaveOutExisting, plannedBreaks, type PlannedBreak } from "../schedule/templates";
 import { newViewId } from "../timeline/zoomViews";
 
-export type ShapeId = "fall-spring" | "three-terms" | "36-weeks" | "sabbath" | "later";
+export type ShapeId = YearShape | "later";
 
 export interface Shape {
   id: ShapeId;
@@ -91,17 +91,32 @@ export function previewLine(shape: ShapeId, plan: YearPlan, existing: readonly B
   return line;
 }
 
-/** The family's zoom views with the shape applied (null: leave them alone). Replaces an earlier Fall and Spring or three terms. */
-export function zoomViewsFor(plan: YearPlan, current: ZoomViews): ZoomViews | null {
+/**
+ * The family's zoom views with the shape applied (null: nothing to change). The views of the shape chosen before are taken away
+ * first (any "Term n" view, and Fall and Spring back to showing and to their default dates), then the new shape's are put in,
+ * so changing shape replaces them and applying the same one again changes nothing.
+ */
+export function zoomViewsFor(plan: YearPlan, current: ZoomViews, previous: YearShape | null = null): ZoomViews | null {
+  const hadTerms = current.custom.some(isTermView);
   const keep = current.custom.filter((v) => !isTermView(v));
+  let hidden = hadTerms ? current.hidden.filter((h) => h !== "fall" && h !== "spring") : current.hidden;
+  let overrides = current.overrides;
+  if (previous === "fall-spring" && !plan.halves && overrides) {
+    const { fall: _f, spring: _s, ...other } = overrides;
+    overrides = Object.keys(other).length > 0 ? other : undefined;
+  }
+  let custom = keep;
   if (plan.halves) {
-    return { hidden: current.hidden.filter((h) => h !== "fall" && h !== "spring"), custom: keep, overrides: { ...current.overrides, ...plan.halves } };
+    hidden = hidden.filter((h) => h !== "fall" && h !== "spring");
+    overrides = { ...overrides, ...plan.halves };
+  } else if (plan.terms) {
+    hidden = (["fall", "spring", "month"] as const).filter((h) => hidden.includes(h) || h === "fall" || h === "spring");
+    custom = [...keep, ...plan.terms.map((t) => ({ id: newViewId(), ...t }))];
   }
-  if (plan.terms) {
-    const hidden = [...new Set([...current.hidden, "fall" as const, "spring" as const])];
-    return { hidden: (["fall", "spring", "month"] as const).filter((h) => hidden.includes(h)), custom: [...keep, ...plan.terms.map((t) => ({ id: newViewId(), ...t }))], ...(current.overrides ? { overrides: current.overrides } : {}) };
-  }
-  return null;
+  const next: ZoomViews = { hidden, custom, ...(overrides ? { overrides } : {}) };
+  const same = JSON.stringify({ hidden: next.hidden, overrides: next.overrides ?? null, custom: next.custom.map(({ id: _i, ...v }) => v) })
+    === JSON.stringify({ hidden: current.hidden, overrides: current.overrides ?? null, custom: current.custom.map(({ id: _i, ...v }) => v) });
+  return same ? null : next;
 }
 
 /** The school year a family with none given is offered holidays for: this one, August to June (the school year that holds `today`, or starts next month in July). */
