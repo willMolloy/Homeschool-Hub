@@ -61,9 +61,9 @@ export async function seed(databaseUrl: string, email: string = DEMO_EMAIL, fami
     }
     for (const a of assignments) {
       const id = await one(
-        `INSERT INTO assignment (id, family_id, subject_id, title, unit_type, total_units, start_date, end_date, weight_per_unit)
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-        [familyId, ids.subject[a.subjectId], a.title ?? a.id, a.unitType, a.totalUnits, a.start, a.end, a.weightPerUnit ?? null]);
+        `INSERT INTO assignment (id, family_id, subject_id, title, unit_type, total_units, start_date, end_date, weight_per_unit, ended_as, ended_on)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+        [familyId, ids.subject[a.subjectId], a.title ?? a.id, a.unitType, a.totalUnits, a.start, a.end, a.weightPerUnit ?? null, a.endedAs ?? null, a.endedAs ? a.endedOn ?? a.end : null]);
       ids.assignment[a.id] = id;
       for (const c of a.childIds) {
         await client.query("INSERT INTO assignment_child (assignment_id, child_id, family_id) VALUES ($1, $2, $3)", [id, ids.child[c], familyId]);

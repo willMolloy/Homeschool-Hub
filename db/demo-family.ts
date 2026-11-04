@@ -12,13 +12,15 @@
  * - past weeks checked in: Frank read ahead in The Hobbit, Margaret fell behind in The Secret Garden two weeks running,
  *   so its pace forecast is late and Home and Week show a "will finish late" briefing line (S9b-05, S9-05)
  * - Frank (older) carries more than Margaret
+ * - S12-07: the books that ended before the demo's "now" (Aesop's Fables, Treasure Island, Times tables) were finished, so the
+ *   one that ended last week and was never answered, A Child's Garden of Verses (Oct 30), is the only question Home asks
  */
 import type { Assignment } from "@hh/engine";
 import { SEED_CHILDREN, SEED_SUBJECTS, type SeedFamily } from "./seed-data";
 
 const A = (id: string, title: string, subjectId: string, childIds: string[], unitType: Assignment["unitType"],
-  totalUnits: number, start: string, end: string, weightPerUnit: number | null = null): Assignment =>
-  ({ id, title, subjectId, childIds, unitType, totalUnits, start, end, weightPerUnit });
+  totalUnits: number, start: string, end: string, weightPerUnit: number | null = null, endedAs: Assignment["endedAs"] = null): Assignment =>
+  ({ id, title, subjectId, childIds, unitType, totalUnits, start, end, weightPerUnit, ...(endedAs ? { endedAs, endedOn: end } : {}) });
 
 export const DEMO_FAMILY: SeedFamily = {
   calendar: { weekStart: "mon", schoolDays: [1, 2, 3, 4, 5] },
@@ -27,8 +29,8 @@ export const DEMO_FAMILY: SeedFamily = {
   subjects: [...SEED_SUBJECTS, { key: "art", name: "Art", color: "#b0482f" }],
   assignments: [
     // Frank's reading: back-to-back sprints, pages then chapters.
-    A("aesop", "Aesop's Fables", "lit", ["frank"], "pages", 120, "2026-08-31", "2026-09-11"),
-    A("ti", "Treasure Island", "lit", ["frank"], "pages", 270, "2026-09-14", "2026-10-02"),
+    A("aesop", "Aesop's Fables", "lit", ["frank"], "pages", 120, "2026-08-31", "2026-09-11", null, "finished"),
+    A("ti", "Treasure Island", "lit", ["frank"], "pages", 270, "2026-09-14", "2026-10-02", null, "finished"),
     A("hobbit", "The Hobbit", "lit", ["frank"], "chapters", 19, "2026-10-05", "2026-11-13"),
     A("beauty", "Black Beauty", "lit", ["frank"], "pages", 240, "2026-11-16", "2026-12-18"),
     A("crusoe", "Robinson Crusoe", "lit", ["frank"], "pages", 300, "2027-01-04", "2027-03-12"),
@@ -41,7 +43,7 @@ export const DEMO_FAMILY: SeedFamily = {
     // Math: a lesson a day all year; Margaret's times tables overlap her course for a month.
     A("math5", "Math 5", "math", ["frank"], "lessons", 150, "2026-08-31", "2027-05-21"),
     A("math3", "Math 3", "math", ["margaret"], "lessons", 140, "2026-08-31", "2027-05-21", 12),
-    A("tables", "Times tables", "math", ["margaret"], "lessons", 16, "2026-10-05", "2026-10-30", 8),
+    A("tables", "Times tables", "math", ["margaret"], "lessons", 16, "2026-10-05", "2026-10-30", 8, "finished"),
     // History together; science apart, with Frank's fair project heavy for three weeks, then lighter.
     A("hist", "History spine", "hist", ["frank", "margaret"], "lessons", 140, "2026-09-08", "2027-05-14"),
     A("sci5", "Science 5", "sci", ["frank"], "lessons", 120, "2026-09-08", "2027-05-14"),
