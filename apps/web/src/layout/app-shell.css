@@ -10,6 +10,7 @@
   --content-max: 640px;
   --form-max: 480px;
   --page-pad: 20px;
+  --home-max: 1040px;
 }
 @media (min-width: 600px) {
   :root {
@@ -119,6 +120,12 @@ html {
 /* S10-16: the Year timeline uses the full width beside the rail. */
 .shell-main:has(.schedule-page[data-view="year"]) {
   max-width: none;
+}
+/* S10-17: Home is two panes from 840 px, about 1040 px wide at most. */
+@media (min-width: 840px) {
+  .shell-main:has(.home-panes) {
+    max-width: calc(var(--home-max) + 2 * var(--page-pad));
+  }
 }
 
 /* S10-09: the rail. Fixed on the left, icons centred with a small label under each (Material 3), the active one in a pill.

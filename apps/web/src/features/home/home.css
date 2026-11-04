@@ -55,3 +55,11 @@
 .empty-state p { margin: 0; }
 .empty-state .hint { margin-top: 4px; }
 .empty-state .btn { margin-top: 14px; }
+
+/* S10-17: two panes from 840 px (HOME_PANES_QUERY): the wide one flexible (at least 480 px), the narrow one 320–360 px,
+   24 px apart. The header, greeting and date span the top. Under 840 px Home is one column.
+   Beside the 80 px rail, 840 px leaves 712 px of column, less than 480 + 24 + 320; so the narrow pane keeps 320 px and the
+   wide one takes the rest (368 px at 840) until there is room for 480 (from about 952 px). */
+.home-panes { display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, calc(100% - 504px), 360px); gap: 24px; align-items: start; }
+.home-pane { min-width: 0; }
+.home-pane > :last-child { margin-bottom: 0; }

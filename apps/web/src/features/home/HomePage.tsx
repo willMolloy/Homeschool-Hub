@@ -2,6 +2,9 @@
  * S8-04: Home. The logo and the family button, a greeting with the date, the briefing when something needs
  * attention, and (S9-01, Will's correction) the two main jobs as equal cards, Schedule and Records. S10-09: no Set up row;
  * Set up is in the bar and the rail. Nothing here is a number the family did not enter.
+ * S10-17: from 840 px, two panes under the header, greeting and date: a wide one (the briefing, then Schedule) and a
+ * narrow one (Records, then the checklist). Under 840 px, one column in the old order. The DOM follows what is shown
+ * (two layouts, picked by a media query), so reading and tab order always match the screen.
  */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -18,9 +21,13 @@ import { PlanRefreshProvider } from "../plan/planRefresh";
 import { useWeekPlans } from "../plan/useWeekPlans";
 import { deviceToday, shownWeek } from "../plan/useShownWeek";
 import { isValidLocalDate } from "@hh/engine";
+import { useMediaQuery } from "../../lib/useMediaQuery";
 import { subjectSlots } from "../timeline/model";
 import { finishGlance, greetingFor, longDate, scheduleSub, weekOfSpan } from "./homeSummary";
 import "./home.css";
+
+/** S10-17: the width at which Home becomes two panes (DeeDee, 2026-11-03). */
+export const HOME_PANES_QUERY = "(min-width: 840px)";
 
 export function HomePage() {
   return (
@@ -45,6 +52,42 @@ function Home() {
   const finish = plans ? finishGlance(plans) : null;
   const [late, setLate] = useState<number | undefined>(undefined);
 
+  const wide = useMediaQuery(HOME_PANES_QUERY);
+  const briefing = <HomeBriefing weekStart={currentWeekStart} onLate={setLate} />;
+  // S8-09: only once all four lists have answered, so it never flashes for a family that has set up.
+  const checklist = children.data && subjects.data && assignments.data && blocked.data ? (
+    <Checklist steps={checklistSteps({
+      children: kids.length, subjects: subjects.data.filter((s) => !s.archived).length, assignments: live.length, breaks: blocked.data.length,
+    })} />
+  ) : null;
+  const schedule = (
+    <Card className="home-card">
+      <div className="home-card-head">
+        <span className="home-icon"><ListBullets size={24} weight="light" aria-hidden="true" /></span>
+        <div className="home-card-text">
+          <h2><Link className="home-card-link" to="/schedule">Schedule</Link></h2>
+          <div className="home-sub">
+            {scheduleSub(finish, late)}
+          </div>
+        </div>
+        <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />
+      </div>
+      <MiniTimeline assignments={live} subjects={subjects.data ?? []} today={today} />
+    </Card>
+  );
+  const records = (
+    <Card className="home-card">
+      <div className="home-card-head">
+        <span className="home-icon"><Notebook size={24} weight="light" aria-hidden="true" /></span>
+        <div className="home-card-text">
+          <h2><Link className="home-card-link" to="/records">Records</Link></h2>
+          <div className="home-sub">Attendance, hours and books</div>
+        </div>
+        <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />
+      </div>
+    </Card>
+  );
+
   return (
     <div className="home">
       <header className="home-top">
@@ -53,38 +96,25 @@ function Home() {
       </header>
       <h1 className="home-greeting">{greetingFor(new Date().getHours())}</h1>
       <p className="home-date">{longDate(today)}{weekNo ? ` · Week ${weekNo.n} of ${weekNo.m}` : ""}</p>
-      <HomeBriefing weekStart={currentWeekStart} onLate={setLate} />
-      {/* S8-09: only once all four lists have answered, so it never flashes for a family that has set up. */}
-      {children.data && subjects.data && assignments.data && blocked.data ? (
-        <Checklist steps={checklistSteps({
-          children: kids.length, subjects: subjects.data.filter((s) => !s.archived).length, assignments: live.length, breaks: blocked.data.length,
-        })} />
-      ) : null}
-
-      <Card className="home-card">
-        <div className="home-card-head">
-          <span className="home-icon"><ListBullets size={24} weight="light" aria-hidden="true" /></span>
-          <div className="home-card-text">
-            <h2><Link className="home-card-link" to="/schedule">Schedule</Link></h2>
-            <div className="home-sub">
-              {scheduleSub(finish, late)}
-            </div>
+      {wide ? (
+        <div className="home-panes">
+          <div className="home-pane home-pane-wide">
+            {briefing}
+            {schedule}
           </div>
-          <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />
-        </div>
-        <MiniTimeline assignments={live} subjects={subjects.data ?? []} today={today} />
-      </Card>
-
-      <Card className="home-card">
-        <div className="home-card-head">
-          <span className="home-icon"><Notebook size={24} weight="light" aria-hidden="true" /></span>
-          <div className="home-card-text">
-            <h2><Link className="home-card-link" to="/records">Records</Link></h2>
-            <div className="home-sub">Attendance, hours and books</div>
+          <div className="home-pane home-pane-narrow">
+            {records}
+            {checklist}
           </div>
-          <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />
         </div>
-      </Card>
+      ) : (
+        <>
+          {briefing}
+          {checklist}
+          {schedule}
+          {records}
+        </>
+      )}
     </div>
   );
 }
