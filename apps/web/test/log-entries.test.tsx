@@ -252,12 +252,30 @@ describe("S9b-07: ticking the days of a run", () => {
     fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
     fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-08" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
-    await waitFor(() => expect(form.getByRole("button", { name: "Monday, Nov 2" })).toHaveAttribute("aria-pressed", "true"));
-    await user.click(form.getByRole("button", { name: "Saturday, Nov 7" }));
+    await waitFor(() => expect(form.getByRole("button", { name: "Mon 2, Monday, November 2" })).toHaveAttribute("aria-pressed", "true"));
+    await user.click(form.getByRole("button", { name: "Sat 7, Saturday, November 7" }));
     expect(form.getByText(/Counts Mon–Sat, 6 days/)).toBeInTheDocument();
     await user.click(form.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(calls("POST")).toHaveLength(1));
     expect((calls("POST")[0]!.body as { days: string[] }).days).toEqual(MON_SAT);
+  });
+
+  it("S10-10b M1: every chip's accessible name starts with the text it shows (WCAG 2.5.3 Label in Name)", async () => {
+    const user = userEvent.setup();
+    const form = await openLog(user);
+    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-08" } });
+    await user.click(form.getByRole("button", { name: "Frank" }));
+    const group = within(await form.findByRole("group", { name: "School days in these dates" }));
+    await waitFor(() => expect(group.getByRole("button", { name: /^Mon 2,/ })).toHaveAttribute("aria-pressed", "true"));
+    const buttons = group.getAllByRole("button");
+    expect(buttons).toHaveLength(7);
+    for (const b of buttons) {
+      const shown = b.textContent!.trim();
+      const name = b.getAttribute("aria-label") ?? shown;
+      expect(name.toLowerCase().startsWith(shown.toLowerCase())).toBe(true);
+    }
+    expect(buttons[0]).toHaveAccessibleName("Mon 2, Monday, November 2");
   });
 
   it("unticking every day says what to do and sends nothing", async () => {
@@ -266,9 +284,9 @@ describe("S9b-07: ticking the days of a run", () => {
     fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
     fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-03" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
-    await waitFor(() => expect(form.getByRole("button", { name: "Tuesday, Nov 3" })).toHaveAttribute("aria-pressed", "true"));
-    await user.click(form.getByRole("button", { name: "Monday, Nov 2" }));
-    await user.click(form.getByRole("button", { name: "Tuesday, Nov 3" }));
+    await waitFor(() => expect(form.getByRole("button", { name: "Tue 3, Tuesday, November 3" })).toHaveAttribute("aria-pressed", "true"));
+    await user.click(form.getByRole("button", { name: "Mon 2, Monday, November 2" }));
+    await user.click(form.getByRole("button", { name: "Tue 3, Tuesday, November 3" }));
     await user.click(form.getByRole("button", { name: "Save" }));
     expect(await form.findByRole("alert")).toHaveTextContent('Tick at least one day, or turn off "Count as a school day".');
     expect(calls("POST")).toHaveLength(0);
@@ -292,8 +310,8 @@ describe("S9b-07: ticking the days of a run", () => {
     expect(await screen.findByText(/6 school days, Mon–Sat/)).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: /^Edit Frank/ }));
     const form = within(await screen.findByRole("form", { name: "Change log entry" }));
-    expect(form.getByRole("button", { name: "Saturday, Nov 7" })).toHaveAttribute("aria-pressed", "true");
-    await user.click(form.getByRole("button", { name: "Wednesday, Nov 4" }));
+    expect(form.getByRole("button", { name: "Sat 7, Saturday, November 7" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(form.getByRole("button", { name: "Wed 4, Wednesday, November 4" }));
     await user.click(form.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(calls("PATCH")).toHaveLength(1));
     expect((calls("PATCH")[0]!.body as { days: string[] }).days).toEqual(MON_SAT.filter((d) => d !== "2026-11-04"));

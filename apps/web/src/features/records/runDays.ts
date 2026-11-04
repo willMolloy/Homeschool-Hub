@@ -4,7 +4,7 @@
  * chip per weekday (days off are left out). Pure; dates are `YYYY-MM-DD` strings.
  */
 import { addDays, diffDays, weekdayOf, type Weekday } from "@hh/engine";
-import { MONTH_SHORT } from "../../lib/dates";
+import { MONTH_NAMES } from "../../lib/dates";
 
 /** What the server says about a run: the family's school weekdays, the calendar's school days, and its days off. */
 export interface RunDays {
@@ -39,10 +39,13 @@ export function dateChipLabel(d: string): string {
   return `${WEEKDAY_SHORT[weekdayOf(d)]} ${Number(d.slice(8, 10))}`;
 }
 
-/** "Monday, Nov 2" (what a screen reader hears) */
+/**
+ * "Mon 2, Monday, November 2": a date chip's accessible name. It starts with the chip's visible text (WCAG 2.5.3 Label in
+ * Name, S10-10b M1), so "click Mon 2" works by voice, then says the day and month in full.
+ */
 export function dateChipName(d: string): string {
   const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  return `${names[weekdayOf(d)]}, ${MONTH_SHORT[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8, 10))}`;
+  return `${dateChipLabel(d)}, ${names[weekdayOf(d)]}, ${MONTH_NAMES[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8, 10))}`;
 }
 
 /** The run's dates on a ticked weekday, without the days off. */

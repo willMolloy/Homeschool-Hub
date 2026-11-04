@@ -37,8 +37,8 @@ describe("the day chips", () => {
     render(<RunDayChips start="2026-11-02" end="2026-11-08" childIds={["c1"]} initial={null} onChange={onChange} />);
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"], false));
     expect(screen.getByText(/Counts Mon–Fri, 5 days/)).toBeInTheDocument();
-    expect(chips().getByRole("button", { name: "Saturday, Nov 7" })).toHaveAttribute("aria-pressed", "false");
-    await user.click(chips().getByRole("button", { name: "Saturday, Nov 7" }));
+    expect(chips().getByRole("button", { name: "Sat 7, Saturday, November 7" })).toHaveAttribute("aria-pressed", "false");
+    await user.click(chips().getByRole("button", { name: "Sat 7, Saturday, November 7" }));
     expect(onChange).toHaveBeenLastCalledWith(["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"], true);
     expect(screen.getByText(/Counts Mon–Sat, 6 days/)).toBeInTheDocument();
     expect(fakeApi.calls.some((c) => c.path === "/api/log-entries/run-days?from=2026-11-02&to=2026-11-08&childIds=c1")).toBe(true);
@@ -49,15 +49,15 @@ describe("the day chips", () => {
     const onChange = vi.fn();
     render(<RunDayChips start="2026-11-02" end="2026-11-08" childIds={["c1"]} initial={null} onChange={onChange} />);
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(["2026-11-03", "2026-11-04", "2026-11-06", "2026-11-07"], false));
-    expect(chips().getByRole("button", { name: "Thursday, Nov 5" })).toHaveAttribute("aria-pressed", "false");
+    expect(chips().getByRole("button", { name: "Thu 5, Thursday, November 5" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText(/Days off start unticked/)).toBeInTheDocument();
   });
 
   it("editing: the entry's ticked days are shown, not the calendar's", async () => {
     const onChange = vi.fn();
     render(<RunDayChips start="2026-11-02" end="2026-11-08" childIds={["c1"]} initial={["2026-11-07", "2026-11-08"]} onChange={onChange} />);
-    expect(chips().getByRole("button", { name: "Saturday, Nov 7" })).toHaveAttribute("aria-pressed", "true");
-    expect(chips().getByRole("button", { name: "Monday, Nov 2" })).toHaveAttribute("aria-pressed", "false");
+    expect(chips().getByRole("button", { name: "Sat 7, Saturday, November 7" })).toHaveAttribute("aria-pressed", "true");
+    expect(chips().getByRole("button", { name: "Mon 2, Monday, November 2" })).toHaveAttribute("aria-pressed", "false");
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(["2026-11-07", "2026-11-08"], false));
   });
 
