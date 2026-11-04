@@ -229,3 +229,54 @@ The Year view (badges, labels, the wash, bar heights) looks as in 10a at every s
 2. **The day chips' names** (M1): a one-line change in `RunDayChips.tsx`.
 3. **`panel-840.png` next to `panel-960.png`**, and **`home-840-light.png` next to `home-960-light.png`**: DeeDee's questions (a) and (b). I'd move both to 960.
 4. **`s9b07-multi-390.png`**: whether a shared entry should say whose day off it is (L3).
+
+## Re-test (2026-11-04, head 7208b54)
+
+Re-run on `hh2/sprint-10b` at **7208b54** after the coder's fixes for this report: M1 5aee8a2, M2 c179cfb, L3 29c431d (API change, so the API was restarted), L4 141fa17, L6 e47d195. The stack was my own, as before: Postgres 5472, API 3919, Vite 5919, all on 127.0.0.1. I used the smoke family (smoke@example.com) for everything that writes, and reseeded it before the smoke round. I changed no product code, test code or repo scripts.
+
+### Verdict: READY for a PR to main
+
+All five fixes verify in the browser. The gate is ALL GREEN, and one full smoke round passes, including the new `axe-log` scenario. I found no new issues and no regressions.
+
+On 2026-11-04 DeeDee decided to keep 840 px as the breakpoint for Home's two panes and for the edit side panel. **L1, L2 and answers (a) and (b) are therefore won't fix, since DeeDee decided on 2026-11-04 to keep 840px.** They do not block. L5 (Rose/Lilac and the swatch "used" cue) is unchanged and waiting on DeeDee. It is Low and does not block.
+
+### Fix results
+
+| # | Fix | Result | Evidence |
+|---|---|---|---|
+| M1 | 5aee8a2: chip names start with the visible text | **Pass** | Records › Log with a short run (Nov 2–8) and a long run (Nov 2–29), at 360 and 1280 in light and at 360 in dark. **axe: 0 violations in all six.** Date chips are now named e.g. "Mon 2, Monday, November 2". Weekday chips on a long run are "M" → "Mondays", which starts with the visible letter and is not flagged. The repo's new smoke `axe-log` reports "clean" for all four of its runs (360/1280 × short/long). `rt-axe-{short,long}-{360,1280}.png`, `rt-axe-*-360-dark.png` |
+| M2 | c179cfb: ticks kept on a date edit | **Pass** | The original scenario: a Frank-only day off "Frank dentist" on Nov 11. I logged Frank for Nov 9–15. Wed 11 started unticked ("Days off start unticked."). I ticked it and saved; the API stored 5 days (Nov 9–13). Then I edited and changed Last day to Nov 17: **Wed 11 stays ticked**, and only the new Mon 16 and Tue 17 are preselected ("Counts Mon–Fri, 7 days"). Hand ticks also survive moving First day to Nov 11 and back to Nov 9, and stretching the run to Nov 30 (weekday chips) and back to Nov 17. The edit saved 7 days: Nov 9–13, 16 and 17. `rt-m2-end17-390.png`, `rt-m2-saved-390.png` |
+| L3 | 29c431d: multi-child day-off hint | **Pass** | All children, Nov 9–15, with Nov 11 as Frank's day off. Wed 11 is preselected and the form says **"Wed 11 is Frank's day off; ticked, it counts for Frank too."** (polite live region). Unticking Wed 11 removes the hint. The hint does not appear for Frank alone (Wed 11 starts unticked) or for Margaret alone. It also appears on a long run (All children, Nov 9–30). axe: 0 violations at 360 and 1280. `rt-l3-all-360.png` |
+| L4 | 141fa17: day names on a clipped row | **Pass** | Records › Custom dates against the Frank Nov 9–17 entry. Nov 4–10 reads "2 school days, Mon, Tue". Nov 11 reads "1 school day, Wed". The full month reads "7 school days, Mon–Fri". Each clipped row still says "part of an entry from Nov 9 to Nov 17". `rt-l4-360.png` |
+| L6 | e47d195: back-link names | **Pass** | On Set up and all six set-up screens (Children, Subjects, Assignments, Days off, Events, Settings), the back links are named **"Home"** and **"Set up"**. The "‹" is in an `aria-hidden` span and still shows. The targets are 52–55 × 44 px. axe: 0 violations on all seven pages. |
+
+One observation, not a finding. A clipped range that crosses a weekend lists the days in week order, not date order. For example, Nov 12–16 reads "3 school days, Mon, Thu, Fri". That matches how whole entries are worded ("Mon–Sat"), so I'd leave it.
+
+### Gate
+
+`scripts/check.sh` on 7208b54: **ALL GREEN** ("ALL CHECKS PASSED").
+
+| Package | Tests | Change since the first 10b pass |
+|---|---|---|
+| engine | 420 (and 420 in each of the 7 `test:tz` zones) | 0 |
+| api | 1056 | 0 (the L3 test was updated in place) |
+| web | 1281 | +8 |
+| db | 144 | 0 |
+
+### Smoke
+
+I ran one round after a reseed, against 127.0.0.1:5919 with `SMOKE_EMAIL=smoke@example.com` and no pause between scenarios: **all 24 scenarios pass, including the new `axe-log`, which is "clean" at 360 and 1280 for short and long runs, and all 8 `tap-targets` width runs pass (320, 360, 390 and 1280 × demo and smoke families), 32 of 32**. `full-flow` and `records` report "PROBLEMS: none".
+
+### Status of the first-pass findings
+
+| # | Status |
+|---|---|
+| M1 | **Closed** (5aee8a2) |
+| M2 | **Closed** (c179cfb) |
+| L1 | **Won't fix.** DeeDee decided on 2026-11-04 to keep 840px. |
+| L2 | **Won't fix.** DeeDee decided on 2026-11-04 to keep 840px. |
+| L3 | **Closed** (29c431d) |
+| L4 | **Closed** (141fa17) |
+| L5 | Open, waiting on DeeDee's colour call (Low, not blocking) |
+| L6 | **Closed** for the "‹" in the back-link names (e47d195). The other two notes in L6 were observations (focus after picking another bar, and a full-page screenshot artefact) and are unchanged. |
+| (a), (b) | **Won't fix.** DeeDee decided on 2026-11-04 to keep 840px. |
