@@ -126,7 +126,7 @@ describe("Set up", () => {
     const list = await screen.findByRole("list", { name: "Set up" });
     const links = within(list).getAllByRole("link");
     expect(links.map((l) => l.getAttribute("href"))).toEqual(SETUP_LINKS.map((l) => l.to));
-    expect(links.map((l) => l.querySelector(".list-row-title")!.textContent)).toEqual(["Children", "Subjects", "Assignments", "Days off and breaks", "Events"]);
+    expect(links.map((l) => l.querySelector(".list-row-title")!.textContent)).toEqual(["Children", "Subjects", "Assignments", "School year", "Days off and breaks", "Events"]);
     for (const l of links) expect(l.querySelector(".list-row-desc")!.textContent!.length).toBeGreaterThan(5);
   });
 

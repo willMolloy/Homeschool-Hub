@@ -91,9 +91,11 @@ const PatchBody = z
     // Finishing is one way: a family that finished the flow never goes back into it.
     setupDone: z.literal(true, "setupDone can only be set to true.").optional(),
     schoolYear: SchoolYear.optional(),
+    // S11b-02: Home's getting-started reminders hidden (it is not part of the settings answer; /api/me carries it).
+    checklistHidden: z.boolean("checklistHidden must be true or false.").optional(),
     tipsSeen: z.array(z.enum(TIPS, "Only the tips on Schedule can be marked as seen.")).refine((d) => new Set(d).size === d.length, "A tip can only be marked once.").optional(),
     setupDeferred: z.array(z.enum(SETUP_DEFERRALS, "Only the year and the breaks can be put off.")).refine((d) => new Set(d).size === d.length, "A step can only be put off once.").optional() })
-  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, weekStart, schoolDays, timeZone, zoomViews, logSetup, setupStep, setupDone, setupDeferred, schoolYear, tipsSeen.");
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, weekStart, schoolDays, timeZone, zoomViews, logSetup, setupStep, setupDone, setupDeferred, schoolYear, tipsSeen, checklistHidden.");
 
 const COLS = "name, week_start, school_days, time_zone, zoom_views, log_setup, setup_step, setup_done, setup_deferred, school_year_start, school_year_end, school_year_shape, tips_seen";
 const gone = () => new HttpError(401, "unauthenticated", "Your family no longer exists.");
@@ -129,10 +131,11 @@ export async function familyRoutes(app: FastifyInstance): Promise<void> {
            school_year_end = COALESCE($12::date, school_year_end),
            school_year_shape = COALESCE($14::text, school_year_shape),
            tips_seen = COALESCE($13::text[], tips_seen),
+           checklist_hidden = COALESCE($15::boolean, checklist_hidden),
            updated_at = now()
          WHERE id = $1 RETURNING ${COLS}`,
         [req.familyId, b.name ?? null, b.weekStart ?? null, b.schoolDays ?? null, b.timeZone ?? null, b.zoomViews ? JSON.stringify(b.zoomViews) : null, b.logSetup ? JSON.stringify(b.logSetup) : null,
-         b.setupStep ?? null, b.setupDone ?? null, b.setupDeferred ?? null, b.schoolYear?.start ?? null, b.schoolYear?.end ?? null, b.tipsSeen ?? null, b.schoolYear?.shape ?? null]);
+         b.setupStep ?? null, b.setupDone ?? null, b.setupDeferred ?? null, b.schoolYear?.start ?? null, b.schoolYear?.end ?? null, b.tipsSeen ?? null, b.schoolYear?.shape ?? null, b.checklistHidden ?? null]);
       return toSettings(rows[0]!, locked);
     });
   });

@@ -5,6 +5,7 @@ import { EventsPage } from "./features/schedule/EventsPage";
 import { FamilySettingsPage } from "./features/schedule/FamilySettingsPage";
 import { SchedulePage } from "./features/schedule/SchedulePage";
 import { SetupPage } from "./features/setup/SetupPage";
+import { SchoolYearPage } from "./features/setup/SchoolYearPage";
 import { HomePage } from "./features/home/HomePage";
 import { WelcomePage } from "./features/welcome/WelcomePage";
 import { clearSetupLater, setupLaterThisSession } from "./features/welcome/setupLater";
@@ -72,6 +73,7 @@ export const routes: RouteObject[] = [
           { path: "/setup", element: <SetupPage /> },
           { path: "/setup/children", element: <KidsPage /> },
           { path: "/setup/subjects", element: <SubjectsPage /> },
+          { path: "/setup/school-year", element: <SchoolYearPage /> },
           { path: "/setup/assignments", element: <AssignmentsPage /> },
           { path: "/setup/days-off", element: <DaysOffPage /> },
           { path: "/setup/events", element: <EventsPage /> },

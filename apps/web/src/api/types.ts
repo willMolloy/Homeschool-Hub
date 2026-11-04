@@ -29,6 +29,8 @@ export interface Me {
   setupDeferred: SetupDeferral[];
   /** S11-06: the one-time hints on Schedule this family has seen; each shows once. */
   tipsSeen: TipId[];
+  /** S11b-02: the family hid Home's getting-started reminders (stored on the family, so another family on this browser is not affected). */
+  checklistHidden: boolean;
 }
 
 /** S11-06: the three one-time hints on Schedule: the bars' thickness, the open bar's dates, the subject icons. */
@@ -106,7 +108,7 @@ export interface RecordTotals {
 }
 
 /** GET/PATCH /api/family */
-export type FamilySettings = Omit<Me, "familyId" | "today" | "demo" | "setupStep" | "setupDone" | "setupDeferred" | "tipsSeen"> & {
+export type FamilySettings = Omit<Me, "familyId" | "today" | "demo" | "setupStep" | "setupDone" | "setupDeferred" | "tipsSeen" | "checklistHidden"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */
   weekStartLocked: boolean;
   /** S7-03 */
@@ -129,6 +131,7 @@ export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked"
   schoolYear?: { start: string; end: string; shape?: YearShape };
   /** S11-06: the hints seen; an empty list shows them all again ("Show tips again"). */
   tipsSeen?: TipId[];
+  checklistHidden?: boolean;
 };
 
 /** POST /api/auth/login */

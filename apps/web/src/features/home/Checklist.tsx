@@ -3,15 +3,16 @@
  * its job is open: "Set your school year" and "Add your breaks" while the family has put them off in the setup flow ("I'll set
  * this later", "I'll get back to you on this"; each opens that step on its own), and "Add your children" / "Add subjects" if
  * there are somehow none. There is no row for books and lessons: a new family may want to look around first (Will, 2026-11-05).
- * The list goes when nothing is left, and can be hidden (kept on this device).
+ * The list goes when nothing is left, and can be hidden (S11b-02: kept on the family, not on the browser; the school year and the
+ * other jobs stay in Set up).
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Circle } from "@phosphor-icons/react";
+import { apiPatch } from "../../api/client";
 import type { SetupDeferral } from "../../api/types";
+import { useAuth, useMe } from "../../auth/AuthProvider";
 import { Button, Card } from "../../ui/components";
-
-export const CHECKLIST_KEY = "hh.checklist.hidden";
 
 export interface ChecklistStep {
   key: string;
@@ -28,16 +29,15 @@ export function checklistSteps(counts: { children: number; subjects: number }, d
   ];
 }
 
-function hidden(): boolean {
-  try { return window.localStorage.getItem(CHECKLIST_KEY) === "1"; } catch { return false; }
-}
-
 export function Checklist({ steps }: { steps: readonly ChecklistStep[] }) {
-  const [gone, setGone] = useState(hidden);
-  if (gone || steps.length === 0) return null;
+  const me = useMe();
+  const { refresh } = useAuth();
+  const [gone, setGone] = useState(false);
+  if (gone || me.checklistHidden || steps.length === 0) return null;
+  // Hidden for this family (on the server), not for this browser; the same jobs stay in Set up.
   const hide = () => {
-    try { window.localStorage.setItem(CHECKLIST_KEY, "1"); } catch { /* hidden until reload */ }
     setGone(true);
+    void apiPatch("/api/family", { checklistHidden: true }).then(() => refresh(), () => setGone(false));
   };
   return (
     <Card className="home-card home-checklist" role="region" aria-label="Getting started">

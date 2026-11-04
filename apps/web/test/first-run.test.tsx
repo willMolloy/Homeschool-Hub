@@ -1,9 +1,9 @@
 // S8-09: the getting-started checklist on Home and the empty states of every screen.
-import { screen, within } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
-import { checklistSteps, CHECKLIST_KEY } from "../src/features/home/Checklist";
+import { checklistSteps } from "../src/features/home/Checklist";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
@@ -64,19 +64,28 @@ describe("the getting-started checklist", () => {
     expect(checklistSteps({ children: 0, subjects: 1 }, ["year", "breaks"]).map((s) => s.key)).toEqual(["year", "breaks", "children"]);
   });
 
-  it("can be hidden, and stays hidden on this device", async () => {
+  it("can be hidden, which is saved on the family (not the browser), so it stays hidden for that family only", async () => {
     family();
+    const me = { ...DEMO_ME };
+    fakeApi.on("GET /api/me", () => [200, me]);
+    fakeApi.on("PATCH /api/family", (body) => { Object.assign(me, body); return [200, {}]; });
     const user = userEvent.setup();
     const first = renderAt("/");
     await checklist();
     await user.click(screen.getByRole("button", { name: "Hide the getting-started list" }));
     expect(screen.queryByRole("region", { name: "Getting started" })).toBeNull();
-    expect(localStorage.getItem(CHECKLIST_KEY)).toBe("1");
+    expect(fakeApi.calls.filter((c) => c.method === "PATCH").map((c) => c.body)).toEqual([{ checklistHidden: true }]);
+    expect(localStorage.length).toBe(0);
     first.unmount();
     renderAt("/");
     await screen.findByRole("button", { name: "Family and settings" });
     await screen.findByText("This week and your year");
     expect(screen.queryByRole("region", { name: "Getting started" })).toBeNull();
+    // Another family on this browser still has its own reminders.
+    fakeApi.on("GET /api/me", 200, { ...DEMO_ME, familyId: "other", checklistHidden: false });
+    cleanup();
+    renderAt("/");
+    expect(await checklist()).toBeInTheDocument();
   });
 
   it("does not guess while a list has not answered", async () => {

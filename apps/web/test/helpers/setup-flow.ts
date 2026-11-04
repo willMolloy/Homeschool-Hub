@@ -30,6 +30,7 @@ export function newFamily(over: Partial<NewFamily["me"]> = {}): NewFamily {
     if (b.schoolDays !== undefined) f.me.schoolDays = b.schoolDays as number[];
     if (b.setupStep !== undefined) f.me.setupStep = b.setupStep as number;
     if (b.setupDone) f.me.setupDone = true;
+    if (b.checklistHidden !== undefined) f.me.checklistHidden = b.checklistHidden as boolean;
     if (b.tipsSeen !== undefined) f.me.tipsSeen = b.tipsSeen as TipId[];
     if (b.setupDeferred !== undefined) f.me.setupDeferred = b.setupDeferred as SetupDeferral[];
     if (b.zoomViews !== undefined) f.zoomViews = b.zoomViews as NewFamily["zoomViews"];

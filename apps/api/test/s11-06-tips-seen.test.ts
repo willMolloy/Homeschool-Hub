@@ -35,3 +35,27 @@ describe.skipIf(!hasDb)("tips seen on the family (integration)", () => {
     expect((await me()).json().tipsSeen).toEqual(["edit"]);
   });
 });
+
+describe.skipIf(!hasDb)("checklist hidden on the family (S11b-02, integration)", () => {
+  const pool = hasDb ? testPool() : null!;
+  const app = hasDb ? buildApp(testConfig(), { db: pool }) : null!;
+  let a: Awaited<ReturnType<typeof signedInFamily>>;
+  let b: Awaited<ReturnType<typeof signedInFamily>>;
+  beforeAll(async () => { a = await signedInFamily(pool, "Hide A"); b = await signedInFamily(pool, "Hide B"); });
+  afterAll(async () => {
+    await app.close();
+    await pool.query("DELETE FROM family WHERE id = ANY($1)", [[a.familyId, b.familyId]]);
+    await pool.end();
+  });
+  const me = async (f: typeof a) => (await app.inject({ method: "GET", url: "/api/me", cookies: f.cookies })).json();
+
+  it("is false to start, is set for one family only, and survives another setting", async () => {
+    expect((await me(a)).checklistHidden).toBe(false);
+    expect((await app.inject({ method: "PATCH", url: "/api/family", payload: { checklistHidden: true }, cookies: a.cookies })).statusCode).toBe(200);
+    expect((await me(a)).checklistHidden).toBe(true);
+    expect((await me(b)).checklistHidden).toBe(false);
+    await app.inject({ method: "PATCH", url: "/api/family", payload: { name: "Hide A2" }, cookies: a.cookies });
+    expect((await me(a)).checklistHidden).toBe(true);
+    expect((await app.inject({ method: "PATCH", url: "/api/family", payload: { checklistHidden: "yes" }, cookies: a.cookies })).statusCode).toBe(400);
+  });
+});
