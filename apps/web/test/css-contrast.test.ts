@@ -26,6 +26,7 @@ const NON_TEXT = new Set([
   ".home-today",
   ".home-briefing-dot",
   ".welcome-bar span",
+  ".review-dots i.on", // S13-05: the pager dot for the current card, no text (the pager is named "Card 1 of 2: Frank")
   ".shell-nav-dot", // S12-05: the needs-you dot, a decoration with no text (its name is on the Home link)
 ]);
 /** Translucent backgrounds, with the colour they sit on. */
