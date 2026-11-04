@@ -96,6 +96,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
       </svg>
     </div>
     <svg className="tl-svg" width={layout.width} height={height} viewBox={`0 0 ${layout.width} ${height}`} role="img" aria-label={label} data-pickable={onPick ? "" : undefined}
+      tabIndex={onPick ? -1 : undefined}
       onClick={onPick ? (e) => {
         const r = e.currentTarget.getBoundingClientRect();
         onPick(e.clientX - r.left, e.clientY - r.top);

@@ -182,3 +182,25 @@
 .tl-group-avatar > span { display: grid; place-items: center; border-radius: 999px; background: var(--tl-primary-soft); color: var(--tl-primary); font-size: 12px; font-weight: 800; }
 .tl-group-name { position: absolute; top: 50%; transform: translateY(-50%); font-weight: 800; color: var(--tl-foreground); white-space: nowrap;
   text-shadow: 0 0 2px var(--tl-background), 0 0 2px var(--tl-background), 0 0 3px var(--tl-background); }
+
+/* S10-18: from 840 px the edit sheet is a 360 px panel on the right: full height, no backdrop, not modal. The page
+   (the timeline included, which re-lays out to its new width) narrows beside it; the undo bar centres in what's left. */
+:root { --edit-panel-width: 360px; }
+.tl-svg:focus { outline: none; }
+.tl-svg:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: 2px; }
+.tl-edit-title:focus { outline: none; }
+.tl-edit-title:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: 2px; border-radius: 4px; }
+@media (min-width: 840px) {
+  .tl-edit[data-panel] {
+    top: 0; bottom: 0; left: auto; right: 0; width: var(--edit-panel-width); max-width: none; margin: 0;
+    padding: max(28px, env(safe-area-inset-top)) 20px 20px; overflow-y: auto;
+    border-radius: 0; border-top: 0; border-left: 1px solid var(--tl-border); box-shadow: none;
+  }
+  .tl-edit[data-panel] .tl-edit-grab { display: none; }
+  .tl-edit[data-panel] .tl-edit-title { white-space: normal; overflow-wrap: anywhere; }
+  .tl-edit[data-panel] .tl-edit-close { margin: -8px -12px 0 0; }
+  .tl-edit[data-panel] .tl-tile .date-field .date-field-box input[type="text"] { font-size: 0.94rem; }
+  .tl-edit[data-panel] .tl-more-menu { bottom: auto; top: calc(100% + 4px); }
+  .shell-main:has(.tl-edit[data-panel]) { padding-right: calc(var(--edit-panel-width) + var(--page-pad)); }
+  body:has(.tl-edit[data-panel]) .undo-bar { left: calc(50% + (var(--rail-width, 0px) - var(--edit-panel-width)) / 2); max-width: calc(100vw - var(--rail-width, 0px) - var(--edit-panel-width) - 32px); }
+}

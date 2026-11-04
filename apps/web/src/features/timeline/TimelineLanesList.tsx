@@ -20,7 +20,7 @@ export function TimelineLanesList({ model, onSelect }: TimelineLanesListProps) {
           {c.assignments.filter((a) => a.first >= 0).map((a, i) => (
             <span key={a.assignmentId}>
               {i > 0 ? "; " : ""}
-              <button type="button" className="tl-lane-pick" onClick={() => onSelect?.(a.assignmentId)}>
+              <button type="button" className="tl-lane-pick" data-assignment={a.assignmentId} onClick={() => onSelect?.(a.assignmentId)}>
                 {a.title}, {dateRange(model.dates[a.first]!, model.dates[a.last]!)}
               </button>
             </span>
