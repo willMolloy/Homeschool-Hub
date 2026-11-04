@@ -12,7 +12,7 @@ const EXPECTED = { child: 2, subject: 5, assignment: 14, assignment_child: 16, e
 /** T-07d: the demo family (db/demo-family.ts). */
 const DEMO_EXPECTED = {
   child: 2, subject: 6, assignment: 20, assignment_child: 21, event: 4, event_child: 5, blocked_range: 4,
-  week_override: 3, progress_checkin: 2, week_review: 2,
+  week_override: 3, progress_checkin: 3, week_review: 3,
 };
 
 describe.skipIf(!hasDb)("seed (integration)", () => {
@@ -44,7 +44,7 @@ describe.skipIf(!hasDb)("seed (integration)", () => {
     const checkIns = await q<{ title: string; position: string; mode: string }>(url,
       `SELECT a.title, pc.position, pc.mode FROM progress_checkin pc JOIN assignment a ON a.id = pc.assignment_id
         WHERE pc.family_id = $1 ORDER BY pc.week_start`, [s.familyId]);
-    expect(checkIns.map((c) => c.title)).toEqual(["The Hobbit", "The Secret Garden"]);
+    expect(checkIns.map((c) => c.title)).toEqual(["The Hobbit", "The Secret Garden", "The Secret Garden"]); // S9b-05: a second garden check-in makes it late
     const kinds = await q<{ kind: string }>(url, "SELECT DISTINCT kind FROM blocked_range WHERE family_id = $1 ORDER BY kind", [s.familyId]);
     expect(kinds.map((k) => k.kind)).toEqual(["holiday", "vacation"]);
   });

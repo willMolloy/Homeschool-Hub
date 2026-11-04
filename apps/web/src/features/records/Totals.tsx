@@ -8,23 +8,31 @@ import { subjectSlots } from "../timeline/model";
 import { formatMinutes } from "./entryText";
 import "./records.css";
 
-export function bigNumbers(t: RecordTotals, f: LogFields): { label: string; value: string }[] {
+/** S9b-05 (N7): what a tile shows when nothing was typed for it in the range: a dash, never a "0 m" that looks entered. */
+export const NOTHING = "—";
+
+/**
+ * S9b-01: with All children (and more than one child) the days are the days any child did school, and the label says so.
+ * S9b-05 (N7): hours and books with nothing typed show a dash; the total's caption is "in total" ("13 h 30 m in total", not "hours hours").
+ */
+export function bigNumbers(t: RecordTotals, f: LogFields, anyChild = false): { label: string; value: string }[] {
   const out: { label: string; value: string }[] = [];
-  if (f.schoolDays) out.push({ label: "school days", value: String(t.schoolDays) });
-  if (f.subjectHours || f.totalHours) out.push({ label: "hours", value: formatMinutes(t.totalMinutes) });
-  if (f.coreSplit) { out.push({ label: "core hours", value: formatMinutes(t.coreMinutes) }); out.push({ label: "non-core hours", value: formatMinutes(t.nonCoreMinutes) }); }
-  if (f.homeAway) { out.push({ label: "hours at home", value: formatMinutes(t.homeMinutes) }); out.push({ label: "hours away", value: formatMinutes(t.awayMinutes) }); }
-  if (f.books) out.push({ label: t.books.length === 1 ? "book" : "books", value: String(t.books.length) });
+  const hours = (m: number) => (m > 0 ? formatMinutes(m) : NOTHING);
+  if (f.schoolDays) out.push({ label: anyChild ? "days any child did school" : "school days", value: String(t.schoolDays) });
+  if (f.subjectHours || f.totalHours) out.push({ label: "in total", value: hours(t.totalMinutes) });
+  if (f.coreSplit) { out.push({ label: "core hours", value: hours(t.coreMinutes) }); out.push({ label: "non-core hours", value: hours(t.nonCoreMinutes) }); }
+  if (f.homeAway) { out.push({ label: "hours at home", value: hours(t.homeMinutes) }); out.push({ label: "hours away", value: hours(t.awayMinutes) }); }
+  if (f.books) out.push({ label: t.books.length === 1 ? "book" : "books", value: t.books.length > 0 ? String(t.books.length) : NOTHING });
   return out;
 }
 
-export function Totals({ totals, fields, subjects }: { totals: RecordTotals; fields: LogFields; subjects: readonly Subject[] }) {
+export function Totals({ totals, fields, subjects, anyChild = false }: { totals: RecordTotals; fields: LogFields; subjects: readonly Subject[]; anyChild?: boolean }) {
   const slot = subjectSlots(subjects);
   const most = Math.max(1, ...totals.bySubject.map((s) => s.minutes));
   return (
     <div className="totals">
       <div className="big-numbers" role="group" aria-label="Totals">
-        {bigNumbers(totals, fields).map((n) => (
+        {bigNumbers(totals, fields, anyChild).map((n) => (
           <div key={n.label} className="big-number"><strong>{n.value}</strong><span>{n.label}</span></div>
         ))}
       </div>

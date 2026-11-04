@@ -35,6 +35,7 @@ import { hitTest } from "../features/timeline/hit";
 import { selectionFor } from "../features/timeline/select";
 import { layoutTimeline } from "../features/timeline/layout";
 import type { TimelineModel } from "../features/timeline/model";
+import { yearHalves, yearSpan } from "../features/records/ranges";
 import type { MeasureText } from "../features/timeline/names";
 import { Timeline } from "../features/timeline/Timeline";
 import { TimelineLanesList } from "../features/timeline/TimelineLanesList";
@@ -42,7 +43,7 @@ import { useMeasureText } from "../features/timeline/useMeasureText";
 import { useElementWidth } from "../features/timeline/useElementWidth";
 import { useTimelineData } from "../features/timeline/useTimelineData";
 import { useZoomFade } from "../features/timeline/useZoomFade";
-import { availableZooms, defaultHalves, defaultMonth, gridMonths, viewWithoutPlan, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
+import { availableZooms, defaultMonth, gridMonths, viewWithoutPlan, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
 import { UpdateStatusFlow } from "../features/status/UpdateStatusFlow";
@@ -81,7 +82,8 @@ export function TimelinePage({ embedded = false }: { embedded?: boolean }) {
   const shownZoom = zooms.includes(zoom) ? zoom : "year";
   // S7b-07 (F3): Fall and Spring the grid can't offer (it doesn't span New Year) say so in the Zoom views sheet.
   const unavailable = model && model.dates.length > 0 ? (["fall", "spring"] as const).filter((z) => !availableZooms(model, viewOverrides).includes(z)) : [];
-  const halves = model ? defaultHalves(model) : null;
+  // S9b-05 (N13): the default halves come from the same source as Records' Fall and Spring (the live assignments' year).
+  const halves = model ? yearHalves(yearSpan(assignments, model.today)) : null;
   const noPlanView = model ? viewWithoutPlan(model, shownZoom, zoomViews.custom, viewOverrides) : null;
   const measureText = useMeasureText();
   // T-05c: This month starts at the month holding today; ‹ › flip it.

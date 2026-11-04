@@ -38,7 +38,7 @@ describe.skipIf(!hasDb)("the demo family through GET /api/plan (integration)", (
     for (const x of plans) expect(x.unplacedUnits).toBe(0);
     expect(p("hobbit").end < "2026-11-13").toBe(true); // read ahead, pushEndDate
     expect(p("garden").end).toBe("2026-11-20");         // behind, keepEndDate
-    expect(p("garden").doneUnits).toBe(11);
+    expect(p("garden").doneUnits).toBe(13);    // S9b-05: two weeks behind
     const fair = (from: string, to: string) => p("fair").days.filter((d) => d.date >= from && d.date <= to).reduce((n, d) => n + d.units, 0);
     expect(fair("2026-11-02", "2026-11-06")).toBeCloseTo(6, 6);
     expect(fair("2026-12-14", "2026-12-18")).toBeCloseTo(2, 6);

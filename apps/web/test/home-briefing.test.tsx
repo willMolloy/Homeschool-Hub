@@ -4,7 +4,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ENGINE_VERSION, planAll, type Assignment as EngineAssignment, type ChildPlan, type ProgressCheckIn } from "@hh/engine";
-import { topBriefingLine, type ChildBriefing } from "../src/features/plan/briefingLines";
+import { lateAssignments, topBriefingLine, type ChildBriefing } from "../src/features/plan/briefingLines";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
@@ -33,6 +33,10 @@ describe("which line Home shows (pure)", () => {
     expect(topBriefingLine([group("c1", "Frank", ["heavy"]), group("c2", "Margaret", ["unplaced-z"])])!.key).toBe("unplaced-z");
     expect(topBriefingLine([group("c1", "Frank", ["noprogress-a"]), group("c2", "Margaret", ["late-b"])])!.key).toBe("noprogress-a");
     expect(topBriefingLine([group("c1", "Frank", ["heavy"])])!.key).toBe("heavy");
+  });
+  it("S9b-03: counts late assignments once, across children, and not stalled or heavy lines", () => {
+    expect(lateAssignments([group("c1", "Frank", ["late-m", "heavy", "noprogress-x"]), group("c2", "Margaret", ["late-m", "late-r"])])).toBe(2);
+    expect(lateAssignments([])).toBe(0);
   });
   it("ties go to the earlier child, then the earlier line", () => {
     expect(topBriefingLine([group("c1", "Frank", ["late-1", "late-2"]), group("c2", "Margaret", ["late-3"])])!.key).toBe("late-1");
@@ -94,5 +98,23 @@ describe("Home's briefing line", () => {
     const css = readFileSync("src/features/plan/plan.css", "utf8");
     expect(css).toMatch(/\.home-briefing-action \{[^}]*min-height: 44px/);
     expect(css).toMatch(/\.home-briefing \{[^}]*border-radius: 999px[^}]*background: var\(--tl-primary-soft\)/);
+  });
+});
+
+describe("S9b-03: the Schedule card never says on track beside a late line", () => {
+  it("the tester's case: the plan keeps its end date but the forecast is late, so the card says 1 running late", async () => {
+    stub([slowPlan()]);
+    renderAt("/");
+    const main = within(await screen.findByRole("main"));
+    expect(await main.findByText(/This week and your year · 1 running late/)).toBeInTheDocument();
+    expect(main.getByText(/will finish about \d+ weeks? late/)).toBeInTheDocument();
+    expect(main.queryByText(/on track/)).toBeNull();
+  });
+  it("nothing forecast late: on track to finish, and no briefing line", async () => {
+    stub([onPlan()]);
+    renderAt("/");
+    const main = within(await screen.findByRole("main"));
+    expect(await main.findByText(/This week and your year · on track to finish Dec 18/)).toBeInTheDocument();
+    expect(main.queryByText(/running late/)).toBeNull();
   });
 });

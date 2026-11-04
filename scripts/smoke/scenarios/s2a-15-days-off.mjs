@@ -1,3 +1,6 @@
+// S9b-04: dates are typed into the DateField (US text, then blur).
+import { PLAIN_INPUTS, fillDates } from "../common.mjs";
+
 export default async function ({ page, shot, login, log, BASE }) {
   await page.goto(`${BASE}/setup/days-off`, { waitUntil: "networkidle0" });
   await login();
@@ -16,13 +19,9 @@ export default async function ({ page, shot, login, log, BASE }) {
   await page.click(".schedule-actions .btn");
   const form = "form[aria-label='Add days off']";
   await page.waitForSelector(form);
-  const label = await page.$(`${form} input[type=text]`);
+  const label = await page.$(`${form} ${PLAIN_INPUTS}`);
   await label.type("Smoke test break");
-  await page.$$eval(`${form} input[type=date]`, (els) => {
-    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
-    const vals = ["2026-11-09", "2026-11-11"];
-    els.forEach((el, i) => { set.call(el, vals[i]); el.dispatchEvent(new Event("input", { bubbles: true })); });
-  });
+  await fillDates(page, form, ["Nov 9, 2026", "Nov 11, 2026"]); // S9b-04: typed into the DateField, US style
   log("form sw", await page.evaluate(() => document.documentElement.scrollWidth));
   await shot("s2a-15-days-off-add-360");
   await page.$eval(`${form} button[type=submit]`, (b) => b.scrollIntoView({ block: "center" }));

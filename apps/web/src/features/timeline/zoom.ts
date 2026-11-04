@@ -122,16 +122,6 @@ export function availableZooms(model: Pick<TimelineModel, "dates">, overrides: B
   return ["year", ...(overrides.fall ? ["fall" as const] : []), ...(overrides.spring ? ["spring" as const] : []), "month"];
 }
 
-/** S9-06: the default Fall and Spring dates of a grid that spans New Year (Fall to Dec 31, Spring from Jan 1), else null. */
-export function defaultHalves(model: Pick<TimelineModel, "dates">): { fall: { start: string; end: string }; spring: { start: string; end: string } } | null {
-  const n = model.dates.length;
-  if (n === 0) return null;
-  const year = Number(model.dates[0]!.slice(0, 4));
-  const split = model.dates.findIndex((d) => d >= `${year + 1}-01-01`);
-  if (split <= 0) return null;
-  return { fall: { start: model.dates[0]!, end: `${year}-12-31` }, spring: { start: `${year + 1}-01-01`, end: model.dates[n - 1]! } };
-}
-
 /**
  * S7-04: the zoom row, in order: Year, the built-ins the family hasn't hidden (and the grid offers), then its own views.
  * Without a grid there is only Year.

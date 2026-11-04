@@ -11,6 +11,7 @@ import { bigNumbers } from "../src/features/records/Totals";
 import { RECORDS_WORDING } from "../src/features/records/wording";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
+import { withCovered } from "./helpers/recordEntry";
 
 const KIDS = [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }, { id: "c2", name: "Margaret", color: null, sortOrder: 1, archived: false }];
 const sub = (id: string, name: string): Subject => ({ id, name, color: null, sortOrder: 0, archived: false, defaultWeight: null, defaultWeekdays: null });
@@ -18,7 +19,7 @@ const SUBJECTS = [sub("math", "Math"), sub("read", "Reading")];
 const ASSIGNMENTS = [{ id: "a1", subjectId: "math", title: "Math 5", startDate: "2026-08-31", endDate: "2027-05-28", childIds: ["c1"], archived: false }];
 const NONE: ZoomViews = { hidden: [], custom: [] };
 const totals = (over: Partial<RecordTotals> = {}): RecordTotals => ({ from: null, to: null, childId: null, entries: 1, schoolDays: 5, totalMinutes: 330, coreMinutes: 210, nonCoreMinutes: 120, homeMinutes: 90, awayMinutes: 30, books: ["Heidi"], bySubject: [{ subjectId: "math", minutes: 210 }, { subjectId: "read", minutes: 120 }], ...over });
-const entry = (over: Partial<RecordEntry> = {}): RecordEntry => ({ id: "e1", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-06", countsSchoolDay: true, schoolDays: 5, subjectMinutes: { math: 210, read: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
+const entry = (over: Partial<RecordEntry> = {}): RecordEntry => withCovered({ id: "e1", childId: "c1", startDate: "2026-11-02", endDate: "2026-11-06", countsSchoolDay: true, schoolDays: 5, subjectMinutes: { math: 210, read: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], ...over });
 const ALLF: LogFields = { subjectHours: true, coreSplit: true, totalHours: false, schoolDays: true, homeAway: true, notes: false, books: true };
 const setupOf = (fields: LogFields): LogSetup => ({ template: "custom", fields });
 const family = (logSetup: LogSetup, zoomViews: ZoomViews = NONE): FamilySettings => ({ name: "F", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5], timeZone: "America/Chicago", weekStartLocked: false, zoomViews, logSetup });
@@ -57,10 +58,16 @@ describe("ranges (pure)", () => {
 describe("the big numbers (pure): tracked fields only", () => {
   const t = totals();
   it("shows each tracked field and nothing else", () => {
-    expect(bigNumbers(t, ALLF).map((n) => [n.label, n.value])).toEqual([["school days", "5"], ["hours", "5 h 30 m"], ["core hours", "3 h 30 m"], ["non-core hours", "2 h"], ["hours at home", "1 h 30 m"], ["hours away", "30 m"], ["book", "1"]]);
+    expect(bigNumbers(t, ALLF).map((n) => [n.label, n.value])).toEqual([["school days", "5"], ["in total", "5 h 30 m"], ["core hours", "3 h 30 m"], ["non-core hours", "2 h"], ["hours at home", "1 h 30 m"], ["hours away", "30 m"], ["book", "1"]]);
     expect(bigNumbers(t, { ...NO_FIELDS, schoolDays: true }).map((n) => n.label)).toEqual(["school days"]);
-    expect(bigNumbers(t, { ...NO_FIELDS, schoolDays: true, totalHours: true }).map((n) => n.label)).toEqual(["school days", "hours"]);
+    expect(bigNumbers(t, { ...NO_FIELDS, schoolDays: true, totalHours: true }).map((n) => n.label)).toEqual(["school days", "in total"]);
     expect(bigNumbers(t, { ...NO_FIELDS, notes: true })).toEqual([]);
+  });
+  it("S9b-05 (N7): hours and books nothing was typed for show a dash, never 0 m; school days stay a number", () => {
+    const none = { ...t, schoolDays: 0, totalMinutes: 0, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [] };
+    const shown = bigNumbers(none, ALLF).map((n) => [n.label, n.value]);
+    expect(shown).toEqual([["school days", "0"], ["in total", "—"], ["core hours", "—"], ["non-core hours", "—"], ["hours at home", "—"], ["hours away", "—"], ["books", "—"]]);
+    expect(shown.flat().join(" ")).not.toMatch(/\b0 m\b|hours hours/);
   });
 });
 
@@ -122,8 +129,33 @@ describe("Records with entries", () => {
     stub({ ...NO_FIELDS, schoolDays: true });
     renderAt("/records");
     const nums = within(await screen.findByRole("group", { name: "Totals" }));
-    expect(nums.getAllByText(/school days|hours|books?/).map((e) => e.textContent)).toEqual(["school days"]);
+    // S9b-01: All children with two children counts the days any child did school
+    expect(nums.getAllByText(/school|hours|books?/).map((e) => e.textContent)).toEqual(["days any child did school"]);
     expect(screen.queryByRole("region", { name: "Hours by subject" })).toBeNull();
+  });
+
+  it("S9b-01: one child chosen says school days; All children says days any child did school", async () => {
+    stub({ ...NO_FIELDS, schoolDays: true });
+    const user = userEvent.setup();
+    renderAt("/records");
+    const nums = within(await screen.findByRole("group", { name: "Totals" }));
+    expect(nums.getByText("days any child did school")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Frank" }));
+    expect(await within(screen.getByRole("group", { name: "Totals" })).findByText("school days")).toBeInTheDocument();
+    expect(bigNumbers(totals(), { ...NO_FIELDS, schoolDays: true }, true)).toEqual([{ label: "days any child did school", value: "5" }]);
+  });
+
+  it("S9b-01: an entry partly in the range is listed as its part inside, with where it came from, and Edit opens the whole entry", async () => {
+    stub(ALLF, [entry({ id: "e9", startDate: "2026-12-28", endDate: "2027-01-08", schoolDays: 10, subjectMinutes: { math: 600 } })]);
+    const user = userEvent.setup();
+    renderAt("/records");
+    await screen.findByRole("group", { name: "Totals" });
+    await user.click(screen.getByRole("button", { name: "Fall" }));
+    const list = await screen.findByRole("list", { name: "Log entries" });
+    expect(within(list).getByText("part of an entry from Dec 28 to Jan 8")).toBeInTheDocument();
+    // Dec 28-31 is 4 of its 10 school days: 4 days and 4 h of the 10 h
+    expect(within(list).getByText("4 school days · Math 4 h")).toBeInTheDocument();
+    expect(within(list).getByRole("button", { name: "Edit Frank, Dec 28 – Jan 8, 2027" })).toBeInTheDocument();
   });
 });
 

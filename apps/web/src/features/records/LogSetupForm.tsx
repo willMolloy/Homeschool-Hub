@@ -56,7 +56,7 @@ export function LogSetupForm({ initial, subjects, onSaved, onCancel }: LogSetupF
           </label>
         ))}
         <p className="hint">
-          {HELP_LINE} <a href={STATE_LAWS_URL} target="_blank" rel="noreferrer noopener">See your state&apos;s homeschool laws</a>
+          {HELP_LINE} <a className="btn-link" href={STATE_LAWS_URL} target="_blank" rel="noreferrer noopener">See your state&apos;s homeschool laws</a>
         </p>
       </fieldset>
 

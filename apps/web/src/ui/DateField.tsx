@@ -25,6 +25,10 @@ export interface DateFieldProps {
   className?: string;
 }
 
+/** S9b-05 (N9): below this width the calendar is full width, EDGE px from each side of the screen (date-field.css). */
+export const NARROW = 360;
+export const EDGE = 4;
+
 const WEEKDAY_HEADS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const shown = (v: string) => (isValidLocalDate(v) ? formatDate(v) : "");
 
@@ -37,6 +41,8 @@ export function DateField({ value, onChange, id, disabled, clearable, opens = "d
   const calId = useId();
   const panel = useRef<HTMLDivElement>(null);
   const [align, setAlign] = useState<"start" | "end">("start");
+  /** S9b-05 (N9): under 360 px the calendar spans the screen (4 px a side); this is its left, from the field's left edge. */
+  const [shift, setShift] = useState<number | null>(null);
 
   // The calendar is as wide as a phone allows (up to 21rem) and hangs from the field's left edge, or its right edge when
   // that would pass the screen or the sheet it is in (the End field in a two-column row).
@@ -47,6 +53,7 @@ export function DateField({ value, onChange, id, disabled, clearable, opens = "d
     const right = Math.min(box.right, window.innerWidth) - 16;
     const width = Math.min(336, window.innerWidth - 32);
     setAlign(field.left + width > right ? "end" : "start");
+    setShift(window.innerWidth < NARROW ? EDGE - field.left : null);
     panel.current?.scrollIntoView?.({ block: "nearest" });
   }, [open]);
 
@@ -89,7 +96,8 @@ export function DateField({ value, onChange, id, disabled, clearable, opens = "d
         </button>
       </span>
       {open ? (
-        <div id={calId} ref={panel} className={["date-cal", opens === "up" ? "date-cal-up" : "", align === "end" ? "date-cal-end" : ""].filter(Boolean).join(" ")} role="group" aria-label="Calendar">
+        <div id={calId} ref={panel} className={["date-cal", opens === "up" ? "date-cal-up" : "", align === "end" ? "date-cal-end" : ""].filter(Boolean).join(" ")}
+          style={shift === null ? undefined : { left: shift, right: "auto" }} role="group" aria-label="Calendar">
           <div className="date-cal-head">
             <button type="button" className="date-cal-nav" aria-label="Previous month" onClick={() => setView(shiftMonth(view.year, view.month, -1))}><CaretLeft size={20} weight="light" aria-hidden="true" /></button>
             <span className="date-cal-title" aria-live="polite">{MONTH_NAMES[view.month - 1]} {view.year}</span>

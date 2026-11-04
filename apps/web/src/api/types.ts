@@ -61,8 +61,10 @@ export interface RecordEntry {
   startDate: string;
   endDate: string;
   countsSchoolDay: boolean;
-  /** How many days the entry counts (0 when the switch is off). */
+  /** How many days the entry counts (0 when the switch is off), from its covered days (S9b-01). */
   schoolDays: number;
+  /** S9b-01: the days the entry covers, whatever its switch: one chosen date, or the school-calendar days of a run. */
+  coveredDays: string[];
   subjectMinutes: Record<string, number>;
   totalMinutes: number | null;
   homeMinutes: number | null;

@@ -30,10 +30,13 @@ function HoursBoxes({ label, value, onChange }: { label: string; value: Box; onC
   return (
     <div className="hm-row" role="group" aria-label={label}>
       <span className="hm-label">{label}</span>
-      <input type="number" inputMode="numeric" min={0} aria-label={`${label} hours`} placeholder="h" value={value.h} onChange={(e) => onChange({ ...value, h: e.target.value })} />
-      <span aria-hidden="true">h</span>
-      <input type="number" inputMode="numeric" min={0} max={59} aria-label={`${label} minutes`} placeholder="m" value={value.m} onChange={(e) => onChange({ ...value, m: e.target.value })} />
-      <span aria-hidden="true">m</span>
+      {/* S9b-05 (N9): the boxes and their units are one piece that never wraps, so "m" stays beside its box at 320 px. */}
+      <span className="hm-boxes">
+        <input type="number" inputMode="numeric" min={0} aria-label={`${label} hours`} placeholder="h" value={value.h} onChange={(e) => onChange({ ...value, h: e.target.value })} />
+        <span aria-hidden="true">h</span>
+        <input type="number" inputMode="numeric" min={0} max={59} aria-label={`${label} minutes`} placeholder="m" value={value.m} onChange={(e) => onChange({ ...value, m: e.target.value })} />
+        <span aria-hidden="true">m</span>
+      </span>
     </div>
   );
 }
@@ -76,7 +79,8 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
     if (fields.totalHours) body.totalMinutes = typed(total);
     if (fields.homeAway) { body.homeMinutes = typed(home); body.awayMinutes = typed(away); }
     if (fields.notes) body.notes = notes.trim() === "" ? null : notes.trim();
-    if (fields.books) body.books = books;
+    // S9b-02: a title typed but not added with Add is saved too, never dropped
+    if (fields.books) body.books = book.trim() ? [...books, book.trim()] : books;
     if (start && last >= start) {
       const days = Math.round((Date.parse(last) - Date.parse(start)) / 86_400_000) + 1;
       const sum = Object.values((body.subjectMinutes ?? {}) as Record<string, number>).reduce((a, b) => a + b, 0);

@@ -23,8 +23,10 @@ export interface RecordEntryJson {
   startDate: string;
   endDate: string;
   countsSchoolDay: boolean;
-  /** How many days the entry counts (0 when the switch is off). */
+  /** How many days the entry counts (0 when the switch is off): its covered days, worked out from its dates when read (S9b-01). */
   schoolDays: number;
+  /** S9b-01: the days the entry covers, whatever its switch (one chosen date, or the school-calendar days of a run), oldest first. */
+  coveredDays: string[];
   subjectMinutes: Record<string, number>;
   totalMinutes: number | null;
   homeMinutes: number | null;
@@ -52,8 +54,10 @@ export interface RecordEntryState {
 const COLS = `id, family_id, child_id, start_date::text AS start_date, end_date::text AS end_date, counts_school_day, school_days,
   subject_minutes, total_minutes, home_minutes, away_minutes, notes, books`;
 
-export const toJson = (r: RecordEntryRow): RecordEntryJson => ({
-  id: r.id, childId: r.child_id, startDate: r.start_date, endDate: r.end_date, countsSchoolDay: r.counts_school_day, schoolDays: r.school_days,
+/** The entry as the API sends it, with the days it covers (from the calendar now, S9b-01) and its count derived from them. */
+export const toJson = (r: RecordEntryRow, covered: string[]): RecordEntryJson => ({
+  id: r.id, childId: r.child_id, startDate: r.start_date, endDate: r.end_date, countsSchoolDay: r.counts_school_day,
+  schoolDays: r.counts_school_day ? covered.length : 0, coveredDays: covered,
   subjectMinutes: r.subject_minutes, totalMinutes: r.total_minutes, homeMinutes: r.home_minutes, awayMinutes: r.away_minutes, notes: r.notes, books: r.books,
 });
 
@@ -64,11 +68,11 @@ export const stateOf = (r: RecordEntryRow): RecordEntryState => ({
 
 export interface ListFilter { from?: string; to?: string; childId?: string }
 
-/** The family's entries, newest first (by first day, then when they were saved). A range keeps entries whose first day is in it. */
+/** The family's entries, newest first (by first day, then when they were saved). A range keeps every entry with a day in it (S9b-01). */
 export async function listEntries(db: Queryable, familyId: string, f: ListFilter = {}): Promise<RecordEntryRow[]> {
   const { rows } = await db.query<RecordEntryRow>(
     `SELECT ${COLS} FROM record_entry
-      WHERE family_id = $1 AND ($2::date IS NULL OR start_date >= $2) AND ($3::date IS NULL OR start_date <= $3) AND ($4::uuid IS NULL OR child_id = $4)
+      WHERE family_id = $1 AND ($2::date IS NULL OR end_date >= $2) AND ($3::date IS NULL OR start_date <= $3) AND ($4::uuid IS NULL OR child_id = $4)
       ORDER BY start_date DESC, created_at DESC, id`,
     [familyId, f.from ?? null, f.to ?? null, f.childId ?? null]);
   return rows;

@@ -97,6 +97,27 @@
   cursor: pointer;
 }
 
+/* S9b-05 (N15): a link in text, like "See your state's homeschool laws", is the theme's colour in both themes (a.btn-link). */
+a.btn-link:visited { color: var(--tl-primary); }
+.btn-link:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: 2px; border-radius: 2px; }
+/* S9b-05 (N15): every role="switch" checkbox (Count as a school day, the Log setup switches, Core subject, zoom views) is drawn
+   as a switch: a 44 x 26 track, the knob left when off and right on the theme's colour when on. High-contrast mode keeps the
+   native box. */
+input[type="checkbox"][role="switch"] {
+  appearance: none; -webkit-appearance: none; flex: none; width: 44px; height: 26px; margin: 0; box-sizing: border-box;
+  border: 2px solid var(--tl-input); border-radius: 999px; cursor: pointer;
+  background: var(--tl-card) radial-gradient(circle, var(--tl-input) 0 7px, transparent 8px) no-repeat 1px 50% / 20px 20px;
+  transition: background-position var(--tl-motion, 150ms) ease-out, background-color var(--tl-motion, 150ms) ease-out;
+}
+input[type="checkbox"][role="switch"]:checked {
+  border-color: var(--tl-primary);
+  background: var(--tl-primary) radial-gradient(circle, var(--tl-primary-foreground) 0 7px, transparent 8px) no-repeat 19px 50% / 20px 20px;
+}
+input[type="checkbox"][role="switch"]:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: 2px; }
+input[type="checkbox"][role="switch"]:disabled { opacity: 0.5; cursor: default; }
+@media (prefers-reduced-motion: reduce) { input[type="checkbox"][role="switch"] { transition: none; } }
+@media (forced-colors: active) { input[type="checkbox"][role="switch"] { appearance: auto; -webkit-appearance: auto; width: 22px; height: 22px; } }
+
 /* S8b-07 (N11): the native bits of the set-up forms take the theme. */
 input[type="radio"], input[type="checkbox"] { accent-color: var(--tl-primary); }
 .roster-form fieldset, .roster-form .choice-list { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }

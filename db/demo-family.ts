@@ -9,7 +9,8 @@
  * - one assignment heavier for three weeks, then lighter (the science fair build, via week overrides)
  * - a holiday (Labor Day), a break week (Thanksgiving), Christmas and spring break
  * - co-op, piano and violin as recurring events
- * - two past weeks checked in: Frank read ahead in The Hobbit, Margaret fell behind in The Secret Garden
+ * - past weeks checked in: Frank read ahead in The Hobbit, Margaret fell behind in The Secret Garden two weeks running,
+ *   so its pace forecast is late and Home and Week show a "will finish late" briefing line (S9b-05, S9-05)
  * - Frank (older) carries more than Margaret
  */
 import type { Assignment } from "@hh/engine";
@@ -73,9 +74,12 @@ export const DEMO_FAMILY: SeedFamily = {
     { assignmentId: "hobbit", childId: "frank", weekStart: "2026-10-05", position: 6, mode: "pushEndDate" },
     // Week of Oct 12: Margaret finished chapter 11 of The Secret Garden, not the planned 14; the rest gets thicker.
     { assignmentId: "garden", childId: "margaret", weekStart: "2026-10-12", position: 11, mode: "keepEndDate" },
+    // S9b-05: week of Oct 19, only two more chapters: at that pace it finishes about 3 weeks after Nov 20 (the briefing's late line).
+    { assignmentId: "garden", childId: "margaret", weekStart: "2026-10-19", position: 13, mode: "keepEndDate" },
   ],
   reviews: [
     { weekStart: "2026-10-05", status: "reviewed" },
     { weekStart: "2026-10-12", status: "reviewed" },
+    { weekStart: "2026-10-19", status: "reviewed" },
   ],
 };

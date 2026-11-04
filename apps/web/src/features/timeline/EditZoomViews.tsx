@@ -203,7 +203,8 @@ function HalfFields({ name, value, changed, problem, onChange, onReset }: { name
         </div>
       </div>
       {problem ? <p className="field-error" role="alert">{problem}</p> : null}
-      {changed ? <div className="btn-row"><button className="btn btn-secondary" type="button" aria-label={`Reset ${name} to default`} onClick={onReset}>Reset to default</button></div> : null}
+      {/* S9b-05 (N10): the accessible name starts with the visible text, so "click Reset to default" works by voice. */}
+      {changed ? <div className="btn-row"><button className="btn btn-secondary" type="button" aria-label={`Reset to default: ${name}`} onClick={onReset}>Reset to default</button></div> : null}
     </div>
   );
 }

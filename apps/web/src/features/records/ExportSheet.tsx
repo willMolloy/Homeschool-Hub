@@ -10,7 +10,7 @@ import { formatRangeYears } from "../../lib/dates";
 import { Button, Chip } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
 import { formatMinutes } from "./entryText";
-import { availableColumns, buildCsv, csvFileName, exportEntries, totalsFor, type ColumnKey, type ExportInput, type ExportMode } from "./exportData";
+import { availableColumns, buildCsv, csvBlob, csvFileName, exportEntries, totalsFor, type ColumnKey, type ExportInput, type ExportMode } from "./exportData";
 import { dayWords, summaryOf } from "./entryText";
 import { RECORDS_WORDING } from "./wording";
 import "./records.css";
@@ -28,7 +28,7 @@ export interface ExportSheetProps {
 }
 
 function download(name: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  const url = URL.createObjectURL(csvBlob(text));
   const a = document.createElement("a");
   a.href = url;
   a.download = name;
@@ -84,7 +84,7 @@ export function ExportSheet({ fields, children, subjects, entries, start: s0, en
         </div>
       </fieldset>
       <fieldset><legend>Columns</legend>
-        <p className="hint">Date and child are always included. A column with nothing in these dates is left out.</p>
+        <p className="hint">{mode === "entries" ? "Date and child are always included." : "The dates (From and To) and child are always included."} A column with nothing in these dates is left out.</p>
         {offered.map((c) => (
           <label key={c.key} className="choice-row">
             <input type="checkbox" checked={!off.includes(c.key)} onChange={() => setOff((o) => (o.includes(c.key) ? o.filter((k) => k !== c.key) : [...o, c.key]))} />
@@ -117,9 +117,11 @@ function PrintSummary({ input }: { input: ExportInput }) {
         const lines: [string, string][] = [];
         if (want("schoolDays")) lines.push(["School days", String(t.schoolDays)]);
         if (want("subjectHours")) for (const [sid, m] of [...t.bySubject].sort((a, b) => b[1] - a[1])) lines.push([input.subjects.find((s) => s.id === sid)?.name ?? "Subject", formatMinutes(m)]);
-        if (want("totalHours")) lines.push(["Total hours", formatMinutes(t.totalMinutes)]);
-        if (want("coreSplit")) { lines.push(["Core hours", formatMinutes(t.coreMinutes)]); lines.push(["Non-core hours", formatMinutes(t.nonCoreMinutes)]); }
-        if (want("homeAway")) { lines.push(["Hours at home", formatMinutes(t.homeMinutes)]); lines.push(["Hours away", formatMinutes(t.awayMinutes)]); }
+        // S9b-05 (N7): an amount nothing was typed for is left out, as in the CSV, never "0 m".
+        const hours = (label: string, m: number) => { if (m > 0) lines.push([label, formatMinutes(m)]); };
+        if (want("totalHours")) hours("Total hours", t.totalMinutes);
+        if (want("coreSplit")) { hours("Core hours", t.coreMinutes); hours("Non-core hours", t.nonCoreMinutes); }
+        if (want("homeAway")) { hours("Hours at home", t.homeMinutes); hours("Hours away", t.awayMinutes); }
         if (want("books")) lines.push(["Books read", t.books.length ? t.books.join("; ") : "None"]);
         return (
           <section key={id} className="print-page">

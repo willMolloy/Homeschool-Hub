@@ -3,6 +3,7 @@
  * weeks late at this pace."), with one action that opens the place to deal with it (Schedule · Week, where the line has its
  * Move and Keep buttons). When nothing needs attention it renders nothing: no "All good" filler, and no space.
  */
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import type { LocalDate } from "@hh/engine";
 import type { Assignment, Child } from "../../api/types";
@@ -13,15 +14,17 @@ import "./plan.css";
 
 export const REVIEW_TO = "/schedule?view=week";
 
-export function HomeBriefing({ weekStart }: { weekStart: LocalDate }) {
+/** `onLate` (S9b-03) hears how many assignments are forecast late, so the Schedule card never says "on track" beside a late line. */
+export function HomeBriefing({ weekStart, onLate }: { weekStart: LocalDate; onLate?: (n: number | undefined) => void }) {
   const assignments = useApi<Assignment[]>("/api/assignments");
   const children = useApi<Child[]>("/api/children");
   if (!assignments.data || !children.data) return null;
-  return <Line assignments={assignments.data} children={children.data} weekStart={weekStart} />;
+  return <Line assignments={assignments.data} children={children.data} weekStart={weekStart} onLate={onLate} />;
 }
 
-function Line({ assignments, children, weekStart }: { assignments: Assignment[]; children: Child[]; weekStart: LocalDate }) {
-  const { groups } = useBriefingGroups(assignments, children, weekStart);
+function Line({ assignments, children, weekStart, onLate }: { assignments: Assignment[]; children: Child[]; weekStart: LocalDate; onLate?: (n: number | undefined) => void }) {
+  const { groups, late } = useBriefingGroups(assignments, children, weekStart);
+  useEffect(() => { onLate?.(late); }, [late, onLate]);
   const line = groups ? topBriefingLine(groups) : null;
   if (!line) return null;
   return (
