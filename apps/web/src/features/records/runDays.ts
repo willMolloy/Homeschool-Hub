@@ -48,6 +48,29 @@ export function dateChipName(d: string): string {
   return `${dateChipLabel(d)}, ${names[weekdayOf(d)]}, ${MONTH_NAMES[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8, 10))}`;
 }
 
+/**
+ * S10-10b (M2): the parent's choices for a run, date by date (true ticked, false unticked). They outlive a change of dates:
+ * a date still in the run keeps its tick, and only dates without a choice are pre-selected from the school calendar.
+ */
+export type DayTicks = ReadonlyMap<string, boolean>;
+
+/** An entry's choices: every date of its run, ticked when it is one of the days the entry counts. */
+export function ticksFrom(start: string, end: string, days: readonly string[]): Map<string, boolean> {
+  const on = new Set(days);
+  return new Map(datesBetween(start, end).map((d) => [d, on.has(d)]));
+}
+
+/** The dates that count: the parent's choice where there is one, else the calendar's (null while that is unknown). */
+export function tickedDays(dates: readonly string[], ticks: DayTicks, schoolDays: ReadonlySet<string> | undefined): string[] | null {
+  const out: string[] = [];
+  for (const d of dates) {
+    const t = ticks.get(d) ?? schoolDays?.has(d);
+    if (t === undefined) return null;
+    if (t) out.push(d);
+  }
+  return out;
+}
+
 /** The run's dates on a ticked weekday, without the days off. */
 export function daysFromWeekdays(start: string, end: string, weekdays: Iterable<number>, daysOff: Iterable<string>): string[] {
   const want = new Set(weekdays);

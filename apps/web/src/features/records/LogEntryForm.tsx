@@ -14,7 +14,7 @@ import { DateField } from "../../ui/DateField";
 import { MAX_DAY_MINUTES } from "./limits";
 import { boxesFor, toMinutes } from "./entryText";
 import { RunDayChips } from "./RunDayChips";
-import { NO_DAYS_TICKED } from "./runDays";
+import { NO_DAYS_TICKED, ticksFrom } from "./runDays";
 import "./records.css";
 
 export interface LogEntryFormProps {
@@ -61,7 +61,10 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
   const [book, setBook] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [runDays, setRunDays] = useState<{ days: string[] | null; touched: boolean }>({ days: null, touched: false });
+  const [runDays, setRunDays] = useState<string[] | null>(null);
+  // S10-10b (M2): the parent's day ticks, kept here so a change of dates (or the switch going off and on) never drops them
+  const [dayTicks, setDayTicks] = useState<Map<string, boolean>>(() => (entry ? ticksFrom(entry.startDate, entry.endDate, entry.days ?? entry.coveredDays) : new Map()));
+  const [ticksTouched, setTicksTouched] = useState(false);
   const allPicked = kids.length > 1 && picked.length === kids.length;
 
   const toggleChild = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -70,7 +73,7 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
   const last = end || start;
   const isRun = !!start && !!end && end > start;
   const sameDates = !!entry && start === entry.startDate && last === entry.endDate;
-  const onRunDays = useCallback((days: string[] | null, touched: boolean) => setRunDays({ days, touched }), []);
+  const onTicks = useCallback((t: Map<string, boolean>) => { setDayTicks(t); setTicksTouched(true); }, []);
 
   async function save() {
     if (busy) return;
@@ -79,9 +82,9 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
     if (!start) problems.push("Pick the first day.");
     else if (last < start) problems.push("The last day must be on or after the first day.");
     const body: Record<string, unknown> = { startDate: start, endDate: last, countsSchoolDay: counts };
-    if (counts && isRun && runDays.days && (!entry || !sameDates || runDays.touched)) {
-      if (runDays.days.length === 0) problems.push(NO_DAYS_TICKED);
-      body.days = runDays.days;
+    if (counts && isRun && runDays && (!entry || !sameDates || ticksTouched)) {
+      if (runDays.length === 0) problems.push(NO_DAYS_TICKED);
+      body.days = runDays;
     }
     const typed = (b: Box) => { const r = toMinutes(b.h, b.m); if (r.problem) problems.push(r.problem); return r.value; };
     if (fields.subjectHours) {
@@ -137,8 +140,7 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
         <span>Count as a school day<small>{isRun ? "Tick the days that count." : "Turn off if this wasn't a school day."}</small></span>
       </label>
       {counts && isRun ? (
-        <RunDayChips key={`${start}|${last}`} start={start} end={last} childIds={picked}
-          initial={sameDates && entry ? entry.days ?? entry.coveredDays : null} onChange={onRunDays} />
+        <RunDayChips start={start} end={last} childIds={picked} ticks={dayTicks} onTicks={onTicks} onChange={setRunDays} />
       ) : null}
       {fields.subjectHours ? (
         <fieldset className="log-hours"><legend>Hours by subject</legend>

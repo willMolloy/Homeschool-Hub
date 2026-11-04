@@ -2,8 +2,9 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { useState } from "react";
 import { RunDayChips } from "../src/features/records/RunDayChips";
-import { chipMode, dateChipLabel, daysFromWeekdays, daysSummary, runDaysPath, weekdayWords } from "../src/features/records/runDays";
+import { chipMode, dateChipLabel, daysFromWeekdays, daysSummary, runDaysPath, tickedDays, ticksFrom, weekdayWords } from "../src/features/records/runDays";
 import { fakeApi, runDaysFor } from "./helpers/fake-api";
 
 describe("run days (pure)", () => {
@@ -26,7 +27,20 @@ describe("run days (pure)", () => {
     expect(daysFromWeekdays("2026-11-02", "2026-11-15", [1, 3], ["2026-11-11"])).toEqual(["2026-11-02", "2026-11-04", "2026-11-09"]);
     expect(runDaysPath("2026-11-02", "2026-11-08", ["c1", "c2"])).toBe("/api/log-entries/run-days?from=2026-11-02&to=2026-11-08&childIds=c1%2Cc2");
   });
+  it("S10-10b M2: a tick wins over the calendar; without one, the calendar decides (unknown until it answers)", () => {
+    const run = ["2026-11-09", "2026-11-10", "2026-11-11"];
+    const ticks = ticksFrom("2026-11-09", "2026-11-10", ["2026-11-10"]);
+    expect(tickedDays(run, ticks, undefined)).toBeNull();
+    expect(tickedDays(run, ticks, new Set(["2026-11-09", "2026-11-11"]))).toEqual(["2026-11-10", "2026-11-11"]);
+    expect(tickedDays(run.slice(0, 2), ticks, undefined)).toEqual(["2026-11-10"]);
+  });
 });
+
+/** The form keeps the ticks (S10-10b M2); this stands in for it. */
+function Chips({ start, end, childIds, initial, onChange }: { start: string; end: string; childIds: string[]; initial: string[] | null; onChange: (d: string[] | null) => void }) {
+  const [ticks, setTicks] = useState(() => (initial ? ticksFrom(start, end, initial) : new Map<string, boolean>()));
+  return <RunDayChips start={start} end={end} childIds={childIds} ticks={ticks} onTicks={setTicks} onChange={onChange} />;
+}
 
 const chips = () => within(screen.getByRole("group", { name: /School days/ }));
 
@@ -34,12 +48,12 @@ describe("the day chips", () => {
   it("a Mon–Sun run: Mon–Fri pre-selected from the calendar; ticking Saturday makes it Mon–Sat, 6 days", async () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
-    render(<RunDayChips start="2026-11-02" end="2026-11-08" childIds={["c1"]} initial={null} onChange={onChange} />);
-    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"], false));
+    render(<Chips start="2026-11-02" end="2026-11-08" childIds={["c1"]} initial={null} onChange={onChange} />);
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"]));
     expect(screen.getByText(/Counts Mon–Fri, 5 days/)).toBeInTheDocument();
     expect(chips().getByRole("button", { name: "Sat 7, Saturday, November 7" })).toHaveAttribute("aria-pressed", "false");
     await user.click(chips().getByRole("button", { name: "Sat 7, Saturday, November 7" }));
-    expect(onChange).toHaveBeenLastCalledWith(["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"], true);
+    expect(onChange).toHaveBeenLastCalledWith(["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"]);
     expect(screen.getByText(/Counts Mon–Sat, 6 days/)).toBeInTheDocument();
     expect(fakeApi.calls.some((c) => c.path === "/api/log-entries/run-days?from=2026-11-02&to=2026-11-08&childIds=c1")).toBe(true);
   });
@@ -47,25 +61,25 @@ describe("the day chips", () => {
   it("a Tue–Sat family and a day off: the day off starts unticked", async () => {
     fakeApi.on("GET /api/log-entries/run-days", 200, runDaysFor("2026-11-02", "2026-11-08", [2, 3, 4, 5, 6], ["2026-11-05"]));
     const onChange = vi.fn();
-    render(<RunDayChips start="2026-11-02" end="2026-11-08" childIds={["c1"]} initial={null} onChange={onChange} />);
-    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(["2026-11-03", "2026-11-04", "2026-11-06", "2026-11-07"], false));
+    render(<Chips start="2026-11-02" end="2026-11-08" childIds={["c1"]} initial={null} onChange={onChange} />);
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(["2026-11-03", "2026-11-04", "2026-11-06", "2026-11-07"]));
     expect(chips().getByRole("button", { name: "Thu 5, Thursday, November 5" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText(/Days off start unticked/)).toBeInTheDocument();
   });
 
   it("editing: the entry's ticked days are shown, not the calendar's", async () => {
     const onChange = vi.fn();
-    render(<RunDayChips start="2026-11-02" end="2026-11-08" childIds={["c1"]} initial={["2026-11-07", "2026-11-08"]} onChange={onChange} />);
+    render(<Chips start="2026-11-02" end="2026-11-08" childIds={["c1"]} initial={["2026-11-07", "2026-11-08"]} onChange={onChange} />);
     expect(chips().getByRole("button", { name: "Sat 7, Saturday, November 7" })).toHaveAttribute("aria-pressed", "true");
     expect(chips().getByRole("button", { name: "Mon 2, Monday, November 2" })).toHaveAttribute("aria-pressed", "false");
-    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(["2026-11-07", "2026-11-08"], false));
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(["2026-11-07", "2026-11-08"]));
   });
 
   it("a long run: weekday chips; unticking Friday drops every Friday, and days off stay out", async () => {
     fakeApi.on("GET /api/log-entries/run-days", 200, runDaysFor("2026-11-02", "2026-11-22", [1, 2, 3, 4, 5], ["2026-11-11"]));
     const onChange = vi.fn();
     const user = userEvent.setup();
-    render(<RunDayChips start="2026-11-02" end="2026-11-22" childIds={["c1"]} initial={null} onChange={onChange} />);
+    render(<Chips start="2026-11-02" end="2026-11-22" childIds={["c1"]} initial={null} onChange={onChange} />);
     expect(screen.getByRole("group", { name: "School days each week" })).toBeInTheDocument();
     await waitFor(() => expect(chips().getByRole("button", { name: "Mondays" })).toHaveAttribute("aria-pressed", "true"));
     await user.click(chips().getByRole("button", { name: "Fridays" }));

@@ -2,68 +2,65 @@
  * S9b-07: the days a run of dates counts. Pre-selected from the school calendar (the picked children's school days, without
  * days off); the parent ticks or unticks. Up to two weeks: one chip per date ("Mon 2"). Longer: one chip per weekday, and
  * the run's dates on those weekdays count, days off left out. Reports the resulting dates (or null while nothing is known yet).
- * Remount (key) it when the dates change so the pre-selection starts again.
+ *
+ * S10-10b (M2): the parent's ticks live with the form (`ticks`), not here, so changing the dates keeps every tick for a date
+ * still in the run; only dates without a tick are pre-selected from the calendar.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useApi } from "../../api/useApi";
 import { Chip } from "../../ui/components";
 import {
-  WEEK_ORDER, WEEKDAY_LETTER, WEEKDAY_PLURAL, chipMode, dateChipLabel, dateChipName, datesBetween, daysFromWeekdays,
-  daysSummary, runDaysPath, weekdaysOf, type RunDays,
+  WEEK_ORDER, WEEKDAY_LETTER, WEEKDAY_PLURAL, chipMode, dateChipLabel, dateChipName, datesBetween, daysSummary, runDaysPath,
+  tickedDays, type DayTicks, type RunDays,
 } from "./runDays";
+import { weekdayOf } from "@hh/engine";
 
 export interface RunDayChipsProps {
   start: string;
   end: string;
   childIds: string[];
-  /** Editing with unchanged dates: the days the entry counts now. */
-  initial: string[] | null;
-  onChange: (days: string[] | null, touched: boolean) => void;
+  /** The parent's choices so far (an edited entry starts with its own days). */
+  ticks: DayTicks;
+  /** A chip was pressed: the new choices. */
+  onTicks: (ticks: Map<string, boolean>) => void;
+  /** The dates that count, or null while the calendar is still needed and unknown. */
+  onChange: (days: string[] | null) => void;
 }
 
-export function RunDayChips({ start, end, childIds, initial, onChange }: RunDayChipsProps) {
+export function RunDayChips({ start, end, childIds, ticks, onTicks, onChange }: RunDayChipsProps) {
   const mode = chipMode(start, end);
   const run = useApi<RunDays>(runDaysPath(start, end, childIds));
-  const [dates, setDates] = useState<Set<string> | null>(initial ? new Set(initial) : null);
-  const [weekdays, setWeekdays] = useState<Set<number> | null>(initial ? weekdaysOf(initial) : null);
-  const [touched, setTouched] = useState(false);
-
-  const daysOff = useMemo(() => run.data?.daysOff ?? [], [run.data]);
-  const pickedDates = dates ?? (run.data ? new Set(run.data.schoolDays) : null);
-  const pickedWeekdays = weekdays ?? (run.data ? new Set(run.data.weekdays) : null);
-  const result = useMemo<string[] | null>(() => {
-    if (mode === "dates") return pickedDates ? [...pickedDates].sort() : null;
-    if (!pickedWeekdays) return null;
-    // Editing untouched: keep exactly the days the entry counts (they may include a ticked day off).
-    if (!touched && initial) return [...initial].sort();
-    return daysFromWeekdays(start, end, pickedWeekdays, daysOff);
-  }, [mode, pickedDates, pickedWeekdays, touched, initial, start, end, daysOff]);
+  // the last answer is kept while a new one loads: only trust it for the dates and children it was asked for
+  const cal = run.loading ? undefined : run.data;
+  const dates = useMemo(() => datesBetween(start, end), [start, end]);
+  const schoolDays = useMemo(() => (cal ? new Set(cal.schoolDays) : undefined), [cal]);
+  const daysOff = useMemo(() => new Set(cal?.daysOff ?? []), [cal]);
+  const result = useMemo(() => tickedDays(dates, ticks, schoolDays), [dates, ticks, schoolDays]);
+  const picked = useMemo(() => new Set(result ?? []), [result]);
   const key = result ? result.join(",") : "";
 
-  useEffect(() => { onChange(result, touched); }, [key, touched]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onChange(result); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggleDate = (d: string) => {
-    const next = new Set(pickedDates ?? []);
-    if (next.has(d)) next.delete(d); else next.add(d);
-    setDates(next);
-    setTouched(true);
-  };
+  const known = (d: string) => ticks.has(d) || schoolDays !== undefined;
+  const toggleDate = (d: string) => onTicks(new Map(ticks).set(d, !picked.has(d)));
+  const onWeekday = (w: number) => dates.some((d) => weekdayOf(d) === w && picked.has(d));
   const toggleWeekday = (w: number) => {
-    const next = new Set(pickedWeekdays ?? []);
-    if (next.has(w)) next.delete(w); else next.add(w);
-    setWeekdays(next);
-    setTouched(true);
+    const on = !onWeekday(w);
+    const next = new Map(ticks);
+    for (const d of dates) if (weekdayOf(d) === w) next.set(d, on && !daysOff.has(d));
+    onTicks(next);
   };
+  const weekdaysReady = result !== null && (schoolDays !== undefined || dates.every((d) => ticks.has(d)));
 
   return (
     <fieldset className="log-days">
       <legend>{mode === "dates" ? "School days in these dates" : "School days each week"}</legend>
-      {run.loading && !pickedDates && !pickedWeekdays ? <p className="hint">Checking the school calendar…</p> : null}
-      {run.error && !initial ? <p className="hint">Couldn't read the school calendar; school days from the calendar will count.</p> : null}
+      {run.loading && result === null ? <p className="hint">Checking the school calendar…</p> : null}
+      {run.error && result === null ? <p className="hint">Couldn't read the school calendar; school days from the calendar will count.</p> : null}
       {mode === "dates" ? (
         <div className="log-chips log-day-chips">
-          {datesBetween(start, end).map((d) => (
-            <Chip key={d} selected={pickedDates?.has(d) ?? false} aria-label={dateChipName(d)} disabled={!pickedDates} onClick={() => toggleDate(d)}>
+          {dates.map((d) => (
+            <Chip key={d} selected={picked.has(d) || (result === null && ticks.get(d) === true)} aria-label={dateChipName(d)} disabled={!known(d)} onClick={() => toggleDate(d)}>
               {dateChipLabel(d)}
             </Chip>
           ))}
@@ -71,7 +68,7 @@ export function RunDayChips({ start, end, childIds, initial, onChange }: RunDayC
       ) : (
         <div className="log-chips log-day-chips">
           {WEEK_ORDER.map((w) => (
-            <Chip key={w} selected={pickedWeekdays?.has(w) ?? false} aria-label={WEEKDAY_PLURAL[w]} disabled={!pickedWeekdays} onClick={() => toggleWeekday(w)}>
+            <Chip key={w} selected={onWeekday(w)} aria-label={WEEKDAY_PLURAL[w]} disabled={!weekdaysReady} onClick={() => toggleWeekday(w)}>
               {WEEKDAY_LETTER[w]}
             </Chip>
           ))}
@@ -79,7 +76,7 @@ export function RunDayChips({ start, end, childIds, initial, onChange }: RunDayC
       )}
       <p className="hint" aria-live="polite">
         {result ? `Counts ${daysSummary(result)}.` : ""}
-        {mode === "weekdays" ? " Days off are left out." : daysOff.length > 0 ? " Days off start unticked." : ""}
+        {mode === "weekdays" ? " Days off are left out." : dates.some((d) => daysOff.has(d) && !ticks.has(d)) ? " Days off start unticked." : ""}
       </p>
     </fieldset>
   );

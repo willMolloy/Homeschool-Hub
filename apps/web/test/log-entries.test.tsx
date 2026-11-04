@@ -303,6 +303,48 @@ describe("S9b-07: ticking the days of a run", () => {
     expect(form.queryByRole("group", { name: /School days/ })).toBeNull();
   });
 
+  it("S10-10b M2: editing a run's dates keeps the ticks for dates still in it; only new dates come from the calendar", async () => {
+    // Nov 9-15: Mon 9 unticked, Wed 11 (a day off) and Sat 14 ticked by hand
+    const TICKED = ["2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14"];
+    stub(DETAILED, [entry({ startDate: "2026-11-09", endDate: "2026-11-15", days: TICKED, schoolDays: 5 })]);
+    const user = userEvent.setup();
+    renderAt("/records");
+    await user.click(await screen.findByRole("button", { name: /^Edit Frank/ }));
+    const form = within(await screen.findByRole("form", { name: "Change log entry" }));
+    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-17" } });
+    await waitFor(() => expect(form.getByRole("button", { name: /^Tue 17,/ })).toHaveAttribute("aria-pressed", "true"));
+    expect(form.getByRole("button", { name: /^Wed 11,/ })).toHaveAttribute("aria-pressed", "true");
+    expect(form.getByRole("button", { name: /^Sat 14,/ })).toHaveAttribute("aria-pressed", "true");
+    expect(form.getByRole("button", { name: /^Mon 9,/ })).toHaveAttribute("aria-pressed", "false");
+    expect(form.getByRole("button", { name: /^Sun 15,/ })).toHaveAttribute("aria-pressed", "false");
+    // shorter again, then back: still the parent's ticks
+    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-12" } });
+    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-17" } });
+    await waitFor(() => expect(form.getByRole("button", { name: /^Mon 16,/ })).toHaveAttribute("aria-pressed", "true"));
+    expect(form.getByRole("button", { name: /^Wed 11,/ })).toHaveAttribute("aria-pressed", "true");
+    await user.click(form.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(calls("PATCH")).toHaveLength(1));
+    expect((calls("PATCH")[0]!.body as { days: string[] }).days).toEqual([...TICKED, "2026-11-16", "2026-11-17"]);
+  });
+
+  it("S10-10b M2: a new run keeps the parent's ticks when its last day moves", async () => {
+    const user = userEvent.setup();
+    const form = await openLog(user);
+    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-08" } });
+    await user.click(form.getByRole("button", { name: "Frank" }));
+    await waitFor(() => expect(form.getByRole("button", { name: /^Mon 2,/ })).toHaveAttribute("aria-pressed", "true"));
+    await user.click(form.getByRole("button", { name: /^Sat 7,/ }));
+    await user.click(form.getByRole("button", { name: /^Wed 4,/ }));
+    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-10" } });
+    await waitFor(() => expect(form.getByRole("button", { name: /^Tue 10,/ })).toHaveAttribute("aria-pressed", "true"));
+    expect(form.getByRole("button", { name: /^Sat 7,/ })).toHaveAttribute("aria-pressed", "true");
+    expect(form.getByRole("button", { name: /^Wed 4,/ })).toHaveAttribute("aria-pressed", "false");
+    await user.click(form.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(calls("POST")).toHaveLength(1));
+    expect((calls("POST")[0]!.body as { days: string[] }).days).toEqual(["2026-11-02", "2026-11-03", "2026-11-05", "2026-11-06", "2026-11-07", "2026-11-09", "2026-11-10"]);
+  });
+
   it("editing shows the entry's ticked days; changing a chip sends the new days; the list names them", async () => {
     stub(DETAILED, [entry({ endDate: "2026-11-08", days: MON_SAT, schoolDays: 6 })]);
     const user = userEvent.setup();
