@@ -184,3 +184,59 @@ During the flow there is no family menu, no Sign out and no Set up. On a shared 
 - I did not open the Days off screen to read the added breaks; I read them from `GET /api/blocked-ranges` (the smoke scenario and the developer's notes cover the screen).
 - One smoke round, not three, with the seed run again before every scenario.
 - Safari and real phones were not used; Chromium only, as the environment has no other browser.
+
+# Re-test (S11b-04)
+
+Ticket S11b-04, on branch `claude/test-coverage-analysis-6dehbu` at 388b6e8, which is Sprint 11b: 7ecfdb6 (S11b-01), 48e7c67 (S11b-02) and 388b6e8 (S11b-03). Same rules as before: I changed no product or test code, ran everything on loopback with a scratch `*_dev` database that I dropped afterwards, and added only this section and four screenshots (`docs/reviews/sprint-11/retest-*.png`).
+
+## Re-test verdict: READY for the PR to main (all six findings fixed; three new Lows)
+
+N1 to N6 are all fixed in the browser. No Medium or High finding is open. The new findings (N7 to N9) are Low and none needs to hold the PR.
+
+- **Gate:** ALL GREEN on a clean run: engine 420 (and 420 in each of the 7 `test:tz` zones), api 1084, web 1384, db 160. **Disclosure:** my first gate run failed one web test, `timeline-add.test.tsx > on save, closes, draws the new bar at once and highlights it briefly`. I had a 8-run browser sweep going against the same machine at the time. That test passes alone (10 of 10) and the gate passed on the second run, run on its own with nothing else running. So I read it as a timing flake under load, not a product bug, but it is a test that can fail when the machine is busy.
+- **Smoke:** one full round, **all 25 scenarios exit 0**, seed run again before each; `new-family` ends "PROBLEMS: none"; `tap-targets` ends "No undersized controls".
+- **Flow sweep:** the whole flow (steps 1 to 6, You're all set, Home) at 320, 360, 390 and 1280 px, light and dark, 8 fresh families: axe clean on every screen, nothing under 44 px except the older off-screen "Skip to content" link, no sideways scroll, no page errors. The new "Sign out" button is 79 x 45 (320 px: 76 x 68, because it wraps; see N7).
+- **Path variants** (each Skip and later path, all four shapes, Back and re-apply, the Set up screen, Hide) ran at **360 light and at 390 dark**; the sign-out walk and the dot also at 320 dark and 1280 light.
+
+## The six findings
+
+| Finding | Result | Evidence |
+|---|---|---|
+| N1 Back forgets the shape | **Fixed** | For each shape, Back to step 4 shows that shape chosen (fall-spring, three-terms, 36-weeks, sabbath), at 360 light and 390 dark. An unchanged Continue adds nothing: breaks 0, 2, 0 and 5 before and after, and `zoomViews` byte-for-byte the same. Changing the shape replaces the earlier term views: Three terms (Term 1/2/3, Fall and Spring hidden) to Fall and Spring gives no custom views and the two Fall/Spring overrides; back to Three terms gives Term 1/2/3 again (not six); to 36 weeks gives no custom views and no overrides. Breaks follow the old rule (stay, no duplicates). A year put off after one was applied leaves the saved year and shape in place (see N8). |
+| N2 School year only from Home; Hide forever | **Fixed** | Set up now lists "School year / First and last day, and its terms." between Assignments and Days off and breaks. `/setup/school-year` has the dates, the four shape cards with the saved one chosen, the same preview line, Save ("Saved."), no "I'll set this later" card, and "Edit term views", which opens the Zoom views sheet (`retest-school-year-set-up-360-light.png`). Same data as step 4: one family chose Three terms in step 4, another did it from this screen; their `schoolYear`, `zoomViews` and number of breaks are identical. Saving again unchanged changes nothing (breaks 2, views the same). Saving clears a deferred `year` and keeps a deferred `breaks`. **Hide is per family:** Hide set `checklistHidden: true` on that family on the server and nothing in localStorage; a second family in the same browser still saw its "Set your school year", and the first family's card was still hidden when it signed back in. The parent who hid the card can now give the year from Set up, so the dead end is gone. (There is still no "show the list again" control; Hide stays on for that family. Not raised: the jobs themselves are in Set up.) Axe clean and 44 px targets on the new screen, in light at 360 and dark at 390. |
+| N3 Oval colour dot | **Fixed** | The saved child's dot measures 18 x 18 at 320, 360, 390 and 1280, light and dark (`retest-step2-round-dot-360-light.png`). |
+| N4 Skip leaves "Add subjects" | **Fixed** | Home has no "Add subjects" row for any family I tried: year and breaks put off and subjects skipped shows only "Set your school year" and "Add your breaks"; year set with Skip, Skip shows no Getting started card at all. The empty family (`empty@`) shows only "Add your children". **Is a family with no subjects stuck?** No, but it has no prompt either. I checked a family with 0 subjects: Set up, Subjects says "No subjects yet. Tap a common subject below, or Add subject." with an "Add common subjects" row of the starters, and Assignments' Add form offers the starter subjects (Math to PE) and "New subject…" in its Subject box, so a first assignment can create the subject. The only gap is that nothing on Home points there, which is what Will asked for ("they may want to poke around first"). |
+| N5 Hints cover what they point at | **Fixed**, and it reads clearly enough | The bars and icons hints now sit in a banner just above the Year picture. At all 8 width and theme combinations: one hint at a time (bars, then icons, then none), the edit hint in the sheet still comes first when a bar is opened first, `role="status"`, no overlay, "Got it" 60 x 44 and topmost, the banner inside the viewport (x 24 to 296 at 320; 24 to 336 at 360; 128 to 1232 at 1280), no axe violation, and nothing covered (`retest-hint-above-year-360-light.png`). "Show tips again" still brings them back. **Judgement for a parent:** the bars hint reads well, because the bars sit right under it and are the only thing to look at. The icons hint is a little weaker: "Tap an icon to see the subject's name." no longer points at one, and the icons are about 100 px lower; a parent will find them but has to look. At 1280 the banner runs the full 1100 px width with "Got it" right after the text, and in dark mode its edge is faint. All Low, none blocks (see N9). |
+| N6 No way out of the flow | **Fixed** | Every setup step has "Sign out" in the header, including steps 1 and 2, and "You're all set". "Finish later" is still there only from step 3, and neither is in the `?only=` reminder screens (they have Home's back link). **Sign-out walk end to end:** step 3, Sign out, lands on `/login`; signing in again opens step 3 ("Step 3 of 6"); the flow then ran to all set and Home with the year and breaks reminders. Axe clean at 360 light and 390 dark. |
+
+## New findings
+
+### N7 (Low): at 320 px the header wraps
+
+At 320 px the logo text "Homeschool Hub" and the new "Sign out" button each wrap onto two lines (`retest-sign-out-320-dark.png`). The button is 76 x 68, so it is still easy to hit and nothing scrolls sideways; it just looks crowded. Steps to reproduce: sign in as a new family at 320 px, open any step.
+
+### N8 (Low): "I'll set this later" after a year was saved leaves a reminder for a year that is set
+
+Steps to reproduce:
+1. In the flow, give dates and choose 36 weeks, Continue (the year is saved with its shape).
+2. On step 5 press Back, choose "I'll set this later" on step 4, Continue.
+3. `GET /api/family` shows the saved `schoolYear` still there, with `setupDeferred: ["year"]`. Home will show "Set your school year" although a year is set, and pressing Back to step 4 shows 36 weeks, not "later".
+
+This is a corner (change of mind after applying) and nothing is lost; the reminder opens the screen with the saved year. Suggested fix: "later" after a saved year should either do nothing or clear the year.
+
+### N9 (Low): the icons hint no longer points at an icon
+
+Described above under N5. The text says "an icon" but the banner is not near one, and at 1280 it spans the whole width. A short "(on the left)" would make it clearer, or place it next to the icon column.
+
+## What Will should look at first now
+
+1. **Set up, then School year** at 360 px: this is the new screen and the one real addition. Change the shape and Save, then open Days off and Edit term views to see what it did.
+2. **Step 4, Back, Continue** with Three terms: Term 1/2/3 stay, nothing else changes.
+3. **Schedule, Year, with a brand-new family:** the hint banner above the picture. Judge whether you want it back beside the bar (N9).
+4. **Step 2 at 320 px:** the round dot and the crowded header (N7).
+
+## What I did not check
+
+- N1 for all four shapes ran at 360 light and 390 dark only; the Set up screen's same-data check ran with Three terms only.
+- I did not click through the Zoom views sheet beyond opening it.
+- One smoke round and one clean gate. The first gate run failed the flaky test described above.
