@@ -34,6 +34,14 @@
 .schedule-page .schedule-title-row h1 { margin: 0; }
 .schedule-title-actions { display: flex; align-items: center; gap: 4px; }
 .schedule-title-actions:empty { display: none; }
+/* S10-13: the Week | Year switch and, in Week, the ‹ range › group share one row. */
+.schedule-view-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 16px; }
+.schedule-view-row .segmented { margin: 0; flex: none; }
+.schedule-view-row .segmented button { padding: 0 10px; }
+@media (min-width: 600px) { .schedule-view-row .segmented button { padding: 0 14px; } }
+@media (max-width: 359.98px) { .schedule-view-row { gap: 4px; } .schedule-view-row .segmented button { padding: 0 6px; } }
+.schedule-view-actions { display: flex; min-width: 0; margin-left: auto; }
+.schedule-view-actions:empty { display: none; }
 
 /* S8-09: the getting-started checklist and the empty states. */
 .home-checklist h2 { margin: 0; font-size: 1.25rem; }
