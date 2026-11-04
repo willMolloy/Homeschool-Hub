@@ -6,6 +6,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ApiError, apiGet, apiPost, onUnauthenticated } from "../api/client";
 import type { Me } from "../api/types";
+import { clearSetupLater } from "../features/welcome/setupLater";
 
 /** 'loading' until the first /api/me answers; 'error' if it failed for a reason other than 401. */
 export type MeState = Me | null | "loading" | "error";
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Logout always clears the cookie server-side when reachable; locally we sign out regardless.
     }
+    clearSetupLater();
     setMe(null);
   }, []);
 

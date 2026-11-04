@@ -6,6 +6,7 @@
  * start can't change (409 week_start_locked). They are never re-keyed.
  * S7-03: `zoomViews` is the timeline's hidden built-in zoom views and the family's own (014_zoom_views).
  * S9-03: `logSetup` is what the family's records track (016_log_setup); null until the family picks a template style.
+ * S11-01: `setupStep`, `setupDone` and `setupDeferred` are where the family is in the first-run flow (019_setup_flow).
  */
 import type { FastifyInstance } from "fastify";
 import { humanList, WEEK_STARTS } from "@hh/engine";
@@ -23,11 +24,23 @@ export interface FamilySettings {
   weekStartLocked: boolean;
   zoomViews: ZoomViewsJson;
   logSetup: LogSetupJson | null;
+  setupStep: number;
+  setupDone: boolean;
+  setupDeferred: SetupDeferral[];
 }
-interface FamilyRow { name: string; week_start: "mon" | "sun"; school_days: number[]; time_zone: string; zoom_views: ZoomViewsJson; log_setup: LogSetupJson | null }
+interface FamilyRow {
+  name: string; week_start: "mon" | "sun"; school_days: number[]; time_zone: string; zoom_views: ZoomViewsJson; log_setup: LogSetupJson | null;
+  setup_step: number; setup_done: boolean; setup_deferred: SetupDeferral[];
+}
+
+/** S11-01: the setup steps a family can put off (the school year, the breaks). */
+export const SETUP_DEFERRALS = ["year", "breaks"] as const;
+export type SetupDeferral = (typeof SETUP_DEFERRALS)[number];
+export const SETUP_STEPS = 6;
 
 const toSettings = (r: FamilyRow, weekStartLocked: boolean): FamilySettings =>
-  ({ name: r.name, weekStart: r.week_start, schoolDays: r.school_days, timeZone: r.time_zone, weekStartLocked, zoomViews: r.zoom_views, logSetup: r.log_setup });
+  ({ name: r.name, weekStart: r.week_start, schoolDays: r.school_days, timeZone: r.time_zone, weekStartLocked, zoomViews: r.zoom_views, logSetup: r.log_setup,
+    setupStep: r.setup_step, setupDone: r.setup_done, setupDeferred: r.setup_deferred });
 
 export const WEEK_START_LOCKED_MESSAGE = "weekStart: the week start can't change after weeks have been checked in.";
 
@@ -49,10 +62,14 @@ export const SchoolDays = z
 
 // Strict: a typo'd key is a 400 rather than a silent no-op on a settings form.
 const PatchBody = z
-  .strictObject({ name: Name.optional(), weekStart: z.enum(WEEK_STARTS, `weekStart must be ${humanList(WEEK_STARTS.map((s) => `"${s}"`))}.`).optional(), schoolDays: SchoolDays.optional(), timeZone: TimeZone.optional(), zoomViews: ZoomViews.optional(), logSetup: LogSetup.optional() })
-  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, weekStart, schoolDays, timeZone, zoomViews, logSetup.");
+  .strictObject({ name: Name.optional(), weekStart: z.enum(WEEK_STARTS, `weekStart must be ${humanList(WEEK_STARTS.map((s) => `"${s}"`))}.`).optional(), schoolDays: SchoolDays.optional(), timeZone: TimeZone.optional(), zoomViews: ZoomViews.optional(), logSetup: LogSetup.optional(),
+    setupStep: z.number("setupStep must be a number from 1 to 6.").int("setupStep must be a whole number from 1 to 6.").min(1, "setupStep must be from 1 to 6.").max(SETUP_STEPS, "setupStep must be from 1 to 6.").optional(),
+    // Finishing is one way: a family that finished the flow never goes back into it.
+    setupDone: z.literal(true, "setupDone can only be set to true.").optional(),
+    setupDeferred: z.array(z.enum(SETUP_DEFERRALS, "Only the year and the breaks can be put off.")).refine((d) => new Set(d).size === d.length, "A step can only be put off once.").optional() })
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one of name, weekStart, schoolDays, timeZone, zoomViews, logSetup, setupStep, setupDone, setupDeferred.");
 
-const COLS = "name, week_start, school_days, time_zone, zoom_views, log_setup";
+const COLS = "name, week_start, school_days, time_zone, zoom_views, log_setup, setup_step, setup_done, setup_deferred";
 const gone = () => new HttpError(401, "unauthenticated", "Your family no longer exists.");
 
 export async function familyRoutes(app: FastifyInstance): Promise<void> {
@@ -79,9 +96,13 @@ export async function familyRoutes(app: FastifyInstance): Promise<void> {
            time_zone = COALESCE($5, time_zone),
            zoom_views = COALESCE($6::jsonb, zoom_views),
            log_setup = COALESCE($7::jsonb, log_setup),
+           setup_step = COALESCE($8::smallint, setup_step),
+           setup_done = setup_done OR COALESCE($9::boolean, false),
+           setup_deferred = COALESCE($10::text[], setup_deferred),
            updated_at = now()
          WHERE id = $1 RETURNING ${COLS}`,
-        [req.familyId, b.name ?? null, b.weekStart ?? null, b.schoolDays ?? null, b.timeZone ?? null, b.zoomViews ? JSON.stringify(b.zoomViews) : null, b.logSetup ? JSON.stringify(b.logSetup) : null]);
+        [req.familyId, b.name ?? null, b.weekStart ?? null, b.schoolDays ?? null, b.timeZone ?? null, b.zoomViews ? JSON.stringify(b.zoomViews) : null, b.logSetup ? JSON.stringify(b.logSetup) : null,
+         b.setupStep ?? null, b.setupDone ?? null, b.setupDeferred ?? null]);
       return toSettings(rows[0]!, locked);
     });
   });

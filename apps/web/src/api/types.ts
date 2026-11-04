@@ -21,7 +21,16 @@ export interface Me {
   today: string;
   /** The seeded demo family: it can look around but not add events (the API refuses too). */
   demo: boolean;
+  /** S11-01: which step of the first-run flow the family is on (1–6). */
+  setupStep: number;
+  /** S11-01: true once the family has finished the flow. Families that existed before it are done and never see it. */
+  setupDone: boolean;
+  /** S11-01: the steps put off with "I'll set this later" or "I'll get back to you on this"; Home keeps a reminder for each. */
+  setupDeferred: SetupDeferral[];
 }
+
+/** S11-01: the setup steps a family can put off. */
+export type SetupDeferral = "year" | "breaks";
 
 /** S7-03: one of the family's own timeline zoom views; start and end are YYYY-MM-DD, inclusive. */
 export interface CustomZoomView {
@@ -92,7 +101,7 @@ export interface RecordTotals {
 }
 
 /** GET/PATCH /api/family */
-export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
+export type FamilySettings = Omit<Me, "familyId" | "today" | "demo" | "setupStep" | "setupDone" | "setupDeferred"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */
   weekStartLocked: boolean;
   /** S7-03 */
@@ -101,7 +110,12 @@ export type FamilySettings = Omit<Me, "familyId" | "today" | "demo"> & {
   logSetup: LogSetup | null;
 };
 /** The PATCH /api/family body: any of the editable fields. */
-export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">>;
+export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked">> & {
+  /** S11-01: the setup step the family is on, and what it put off. `setupDone` only ever goes to true. */
+  setupStep?: number;
+  setupDone?: true;
+  setupDeferred?: SetupDeferral[];
+};
 
 /** POST /api/auth/login */
 export interface LoginResponse {

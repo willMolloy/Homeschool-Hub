@@ -23,6 +23,7 @@ records itself in `schema_migration`. `db/migrate.ts` applies pending ones in or
 | `014_zoom_views.sql` | S7-03: `family.zoom_views` (JSON `{ hidden, custom }`: the built-in zoom views a family hides and its own named views; the API checks the contents, S7-04/05) |
 | `017_record_entries.sql` | S9-07: `record_entry`, what a parent typed into the log in Records: one row per child per entry, a day or a run of days, typed minutes (by subject, total, home, away), notes, books, the school-day switch and how many days it counts. Never read by the plan |
 | `018_record_entry_days.sql` | S9b-07: `record_entry.days` (the dates a run of days counts, as the parent ticked them; NULL = the school calendar's days in the run, as before, and always NULL for a single day) |
+| `019_setup_flow.sql` | S11-01: `family.setup_step` (1–6), `setup_done` and `setup_deferred` (`year`, `breaks`): where a family is in the first-run flow. Families that exist when it runs are marked done; a family created afterwards starts at step 1 |
 | `016_log_setup.sql` | S9-03: `family.log_setup` (JSON: the template style and the fields the records track; NULL until picked) and `subject.core` (core or non-core, for core and non-core hours) |
 | `015_subject_icon.sql` | S8-11: `subject.icon` (a key from the fixed icon list, NULL = first-letter badge; existing subjects get the default their name suggests) |
 

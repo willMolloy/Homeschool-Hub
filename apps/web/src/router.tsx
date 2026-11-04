@@ -6,7 +6,9 @@ import { FamilySettingsPage } from "./features/schedule/FamilySettingsPage";
 import { SchedulePage } from "./features/schedule/SchedulePage";
 import { SetupPage } from "./features/setup/SetupPage";
 import { HomePage } from "./features/home/HomePage";
-import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import { WelcomePage } from "./features/welcome/WelcomePage";
+import { clearSetupLater, setupLaterThisSession } from "./features/welcome/setupLater";
+import { AuthProvider, useAuth, useMe } from "./auth/AuthProvider";
 import { RequireAuth } from "./auth/RequireAuth";
 import { SignedInShell } from "./layout/SignedInShell";
 import { REDIRECTS } from "./layout/nav";
@@ -26,7 +28,16 @@ function Root() {
 
 function LoginRoute() {
   const { refresh } = useAuth();
-  return <LoginPage onLoggedIn={refresh} />;
+  // A new sign-in is a new chance to finish setting up: "Finish later" only lasted the last one (S11-01).
+  return <LoginPage onLoggedIn={() => { clearSetupLater(); return refresh(); }} />;
+}
+
+/** S11-01: opening Home while the family has not finished setting up goes to the setup flow, at the step it reached,
+ *  unless the parent chose "Finish later" in this sign-in. A family that has finished (and every family from before it) is never sent. */
+function HomeRoute() {
+  const me = useMe();
+  if (me.setupDone === false && !setupLaterThisSession()) return <Navigate to="/welcome" replace />;
+  return <HomePage />;
 }
 
 /** An old route's replacement (S8-04): the new path, with the old link's own query kept (`?child=`, `?week=`). */
@@ -46,6 +57,8 @@ export const routes: RouteObject[] = [
     element: <Root />,
     children: [
       { path: "/login", element: <LoginRoute /> },
+      // S11-01: the setup flow is signed-in but outside the shell (no tab bar while setting up).
+      { path: "/welcome", element: <RequireAuth><WelcomePage /></RequireAuth> },
       {
         element: (
           <RequireAuth>
@@ -53,7 +66,7 @@ export const routes: RouteObject[] = [
           </RequireAuth>
         ),
         children: [
-          { path: "/", element: <HomePage /> },
+          { path: "/", element: <HomeRoute /> },
           { path: "/schedule", element: <SchedulePage /> },
           { path: "/records", element: <RecordsPage /> },
           { path: "/setup", element: <SetupPage /> },

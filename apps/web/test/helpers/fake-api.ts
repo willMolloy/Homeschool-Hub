@@ -42,6 +42,10 @@ export const DEMO_ME: Me = {
   timeZone: "America/Chicago",
   today: "2026-10-28",
   demo: false,
+  // S11-01: the demo has set up; a test of the flow overrides these.
+  setupStep: 1,
+  setupDone: true,
+  setupDeferred: [],
 };
 
 const ROSTER_PATCH = ["name", "color", "sortOrder", "archived"];
@@ -54,7 +58,7 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/plan/preview-event": ["event", "eventId"],
   "POST /api/blocked-ranges/bulk": ["blockedRanges"],
   "POST /api/calendar-templates": ["name", "breaks"],
-  "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone", "zoomViews", "logSetup"],
+  "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone", "zoomViews", "logSetup", "setupStep", "setupDone", "setupDeferred"],
   "POST /api/log-entries": ["childIds", "startDate", "endDate", "countsSchoolDay", "days", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
   "PATCH /api/log-entries/:id": ["startDate", "endDate", "countsSchoolDay", "days", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
   "POST /api/children": ["name", "color"],

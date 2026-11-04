@@ -365,4 +365,15 @@ DO $$ BEGIN
 END $$;
 DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c5';
 
+-- S11-01: the first-run flow (019_setup_flow)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c6', 'Setup family');
+DO $$ BEGIN
+  IF (SELECT setup_done FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c6') THEN RAISE EXCEPTION 'FAIL a new family should not be done with setup'; END IF;
+  IF (SELECT setup_step FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c6') <> 1 THEN RAISE EXCEPTION 'FAIL a new family should start at step 1'; END IF;
+  RAISE NOTICE 'ok   a new family starts at setup step 1, not done (019)';
+END $$;
+SELECT pg_temp.expect_error($$UPDATE family SET setup_step = 7 WHERE id = 'f0000000-0000-0000-0000-0000000000c6'$$, '23514', 'setup_step must be 1..6');
+SELECT pg_temp.expect_error($$UPDATE family SET setup_deferred = '{children}' WHERE id = 'f0000000-0000-0000-0000-0000000000c6'$$, '23514', 'setup_deferred is year or breaks');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c6';
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

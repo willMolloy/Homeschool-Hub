@@ -1,0 +1,23 @@
+/* S11-01: the setup flow's frame (Soft Paper). One column, phone first; the card is at most 480 px wide. */
+.welcome {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: calc(480px + 2 * var(--page-pad, 20px));
+  margin: 0 auto;
+  padding: max(20px, env(safe-area-inset-top)) var(--page-pad, 20px) max(24px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.welcome-top { margin-bottom: 20px; }
+.welcome-progress { margin-bottom: 8px; }
+.welcome-step { margin: 0 0 6px; font-size: 0.875rem; font-weight: 600; color: var(--tl-muted-foreground); }
+.welcome-bar { height: 8px; border-radius: 999px; background: var(--tl-secondary); overflow: hidden; }
+.welcome-bar span { display: block; height: 100%; border-radius: 999px; background: var(--tl-primary); transition: width var(--tl-motion, 150ms) ease-out; }
+@media (prefers-reduced-motion: reduce) { .welcome-bar span { transition: none; } }
+.welcome-back, .welcome-later { margin: 4px 0; }
+.welcome-back .btn, .welcome-later .btn { padding-left: 8px; padding-right: 8px; }
+.welcome-later { text-align: center; }
+.welcome-card { margin: 8px 0; }
+.welcome-title { font-family: var(--tl-font-display); font-weight: 600; font-size: 1.5rem; line-height: 1.25; margin: 0 0 16px; outline: none; }
+.welcome-lead { margin: 0 0 16px; color: var(--tl-muted-foreground); }
+.welcome-card .btn-row { margin-top: 8px; }

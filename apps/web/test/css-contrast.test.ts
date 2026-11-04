@@ -25,6 +25,7 @@ const NON_TEXT = new Set([
   ".swatch-chip",
   ".home-today",
   ".home-briefing-dot",
+  ".welcome-bar span",
 ]);
 /** Translucent backgrounds, with the colour they sit on. */
 const TRANSLUCENT_ON: Record<string, string> = { '.shell-nav a[aria-current="page"]': "var(--brand)" };
