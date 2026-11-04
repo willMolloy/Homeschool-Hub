@@ -73,6 +73,8 @@ These are defaults made while writing the tickets (2026-11-03). Each can be reve
 - **S10-14:** Set up is the active item on Set up screens, because it is now in the bar and the rail. UX review 10 suggested Home.
 - **S10-16:** pages are capped at 640 px, and forms, buttons and segmented controls at 480 px.
 - **S10-17 and S10-18:** both start at 840 px. The two-pane Home is about 1040 px wide at most, and the side panel is 360 px.
+- **S10-17 and S10-18, kept 2026-11-04 (DeeDee):** 840 px stays the breakpoint for Home's two panes and for the edit side panel. The S10-10b Lows L1 (the wide pane is under 480 px from 840 to about 952 px) and L2 (a 352 px timeline beside the panel at 840 px) are won't fix.
+- **Backlog (open, Low):** S10-10b L5, Rose and Lilac read close at a glance and the swatch "used" cue is subtle. Both pass AA; not scheduled.
 
 ## Carried over from 9b re-test (Low)
 
