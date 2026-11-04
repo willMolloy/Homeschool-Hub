@@ -28,7 +28,10 @@ export function checklistSteps(counts: { children: number; subjects: number; ass
     { key: "children", label: "Add your children", to: "/setup/children", done: counts.children > 0 },
     { key: "subjects", label: "Add subjects", to: "/setup/subjects", done: counts.subjects > 0 },
     { key: "assignments", label: "Add your books and lessons", to: "/setup/assignments", done: counts.assignments > 0 },
-    { key: "breaks", label: "Set your year's breaks", to: "/setup/days-off", done: counts.breaks > 0 },
+    // S11-04: breaks put off in the setup flow are a reminder that opens that step on its own; otherwise the old row.
+    deferred.includes("breaks")
+      ? { key: "breaks", label: "Add your breaks", to: "/welcome?only=breaks", done: false }
+      : { key: "breaks", label: "Set your year's breaks", to: "/setup/days-off", done: counts.breaks > 0 },
   ];
 }
 

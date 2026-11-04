@@ -5,6 +5,7 @@ import { ChildrenStep } from "./ChildrenStep";
 import { DaysStep } from "./DaysStep";
 import { FamilyStep } from "./FamilyStep";
 import { YearStep } from "./YearStep";
+import { BreaksStep } from "./BreaksStep";
 import { StepHeading, useStep } from "./stepContext";
 
 function placeholder(title: string): ComponentType {
@@ -24,6 +25,6 @@ export const STEP_BODIES: Record<number, ComponentType> = {
   2: ChildrenStep,
   3: DaysStep,
   4: YearStep,
-  5: placeholder("Breaks"),
+  5: BreaksStep,
   6: placeholder("Subjects"),
 };

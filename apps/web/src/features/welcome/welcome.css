@@ -43,3 +43,12 @@
 .shape-hint { font-size: 0.875rem; color: var(--tl-muted-foreground); }
 .shape-card:has(input:checked) .shape-hint { color: var(--tl-foreground); }
 .welcome-preview { margin: 0 0 12px; min-height: 1.4em; font-size: 0.95rem; color: var(--tl-muted-foreground); overflow-wrap: anywhere; }
+
+/* S11-04: the breaks step. */
+.welcome-holidays { margin: 0 0 12px; padding: 0; border: 0; min-width: 0; }
+.welcome-holidays legend { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; padding: 0; }
+.welcome-list li > span { flex: 1; min-width: 0; }
+.welcome-more { margin: 0 0 12px; }
+.welcome-own { margin: 0 0 12px; padding: 12px; border: 1px solid var(--tl-border); border-radius: 12px; }
+.welcome-stack { flex-direction: column; align-items: stretch; margin-top: 12px; }
+.welcome-stack .btn { width: 100%; }

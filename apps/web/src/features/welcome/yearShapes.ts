@@ -103,3 +103,10 @@ export function zoomViewsFor(plan: YearPlan, current: ZoomViews): ZoomViews | nu
   }
   return null;
 }
+
+/** The school year a family with none given is offered holidays for: this one, August to June (the school year that holds `today`, or starts next month in July). */
+export function currentSchoolYear(today: string): { start: string; end: string } {
+  const y = Number(today.slice(0, 4));
+  const first = Number(today.slice(5, 7)) >= 7 ? y : y - 1;
+  return { start: `${first}-08-01`, end: `${first + 1}-06-30` };
+}
