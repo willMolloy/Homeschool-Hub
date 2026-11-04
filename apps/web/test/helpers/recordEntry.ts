@@ -10,6 +10,6 @@ export function weekdaysOf(start: string, end: string): string[] {
 }
 
 /** An entry with its covered days filled in from its dates unless given. */
-export function withCovered(e: Omit<RecordEntry, "coveredDays"> & { coveredDays?: string[] }): RecordEntry {
-  return { ...e, coveredDays: e.coveredDays ?? weekdaysOf(e.startDate, e.endDate) };
+export function withCovered(e: Omit<RecordEntry, "coveredDays" | "days"> & { coveredDays?: string[]; days?: string[] | null }): RecordEntry {
+  return { ...e, days: e.days ?? null, coveredDays: e.coveredDays ?? e.days ?? weekdaysOf(e.startDate, e.endDate) };
 }

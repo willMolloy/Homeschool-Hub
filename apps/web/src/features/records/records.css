@@ -71,3 +71,7 @@
   .print-page th { font-weight: 700; width: 38%; }
   .print-wording { margin-top: 18pt; font-size: 9pt; }
 }
+/* S9b-07: day chips for a run of dates; each is a 44 px target and the row wraps at 320 px */
+.log-days { border: 0; padding: 0; margin: 0; min-width: 0; }
+.log-days legend { font-weight: 600; margin-bottom: 6px; }
+.log-day-chips .chip { padding: 0 10px; }

@@ -9,7 +9,7 @@ import { hasDb, testPool } from "./helpers/db";
 import { inject, rosterFor } from "./helpers/schedule";
 import { signedInFamily } from "./helpers/session";
 
-const row = (over: Partial<RecordEntryRow>): RecordEntryRow => ({ id: "x", family_id: "f", child_id: "c1", start_date: "2026-11-02", end_date: "2026-11-02", counts_school_day: true, school_days: 1, subject_minutes: {}, total_minutes: null, home_minutes: null, away_minutes: null, notes: null, books: [], ...over });
+const row = (over: Partial<RecordEntryRow>): RecordEntryRow => ({ id: "x", family_id: "f", child_id: "c1", start_date: "2026-11-02", end_date: "2026-11-02", counts_school_day: true, school_days: 1, subject_minutes: {}, total_minutes: null, home_minutes: null, away_minutes: null, notes: null, books: [], days: null, ...over });
 
 const days = (start: string, end: string) => { const out: string[] = []; for (let d = start; d <= end; d = addDays(d, 1)) if (![0, 6].includes(weekdayOf(d))) out.push(d); return start === end ? [start] : out; };
 const covered = (e: RecordEntryRow) => days(e.start_date, e.end_date);

@@ -71,7 +71,7 @@ export const IdList = (max = MAX_IDS) =>
     .refine((ids) => new Set(ids).size === ids.length, "Ids can't repeat.");
 
 /** `?a,b,c` → a list for IdList; absent or empty = none. A repeated param arrives as an array and fails. */
-const CommaList = z.string("must be one comma-separated value.").transform((s) => (s === "" ? [] : s.split(",")));
+export const CommaList = z.string("must be one comma-separated value.").transform((s) => (s === "" ? [] : s.split(",")));
 
 /** GET /api/weights/suggestion (S2b-09): strict, like a body. */
 export const SuggestionQuery = z.strictObject({

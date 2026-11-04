@@ -51,7 +51,7 @@ describe.skipIf(!hasDb)("/api/log-entries (S9-07, integration)", () => {
     expect(made).toHaveLength(2);
     expect(made.map((e) => e.childId).sort()).toEqual([frank, margaret].sort());
     for (const e of made) {
-      expect(e).toEqual({ id: expect.any(String), childId: expect.any(String), ...WEEK, countsSchoolDay: true, schoolDays: 5, coveredDays: ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"], subjectMinutes: { [math]: 210, [reading]: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [] });
+      expect(e).toEqual({ id: expect.any(String), childId: expect.any(String), ...WEEK, countsSchoolDay: true, schoolDays: 5, coveredDays: ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"], subjectMinutes: { [math]: 210, [reading]: 120 }, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], days: null });
     }
     expect(new Set(made.map((e) => e.id)).size).toBe(2);
     expect((await pool.query("SELECT count(*)::int AS n FROM record_entry WHERE family_id = $1", [a.familyId])).rows[0].n).toBe(2);
@@ -60,7 +60,7 @@ describe.skipIf(!hasDb)("/api/log-entries (S9-07, integration)", () => {
 
   it("nothing is prefilled: only what was typed is stored, and the school-day switch defaults on", async () => {
     const e = (await req("POST", "/api/log-entries", { childIds: [frank], startDate: "2026-11-02" })).json()[0];
-    expect(e).toMatchObject({ countsSchoolDay: true, schoolDays: 1, subjectMinutes: {}, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [] });
+    expect(e).toMatchObject({ countsSchoolDay: true, schoolDays: 1, subjectMinutes: {}, totalMinutes: null, homeMinutes: null, awayMinutes: null, notes: null, books: [], days: null });
   });
 
   describe("counting school days", () => {

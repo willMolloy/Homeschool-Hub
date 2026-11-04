@@ -10,11 +10,18 @@
  * The API rejects unknown body keys (RF-09), so the fake records any body key not in
  * BODY_KEYS as a violation and test/setup.ts fails the test.
  */
-import { DEFAULT_WEIGHT_PER_UNIT, ENGINE_VERSION, isLearnedUnit, type UnitType } from "@hh/engine";
+import { DEFAULT_WEIGHT_PER_UNIT, ENGINE_VERSION, addDays, weekdayOf, isLearnedUnit, type UnitType } from "@hh/engine";
 import type { Me } from "../../src/api/types";
 
 type Reply = [status: number, body?: unknown];
 type Handler = Reply | ((body: unknown, path: string, query: URLSearchParams) => Reply | Promise<Reply>);
+
+/** S9b-07: what GET /api/log-entries/run-days says for a Mon-Fri family with no days off. */
+export function runDaysFor(from: string, to: string, weekdays: number[] = [1, 2, 3, 4, 5], daysOff: string[] = []) {
+  const schoolDays: string[] = [];
+  if (from && to) for (let d = from; d <= to; d = addDays(d, 1)) if (weekdays.includes(weekdayOf(d)) && !daysOff.includes(d)) schoolDays.push(d);
+  return { weekdays, schoolDays, daysOff };
+}
 
 /** The answer the real endpoint gives with no history and no subject default. */
 export function builtinSuggestionFor(q: URLSearchParams) {
@@ -48,8 +55,8 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/blocked-ranges/bulk": ["blockedRanges"],
   "POST /api/calendar-templates": ["name", "breaks"],
   "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone", "zoomViews", "logSetup"],
-  "POST /api/log-entries": ["childIds", "startDate", "endDate", "countsSchoolDay", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
-  "PATCH /api/log-entries/:id": ["startDate", "endDate", "countsSchoolDay", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
+  "POST /api/log-entries": ["childIds", "startDate", "endDate", "countsSchoolDay", "days", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
+  "PATCH /api/log-entries/:id": ["startDate", "endDate", "countsSchoolDay", "days", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],
   "POST /api/children": ["name", "color"],
   "PATCH /api/children/:id": ROSTER_PATCH,
   "POST /api/subjects": ["name", "color", "defaultWeight", "defaultWeekdays", "icon", "core"],
@@ -99,6 +106,8 @@ class FakeApi {
     this.on("GET /api/check-ins/weeks", 200, { weeks: [] });
     // S6-08: nothing to undo unless a test says so.
     this.on("GET /api/undo", 200, null);
+    // S9b-07: a Mon-Fri family with no days off, unless a test says otherwise.
+    this.on("GET /api/log-entries/run-days", (_b, _p, q) => [200, runDaysFor(q.get("from") ?? "", q.get("to") ?? "")]);
     this.on(`PUT /api/check-ins/${EMPTY_WEEK.weekStart}`, (body) =>
       [200, { ...EMPTY_WEEK, status: (body as { status: string }).status, planChanged: false }]);
   }

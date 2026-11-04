@@ -3,14 +3,18 @@
  * default), then only the fields the log setup tracks. Nothing is prefilled from the plan or from earlier entries: every box
  * starts empty. When editing, the entry's own values are shown and fields the setup hides are left alone (not sent).
  * Several children are saved as one entry each (the API does that). Logging never touches the schedule.
+ * S9b-07: a run of dates that counts shows its days as chips, pre-selected from the school calendar; the ticked days are
+ * sent (new runs, or when the parent changed the chips or the dates) and are what counts.
  */
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ApiError, apiPatch, apiPost } from "../../api/client";
 import type { Child, LogFields, RecordEntry, Subject } from "../../api/types";
 import { Button, Chip } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
 import { MAX_DAY_MINUTES } from "./limits";
 import { boxesFor, toMinutes } from "./entryText";
+import { RunDayChips } from "./RunDayChips";
+import { NO_DAYS_TICKED } from "./runDays";
 import "./records.css";
 
 export interface LogEntryFormProps {
@@ -57,19 +61,28 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
   const [book, setBook] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [runDays, setRunDays] = useState<{ days: string[] | null; touched: boolean }>({ days: null, touched: false });
   const allPicked = kids.length > 1 && picked.length === kids.length;
 
   const toggleChild = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const addBook = () => { const t = book.trim(); if (t) { setBooks((b) => [...b, t]); setBook(""); } };
 
+  const last = end || start;
+  const isRun = !!start && !!end && end > start;
+  const sameDates = !!entry && start === entry.startDate && last === entry.endDate;
+  const onRunDays = useCallback((days: string[] | null, touched: boolean) => setRunDays({ days, touched }), []);
+
   async function save() {
     if (busy) return;
-    const last = end || start;
     const problems: string[] = [];
     if (picked.length === 0) problems.push("Pick who this is for.");
     if (!start) problems.push("Pick the first day.");
     else if (last < start) problems.push("The last day must be on or after the first day.");
     const body: Record<string, unknown> = { startDate: start, endDate: last, countsSchoolDay: counts };
+    if (counts && isRun && runDays.days && (!entry || !sameDates || runDays.touched)) {
+      if (runDays.days.length === 0) problems.push(NO_DAYS_TICKED);
+      body.days = runDays.days;
+    }
     const typed = (b: Box) => { const r = toMinutes(b.h, b.m); if (r.problem) problems.push(r.problem); return r.value; };
     if (fields.subjectHours) {
       const m: Record<string, number> = {};
@@ -121,8 +134,12 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
       ) : null}
       <label className="choice-row">
         <input type="checkbox" role="switch" checked={counts} onChange={() => setCounts(!counts)} />
-        <span>Count as a school day<small>{start && end && end > start ? "Each school day in these dates counts; days off are left out." : "Turn off if this wasn't a school day."}</small></span>
+        <span>Count as a school day<small>{isRun ? "Tick the days that count." : "Turn off if this wasn't a school day."}</small></span>
       </label>
+      {counts && isRun ? (
+        <RunDayChips key={`${start}|${last}`} start={start} end={last} childIds={picked}
+          initial={sameDates && entry ? entry.days ?? entry.coveredDays : null} onChange={onRunDays} />
+      ) : null}
       {fields.subjectHours ? (
         <fieldset className="log-hours"><legend>Hours by subject</legend>
           {active.length === 0 ? <p className="hint">Add subjects in Set up to log hours by subject.</p> : active.map((s) => <HoursBoxes key={s.id} label={s.name} value={subj[s.id] ?? EMPTY} onChange={(b) => setSubj((p) => ({ ...p, [s.id]: b }))} />)}

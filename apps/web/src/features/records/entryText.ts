@@ -1,6 +1,7 @@
 /** S9-07: words for a log entry. Pure. Hours are typed as hours and minutes and kept as whole minutes. */
 import type { RecordEntry, Subject } from "../../api/types";
 import { formatDate, formatShort } from "../../lib/dates";
+import { weekdayWords, weekdaysOf } from "./runDays";
 
 /** 210 -> "3 h 30 m", 120 -> "2 h", 45 -> "45 m". */
 export function formatMinutes(m: number): string {
@@ -32,7 +33,9 @@ export const partWords = (whole: Pick<RecordEntry, "startDate" | "endDate">) => 
 export function summaryOf(e: RecordEntry, subjects: readonly Subject[]): string {
   const parts: string[] = [];
   // S9b-05 (N16): with the switch off the summary says so, rather than just leaving the days out.
-  parts.push(e.countsSchoolDay ? `${e.schoolDays} school ${e.schoolDays === 1 ? "day" : "days"}` : "Not counted as a school day");
+  // S9b-07: when the parent ticked the days of a run, the summary names them ("6 school days, Mon–Sat").
+  const ticked = e.countsSchoolDay && e.days && e.days.length > 0 ? `, ${weekdayWords(weekdaysOf(e.days))}` : "";
+  parts.push(e.countsSchoolDay ? `${e.schoolDays} school ${e.schoolDays === 1 ? "day" : "days"}${ticked}` : "Not counted as a school day");
   const named = Object.entries(e.subjectMinutes).map(([id, m]) => `${subjects.find((s) => s.id === id)?.name ?? "A subject"} ${formatMinutes(m)}`);
   if (named.length) parts.push(named.join(", "));
   if (e.totalMinutes != null) parts.push(`${formatMinutes(e.totalMinutes)} in all`);
