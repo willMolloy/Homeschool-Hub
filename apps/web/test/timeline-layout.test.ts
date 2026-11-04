@@ -204,9 +204,12 @@ describe("tap targets", () => {
     expect(box.x1 - box.x0).toBeGreaterThanOrEqual(MIN_TAP_PX);
     expect(box.y1 - box.y0).toBe(MIN_TAP_PX);
     const cx = (a.runs[0]!.x0 + a.runs[0]!.x1) / 2;
-    expect(hitTest(l, cx, a.cy - 21)?.assignmentId).toBe("a");
-    expect(hitTest(l, cx + 21, a.cy + 21)?.assignmentId).toBe("a");
-    expect(hitTest(l, cx, a.cy + 30)).toBeNull();
+    // S10-04c: this bar sits right under its group header, so its box starts at the header's foot (still 44 px tall).
+    const foot = l.groups[0]!.header.y + l.groups[0]!.header.height;
+    expect(hitTest(l, cx, foot)?.assignmentId).toBe("a");
+    expect(hitTest(l, cx, foot - 1)).toBeNull();
+    expect(hitTest(l, cx + 21, foot + MIN_TAP_PX)?.assignmentId).toBe("a");
+    expect(hitTest(l, cx, foot + MIN_TAP_PX + 1)).toBeNull();
   });
 
   it("where targets meet, the closer bar wins", () => {

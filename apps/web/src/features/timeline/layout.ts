@@ -253,7 +253,7 @@ export interface BarName {
   textY: number;
   /** T-11: which piece of the bar (split by breaks) it names, from 0. */
   piece: number;
-  /** T-11d: written in the label lane above the row, in page text, because the piece is too thin to hold it. */
+  /** S10-04b: written to the right of the piece, in muted page text, because the piece can't hold it in full. */
   outside: boolean;
 }
 
