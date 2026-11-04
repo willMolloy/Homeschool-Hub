@@ -82,9 +82,10 @@ describe("the Year timeline page", () => {
     // S8-07: no names on the picture: each lane has a badge in the gutter, named for its subject (and child).
     expect(svg.querySelectorAll("text.tl-lane-label")).toHaveLength(0);
     const badges = [...svg.closest(".tl-wrap")!.querySelectorAll("button.tl-badge")].map((b) => b.getAttribute("aria-label"));
-    expect(badges).toEqual(expected.badges.map((b) => b.text));
+    expect(badges).toEqual(expected.badges.map((b) => b.label));
     expect(badges).toContain("Literature · Frank");
-    expect(svg.querySelector("path.tl-totals")).not.toBeNull();
+    expect(badges).toContain("History · Together"); // S10-02: shared work in the Together group
+    expect(svg.querySelector("path.tl-totals")).toBeNull(); // S10-02: the children's ribbons replace All subjects
   });
 
   it("marks breaks with a faint plain tint at Year (T-05c), months along the top, and today with the one strong line and pill", async () => {

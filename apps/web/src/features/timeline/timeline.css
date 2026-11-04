@@ -48,8 +48,9 @@
 .tl-outside-name { font-size: 11px; fill: var(--tl-foreground); }
 /* T-11: one assignment split by a break stays joined by a faint line in its colour (never between assignments). */
 .tl-connector { stroke-width: 2; stroke-opacity: 0.35; stroke-linecap: round; }
-/* S8-07: All subjects is the page ink at low opacity, so it reads as a shadow of the lanes rather than another colour. */
-.tl-totals { fill: var(--tl-foreground); fill-opacity: 0.14; }
+/* S10-02: hairlines between lanes and between child groups. */
+.tl-rule-lane { stroke: var(--tl-grid); stroke-opacity: 0.7; stroke-width: 1; }
+.tl-rule-group { stroke: var(--tl-grid); stroke-width: 1; }
 .tl-event { fill: var(--tl-muted-foreground); fill-opacity: 0.6; }
 .tl-today line { stroke: var(--tl-today); stroke-width: 1.5; stroke-dasharray: 2 3; stroke-linecap: round; }
 .tl-today rect { fill: var(--tl-today); }
@@ -147,7 +148,19 @@
 .tl-badge { position: absolute; left: 0; padding: 0; border: 0; background: none; display: grid; place-items: center; pointer-events: auto; cursor: pointer; border-radius: 999px; }
 .tl-badge[aria-pressed="true"] .subject-badge { box-shadow: inset 0 0 0 2px var(--cs); }
 .tl-badge:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: -2px; }
-.tl-total-icon { position: absolute; left: 0; display: grid; place-items: center; color: var(--tl-muted-foreground); }
 .tl-lane-pop { position: absolute; left: 28px; z-index: var(--z-raised); width: max-content; max-width: calc(100vw - 44px); padding: 4px 10px; border-radius: 999px; background: var(--tl-card); color: var(--tl-foreground);
   box-shadow: 0 0 0 1px var(--tl-border); font-size: 0.8125rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .tl-svg .tl-dim { transition: opacity var(--tl-motion) ease-out; }
+
+/* S10-02: a group of lanes (Together, or one child). Its header row sticks to the top while the group scrolls past
+   (--tl-sticky-top is the room above it, e.g. a sticky axis). Only the header takes the pointer, so a bar under a stuck
+   header can't be tapped through it. */
+.tl-group { position: absolute; left: 0; right: 0; pointer-events: none; }
+.tl-group-head { position: sticky; top: var(--tl-sticky-top, 0px); z-index: var(--z-raised); pointer-events: auto;
+  background: color-mix(in srgb, var(--tl-background) 90%, transparent); }
+.tl-ribbon { position: absolute; left: 0; top: 0; display: block; }
+.tl-ribbon path { fill: var(--tl-foreground); fill-opacity: 0.11; }
+.tl-group-avatar { position: absolute; left: 0; top: 0; bottom: 0; display: grid; place-items: center; }
+.tl-group-avatar > span { display: grid; place-items: center; border-radius: 999px; background: var(--tl-primary-soft); color: var(--tl-primary); font-size: 12px; font-weight: 800; }
+.tl-group-name { position: absolute; top: 50%; transform: translateY(-50%); font-weight: 800; color: var(--tl-foreground); white-space: nowrap;
+  text-shadow: 0 0 2px var(--tl-background), 0 0 2px var(--tl-background), 0 0 3px var(--tl-background); }

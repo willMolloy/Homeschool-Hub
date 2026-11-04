@@ -14,7 +14,7 @@
 import { weekdayOf } from "@hh/engine";
 import type { BuiltInZoomOverrides, CustomZoomView } from "../../api/types";
 import { PX_PER_THICKNESS, softCapPx } from "../plan/scale";
-import type { ChildStep, TimelineAssignment, TimelineModel } from "./model";
+import type { ChildStep, SubjectLane, TimelineAssignment, TimelineModel } from "./model";
 import { estimateTextWidth, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
@@ -30,14 +30,6 @@ import { resolveDetail, spanWeeks, zoomRange, type Detail, type DrawnDetail, typ
  * phones, with nothing beside it).
  */
 export const SIDE_PAD_PX = 4;
-/** S8-07: the narrow left gutter that holds one round subject badge per lane (the subject's icon), so lanes need no name rows. */
-export const GUTTER_PX = 24;
-/** S8-07: a badge's diameter. */
-export const BADGE_PX = 20;
-/** S8b-02: a lane is never shorter than this, so its badge's tap area (the whole lane slice of the gutter) is at least this tall without overlapping a neighbour. */
-export const BADGE_HIT_PX = 32;
-/** The label line above each child's rows (12 px text). */
-export const LABEL_ROW_PX = 16;
 /** Month ticks along the top. */
 export const AXIS_HEIGHT_PX = 20;
 /** A month label is shown only when its slot is at least this wide. T-05c: on phones, labels also keep this far apart. */
@@ -55,15 +47,31 @@ export const PHONE_WIDTH_PX = 640;
 /** One strip row per recurring event, above the lanes. */
 export const EVENT_ROW_PX = 6;
 export const EVENT_ROW_GAP_PX = 2;
-/** The one uniform gap between rows (agreed: spacing = each row's thickest point + the same small gap). S6b-10: 2 px (was 4), so bars sit close but never touch. */
+/** The gap under the event strips. (S10-02: lanes now use the pitch in TimelineMetrics.) */
 export const LANE_GAP_PX = 2;
-/** The extra gap before each subject. S6b-10: 4 px (was 8). */
-export const SUBJECT_GAP_PX = 4;
 /** Any band with thickness is drawn at least this thick (agreed 2 px floor); an empty row is this tall too. */
 export const MIN_BAND_PX = 2;
-/** The total-load strip's fixed height; its own scale fits the year's busiest day. */
-export const TOTALS_HEIGHT_PX = 32;
-export const BOTTOM_PAD_PX = 4;
+export const BOTTOM_PAD_PX = 8;
+
+/**
+ * S10-02: the Year view's measurements, from the mockup (docs/design/year-polish-notes.md). Phones (under
+ * PHONE_WIDTH_PX) and wider screens differ slightly. `barMax` is the tallest bar (S10-04 tunes the heights);
+ * `ribbonMax` the tallest load ribbon in a child's header row.
+ */
+export interface TimelineMetrics {
+  gutter: number; badge: number; header: number; pitch: number; sub: number; groupGap: number; pad: number;
+  barMax: number; ribbonMax: number; font: number;
+}
+export const PHONE_METRICS: TimelineMetrics = { gutter: 36, badge: 24, header: 34, pitch: 36, sub: 28, groupGap: 10, pad: 8, barMax: 28, ribbonMax: 12, font: 12 };
+export const DESKTOP_METRICS: TimelineMetrics = { gutter: 40, badge: 26, header: 36, pitch: 40, sub: 30, groupGap: 12, pad: 10, barMax: 32, ribbonMax: 14, font: 13 };
+export const metricsFor = (width: number): TimelineMetrics => (width < PHONE_WIDTH_PX ? PHONE_METRICS : DESKTOP_METRICS);
+/** S10-02: a lane's extra rows are a touch thinner, so its first row leads (mockup: 0.8). */
+export const SUB_ROW_SCALE = 0.8;
+/** S10-02 (Will, 2026-11-01): work shared by two or more children is drawn once, in this group at the top. */
+export const TOGETHER_KEY = "together";
+export const TOGETHER_LABEL = "Together";
+/** S10-02: a Together bar names at most this many children by initial, then "+N". */
+export const TOGETHER_MAX_INITIALS = 4;
 
 export interface LayoutOptions {
   zoom: Zoom;
@@ -95,6 +103,8 @@ export interface LaneRow {
   subjectName: string;
   childId: string;
   childName: string;
+  /** S10-02: the group the row is in (a child's id, or TOGETHER_KEY). */
+  groupKey: string;
   paletteSlot: number;
   step: ChildStep;
   y: number;
@@ -111,8 +121,11 @@ export interface LaneBadge {
   subjectId: string;
   subjectName: string;
   childName: string;
-  /** What the badge says when tapped and its accessible name: the subject, with the child when the family has more than one. */
+  groupKey: string;
+  /** What the badge says when tapped: the subject's name. */
   text: string;
+  /** Its accessible name: the subject, with the group (child or Together) when the family has more than one child. */
+  label: string;
   paletteSlot: number;
   step: ChildStep;
   /** Centre of the badge. */
@@ -160,6 +173,23 @@ export interface BarName {
   /** T-11d: written in the label lane above the row, in page text, because the piece is too thin to hold it. */
   outside: boolean;
 }
+
+/** S10-02: a group of lanes: Together, or one child. Its header row holds the initial and the load ribbon. */
+export interface LaneGroup {
+  key: string;
+  kind: "together" | "child";
+  childId: string | null;
+  name: string;
+  /** The child's initial for the gutter ("" for Together). */
+  initial: string;
+  top: number;
+  bottom: number;
+  /** The header row; `ribbon` is a path in the header's own coordinates (y from 0 to height), x as the plot. */
+  header: { y: number; height: number; cy: number; ribbon: string };
+}
+
+/** S10-02: hairlines between lanes (from the gutter's edge) and between groups (full width). */
+export interface Rule { kind: "lane" | "group"; x0: number; y: number }
 
 export interface BreakRect {
   breakId: string;
@@ -211,8 +241,11 @@ export interface TimelineLayout {
   todayX: number | null;
   /** Where the Today line starts: just under the axis (S8-07: lanes have no name rows any more). */
   todayTop: number;
-  /** The total-load strip, pinned above the lanes (its chart icon sits in the gutter, S8-07). */
-  totals: { y: number; height: number; cy: number; d: string };
+  /** S10-02: the measurements used (phone or desktop). */
+  metrics: TimelineMetrics;
+  /** S10-02: Together first (All children only), then each child, in order. */
+  groups: LaneGroup[];
+  rules: Rule[];
   /** Top and bottom of the lane area (breaks span it). */
   lanesTop: number;
   lanesBottom: number;
@@ -221,13 +254,50 @@ export interface TimelineLayout {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const WEEKDAY_OF_START = { mon: 1, sun: 0 } as const;
 
+/** S10-02: a name's initial, upper-case ("" for a blank name). */
+export const initialOf = (name: string): string => (name.trim()[0] ?? "").toUpperCase();
+
+/** S10-02: the initials a Together bar carries: up to TOGETHER_MAX_INITIALS, then "+N". */
+export function togetherInitials(initials: readonly string[]): string {
+  const shown = initials.slice(0, TOGETHER_MAX_INITIALS).join(" ");
+  return initials.length > TOGETHER_MAX_INITIALS ? `${shown} +${initials.length - TOGETHER_MAX_INITIALS}` : shown;
+}
+
+/** S10-02: the assignments that two or more children share (each child has its own plan for them). */
+export function sharedAssignmentIds(model: Pick<TimelineModel, "lanes">): Set<string> {
+  const seen = new Map<string, Set<string>>();
+  for (const l of model.lanes) for (const c of l.children) for (const a of c.assignments) {
+    const kids = seen.get(a.assignmentId) ?? new Set<string>();
+    kids.add(c.childId);
+    seen.set(a.assignmentId, kids);
+  }
+  return new Set([...seen].filter(([, kids]) => kids.size > 1).map(([id]) => id));
+}
+
 /**
- * T-05b: px per point for the "All subjects" bar, so the family's heaviest point (daily or weekly) is
- * TOTALS_HEIGHT_PX thick. 0 when nothing is planned.
+ * S10-02: a subject's shared assignments, one each, for the Together group. The bar is titled with the children's
+ * initials ("History spine · F M"); its thickness is the largest of the children's plans on each day, so it covers
+ * every child's days (they differ only where one child has a day off).
  */
-export function totalsPxPerPoint(totals: { daily: readonly number[]; weekly: readonly number[] }, maxPx = TOTALS_HEIGHT_PX): number {
-  const peak = Math.max(0, ...totals.daily, ...totals.weekly);
-  return peak > 0 ? maxPx / peak : 0;
+export function togetherAssignments(lane: SubjectLane, sharedIds: ReadonlySet<string>, initials: ReadonlyMap<string, string>): TimelineAssignment[] {
+  const byId = new Map<string, TimelineAssignment[]>();
+  for (const c of lane.children) for (const a of c.assignments) {
+    if (sharedIds.has(a.assignmentId)) byId.set(a.assignmentId, [...(byId.get(a.assignmentId) ?? []), a]);
+  }
+  const maxOf = (series: readonly (readonly number[])[]) => series[0]!.map((_, i) => Math.max(...series.map((s) => s[i] ?? 0)));
+  return [...byId.values()].map((copies) => {
+    const a = copies[0]!;
+    const daily = maxOf(copies.map((c) => c.daily));
+    const firsts = copies.map((c) => c.first).filter((f) => f >= 0);
+    return {
+      ...a,
+      title: `${a.title} · ${togetherInitials(copies.map((c) => initials.get(c.childId) ?? initialOf("")).filter(Boolean))}`,
+      daily,
+      weekly: maxOf(copies.map((c) => c.weekly)),
+      first: firsts.length ? Math.min(...firsts) : -1,
+      last: Math.max(...copies.map((c) => c.last)),
+    };
+  }).sort((a, b) => (a.first < 0 ? Infinity : a.first) - (b.first < 0 ? Infinity : b.first) || a.title.localeCompare(b.title));
 }
 
 /**
@@ -247,11 +317,11 @@ function rowHeight(assignments: readonly TimelineAssignment[], pxPerPoint: numbe
 }
 
 /** A band's columns over the shown range, centred on cy (null where it is zero). */
-function bandColumns(series: readonly number[], xs: XScale, cy: number, pxPerPoint: number): (BandColumn | null)[] {
+function bandColumns(series: readonly number[], xs: XScale, cy: number, pxPerPoint: number, maxPx = Infinity): (BandColumn | null)[] {
   const out: (BandColumn | null)[] = [];
   for (let i = xs.first; i <= xs.last; i++) {
     if (!xs.isColumn(i)) continue;
-    const h = bandHeight(series[i] ?? 0, pxPerPoint);
+    const h = Math.min(maxPx, bandHeight(series[i] ?? 0, pxPerPoint));
     out.push(h > 0 ? { x0: xs.start(i), x1: xs.end(i), top: cy - h / 2, bottom: cy + h / 2 } : null);
   }
   return out;
@@ -303,8 +373,10 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   const weeks = spanWeeks(model, range);
   const detail = resolveDetail(weeks, options.detail, options.previousDetail);
   const width = Math.max(0, options.width);
-  const plotX = Math.min(GUTTER_PX + SIDE_PAD_PX, width / 2);
-  const plotWidth = Math.max(0, width - plotX - SIDE_PAD_PX);
+  // S10-02 (mockup): the plot starts just past the badge gutter and ends a small pad short of the edge.
+  const m = metricsFor(width);
+  const plotX = Math.min(m.gutter + SIDE_PAD_PX, width / 2);
+  const plotWidth = Math.max(0, width - plotX - m.pad);
   const [first, last] = range ?? [0, -1];
   const xs = makeXScale(model, first, last, plotX, plotWidth);
   const shown = (i: number) => i >= first && i <= last;
@@ -357,7 +429,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
 
   // T-05c: which series and outline a band uses at this detail.
   const schoolColumns = model.dates.map((_, i) => i).filter((i) => model.schoolDay[i]);
-  // T-08b: zoomed out, an assignment is its clean shape (no lumps); All subjects smooths the sum of those shapes.
+  // T-08b: zoomed out, an assignment is its clean shape (no lumps); S10-02: the ribbons smooth the sum of those shapes.
   // S7-21: that shape is now a four-week moving average (`calmSeries`) with the slope limited in `smoothColumns`.
   const clean = new Map<TimelineAssignment, number[]>();
   const cleanOf = (a: TimelineAssignment) => {
@@ -366,101 +438,135 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     return c;
   };
   const seriesFor = (a: TimelineAssignment) => (detail === "smooth" ? cleanOf(a) : detail === "weekly" ? a.weekly : a.daily);
-  const totalsSeries = () =>
-    detail === "smooth"
-      ? calmSeries(sumSeries(model.lanes.flatMap((l) => l.children.flatMap((c) => c.assignments.map(cleanOf))), model.dates.length), schoolColumns)
-      : detail === "weekly" ? model.totals.weekly : model.totals.daily;
   const columnsFor = (series: readonly number[], cy: number, scale: number, maxPx: number) =>
-    detail === "smooth" ? smoothColumns(series, xs, cy, scale, maxPx) : bandColumns(series, xs, cy, scale);
+    detail === "smooth" ? smoothColumns(series, xs, cy, scale, maxPx) : bandColumns(series, xs, cy, scale, maxPx);
   const pathFor = detail === "smooth" ? smoothBandPath : bandPath;
 
-  // T-05b: the "All subjects" bar, pinned above the lanes on its own label row and centerline. Its thickness is
-  // the sum of every lane, normalised so the family's heaviest point (at any zoom) is TOTALS_HEIGHT_PX.
-  const totalsY = eventsBottom;
-  const totalsScale = totalsPxPerPoint(model.totals);
-  const totalsCy = totalsY + TOTALS_HEIGHT_PX / 2;
-  const totals = {
-    y: totalsY,
-    height: TOTALS_HEIGHT_PX,
-    cy: totalsCy,
-    d: totalsScale > 0 ? pathFor(columnsFor(totalsSeries(), totalsCy, totalsScale, TOTALS_HEIGHT_PX)) : "",
-  };
-  const lanesTop = totalsY + TOTALS_HEIGHT_PX + SUBJECT_GAP_PX;
-
-  // Labels, rows and their bands. A child's name is only needed when there is more than one child.
-  const manyChildren = new Set(model.lanes.flatMap((l) => l.children.map((c) => c.childId))).size > 1;
-  const rows: LaneRow[] = [];
-  const badges: LaneBadge[] = [];
-  const bands: LaneBand[] = [];
-  const names: BarName[] = [];
+  // S10-02: lanes grouped by child. Under All children, work shared by two or more children is drawn once, in a
+  // Together group at the top; each child's group holds that child's own work, one lane per subject. Every group
+  // starts with a header row: the child's initial in the gutter and their load ribbon (shared work included).
+  const groupsTop = eventsBottom;
   const measure = options.measureText ?? estimateTextWidth;
-  const childSpans = new Map<string, { childId: string; top: number; bottom: number }>();
-  let y = lanesTop;
-  // T-07f: This month leaves out rows, lanes and subjects with nothing in the month. Rows are packed from every
-  // assignment first, so a bar keeps its row across zooms.
   const inMonth = (a: TimelineAssignment) => {
     const span = drawnExtent(a);
     return span !== null && span[0] <= last && span[1] >= first;
   };
+  // T-07f: This month leaves out rows, lanes and groups with nothing in the month. Rows are packed from every
+  // assignment first, so a bar keeps its row across zooms.
   const rowsOf = (assignments: readonly TimelineAssignment[]) =>
-    options.zoom === "month" ? packRows(assignments).map((m) => m.filter(inMonth)).filter((m) => m.length > 0) : packRows(assignments);
-  const shownLanes = model.lanes
-    .map((subject) => ({ subject, children: subject.children.map((child) => ({ child, packed: rowsOf(child.assignments) })).filter((c) => c.packed.length > 0) }))
-    .filter((l) => l.children.length > 0);
-  shownLanes.forEach(({ subject, children }, s) => {
-    if (s > 0) y += SUBJECT_GAP_PX;
-    children.forEach(({ child, packed }, c) => {
-      if (c > 0) y += LANE_GAP_PX;
-      const text = manyChildren ? `${subject.name} · ${child.childName}` : subject.name;
-      // Each row's height and the room its outside names need, worked out first so a lane shorter than its badge can be centred.
-      const measured = packed.map((members) => {
-        const height = rowHeight(members, pxPerPoint);
-        // T-11d/T-11e: a name outside a thin bar sits just above it; the row gets only the extra space that needs.
-        const piecesAt = (a: TimelineAssignment, at: number) => piecesOf(insetEnds(columnsFor(seriesFor(a), at, pxPerPoint, height)));
-        const above = members.flatMap((a) => placePieceNames(a.title, piecesAt(a, height / 2), height / 2, detail === "smooth", measure, true))
-          .filter((n) => n.outside).map((n) => -n.y);
-        return { members, height, labelLane: Math.max(0, Math.ceil(Math.max(0, ...above))) };
-      });
-      const content = measured.reduce((n, m, r) => n + m.labelLane + m.height + (r > 0 ? LANE_GAP_PX : 0), 0);
-      const pad = Math.max(0, (BADGE_HIT_PX - content) / 2);
+    options.zoom === "month" ? packRows(assignments).map((r) => r.filter(inMonth)).filter((r) => r.length > 0) : packRows(assignments);
+  const children = model.children ?? [...new Map(model.lanes.flatMap((l) => l.children.map((c) => [c.childId, { childId: c.childId, name: c.childName }] as const))).values()];
+  const sharedIds = children.length > 1 ? sharedAssignmentIds(model) : new Set<string>();
+  const initials = new Map(children.map((c) => [c.childId, initialOf(c.name)]));
+
+  type LaneSource = { subjectId: string; subjectName: string; paletteSlot: number; laneKey: string; assignments: TimelineAssignment[] };
+  type GroupSource = { key: string; kind: "together" | "child"; childId: string | null; name: string; lanes: LaneSource[]; ribbon: number[] | null };
+  const sources: GroupSource[] = [];
+  if (sharedIds.size > 0) {
+    sources.push({
+      key: TOGETHER_KEY, kind: "together", childId: null, name: TOGETHER_LABEL, ribbon: null,
+      lanes: model.lanes.map((l) => ({
+        subjectId: l.subjectId, subjectName: l.name, paletteSlot: l.paletteSlot, laneKey: `${l.subjectId}:${TOGETHER_KEY}`,
+        assignments: togetherAssignments(l, sharedIds, initials),
+      })),
+    });
+  }
+  for (const c of children) {
+    sources.push({
+      key: c.childId, kind: "child", childId: c.childId, name: c.name, ribbon: null,
+      lanes: model.lanes.flatMap((l) => l.children.filter((cl) => cl.childId === c.childId).map((cl) => ({
+        subjectId: l.subjectId, subjectName: l.name, paletteSlot: l.paletteSlot, laneKey: cl.key,
+        assignments: cl.assignments.filter((a) => !sharedIds.has(a.assignmentId)),
+      }))),
+    });
+  }
+
+  // The ribbons: each child's whole load (shared work included), all on one scale, so the busiest child's
+  // heaviest point is the tallest ribbon in this view.
+  const ribbonSeries = new Map<string, number[]>();
+  for (const c of children) {
+    const own = model.lanes.flatMap((l) => l.children.filter((cl) => cl.childId === c.childId).flatMap((cl) => cl.assignments));
+    ribbonSeries.set(c.childId, detail === "smooth"
+      ? calmSeries(sumSeries(own.map(cleanOf), model.dates.length), schoolColumns)
+      : sumSeries(own.map((a) => (detail === "weekly" ? a.weekly : a.daily)), model.dates.length));
+  }
+  const ribbonPeak = Math.max(0, ...[...ribbonSeries.values()].flatMap((series) => series.slice(first, last + 1)));
+  const ribbonScale = ribbonPeak > 0 ? m.ribbonMax / ribbonPeak : 0;
+
+  const rows: LaneRow[] = [];
+  const badges: LaneBadge[] = [];
+  const bands: LaneBand[] = [];
+  const names: BarName[] = [];
+  const groups: LaneGroup[] = [];
+  const rules: Rule[] = [];
+  const barHeight = (members: readonly TimelineAssignment[], scale: number) => Math.min(rowHeight(members, pxPerPoint), m.barMax * scale);
+  let y = groupsTop;
+  for (const g of sources) {
+    const lanes = g.lanes.map((l) => ({ ...l, packed: rowsOf(l.assignments).filter((r) => r.length > 0) })).filter((l) => l.packed.length > 0);
+    const ribbon = g.childId === null ? null : ribbonSeries.get(g.childId) ?? null;
+    const hasRibbon = ribbon !== null && ribbon.slice(first, last + 1).some((v) => v > 0);
+    if (lanes.length === 0 && !hasRibbon) continue;
+    if (groups.length > 0) {
+      y += m.groupGap;
+      rules.push({ kind: "group", x0: 0, y: y - m.groupGap / 2 });
+    }
+    const top = y;
+    const headerCy = m.header / 2;
+    const ribbonD = ribbon && ribbonScale > 0 ? pathFor(columnsFor(ribbon, headerCy, ribbonScale, m.ribbonMax)) : "";
+    y += m.header;
+    const groupBadges: LaneBadge[] = [];
+    for (const lane of lanes) {
+      rules.push({ kind: "lane", x0: m.gutter, y });
       const laneTop = y;
-      y += pad;
-      measured.forEach(({ members, height, labelLane }, r) => {
-        if (r > 0) y += LANE_GAP_PX;
-        y += labelLane;
-        const cy = y + height / 2;
-        const key = `${child.key}#${r}`;
+      lane.packed.forEach((members, r) => {
+        // S10-02 (mockup): the first row is centred in the lane's pitch; overlapping work stacks below in thinner sub-rows.
+        const scale = r === 0 ? 1 : SUB_ROW_SCALE;
+        const cy = r === 0 ? laneTop + m.pitch / 2 : laneTop + m.pitch + (r - 0.5) * m.sub;
+        const height = barHeight(members, scale);
+        const key = `${lane.laneKey}#${r}`;
+        // The room above the bar inside its own row: the only place an outside name may go (S10-04b reworks names).
+        const slotTop = r === 0 ? laneTop : laneTop + m.pitch + (r - 1) * m.sub;
         rows.push({
-          key, laneKey: child.key, row: r, subjectId: subject.subjectId, subjectName: subject.name, childId: child.childId,
-          childName: child.childName, paletteSlot: subject.paletteSlot, step: child.step, y, height, cy,
-          labelLane,
+          key, laneKey: lane.laneKey, row: r, subjectId: lane.subjectId, subjectName: lane.subjectName, childId: g.childId ?? "",
+          childName: g.name, groupKey: g.key, paletteSlot: lane.paletteSlot, step: "base", y: cy - height / 2, height, cy, labelLane: 0,
         });
+        const row = rows[rows.length - 1]!;
         for (const a of members) {
           // T-11: the outer ends pulled in, so neighbouring assignments never touch.
           const columns = insetEnds(columnsFor(seriesFor(a), cy, pxPerPoint, height));
           const pieces = piecesOf(columns);
           bands.push({
-            rowKey: key, laneKey: child.key, assignmentId: a.assignmentId, childId: a.childId, title: a.title,
-            paletteSlot: subject.paletteSlot, step: child.step, d: pathFor(columns), runs: runsOf(columns), cy,
+            rowKey: key, laneKey: lane.laneKey, assignmentId: a.assignmentId, childId: a.childId, title: a.title,
+            paletteSlot: lane.paletteSlot, step: "base", d: pathFor(columns), runs: runsOf(columns), cy,
             connectors: connectorsOf(pieces),
           });
           for (const name of placePieceNames(a.title, pieces, cy, detail === "smooth", measure, true)) {
-            names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: subject.paletteSlot, step: child.step, ...name });
+            if (name.outside && name.y < slotTop - 0.01) continue;
+            // labelLane: how far the row's highest outside name reaches above its bar (no extra space is added).
+            if (name.outside) row.labelLane = Math.max(row.labelLane, row.y - name.y);
+            names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: lane.paletteSlot, step: "base", ...name });
           }
         }
-        y += height;
       });
-      y += pad;
-      badges.push({
-        laneKey: child.key, subjectId: subject.subjectId, subjectName: subject.name, childName: child.childName, text, paletteSlot: subject.paletteSlot,
-        step: child.step, cx: GUTTER_PX / 2, cy: (laneTop + y) / 2, top: laneTop, bottom: y,
+      y = laneTop + m.pitch + (lane.packed.length - 1) * m.sub;
+      // S10-02: the badge is pinned to the centre of the lane's first row, however many rows the lane has.
+      groupBadges.push({
+        laneKey: lane.laneKey, subjectId: lane.subjectId, subjectName: lane.subjectName, childName: g.name, groupKey: g.key,
+        text: lane.subjectName, label: children.length > 1 ? `${lane.subjectName} · ${g.name}` : lane.subjectName,
+        paletteSlot: lane.paletteSlot, step: "base", cx: m.gutter / 2, cy: laneTop + m.pitch / 2, top: laneTop, bottom: y,
       });
-      childSpans.set(child.key, { childId: child.childId, top: laneTop, bottom: y });
+    }
+    badges.push(...groupBadges);
+    groups.push({
+      key: g.key, kind: g.kind, childId: g.childId, name: g.name, initial: g.kind === "together" ? "" : initialOf(g.name),
+      top, bottom: y, header: { y: top, height: m.header, cy: top + headerCy, ribbon: ribbonD },
     });
-  });
-  const lanesBottom = y;
+  }
+  const lanesTop = groupsTop;
+  // S6b-09: with nothing planned there is still a strip, so the calendar's days off and today show.
+  const lanesBottom = groups.length === 0 ? y + m.pitch : y;
 
-  // Breaks: family-wide ones span every lane and the totals; per-child ones only that child's rows.
+  // Breaks: family-wide ones span every group; per-child ones only that child's group (its header included).
   const breaks: BreakRect[] = [];
   for (const b of model.breaks) {
     const from = Math.max(b.first, first);
@@ -469,11 +575,11 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     const x = xs.start(from);
     const w = xs.end(to) - x;
     if (w <= 0) continue;
-    if (b.childIds.length === 0) {
-      breaks.push({ breakId: b.id, label: b.label, x, y: totalsY, width: w, height: Math.max(lanesBottom, totalsY + TOTALS_HEIGHT_PX) - totalsY });
+    if (b.childIds.length === 0 || groups.length === 0) {
+      breaks.push({ breakId: b.id, label: b.label, x, y: lanesTop, width: w, height: lanesBottom - lanesTop });
     } else {
-      for (const span of childSpans.values()) {
-        if (b.childIds.includes(span.childId)) breaks.push({ breakId: b.id, label: b.label, x, y: span.top, width: w, height: span.bottom - span.top });
+      for (const g of groups) {
+        if (g.childId !== null && b.childIds.includes(g.childId)) breaks.push({ breakId: b.id, label: b.label, x, y: g.top, width: w, height: g.bottom - g.top });
       }
     }
   }
@@ -486,7 +592,8 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     detail,
     spanWeeks: weeks,
     width,
-    height: Math.max(lanesBottom, totalsY + TOTALS_HEIGHT_PX) + BOTTOM_PAD_PX,
+    height: lanesBottom + BOTTOM_PAD_PX,
+    metrics: m,
     pxPerPoint,
     plot: { x: plotX, width: plotWidth, columnWidth: xs.columnWidth, columns: xs.columns, first, last },
     rows,
@@ -498,7 +605,8 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     ticks,
     todayX,
     todayTop: AXIS_HEIGHT_PX - 4,
-    totals,
+    groups,
+    rules,
     lanesTop,
     lanesBottom,
   };

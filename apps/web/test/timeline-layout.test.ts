@@ -4,7 +4,7 @@ import { MAX_BAR_PX, PX_PER_THICKNESS, SOFT_CAP_KNEE_PX, softCapPx, thicknessToP
 import { buildDayGrid } from "../src/features/timeline/grid";
 import { MIN_TAP_PX, hitTest, tapBox } from "../src/features/timeline/hit";
 import {
-  AXIS_HEIGHT_PX, DAY_LABEL_CLEAR_PX, SMOOTH_DEADBAND_PX, smoothColumns, BADGE_HIT_PX, GUTTER_PX, LANE_GAP_PX, MONTH_LABEL_CLEAR_PX, MIN_BAND_PX, SIDE_PAD_PX, SUBJECT_GAP_PX, bandHeight, layoutTimeline, type TimelineLayout,
+  AXIS_HEIGHT_PX, DAY_LABEL_CLEAR_PX, SMOOTH_DEADBAND_PX, smoothColumns, DESKTOP_METRICS, MONTH_LABEL_CLEAR_PX, MIN_BAND_PX, PHONE_METRICS, SIDE_PAD_PX, SUB_ROW_SCALE, bandHeight, metricsFor, layoutTimeline, type TimelineLayout,
 } from "../src/features/timeline/layout";
 import { buildTimelineModel, type TimelineAssignment, type TimelineModel } from "../src/features/timeline/model";
 import { drawnExtent, packRows } from "../src/features/timeline/rows";
@@ -31,6 +31,7 @@ function synth(specs: ReadonlyArray<readonly [id: string, first: number, last: n
   const kids = SAMPLE_CHILDREN.slice(0, children);
   return {
     ...grid, weekStart: "mon", today: "2026-09-08", todayIndex: 1, breaks: [], events: [],
+    children: kids.map((k) => ({ childId: k.id, name: k.name })),
     lanes: [{
       subjectId: "math", name: "Math", paletteSlot: 2,
       children: kids.map((k, c) => ({
@@ -86,9 +87,9 @@ describe("no-overlap rows", () => {
 
   it("splits the sample family's overlapping assignments into rows (more rows than sub-lanes)", () => {
     const l = layoutTimeline(sample, { zoom: "year", width: 1280 });
-    const subLanes = sample.lanes.flatMap((s) => s.children).length;
-    expect(l.rows.length).toBeGreaterThan(subLanes);
-    expect(new Set(l.rows.map((r) => r.laneKey)).size).toBe(subLanes);
+    // S10-02: one lane per badge (each child's own work, plus Together).
+    expect(l.rows.length).toBeGreaterThan(l.badges.length);
+    expect(new Set(l.rows.map((r) => r.laneKey)).size).toBe(l.badges.length);
   });
 });
 
@@ -96,10 +97,14 @@ describe("rows, centerlines and spacing", () => {
   const m = synth([["thin", 0, 9, 1], ["thick", 5, 14, 10], ["tiny", 20, 25, 0.1]]);
   const l = layoutTimeline(m, { zoom: "year", width: 1280 });
 
-  it("each row is as tall as its own thickest point, rows are one uniform gap apart", () => {
+  it("S10-02: each row is as tall as its thickest point (up to the bar cap); the first row is centred in the lane's pitch and sub-rows follow at a fixed step", () => {
     const rows = rowsOf(l, "math:frank");
-    expect(rows.map((r) => r.height)).toEqual([1 * PX_PER_THICKNESS, 10 * PX_PER_THICKNESS]);
-    expect(rows[1]!.y - (rows[0]!.y + rows[0]!.height)).toBe(LANE_GAP_PX);
+    const d = DESKTOP_METRICS;
+    // Until S10-04 retunes heights, a bar is capped at barMax (sub-rows at 0.8 of it).
+    expect(rows.map((r) => r.height)).toEqual([1 * PX_PER_THICKNESS, Math.min(10 * PX_PER_THICKNESS, d.barMax * SUB_ROW_SCALE)]);
+    const laneTop = l.groups[0]!.top + d.header;
+    expect(rows[0]!.cy).toBe(laneTop + d.pitch / 2);
+    expect(rows[1]!.cy).toBe(laneTop + d.pitch + 0.5 * d.sub);
     // "tiny" starts after "thin" ends, so it shares row 0 and is drawn at the 2 px floor.
     expect(l.bands.find((b) => b.assignmentId === "tiny")!.rowKey).toBe("math:frank#0");
     expect(bandHeight(0.1, PX_PER_THICKNESS)).toBe(MIN_BAND_PX);
@@ -113,12 +118,9 @@ describe("rows, centerlines and spacing", () => {
   });
 
   // T-05c: event strips only show with daily detail, so the lanes start lower there; below lanesTop nothing moves.
-  it.each(WIDTHS)("centerlines don't move between zooms or detail at %i px (relative to the lanes' top, less label lanes)", (width) => {
-    // T-11d: only a row's label lane (for a name outside a thin bar) moves the rows below it.
-    const rel = (o: ReturnType<typeof layoutTimeline>) => {
-      let lanes = 0;
-      return o.rows.map((r) => r.cy - o.lanesTop - (lanes += r.labelLane));
-    };
+  it.each(WIDTHS)("centerlines don't move between zooms or detail at %i px (relative to the lanes' top)", (width) => {
+    // S10-02: rows sit at a fixed pitch, so an outside name no longer moves the rows below it.
+    const rel = (o: ReturnType<typeof layoutTimeline>) => o.rows.map((r) => r.cy - o.lanesTop);
     const base = rel(layoutTimeline(sample, { zoom: "year", width }));
     for (const zoom of ZOOMS) for (const detail of ["daily", "weekly", "smooth"] as const) {
       const got = rel(layoutTimeline(sample, { zoom, width, detail }));
@@ -138,28 +140,35 @@ describe("rows, centerlines and spacing", () => {
     const out = layoutTimeline(withBreak, { zoom: "year", width: 1280 });
     const rows = rowsOf(out, "math:frank");
     expect(out.breaks).toHaveLength(1);
-    expect(out.breaks[0]!.y).toBe(rows[0]!.y - rows[0]!.labelLane);
-    expect(out.breaks[0]!.y + out.breaks[0]!.height).toBe(rows.at(-1)!.y + rows.at(-1)!.height);
+    // S10-02: the child's whole group, header row included.
+    const g = out.groups.find((x) => x.key === "frank")!;
+    expect(out.breaks[0]!.y).toBe(g.top);
+    expect(out.breaks[0]!.y + out.breaks[0]!.height).toBe(g.bottom);
+    expect(g.top).toBeLessThanOrEqual(rows[0]!.y - rows[0]!.labelLane);
+    expect(g.bottom).toBeGreaterThanOrEqual(rows.at(-1)!.y + rows.at(-1)!.height);
   });
 });
 
 describe("horizontal room", () => {
   it.each(WIDTHS)("at %i px the plot spans the width less the narrow badge gutter and a small side padding (no name column)", (width) => {
     const l = layoutTimeline(sample, { zoom: "year", width });
-    expect(GUTTER_PX).toBe(24);
-    expect(l.plot.x).toBe(GUTTER_PX + SIDE_PAD_PX);
-    expect(l.plot.width).toBe(width - GUTTER_PX - 2 * SIDE_PAD_PX);
+    const m = metricsFor(width);
+    expect(m).toBe(width < 640 ? PHONE_METRICS : DESKTOP_METRICS);
+    expect(l.metrics).toBe(m);
+    expect(l.plot.x).toBe(m.gutter + SIDE_PAD_PX);
+    expect(l.plot.width).toBe(width - m.gutter - SIDE_PAD_PX - m.pad);
     expect(l.plot.width / width).toBeGreaterThan(0.85);
     expect("labelWidth" in l).toBe(false);
   });
 
-  it("S8-07: one round badge per lane sits in the gutter, centred on its lane, and no lane is shorter than its 32 px tap area", () => {
+  it("S10-02: one round badge per lane sits in the gutter, at the centre of the lane's first row, and no lane is shorter than its pitch", () => {
     const l = layoutTimeline(sample, { zoom: "year", width: 360 });
-    expect(l.badges).toHaveLength(sample.lanes.flatMap((s) => s.children).length);
+    const m = PHONE_METRICS;
     for (const b of l.badges) {
-      expect(b.cx).toBe(GUTTER_PX / 2);
-      expect(b.bottom - b.top).toBeGreaterThanOrEqual(BADGE_HIT_PX); // S8b-02: room for a 32 px tap area
-      expect(b.cy).toBeCloseTo((b.top + b.bottom) / 2, 5);
+      expect(b.cx).toBe(m.gutter / 2);
+      expect(b.bottom - b.top).toBeGreaterThanOrEqual(m.pitch); // S8b-02: room for a 32 px tap area
+      expect(b.cy).toBeCloseTo(b.top + m.pitch / 2, 5);
+      expect(rowsOf(l, b.laneKey)[0]!.cy).toBeCloseTo(b.cy, 5);
       const rows = rowsOf(l, b.laneKey);
       expect(rows[0]!.y - rows[0]!.labelLane).toBeGreaterThanOrEqual(b.top);
       expect(rows.at(-1)!.y + rows.at(-1)!.height).toBeLessThanOrEqual(b.bottom);
@@ -167,24 +176,21 @@ describe("horizontal room", () => {
     for (let i = 1; i < l.badges.length; i++) expect(l.badges[i]!.top).toBeGreaterThanOrEqual(l.badges[i - 1]!.bottom);
   });
 
-  it("a badge's text names the subject, and the child only when the family has more than one", () => {
+  it("S10-02: a badge's text is the subject; its accessible name adds the group only when the family has more than one child", () => {
     const two = layoutTimeline(sample, { zoom: "year", width: 360 });
-    expect(two.badges.slice(0, 2).map((x) => x.text)).toEqual(["Literature · Frank", "Literature · Margaret"]);
+    for (const b of two.badges) expect([b.text, b.label]).toEqual([b.subjectName, `${b.subjectName} · ${b.childName}`]);
+    expect(two.badges[0]!.label).toBe("History · Together");
     const one = layoutTimeline(synth([["a", 0, 9, 3]]), { zoom: "year", width: 360 });
-    expect(one.badges.map((x) => x.text)).toEqual(["Math"]);
+    expect(one.badges.map((x) => x.label)).toEqual(["Math"]);
     const both = layoutTimeline(synth([["a", 0, 9, 3]], 2), { zoom: "year", width: 360 });
-    expect(both.badges.map((x) => x.text)).toEqual(["Math · Frank", "Math · Margaret"]);
+    expect(both.badges.map((x) => x.label)).toEqual(["Math · Frank", "Math · Margaret"]);
   });
 
-  it("there are no name rows: lanes sit as close as the bars within them", () => {
+  it("S10-02: there are no name rows: a lane is one pitch tall plus a sub-row step for each extra row", () => {
     const l = layoutTimeline(sample, { zoom: "year", width: 1280 });
+    const m = DESKTOP_METRICS;
     expect("labels" in l).toBe(false);
-    for (const b of l.badges) {
-      const rows = rowsOf(l, b.laneKey);
-      const content = rows.reduce((n, r, i) => n + r.labelLane + r.height + (i > 0 ? LANE_GAP_PX : 0), 0);
-      // The only space above a lane's first row is the centring of a lane shorter than its badge.
-      expect(rows[0]!.y - rows[0]!.labelLane - b.top).toBeCloseTo(Math.max(0, (BADGE_HIT_PX - content) / 2), 5);
-    }
+    for (const b of l.badges) expect(b.bottom - b.top).toBe(m.pitch + (rowsOf(l, b.laneKey).length - 1) * m.sub);
   });
 });
 
@@ -309,7 +315,8 @@ describe("calm bars when zoomed out (S7-21)", () => {
     expect(l.detail).toBe("daily");
     const band = l.bands[0]!;
     const peak = Math.max(...ys(band.d).map((y) => Math.abs(y - band.cy)));
-    expect(peak * 2).toBeCloseTo(bandHeight(20, PX_PER_THICKNESS), 3);
+    // S10-02: capped at the bar maximum until S10-04 retunes heights.
+    expect(peak * 2).toBeCloseTo(Math.min(bandHeight(20, PX_PER_THICKNESS), l.metrics.barMax), 3);
   });
 });
 
@@ -412,9 +419,9 @@ describe("the soft cap on bar height (S6b-06)", () => {
 });
 
 describe("spacing between bars (S6b-10)", () => {
-  it("uses the tighter gaps: 2 px between a child's rows, 4 px before a subject", () => {
-    expect(LANE_GAP_PX).toBe(2);
-    expect(SUBJECT_GAP_PX).toBe(4);
+  it("S10-02: uses the mockup's spacing: lane pitch, sub-row step and group gap", () => {
+    expect([PHONE_METRICS.pitch, PHONE_METRICS.sub, PHONE_METRICS.groupGap]).toEqual([36, 28, 10]);
+    expect([DESKTOP_METRICS.pitch, DESKTOP_METRICS.sub, DESKTOP_METRICS.groupGap]).toEqual([40, 30, 12]);
   });
 
   it.each(WIDTHS)("in the sample family at %i px, every row starts at least 2 px under the one above, at any zoom", (width) => {
@@ -424,8 +431,8 @@ describe("spacing between bars (S6b-10)", () => {
         const prev = l.rows[i - 1]!;
         expect(l.rows[i]!.y).toBeGreaterThanOrEqual(prev.y + prev.height + 2);
       }
-      // The first row clears the All subjects strip.
-      expect(l.rows[0]!.y).toBeGreaterThanOrEqual(l.totals.y + l.totals.height + 2);
+      // S10-02: the first row clears its group's header row.
+      expect(l.rows[0]!.y).toBeGreaterThanOrEqual(l.groups[0]!.top + l.metrics.header);
     }
   });
 
@@ -434,7 +441,7 @@ describe("spacing between bars (S6b-10)", () => {
     const l = layoutTimeline(m, { zoom: "year", width: 360 });
     for (const r of l.rows) expect(r.labelLane).toBeGreaterThanOrEqual(0);
     const rows = rowsOf(l, "math:frank");
-    for (let i = 1; i < rows.length; i++) expect(rows[i]!.y - rows[i]!.labelLane).toBeGreaterThanOrEqual(rows[i - 1]!.y + rows[i - 1]!.height + LANE_GAP_PX);
+    for (let i = 1; i < rows.length; i++) expect(rows[i]!.y - rows[i]!.labelLane).toBeGreaterThanOrEqual(rows[i - 1]!.y + rows[i - 1]!.height + 2);
   });
 });
 

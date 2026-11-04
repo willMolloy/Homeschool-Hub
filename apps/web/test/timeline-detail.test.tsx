@@ -113,9 +113,11 @@ describe("smooth mode", () => {
     expect(Math.max(...y)).toBeLessThanOrEqual(Math.max(...bottoms) + 0.01);
   });
 
-  it("the All subjects bar follows the same rule", () => {
-    expect(layoutTimeline(model, { zoom: "year", width: 390 }).totals.d).toMatch(/C/);
-    expect(layoutTimeline(model, { zoom: "month", width: 390 }).totals.d).not.toMatch(/C/);
+  it("S10-02: the children's load ribbons follow the same rule", () => {
+    const ribbons = (zoom: "year" | "month") => layoutTimeline(model, { zoom, width: 390 }).groups.map((g) => g.header.ribbon).filter(Boolean);
+    expect(ribbons("year").length).toBeGreaterThan(0);
+    for (const d of ribbons("year")) expect(d).toMatch(/C/);
+    for (const d of ribbons("month")) expect(d).not.toMatch(/C/);
   });
 
   it("phones show fewer month labels, never closer than 48 px", () => {

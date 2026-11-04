@@ -4,11 +4,11 @@
  * stays well under 300 nodes. Colours are the `--tl-*` tokens (palette and theme switch without a re-render).
  */
 import { useEffect, useId, useState, type CSSProperties } from "react";
-import { ChartBar } from "@phosphor-icons/react";
+import { UsersThree } from "@phosphor-icons/react";
 import type { Subject } from "../../api/types";
 import { SubjectBadge } from "../subjects/SubjectIcon";
 import { bandExtent } from "./drag";
-import { AXIS_HEIGHT_PX, BADGE_HIT_PX, BADGE_PX, GUTTER_PX, type TimelineLayout } from "./layout";
+import { AXIS_HEIGHT_PX, type TimelineLayout } from "./layout";
 import type { ChildStep } from "./model";
 
 /** Room under the lanes for the Today pill. */
@@ -24,9 +24,6 @@ const STEP_SUFFIX: Record<ChildStep, string> = { base: "", light: "-light", dark
 export const bandFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]})`;
 /** T-06: the AA label colour picked for each swatch (light or dark text, from the tokens). */
 export const nameFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]}-label)`;
-
-/** T-05b: the summed bar pinned above the lanes. S8-07: it has no text label; its chart icon in the gutter says so (title and name). */
-export const TOTALS_LABEL = "All subjects";
 
 export interface TimelineProps {
   layout: TimelineLayout;
@@ -48,7 +45,8 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
   const hatchId = `tl-hatch-${useId().replace(/:/g, "")}`;
   /** T-05c: zoomed out, breaks are a very faint plain tint instead of a hatch. */
   const quiet = layout.detail === "smooth";
-  const bottom = Math.max(layout.lanesBottom, layout.totals.y + layout.totals.height);
+  const bottom = layout.lanesBottom;
+  const m = layout.metrics;
   const height = layout.height + (layout.todayX === null ? 0 : TODAY_PILL_PX);
   // S8-07: tapping a lane's badge names its subject in a small popover and highlights that lane (the other lanes dim).
   const [lane, setLane] = useState<string | null>(null);
@@ -111,8 +109,13 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         ) : null))}
       </g>
 
+      <g className="tl-rules">
+        {layout.rules.map((r) => (
+          <line key={`${r.kind}-${r.y}`} className={r.kind === "group" ? "tl-rule-group" : "tl-rule-lane"} x1={r.x0} x2={layout.width} y1={r.y} y2={r.y} />
+        ))}
+      </g>
+
       <g className="tl-bands">
-        {layout.totals.d ? <path className="tl-totals" d={layout.totals.d} /> : null}
         {layout.bands.flatMap((b) => b.connectors.map((c, k) => (
           <line key={`c-${b.rowKey}-${b.assignmentId}-${k}`} className={`tl-connector${dim(b.assignmentId)}`} x1={c.x0} x2={c.x1} y1={b.cy} y2={b.cy}
             style={{ stroke: bandFill(b.paletteSlot, b.step) }} data-connector-for={b.assignmentId} />
@@ -156,24 +159,33 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
       )}
 
     </svg>
-    {/* S8-07: the gutter. One round badge per lane (the subject's icon, or its letter) and a chart icon for All subjects; no names on the picture. */}
-    <div className="tl-gutter" style={{ width: GUTTER_PX }}>
-      {layout.rows.length > 0 && (
-        <span className="tl-total-icon" title={TOTALS_LABEL} style={{ top: layout.totals.cy - BADGE_PX / 2, width: GUTTER_PX, height: BADGE_PX } as CSSProperties}>
-          <ChartBar size={14} weight="light" aria-hidden="true" />
-        </span>
-      )}
+    {/* S8-07: the gutter. S10-02: one round badge per lane, pinned to the centre of the lane's first row. */}
+    <div className="tl-gutter" style={{ width: m.gutter }}>
       {layout.badges.map((b) => (
-        <button key={b.laneKey} type="button" className="tl-badge" aria-label={b.text} aria-pressed={picked === b.laneKey}
-          style={{ top: b.top, height: Math.max(BADGE_HIT_PX, b.bottom - b.top), width: GUTTER_PX } as CSSProperties}
+        <button key={b.laneKey} type="button" className="tl-badge" aria-label={b.label} aria-pressed={picked === b.laneKey}
+          style={{ top: b.cy - m.pitch / 2, height: m.pitch, width: m.gutter } as CSSProperties}
           onClick={() => setLane(picked === b.laneKey ? null : b.laneKey)}>
-          <SubjectBadge subject={subjects.find((s) => s.id === b.subjectId) ?? { name: b.subjectName, icon: null }} slot={b.paletteSlot} size={BADGE_PX} />
+          <SubjectBadge subject={subjects.find((s) => s.id === b.subjectId) ?? { name: b.subjectName, icon: null }} slot={b.paletteSlot} size={m.badge} />
         </button>
       ))}
       {layout.badges.filter((b) => b.laneKey === picked).map((b) => (
-        <div key={b.laneKey} className="tl-lane-pop" role="status" style={{ top: b.cy - 14 }}>{b.text}</div>
+        <div key={b.laneKey} className="tl-lane-pop" role="status" style={{ top: b.cy - 14, left: m.gutter + 2 }}>{b.text}</div>
       ))}
     </div>
+    {/* S10-02: each group's header row (the child's initial and load ribbon, or Together) stays at the top while its lanes scroll. */}
+    {layout.groups.map((g) => (
+      <div key={g.key} className="tl-group" data-group={g.key} style={{ top: g.top, height: g.bottom - g.top }}>
+        <div className="tl-group-head" style={{ height: g.header.height }}>
+          <svg className="tl-ribbon" width={layout.width} height={g.header.height} aria-hidden="true">
+            {g.header.ribbon ? <path d={g.header.ribbon} /> : null}
+          </svg>
+          <span className="tl-group-avatar" style={{ width: m.gutter }} aria-hidden="true">
+            <span style={{ width: m.badge, height: m.badge }}>{g.kind === "together" ? <UsersThree size={15} weight="bold" /> : g.initial}</span>
+          </span>
+          <span className="tl-group-name" style={{ left: layout.plot.x + 6, fontSize: m.font + 0.5 }}>{g.name}</span>
+        </div>
+      </div>
+    ))}
     </div>
   );
 }

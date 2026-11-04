@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { ENGINE_VERSION } from "@hh/engine";
 import { CHROME, THEME_NAMES, contrast, swatches } from "../scripts/palette";
 import { BAR_DRAG_ENABLED } from "../src/features/timeline/drag";
-import { GUTTER_PX, layoutTimeline } from "../src/features/timeline/layout";
+import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import { Timeline, nameFill } from "../src/features/timeline/Timeline";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
@@ -37,14 +37,14 @@ describe("lane badges", () => {
     const model = buildTimelineModel(sampleInput({ today: DEMO_ME.today, events: [] }));
     const lanes = layoutTimeline(model, { zoom: "year", width: 360 }).badges;
     const badges = [...wrap.querySelectorAll("button.tl-badge")];
-    expect(badges.map((b) => b.getAttribute("aria-label"))).toEqual(lanes.map((l) => l.text));
+    expect(badges.map((b) => b.getAttribute("aria-label"))).toEqual(lanes.map((l) => l.label));
     expect(svg.querySelectorAll("text.tl-lane-label")).toHaveLength(0);
     const math = [...wrap.querySelectorAll("button.tl-badge")].find((b) => b.getAttribute("aria-label")!.startsWith("Math"))!;
     expect(math.querySelector(".subject-badge svg")).not.toBeNull(); // the icon
     expect(math.querySelector(".subject-badge")!.getAttribute("style")).toMatch(/--c: var\(--tl-subject-\d\).*--cs: var\(--tl-subject-\d-strong\)/);
     const other = [...wrap.querySelectorAll("button.tl-badge")].find((b) => !b.getAttribute("aria-label")!.startsWith("Math"))!;
     expect(other.querySelector(".subject-letter")).not.toBeNull(); // no icon yet: the letter
-    expect(wrap.querySelector(".tl-total-icon")).toHaveAttribute("title", "All subjects");
+    expect(wrap.querySelector(".tl-total-icon")).toBeNull(); // S10-02: the children's ribbons replace All subjects
   });
 
   it("tapping a badge names the subject in a small popover and highlights its lane; tapping again or Escape puts it away", async () => {
@@ -102,8 +102,8 @@ describe("the look", () => {
     expect(rule(".tl-band")).toMatch(/stroke-opacity: 0\.4;/);
   });
 
-  it("All subjects is the page ink at low opacity; Today is a dotted fern line, not red; axis labels are secondary text", () => {
-    expect(rule(".tl-totals")).toMatch(/fill: var\(--tl-foreground\); fill-opacity: 0\.14/);
+  it("S10-02: a child's load ribbon is the page ink at low opacity; Today is a dotted fern line, not red; axis labels are secondary text", () => {
+    expect(rule(".tl-ribbon path")).toMatch(/fill: var\(--tl-foreground\); fill-opacity: 0\.11/);
     expect(rule(".tl-today line")).toMatch(/stroke: var\(--tl-today\)/);
     expect(rule(".tl-today line")).toMatch(/stroke-dasharray/);
     expect(CHROME.light.today).toBe(CHROME.light.primary);
@@ -157,6 +157,6 @@ describe("Timeline on its own", () => {
     const unknown = layout.badges.findIndex((b) => b.subjectId !== layout.badges[0]!.subjectId);
     expect(badges[known]!.querySelector("svg")).not.toBeNull();
     expect(badges[unknown]!.querySelector(".subject-letter")).not.toBeNull();
-    expect(container.querySelector(".tl-gutter")).toHaveStyle({ width: `${GUTTER_PX}px` });
+    expect(container.querySelector(".tl-gutter")).toHaveStyle({ width: `${layout.metrics.gutter}px` });
   });
 });

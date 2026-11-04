@@ -63,6 +63,8 @@ export interface TimelineModel extends DayGrid {
   /** Grid index of today, or -1 when today is off the grid. */
   todayIndex: number;
   lanes: SubjectLane[];
+  /** S10-02: the children on the timeline, in display order (the Year view groups lanes under each). */
+  children: { childId: string; name: string }[];
   breaks: TimelineBreak[];
   events: TimelineEvent[];
   /** The total-load strip: the sum of every sub-lane, daily and weekly. */
@@ -203,12 +205,14 @@ export function buildTimelineModel(input: TimelineInput): TimelineModel {
 
   const subLanes = lanes.flatMap((l) => l.children);
   const breaks = breaksOnGrid(grid, input.blocked ?? []);
+  const childIds = [...new Set(subLanes.map((c) => c.childId))].sort((a, b) => children.rank(a) - children.rank(b));
   return {
     ...grid,
     weekStart: input.weekStart,
     today: input.today,
     todayIndex: gridIndex(grid, input.today),
     lanes,
+    children: childIds.map((childId) => ({ childId, name: children.get(childId)?.name ?? "Child" })),
     breaks,
     events: eventsOnGrid(grid, input.events ?? [], breaks),
     totals: {

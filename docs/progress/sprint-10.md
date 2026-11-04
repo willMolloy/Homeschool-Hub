@@ -6,8 +6,16 @@ Tickets: `docs/tickets/sprint-10-year-polish/`. S10-10 (tester pass) is the test
 
 | Ticket | Commit | Notes |
 |--------|--------|-------|
-| S10-01 Sheets above the tab bar (layer tokens) | (this commit) | `styles/layers.css` (new: `--z-raised`, `--z-popover`, `--z-nav`, `--z-edit`, `--z-toast`, `--z-sheet`, `--z-dialog`, `--z-skip`), loaded first in `main.tsx`; `app-shell.css`, `sheet.css`, `undo.css`, `date-field.css`, `timeline.css` use them. Test `s10-01-layers.test.ts` |
+| S10-01 Sheets above the tab bar (layer tokens) | bea44b8 | `styles/layers.css` (new: `--z-raised`, `--z-popover`, `--z-nav`, `--z-edit`, `--z-toast`, `--z-sheet`, `--z-dialog`, `--z-skip`), loaded first in `main.tsx`; `app-shell.css`, `sheet.css`, `undo.css`, `date-field.css`, `timeline.css` use them. Test `s10-01-layers.test.ts` |
+| S10-02 Lanes grouped by child | (this commit) | `layout.ts`: groups (Together first on All children, then each child), sticky header rows with the child's initial and load ribbon, lane and group hairlines, phone/desktop metrics from the mockup (`PHONE_METRICS`/`DESKTOP_METRICS`), badge pinned to the first row's centre, sub-rows at 0.8. `model.ts` carries `children`. `Timeline.tsx` draws rules and per-group sticky headers; the All subjects strip is gone (`timeline-total.test.tsx` removed). Test `s10-02-groups.test.tsx`; layout, names, view, child-filter, detail, soft-paper and month-rows tests updated |
 
 ## Decisions
 
 - **S10-01 one more layer than the ticket names.** The Year edit sheet is not modal, so it gets its own `--z-edit` (20): above the tab bar (10), below the undo bar (`--z-toast`, 30) so Undo stays tappable over it, and below modal sheets (50) and dialogs (60). Dialogs sit one step above sheets so a confirm opened from a sheet is on top. Local layers inside a card (the lane popover, the date calendar, the More menu) use `--z-raised` / `--z-popover`. Every `z-index` in the app's CSS now uses a token, and a test fails on a bare number. The edit sheet keeps its place above the tab bar for now (S10-06 restyles it).
+- **S10-02 the All subjects strip is removed.** The mockup has none; each child's load ribbon in their header row does its job. The ribbons share one scale (the busiest child's heaviest point in the view is the tallest, 12 px phone / 14 px desktop).
+- **S10-02 Together header has no ribbon.** Shared work already shows in every child's ribbon, so the Together row is just the icon and "Together".
+- **S10-02 a Together bar's thickness** is the larger of the children's plans on each day (they only differ where one child has a day off), titled "Title · F M" (four initials, then "+N").
+- **S10-02 every bar uses the subject's base colour step.** The per-child light/dark steps are dropped, since the group header already says whose lane it is; this matches the mockup.
+- **S10-02 bar heights are capped at the mockup's maximum** (28 px phone, 32 px desktop; sub-rows at 0.8) until S10-04 brings in effort-based heights. Rows sit at a fixed pitch, so an outside name now goes only where it fits above its bar inside its own row, or is dropped (S10-04b reworks names).
+- **S10-02 the sticky header** has a 90% page-colour background, so the month lines show faintly through it. Only the header takes taps, so you can't tap a bar through a stuck header.
+- **S10-09 rail labels:** an icon rail with small labels under the icons. Decided by DeeDee on 2026-11-03.

@@ -1,6 +1,6 @@
 /** T-07f: This month leaves out rows, lanes and subjects with nothing in the month (layout.ts). */
 import { describe, expect, it } from "vitest";
-import { layoutTimeline } from "../src/features/timeline/layout";
+import { layoutTimeline, sharedAssignmentIds } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import { drawnExtent } from "../src/features/timeline/rows";
 import { gridMonths, zoomRange } from "../src/features/timeline/zoom";
@@ -28,7 +28,12 @@ describe("This month shows only what is in the month", () => {
 
   it("keeps every lane at Year, and a bar keeps its row number at This month", () => {
     const year = layoutTimeline(model, { zoom: "year", width: 390 });
-    expect(year.badges).toHaveLength(model.lanes.reduce((n, s) => n + s.children.length, 0));
+    // S10-02: a lane per child for their own work, plus one Together lane per subject with shared work.
+    const shared = sharedAssignmentIds(model);
+    const own = model.lanes.reduce((n, s) => n + s.children.filter((c) => c.assignments.some((a) => !shared.has(a.assignmentId))).length, 0);
+    const together = model.lanes.filter((s) => s.children.some((c) => c.assignments.some((a) => shared.has(a.assignmentId)))).length;
+    expect(together).toBeGreaterThan(0);
+    expect(year.badges).toHaveLength(own + together);
     const key = (b: { assignmentId: string; laneKey: string }) => `${b.laneKey}/${b.assignmentId}`;
     const rowOf = new Map(year.bands.map((b) => [key(b), b.rowKey]));
     for (const month of gridMonths(model)) {
