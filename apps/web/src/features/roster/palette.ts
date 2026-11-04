@@ -1,4 +1,4 @@
-/** The 8 preset swatches offered for children and subjects (includes the seed colors). */
+/** The 12 preset swatches offered for children and subjects (includes the seed colors). S10-11 added the last four. */
 export const PALETTE = [
   "#2f6fb0", // blue
   "#b0482f", // brick
@@ -8,6 +8,10 @@ export const PALETTE = [
   "#2f8fb0", // teal
   "#c25c8a", // pink
   "#5b6b7d", // slate
+  "#b03a5c", // rose
+  "#4a8a3a", // leaf
+  "#1f8a8f", // aqua
+  "#6a4fa0", // plum
 ] as const;
 
 export const PALETTE_NAMES: Record<string, string> = {
@@ -19,6 +23,10 @@ export const PALETTE_NAMES: Record<string, string> = {
   "#2f8fb0": "Teal",
   "#c25c8a": "Pink",
   "#5b6b7d": "Slate",
+  "#b03a5c": "Rose",
+  "#4a8a3a": "Leaf",
+  "#1f8a8f": "Aqua",
+  "#6a4fa0": "Plum",
 };
 
 /** First swatch no active item uses yet; if all are taken, cycle by count. */
@@ -28,9 +36,9 @@ export function nextUnusedColor(used: readonly (string | null)[]): string {
 }
 
 /**
- * S8-01: the Soft Paper subject hue (slot 1-8, `--tl-subject-N-*`) each old swatch keeps, so a subject that was
- * blue still reads blue-ish. Order: honey, sky, mint, butter, blue, coral, lilac, sage. The stored value is
- * unchanged; this only decides how it is drawn.
+ * S8-01: the Soft Paper subject hue (slot 1-12, `--tl-subject-N-*`) each swatch keeps, so a subject that was
+ * blue still reads blue-ish. Order: honey, sky, mint, butter, blue, coral, lilac, sage, then (S10-11) rose, leaf,
+ * aqua, plum. The stored value is unchanged; this only decides how it is drawn.
  */
 const SWATCH_SLOT: Record<string, number> = {
   "#b08a2f": 1, // ochre -> honey
@@ -41,7 +49,17 @@ const SWATCH_SLOT: Record<string, number> = {
   "#b0482f": 6, // brick -> coral
   "#7a5cc2": 7, // purple -> lilac
   "#5b6b7d": 8, // slate -> sage
+  "#b03a5c": 9, // rose
+  "#4a8a3a": 10, // leaf
+  "#1f8a8f": 11, // aqua
+  "#6a4fa0": 12, // plum
 };
+
+/**
+ * S10-11: a colour that is not a swatch is drawn as the nearest of the first eight only, as it was before slots 9-12
+ * existed, so no family's older or hand-made colour changes hue on update.
+ */
+const NEAREST_FROM = Object.entries(SWATCH_SLOT).filter(([, slot]) => slot <= 8);
 
 const rgb = (hex: string): [number, number, number] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
 
@@ -56,7 +74,7 @@ export function slotOfColor(color: string | null | undefined): number | null {
   if (!/^#[0-9a-f]{6}$/.test(c)) return null;
   const [r, g, b] = rgb(c);
   let best: [number, number] = [Infinity, 1];
-  for (const [hex, slot] of Object.entries(SWATCH_SLOT)) {
+  for (const [hex, slot] of NEAREST_FROM) {
     const [r2, g2, b2] = rgb(hex);
     const d = (r - r2) ** 2 + (g - g2) ** 2 + (b - b2) ** 2;
     if (d < best[0]) best = [d, slot];

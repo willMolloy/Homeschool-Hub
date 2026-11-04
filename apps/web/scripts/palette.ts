@@ -2,7 +2,7 @@
 // plain CSS variables in src/styles/tokens.css (read by the SVG timeline and every screen) and a
 // Tailwind v4 `@theme inline` map in src/styles/tokens.theme.css (read by the shadcn chrome).
 // Run with `npm run tokens -w @hh/web`.
-//   - Eight subject hues, each with a fill (14% toward its strong tone in light, 10% in dark), a strong
+//   - Twelve subject hues (S10-11 added rose, leaf, aqua and plum as slots 9-12), each with a fill (14% toward its strong tone in light, 10% in dark), a strong
 //     tone for rules, rings and badges, and a label colour (ink). Subjects are never told apart by colour
 //     alone: every subject also has an icon (S8-11).
 //   - Child steps (lighter / darker fill) for a subject drawn once per child on the Year timeline.
@@ -30,7 +30,11 @@ export interface SubjectHue {
   dark: { fill: string; strong: string };
 }
 
-/** The eight subject hues, in slot order (slot 1 is honey). Values are the mockup's (`design/mockups/soft-paper.html`). */
+/**
+ * The twelve subject hues, in slot order (slot 1 is honey). Slots 1-8 are the mockup's (`design/mockups/soft-paper.html`).
+ * S10-11: slots 9-12 fill the gaps between them on the hue wheel (OKLCH ~8, 140, 200 and 305 degrees) at the same lightness
+ * and chroma as the first eight, so each is at least ~7 CIEDE2000 from every other fill in both themes.
+ */
 export const SUBJECT_HUES: readonly SubjectHue[] = [
   { name: "honey", light: { fill: "#F0D6A8", strong: "#A86A00" }, dark: { fill: "#5B4826", strong: "#F5C46B" } },
   { name: "sky", light: { fill: "#BDDCF0", strong: "#2A7DB0" }, dark: { fill: "#2A485D", strong: "#8FCBF0" } },
@@ -40,11 +44,15 @@ export const SUBJECT_HUES: readonly SubjectHue[] = [
   { name: "coral", light: { fill: "#F0C8B4", strong: "#B4532A" }, dark: { fill: "#5E3728", strong: "#F2A786" } },
   { name: "lilac", light: { fill: "#E5C8DB", strong: "#9B4F80" }, dark: { fill: "#543649", strong: "#E0A6CB" } },
   { name: "sage", light: { fill: "#D1D5C9", strong: "#5F6B50" }, dark: { fill: "#41453B", strong: "#B6C0A6" } },
+  { name: "rose", light: { fill: "#FBCBD2", strong: "#A1475C" }, dark: { fill: "#57383E", strong: "#F8ACB9" } },
+  { name: "leaf", light: { fill: "#C7E3C0", strong: "#3F7932" }, dark: { fill: "#364831", strong: "#A5D39B" } },
+  { name: "aqua", light: { fill: "#AFE5E7", strong: "#00787D" }, dark: { fill: "#224A4C", strong: "#78D6DB" } },
+  { name: "plum", light: { fill: "#E1D1F7", strong: "#7955A0" }, dark: { fill: "#483C56", strong: "#D1B6F3" } },
 ];
 export const SUBJECT_COUNT = SUBJECT_HUES.length;
 
 /**
- * Which hue each of the eight old subject colour swatches (`features/roster/palette.ts`) keeps, so a subject that
+ * Which hue each of the twelve subject colour swatches (`features/roster/palette.ts`) keeps, so a subject that
  * was blue stays blue-ish. The old swatch is still what the picker stores; this is what it draws as.
  */
 export const SWATCH_TO_HUE: Readonly<Record<string, string>> = {
@@ -56,6 +64,10 @@ export const SWATCH_TO_HUE: Readonly<Record<string, string>> = {
   "#2f8fb0": "sky",
   "#c25c8a": "butter",
   "#5b6b7d": "sage",
+  "#b03a5c": "rose",
+  "#4a8a3a": "leaf",
+  "#1f8a8f": "aqua",
+  "#6a4fa0": "plum",
 };
 
 /** Chrome colours: the shadcn/ui semantic set plus the timeline's extras. */

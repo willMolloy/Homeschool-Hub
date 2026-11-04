@@ -8,14 +8,21 @@ import {
   AA_TEXT, AA_UI, BAR_SECONDARY_OPACITY, CHROME, CHROME_TEXT_PAIRS, STEP_NAMES, SUBJECT_COUNT, SUBJECT_HUES, SWATCH_TO_HUE, THEME_NAMES,
   composite, contrast, mix, renderThemeCss, renderTokensCss, swatches,
 } from "../scripts/palette";
-import { PALETTE, SWATCH_SLOTS } from "../src/features/roster/palette";
+import { PALETTE, PALETTE_NAMES, SWATCH_SLOTS, nextUnusedColor, slotOfColor } from "../src/features/roster/palette";
 
 const styles = (name: string) => readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../src/styles", name), "utf8");
 
 describe("subject hues", () => {
-  it("are the eight Soft Paper hues, with Will's stronger light fills", () => {
-    expect(SUBJECT_HUES.map((h) => h.name)).toEqual(["honey", "sky", "mint", "butter", "blue", "coral", "lilac", "sage"]);
-    expect(SUBJECT_HUES.map((h) => h.light.fill)).toEqual(["#F0D6A8", "#BDDCF0", "#B5DFD1", "#EAE2A5", "#C1D0EA", "#F0C8B4", "#E5C8DB", "#D1D5C9"]);
+  it("are the eight Soft Paper hues, with Will's stronger light fills, then (S10-11) rose, leaf, aqua and plum", () => {
+    expect(SUBJECT_HUES.map((h) => h.name)).toEqual(["honey", "sky", "mint", "butter", "blue", "coral", "lilac", "sage", "rose", "leaf", "aqua", "plum"]);
+    expect(SUBJECT_HUES.slice(0, 8).map((h) => h.light.fill)).toEqual(["#F0D6A8", "#BDDCF0", "#B5DFD1", "#EAE2A5", "#C1D0EA", "#F0C8B4", "#E5C8DB", "#D1D5C9"]);
+    expect(SUBJECT_COUNT).toBe(12);
+  });
+
+  it.each(THEME_NAMES)("%s: S10-11: every fill is distinct from every other (no two hues the same colour)", (theme) => {
+    const fills = SUBJECT_HUES.map((h) => h[theme].fill);
+    expect(new Set(fills).size).toBe(12);
+    expect(new Set(SUBJECT_HUES.map((h) => h[theme].strong)).size).toBe(12);
   });
 
   it.each(THEME_NAMES)("%s: the ink is at least 9:1 on every light fill (6.5:1 on dark, the mockup's own values), and the bar's amount (ink at 78% light, 86% dark) at least 5.2:1", (theme) => {
@@ -48,15 +55,41 @@ describe("subject hues", () => {
     }
   });
 
-  it("the old eight swatches each keep one distinct hue (the recorded mapping)", () => {
+  it("the twelve swatches each keep one distinct hue (the recorded mapping), the new four in slots 9-12", () => {
+    expect(PALETTE).toHaveLength(12);
     expect(Object.keys(SWATCH_TO_HUE).sort()).toEqual([...PALETTE].sort());
-    expect(new Set(Object.values(SWATCH_TO_HUE)).size).toBe(8);
+    expect(new Set(Object.values(SWATCH_TO_HUE)).size).toBe(12);
+    expect(PALETTE.slice(8).map((c) => SWATCH_SLOTS[c])).toEqual([9, 10, 11, 12]);
+    for (const c of PALETTE) expect(PALETTE_NAMES[c], c).toBeTruthy();
     for (const [hex, hue] of Object.entries(SWATCH_TO_HUE)) expect(SUBJECT_HUES[SWATCH_SLOTS[hex]! - 1]!.name).toBe(hue);
   });
 
   it("mix() is a straight sRGB blend", () => {
     expect(mix("#000000", "#FFFFFF", 0.5)).toBe("#808080");
     expect(composite("#FFFFFF", "#000000", 1)).toBe("#FFFFFF");
+  });
+});
+
+describe("S10-11: nextUnusedColor", () => {
+  it("finds every unused colour in order, and only cycles once all twelve are used", () => {
+    const used: string[] = [];
+    for (let i = 0; i < 12; i++) {
+      const next = nextUnusedColor(used);
+      expect(used).not.toContain(next);
+      used.push(next);
+    }
+    expect(new Set(used.map(slotOfColor)).size).toBe(12);
+    expect(PALETTE).toContain(nextUnusedColor(used));
+  });
+
+  it("skips colours already taken in any case, and treats null as no colour", () => {
+    expect(nextUnusedColor([PALETTE[0]!.toUpperCase(), null])).toBe(PALETTE[1]);
+    expect(nextUnusedColor(PALETTE.slice(0, 11))).toBe(PALETTE[11]);
+  });
+
+  it("a colour that is not a swatch is still drawn as the nearest of the first eight (no family's colour changes hue)", () => {
+    expect(slotOfColor("#5c8a2f")).toBe(3); // the old demo Art green stays mint, not leaf
+    expect(slotOfColor("#4a8a3a")).toBe(10); // the leaf swatch itself
   });
 });
 
@@ -108,7 +141,8 @@ describe("generated CSS", () => {
     expect(colours(block('[data-theme="dark"]'))).toEqual(light);
     expect(colours(css.slice(css.indexOf("@media")))).toEqual(light);
     expect(light).toContain("--tl-subject-8-strong");
-    expect(light).toContain("--tl-subject-8-dark-label");
+    expect(light).toContain("--tl-subject-12-strong");
+    expect(light).toContain("--tl-subject-12-dark-label");
   });
 
   it("every colour is a hex value (so tests and screens can read them)", () => {
@@ -132,7 +166,7 @@ describe("generated CSS", () => {
 
   it("Tailwind maps every token, and opacity modifiers still work", async () => {
     const theme = renderThemeCss();
-    for (const n of ["subject-1", "subject-8-light", "subject-8-dark-label", "subject-7-pastel", "subject-3-strong", "muted-foreground", "primary-soft"]) {
+    for (const n of ["subject-1", "subject-8-light", "subject-12", "subject-12-pastel", "subject-8-dark-label", "subject-7-pastel", "subject-3-strong", "muted-foreground", "primary-soft"]) {
       expect(theme).toContain(`--color-${n}: var(--tl-${n});`);
     }
     const tw = await compile(`${theme}\n@tailwind utilities;`, { base: process.cwd() });
