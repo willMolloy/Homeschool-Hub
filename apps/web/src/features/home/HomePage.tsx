@@ -2,8 +2,9 @@
  * S8-04: Home. The logo and the family button, a greeting with the date, the briefing when something needs
  * attention, and (S9-01, Will's correction) the two main jobs as equal cards, Schedule and Records. S10-09: no Set up row;
  * Set up is in the bar and the rail. Nothing here is a number the family did not enter.
- * S10-17: from 840 px, two panes under the header, greeting and date: a wide one (the briefing, then Schedule) and a
- * narrow one (Records, then the checklist). Under 840 px, one column in the old order. The DOM follows what is shown
+ * S10-17: from 840 px, two panes under the header, greeting and date: a wide one (Schedule) and a narrow one (Records,
+ * then the checklist). The briefing spans both panes above them, so Schedule and Records always start level (Will,
+ * 2026-11-05). Under 840 px, one column in the old order. The DOM follows what is shown
  * (two layouts, picked by a media query), so reading and tab order always match the screen.
  */
 import { useState } from "react";
@@ -97,9 +98,10 @@ function Home() {
       <h1 className="home-greeting">{greetingFor(new Date().getHours())}</h1>
       <p className="home-date">{longDate(today)}{weekNo ? ` · Week ${weekNo.n} of ${weekNo.m}` : ""}</p>
       {wide ? (
+        <>
+        {briefing}
         <div className="home-panes">
           <div className="home-pane home-pane-wide">
-            {briefing}
             {schedule}
           </div>
           <div className="home-pane home-pane-narrow">
@@ -107,6 +109,7 @@ function Home() {
             {checklist}
           </div>
         </div>
+        </>
       ) : (
         <>
           {briefing}

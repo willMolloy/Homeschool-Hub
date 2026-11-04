@@ -1,5 +1,5 @@
-/** S10-17: Home in two panes from 840 px: the briefing and Schedule in the wide pane, Records and the checklist in the
- *  narrow one, the header, greeting and date above both. Under 840 px, one column in the old order. */
+/** S10-17: Home in two panes from 840 px: Schedule in the wide pane, Records and the checklist in the narrow one, the
+ *  header, greeting, date and briefing above both (the briefing spans both so the cards start level; Will, 2026-11-05). Under 840 px, one column in the old order. */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
@@ -48,7 +48,7 @@ async function order(root: HTMLElement) {
 }
 
 describe("Home's layout (S10-17)", () => {
-  it("is two panes from 840 px: briefing and Schedule wide, Records and the checklist narrow", async () => {
+  it("is two panes from 840 px: the briefing above both, Schedule wide, Records and the checklist narrow", async () => {
     stub();
     width(true);
     renderAt("/");
@@ -56,11 +56,11 @@ describe("Home's layout (S10-17)", () => {
     await waitFor(async () => expect(await order(home)).toHaveLength(4));
     const wide = home.querySelector(".home-pane-wide") as HTMLElement;
     const narrow = home.querySelector(".home-pane-narrow") as HTMLElement;
-    expect(await order(wide)).toEqual(["briefing", "Schedule"]);
+    expect(await order(wide)).toEqual(["Schedule"]);
     expect(await order(narrow)).toEqual(["Records", "checklist"]);
-    // The header, greeting and date span the top, above both panes.
+    // The header, greeting, date and briefing span the top, above both panes, so Schedule and Records start level.
     const panes = home.querySelector(".home-panes")!;
-    for (const top of [home.querySelector(".home-top")!, screen.getByRole("heading", { level: 1 }), home.querySelector(".home-date")!]) {
+    for (const top of [home.querySelector(".home-top")!, screen.getByRole("heading", { level: 1 }), home.querySelector(".home-date")!, home.querySelector(".home-briefing")!]) {
       expect(panes.contains(top)).toBe(false);
       expect(top.compareDocumentPosition(panes) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
