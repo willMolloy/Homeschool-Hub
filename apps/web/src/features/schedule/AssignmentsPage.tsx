@@ -3,6 +3,8 @@
  * essentials first (subject, title, children, dates, unit and total). S6-09: then "About how long will that take?",
  * asked in minutes a day and saved as a weight per unit; the parent never types a weight.
  * S6b-08: the subject dropdown also offers common subjects and "New subject…" (SubjectSelect).
+ * S10-07: `look="sheet"` (the Year view's Add sheet) uses the app's own controls: a subject picker sheet, child chips, date
+ * tiles and soft day chips. What it saves is the same.
  * S7-01 / S7-02: "Copy to a new year" and "Copy to another child" (CopyPanels). S3a-04: "Add several" enters a subject's books in one form. S3a-06: "Import CSV" does it from a file.
  */
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -118,7 +120,8 @@ function AssignmentCard({ a, l, planEnd }: { a: Assignment; l: Lookups; planEnd?
 
 type Errors = Partial<Record<"subject" | "title" | "totalUnits" | "effort" | "dates" | "children", string>>;
 
-export function AssignmentForm({ item, initial, onSaved, onCancel, extra, externalError, l }: FormSlotProps<Assignment> & { l: Lookups }) {
+export function AssignmentForm({ item, initial, onSaved, onCancel, extra, externalError, l, look }: FormSlotProps<Assignment> & { l: Lookups; look?: "sheet" }) {
+  const sheet = look === "sheet";
   // S3a-01: a copy opens the Add form (item null) prefilled from `initial`.
   const start = item ?? initial ?? null;
   const activeSubjects = l.subjects.filter((s) => !s.archived || s.id === start?.subjectId);
@@ -291,20 +294,33 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   const inv = (err: string | undefined, id: string) => (err ? { "aria-invalid": true as const, "aria-describedby": `${id}-err` } : {});
 
   return (
-    <form className="card schedule-form" aria-label={item ? `Edit ${item.title}` : "Add assignment"} onSubmit={submit} noValidate>
+    <form className={`card schedule-form${sheet ? " form-sheet" : ""}`} aria-label={item ? `Edit ${item.title}` : "Add assignment"} onSubmit={submit} noValidate>
       {shownError ? <p className="form-error" role="alert">{shownError}</p> : null}
       {field(ids.subject, "Subject", errors.subject,
-        <SubjectSelect id={ids.subject} value={subjectId} onChange={setSubjectId} l={l} options={activeSubjects} invalidProps={inv(errors.subject, ids.subject)} resolveRef={newSubject} />)}
+        <SubjectSelect id={ids.subject} value={subjectId} onChange={setSubjectId} l={l} options={activeSubjects} invalidProps={inv(errors.subject, ids.subject)} resolveRef={newSubject} picker={sheet} />)}
       {field(ids.title, "Title", errors.title,
         <input id={ids.title} type="text" value={title} autoComplete="off" onChange={(e) => setTitle(e.target.value)} {...inv(errors.title, ids.title)} />)}
-      <ChildPicker options={l.children} value={childIds} onChange={setChildIds} error={errors.children} />
+      <ChildPicker options={l.children} value={childIds} onChange={setChildIds} error={errors.children} chips={sheet} legend={sheet ? "For" : undefined} />
+      {sheet ? (
+        <fieldset className="date-tiles-field" aria-describedby={errors.dates ? `${ids.end}-err` : undefined}>
+          <legend>Dates</legend>
+          <div className="tl-edit-dates">
+            <label className="tl-tile" htmlFor={ids.start}><span className="tl-tile-label">Start</span>
+              <DateField id={ids.start} className="tl-tile-field" value={startDate} onChange={setStartDate} {...inv(errors.dates, ids.end)} /></label>
+            <label className="tl-tile" htmlFor={ids.end}><span className="tl-tile-label">End</span>
+              <DateField id={ids.end} className="tl-tile-field" value={endDate} onChange={setEndDate} {...inv(errors.dates, ids.end)} /></label>
+          </div>
+          {errors.dates ? <p id={`${ids.end}-err`} className="field-error" role="alert">{errors.dates}</p> : null}
+        </fieldset>
+      ) : (
       <div className="field-row">
         {field(ids.start, "Start", undefined,
           <DateField id={ids.start} value={startDate} onChange={setStartDate} {...inv(errors.dates, ids.end)} />)}
         {field(ids.end, "End", errors.dates,
           <DateField id={ids.end} value={endDate} onChange={setEndDate} {...inv(errors.dates, ids.end)} />)}
       </div>
-      <WeekdayPicker legend="Days" offer={dayChoice.offer} value={dayChoice.shown} onChange={changeDays} />
+      )}
+      <WeekdayPicker legend={sheet ? "School days" : "Days"} offer={dayChoice.offer} value={dayChoice.shown} onChange={changeDays} />
       {marked ? (
         <div className="field">
           <p className="hint">Will be the default for {l.subjectName(subjectId)}.</p>

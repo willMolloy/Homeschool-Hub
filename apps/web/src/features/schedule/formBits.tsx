@@ -1,5 +1,6 @@
 /** Small pieces shared by the schedule forms (S2a-13..16). */
 import { useId } from "react";
+import { Check } from "@phosphor-icons/react";
 import type { Child } from "../../api/types";
 import { ApiError } from "../../api/client";
 import { formatDate } from "../../lib/dates";
@@ -139,9 +140,11 @@ interface ChildPickerProps {
   wholeFamily?: { value: boolean; onChange: (whole: boolean) => void };
   error?: string | null;
   legend?: string;
+  /** S10-07: toggle chips (initial, name, a tick when on) instead of tick boxes; the Year Add sheet. Same checkboxes inside. */
+  chips?: boolean;
 }
 
-export function ChildPicker({ options, value, onChange, wholeFamily, error, legend = "Children" }: ChildPickerProps) {
+export function ChildPicker({ options, value, onChange, wholeFamily, error, legend = "Children", chips = false }: ChildPickerProps) {
   const errId = useId();
   const radio = useId();
   const shown = options.filter((c) => !c.archived || value.includes(c.id));
@@ -161,7 +164,23 @@ export function ChildPicker({ options, value, onChange, wholeFamily, error, lege
           </label>
         </>
       ) : null}
-      {showBoxes ? (
+      {showBoxes && chips ? (
+        <div className="kid-chips">
+          {shown.length === 0 ? <p className="hint">No children yet. Add them under Kids.</p> : null}
+          {shown.map((c) => {
+            const on = value.includes(c.id);
+            return (
+              <label key={c.id} className={`kid-chip${on ? " is-on" : ""}`}>
+                <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked ? [...value, c.id] : value.filter((v) => v !== c.id))} />
+                <span className="kid-chip-av" data-initial={c.name.trim().charAt(0).toUpperCase()} aria-hidden="true" />
+                {c.name}
+                {c.archived ? <span className="tag">Archived</span> : null}
+                {on ? <Check className="kid-chip-tick" size={16} weight="bold" aria-hidden="true" /> : null}
+              </label>
+            );
+          })}
+        </div>
+      ) : showBoxes ? (
         <div className={wholeFamily ? "choice-indent" : undefined}>
           {shown.length === 0 ? <p className="hint">No children yet. Add them under Kids.</p> : null}
           {shown.map((c) => (

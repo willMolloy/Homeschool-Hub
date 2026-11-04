@@ -1,6 +1,7 @@
 /**
  * T-10: "+ Add assignment" on the timeline. Opens the schedule screen's own AssignmentForm (reused, not rebuilt)
- * in a ResponsiveSheet: a bottom sheet on phones, a panel along the right edge on wider screens.
+ * in a ResponsiveSheet: a bottom sheet on phones, a panel along the right edge on wider screens. S10-07: in its "sheet" look
+ * (subject picker, child chips, date tiles, soft day chips).
  */
 import type { Assignment } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
@@ -27,7 +28,7 @@ export function AddAssignmentSheet({ open, lookups, initial, onSaved, onClose }:
   return (
     <ResponsiveSheet open={open} onOpenChange={(o) => { if (!o) onClose(); }} title="Add assignment" wide="side">
       <div className="tl-add-form">
-        <AssignmentForm item={null} initial={initial} l={lookups} onSaved={onSaved} onCancel={onClose} extra={null} externalError={null} />
+        <AssignmentForm item={null} initial={initial} l={lookups} onSaved={onSaved} onCancel={onClose} extra={null} externalError={null} look="sheet" />
       </div>
     </ResponsiveSheet>
   );
