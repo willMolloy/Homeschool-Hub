@@ -8,7 +8,7 @@
  * S9-03: `logSetup` is what the family's records track (016_log_setup); null until the family picks a template style.
  * S11-01: `setupStep`, `setupDone` and `setupDeferred` are where the family is in the first-run flow (019_setup_flow).
  * S11-06: `tipsSeen` is the one-time hints on Schedule the family has seen (021_tips_seen); an empty list shows them all again.
- * S11-03: `schoolYear` is the first and last day the parent gave in that flow (020_school_year); null until given.
+ * S11-03: `schoolYear` is the first and last day the parent gave in that flow (020_school_year); null until given (S12-09: a patch with `schoolYear: null` clears it).
  */
 import type { FastifyInstance } from "fastify";
 import { humanList, isValidLocalDate, toDayNumber, WEEK_STARTS } from "@hh/engine";
@@ -90,7 +90,8 @@ const PatchBody = z
     setupStep: z.number("setupStep must be a number from 1 to 6.").int("setupStep must be a whole number from 1 to 6.").min(1, "setupStep must be from 1 to 6.").max(SETUP_STEPS, "setupStep must be from 1 to 6.").optional(),
     // Finishing is one way: a family that finished the flow never goes back into it.
     setupDone: z.literal(true, "setupDone can only be set to true.").optional(),
-    schoolYear: SchoolYear.optional(),
+    // S12-09 (N8): null clears the saved year (its two days and shape; breaks and term views already made stay).
+    schoolYear: SchoolYear.nullable().optional(),
     // S11b-02: Home's getting-started reminders hidden (it is not part of the settings answer; /api/me carries it).
     checklistHidden: z.boolean("checklistHidden must be true or false.").optional(),
     tipsSeen: z.array(z.enum(TIPS, "Only the tips on Schedule can be marked as seen.")).refine((d) => new Set(d).size === d.length, "A tip can only be marked once.").optional(),
@@ -116,6 +117,11 @@ export async function familyRoutes(app: FastifyInstance): Promise<void> {
       const locked = await weekStartLocked(tx, req.familyId);
       if (b.weekStart !== undefined && b.weekStart !== cur[0].week_start && locked)
         throw new HttpError(409, "week_start_locked", WEEK_START_LOCKED_MESSAGE);
+      // S12-09 (N8): "Set your school year" is only ever a reminder for a year that isn't saved: once the year stands (saved now, or
+      // already), `year` leaves the deferred list, so the reminder never shows beside a saved year.
+      const hasYear = b.schoolYear === null ? false : b.schoolYear ? true : cur[0].school_year_start !== null;
+      const wanted = b.setupDeferred ?? (hasYear && cur[0].setup_deferred.includes("year") ? cur[0].setup_deferred : null);
+      const deferred = wanted && hasYear ? wanted.filter((d) => d !== "year") : wanted;
       const { rows } = await tx.query<FamilyRow>(
         `UPDATE family SET
            name = COALESCE($2, name),
@@ -127,15 +133,15 @@ export async function familyRoutes(app: FastifyInstance): Promise<void> {
            setup_step = COALESCE($8::smallint, setup_step),
            setup_done = setup_done OR COALESCE($9::boolean, false),
            setup_deferred = COALESCE($10::text[], setup_deferred),
-           school_year_start = COALESCE($11::date, school_year_start),
-           school_year_end = COALESCE($12::date, school_year_end),
-           school_year_shape = COALESCE($14::text, school_year_shape),
+           school_year_start = CASE WHEN $16::boolean THEN NULL ELSE COALESCE($11::date, school_year_start) END,
+           school_year_end = CASE WHEN $16::boolean THEN NULL ELSE COALESCE($12::date, school_year_end) END,
+           school_year_shape = CASE WHEN $16::boolean THEN NULL ELSE COALESCE($14::text, school_year_shape) END,
            tips_seen = COALESCE($13::text[], tips_seen),
            checklist_hidden = COALESCE($15::boolean, checklist_hidden),
            updated_at = now()
          WHERE id = $1 RETURNING ${COLS}`,
         [req.familyId, b.name ?? null, b.weekStart ?? null, b.schoolDays ?? null, b.timeZone ?? null, b.zoomViews ? JSON.stringify(b.zoomViews) : null, b.logSetup ? JSON.stringify(b.logSetup) : null,
-         b.setupStep ?? null, b.setupDone ?? null, b.setupDeferred ?? null, b.schoolYear?.start ?? null, b.schoolYear?.end ?? null, b.tipsSeen ?? null, b.schoolYear?.shape ?? null, b.checklistHidden ?? null]);
+         b.setupStep ?? null, b.setupDone ?? null, deferred, b.schoolYear?.start ?? null, b.schoolYear?.end ?? null, b.tipsSeen ?? null, b.schoolYear?.shape ?? null, b.checklistHidden ?? null, b.schoolYear === null]);
       return toSettings(rows[0]!, locked);
     });
   });

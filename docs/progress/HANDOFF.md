@@ -8,7 +8,7 @@
 
 ## Build status: Sprint 12 (see `sprint-12.md`)
 
-S12-01 to S12-07 are built and pushed on `claude/test-coverage-analysis-6dehbu` (migration 024, engine 0.13.0). S12-09 and the S12-08 tester pass follow.
+S12-01 to S12-07 and S12-09 are built and pushed on `claude/test-coverage-analysis-6dehbu` (migration 024, engine 0.13.0). The S12-08 tester pass is next; the PR to `main` comes after it passes.
 
 ## Next: Sprint 12
 

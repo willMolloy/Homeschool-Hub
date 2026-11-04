@@ -19,6 +19,8 @@
 .tip-inline { width: auto; max-width: none; margin: 0 0 12px; }
 /* Above the Year picture (S11b-03): in the flow, so it covers nothing; the picture runs edge to edge, so the bubble is inset. */
 .tip-top { margin: 4px var(--page-pad, 20px) 10px; }
+/* S12-09 (N9): from 600 px the banner is no wider than the Home/Schedule content column (640 px), not the whole Year width. */
+@media (min-width: 600px) { .tip-top { max-width: min(var(--content-max, 640px), calc(100% - 2 * var(--page-pad, 20px))); } }
 @media (prefers-reduced-motion: no-preference) {
   .tip { animation: tip-in 160ms ease-out; }
   @keyframes tip-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }

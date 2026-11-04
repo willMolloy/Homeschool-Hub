@@ -127,8 +127,8 @@ export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked"
   setupStep?: number;
   setupDone?: true;
   setupDeferred?: SetupDeferral[];
-  /** S11-03: the school year (never cleared by a patch). */
-  schoolYear?: { start: string; end: string; shape?: YearShape };
+  /** S11-03: the school year; S12-09: null clears the saved one. */
+  schoolYear?: { start: string; end: string; shape?: YearShape } | null;
   /** S11-06: the hints seen; an empty list shows them all again ("Show tips again"). */
   tipsSeen?: TipId[];
   checklistHidden?: boolean;
