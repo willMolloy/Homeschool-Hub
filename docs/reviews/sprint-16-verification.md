@@ -136,3 +136,86 @@ I looked at the six developer screenshots in `docs/progress/screens/sprint-16/` 
 | `records-zero-school-days-360.png` | Margaret, This week: "0 school days" beside "—" (N3) |
 | `term-review-two-lists-360.png` | The Term in review card with FINISHED and BOOKS FINISHED side by side (N4) |
 | `book-suggestions-320.png` | The log form's books field at 320 px with "trea" offering Treasure Island |
+
+---
+
+# Re-test (S16-07 to S16-10, commits c4d28eb, c8c9da8, 4b54141, 651ef68)
+
+Tested at the branch tip 651ef68 on 2026-11-05, same rules as the first pass: scratch database `hh16_dev` (dropped afterwards), API and Vite on 127.0.0.1 only, Playwright's Chromium, nothing installed, nobody contacted. I changed no product, test or script code.
+
+## Re-test verdict: READY for Will's look (0 High, 1 Medium, 1 Low, 3 notes); all five of my first-pass findings are fixed
+
+- **Gate:** `scripts/check.sh` ended **ALL GREEN**, run once, first, on the pulled tree: engine 437 (437 in each of the 7 `test:tz` zones), api 1189, web **1642**, db 180. These match the developer's S16-10 counts.
+- **Smoke:** one full round, 32 runs (31 scenarios plus `tap-targets` at 320 px), re-seeding before each except `kids-edit`: **32 of 32 exit 0**, including `days` ("PROBLEMS none"), `term-review` ("term-review scenario: ok"), `view-only` and `accounts` ("PROBLEMS none" / "PROBLEMS: none"), `sheets`, `completion`, and both `tap-targets` runs ("No undersized controls").
+- **Days page states:** 140 states (five weeks, one child and All children, 320, 360, 390, 839, 840, 1000 and 1280 px, light and dark): no sideways scroll, axe clean, no control under 44 px, **no Days range cut or clipped**, columns from 840 px.
+- **Term in review:** six card set-ups, each at 320, 360, 390, 840 and 1280 px, light and dark: no sideways scroll, no text outside the card. axe and tap targets clean on the review page at 320, 360 and 1280 px in both themes.
+- **Findings:** 0 High, 1 Medium (N10), 1 Low (N11), 3 notes (N12 to N14).
+
+## My first-pass findings
+
+| # | Was | Result | Evidence |
+|---|---|---|---|
+| N1 | `term-review` smoke red | **Fixed** | `node flow.mjs term-review` exits 0, "term-review scenario: ok", PNG, print and axe included |
+| N2 | Range cut to "Keep going: Chapte…" on phones | **Fixed** | A range wraps under the title and the title shortens first (`retest-days-grouped-320-light.png`: "Chapter 19 · finish", "Lesson 44 · finish", "Chapter 2 · day 2 of 4" all whole at 320 px). Of the 140 page states, none has a range whose text is wider than its box, or past the page edge |
+| N3 | "0 school days" for one child | **Fixed** | Records, Margaret (and Frank), This week and Spring: "—" school days, "— in total", "Nothing logged in these dates."; under All children "Frank — Margaret —" as before |
+| N4 | Two overlapping finished lists on the Term in review card | **Superseded and gone** | S16-10 removed every finished list and the books-finished number from the card; for the data that had four finished books the card now shows only what the log tracks (below). Records keeps its Books finished card |
+| N5 | Print summary lacked Books finished, printed "None" | **Fixed** | Print summary in the default Each entry mode: Frank "Books finished: Aesop's Fables; Treasure Island; Treasure Island", Margaret "Books finished: Treasure Island"; for a range with no typed books the "Books read" line is simply absent, no "None" |
+
+## S16-07, Days grouped by child
+
+- **Under All children** every line sits under a heading, in the family's child order, then **Together**: the headings seen were "Frank", "Margaret", "Together" on every day of the weeks I read, one `h4` per group, with the child's colour as a rule under the name (`retest-days-grouped-320-light.png`). No initials remain (0 `.day-dot` elements anywhere), no line is without a heading. In the demo family, History spine (shared, the same lesson for both) is listed **once** under Together every day it is on. A day with nothing for a child leaves that child out (Tue Nov 3: Frank and Margaret only). One child's day off reads under their own heading ("Frank, Dentist"; "Margaret, Co-op trip"), a whole-family break is still one quiet line. One child picked: no headings.
+- **Still matches the paper.** I compared every Days line (a Together line expanded to each child it names) with the printed weekly sheet for Frank, Margaret and All children in eight weeks of my family (including the Dentist and Co-op weeks and Thanksgiving) and with the printed **daily** sheet for 12 single days: **no differences** (weekly 8 of 8 weeks equal for all three child choices, daily 12 of 12 equal; for example the week of Nov 2: Frank 36, Margaret 29, All 65 child-lines).
+- **Viewer:** the viewer sees the same headings, a tap opens the read-only detail with only Close, and no non-GET request was made; no sideways scroll at 320, 360, 390, 840 and 1280 px.
+
+## S16-08, "start / day N of M / finish" (display only)
+
+- **Where it shows.** The weekly sheet, the daily sheet and Days always agree (all the comparisons above include these labels). The Week bars show the week-long form ("Chapter 2 · in progress" when the week sits inside one chapter, otherwise "chapters 18–19" or "chapter 3"), which is the developer's design: a bar covers a week, not a day. "Keep going" is gone from everywhere I looked.
+- **Where it is right.** A Mon/Wed book at about half a chapter a day (my "Slow Mon Wed book", 10 chapters): every chapter reads "Chapter 1 · start" on Monday and "Chapter 1 · finish" on Wednesday, ten chapters in a row, in Days and both sheets. A 3-day case ("day 2 of 3") and a lessons case ("Lesson 18 · start", "Lesson 18 · day 2 of 3") read correctly too.
+- **The caveat: a parent would notice, and it is not rare (N10, Medium).** The "day 2 of 4" is guessed from the day's size, so with a steady pace that does not divide a chapter evenly the labels drift. My "Very slow daily book" (10 chapters over the winter, about 0.26 of a chapter a day) reads: Mon Nov 9 "Chapter 2 · day 2 of 4", Wed Nov 11 "Chapter 2 · day 2 of 4" (the same label twice in a row), Fri "Chapter 2 · day 3 of 4", Mon "Chapter 2 · finish", and Chapter 2 never shows "start" (`retest-chapter-labels-1280-light.png`). The same pattern holds for chapters 2 to 6 in the weeks I read (a "day 2 of 4" twice, no "start"), and for chapters 7 to 9 ("start", "day 2", "day 3", "day 3" and the "finish" day is missing). Only chapter 1 and the exactly-even Mon/Wed case are clean. A page book at under a page a day shows "Page 2 · day 2 of 3" on the first day inside page 2. Cause, as far as I can see from the plan: a day that begins a hair after a chapter boundary (about 0.02 of a chapter in these cases) is read as already inside the chapter instead of at its start. It is display only, but the labels exist to say where in the chapter the child is, and here they sometimes say the wrong thing.
+- **Another look at it.** Where a chapter or lesson is the day's whole size or more (The Secret Garden at 1.3 chapters a day), every day can read "· finish" ("Chapter 21 · finish", "Chapter 22 · finish", "Chapter 23 · finish"); that is true but reads oddly.
+
+## S16-10, Term in review follows the log setup
+
+I set the family's log setup through the API to each template and opened the card (All children, Year, Frank), then Save and Print:
+
+| Log setup | Card shows | As expected? |
+|---|---|---|
+| Hours by subject | Time by subject bars, "31 h 20 m in all" | Yes, no school days, no books |
+| Core and non-core hours | "14 h core hours", "17 h 20 m non-core hours", then the bars | Yes |
+| Days attended | One hero: "8 school days" | Yes, nothing else |
+| Days and hours | Tiles "8 school days" and "31 h 20 m in total" | Yes, no bars (hours are one total) |
+| Detailed log | Bars, then BOOKS READ with all 16 typed titles in two columns; notes never appear | Yes |
+| Crowded (school days, core and non-core, bars, home and away, books, notes on) | Five tiles (8 school days, core, non-core, hours at home 26 h 40 m, hours away 4 h 40 m), the six-subject bars, BOOKS READ with five titles and "and 11 more" | Yes, see below |
+
+- **The crowded card does not overflow.** All six parts sit inside the 1080 x 1350 saved PNG (`retest-term-crowded-saved-png.png`, half size): three tiles, then two, the bars, then three titles per column and "and 11 more", and the sprig at the bottom with space to spare. In the other 5 widths and both themes, no text left the card (I checked the position of every text element against the card's box) and the page never scrolled sideways. Saved PNGs are 1080 x 1350. Print gave **two pages in Letter and in A4** (one per child, light card even on a dark device); the first page is Frank's crowded card, complete.
+- **Nothing from completions:** with four finished books in the data, no "finished" or "books finished" tile or list is on any card.
+- **"Nothing logged".** Spring, All children: the page says "Nothing logged for this term yet." with Save and Print disabled and no card (`retest-term-nothing-logged-360.png`). With a set-up only Frank has data for (hours at home and away), the page shows Frank's card and the line "Nothing logged for Margaret this term yet." above it, and the button says "Save image" (one), not two.
+- **Margaret's own card** (one entry): "1 school day", "30 m core hours", one bar, BOOKS READ "Heidi"; fine.
+
+## New findings
+
+**N10 (Medium): chapter "day N of M" labels drift when the pace does not divide a chapter evenly (see S16-08).** Steps: in a family with two children, add a daily chapters book of about 10 chapters over a few months for one child (my "Very slow daily book", Nov 2 to Jan 29); open Schedule, Week, Days, the week of Nov 9 (Margaret), or print that week's sheet. Result: Mon "Chapter 2 · day 2 of 4" and Wed "Chapter 2 · day 2 of 4", no "Chapter 2 · start" in the week before or after. The daily and weekly sheets say the same as Days, so they agree with each other but not with where the child really is. It does not change the plan. A fix could count the days of a chapter from the plan's own day list (the days around it are known when the week is built), or round a day that starts within a few percent of a boundary to its start.
+
+**N11 (Low): the print summary prints "School days 0" for a child with nothing logged in the range.** Steps: Records, All children, This week (nothing logged), Export, Print summary. Result: each child's page has the line "School days 0" (the screen cards now say "—"). It is a printed record, so a zero is arguably honest, but it is the one place left that disagrees with the "—, never a zero" rule.
+
+**Notes:**
+
+- **N12:** the same shared assignment can read differently for two children on the same day when their plans differ slightly, for example Frank "History spine, lesson 39" and Margaret "History spine, Lesson 39 · finish" (and the capital letter changes with "· finish"). Such a pair stays under each child instead of one Together line, because Together merges only identical rows. It follows the developer's rule; the demo family, where the plans match, shows History spine once under Together.
+- **N13:** the Week bars use the week-long wording ("Chapter 2 · in progress") rather than start, day N and finish, so S16-08's "bars" only gets the "Keep going" removal, not the day words. This follows the developer's reading of the ticket.
+- **N14:** the Days attended card (one number) and the Days and hours card (two tiles) are about half empty cream. They are calm and correct, just bare next to the crowded one.
+
+## What Will should look at first (re-test)
+
+1. **Chapter labels on a slowly read daily book (N10).** Open a book that takes four or five days a chapter; you will see "day 2 of 4" twice and no "start" for most chapters.
+2. **The Term in review cards for your log setup**, saved and printed (the crowded card is `retest-term-crowded-saved-png.png`).
+3. **Days under All children at 320 and 1280 px**: headings, Together, and the ranges that no longer get cut.
+4. Then the printed "School days 0" (N11).
+
+## Re-test screenshots (`docs/reviews/sprint-16/`)
+
+| File | Shows |
+|---|---|
+| `retest-days-grouped-320-light.png` | Days at 320 px under All children: Frank and Margaret headings with a colour rule, whole ranges wrapped under titles |
+| `retest-chapter-labels-1280-light.png` | Margaret's week: "Chapter 2 · day 2 of 4" on Monday and again on Wednesday (N10) |
+| `retest-term-crowded-saved-png.png` | The saved PNG (half size) of a crowded Term in review card with every part, "and 11 more" |
+| `retest-term-nothing-logged-360.png` | Term in review with nothing logged: one calm line, Save and Print off |
