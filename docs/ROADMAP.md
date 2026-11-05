@@ -128,14 +128,15 @@ Sprint 10a and 10b are merged (PRs #5 and #6). Each sprint gets its own branch o
 3. [ ] **Sprint 13: Printable sheets and term in review** (built: S13-00 to S13-06 are done and pushed; the S13-07 tester pass is next; progress in `progress/sprint-13.md`).
    - **Printable work sheets, weekly and daily (a parent feature).** The parent prints them; children never use the app. "Print sheets" on Schedule · Week: a week or a single day, and one, several or All children, one page per child. Each subject, the assignment and that week's or day's range ("Treasure Island · pages 120–150"), split by day on the weekly sheet; the daily sheet shows only what's scheduled that weekday. Paper checkboxes and a notes line. No minutes, no family overview page (Will).
    - **Term in review.** One card image per child for a term or the year, from Records: the assignments marked finished (Sprint 12), books read, time by subject and school days, each only if the family tracks it. No invented numbers, no favourite-book guess, no parent note. Saved as an image or printed; no public link.
-4. [ ] **Sprint 14: Accounts and the hosting fixes in code** (below), moved after the features by Will on 2026-11-05. Needed before DeeDee's spring term on a host; to be discussed with Will before it starts. If the mid-December core target is at risk, the features slip, not this.
+4. [ ] **Sprint 14: Accounts, and undo for Add several and CSV import** (Will, 2026-11-05: accounts now, hosting on hold). Built: S14-00 to S14-06 are done and pushed; the S14-07 tester pass is next; progress in `progress/sprint-14.md`. The hosting fixes in code (below) stay on hold with hosting.
 5. [ ] **The end-to-end run** on a realistic Charlotte Mason term (below), then **phase 2, private hosting** for DeeDee (H1–H3 decided first).
 6. [ ] **After hosting: the calendar feed.** One-way: a private subscription link a parent adds to Google, Apple or Outlook Calendar, holding events, breaks and optionally assignment start and finish dates (never daily work), with children's names in the titles and an optional feed per child. We never sign in to or read their calendar; Google refreshes within about a day, which the app says. Two-way sync is not planned.
 ### Sprint 14: accounts and the hosting fixes in code
 Discuss with Will before it starts (Will, 2026-11-01). The items are in "Accounts" and "Hosting fixes in code" below.
 
 ### Accounts
-- [ ] **Invite-only accounts, with separate parent logins.** An invite link creates a family account, and the same kind of link adds a second parent to an existing family. Each parent has their own login to the one family; today the login is stored on the family itself, so it moves to its own table. Password resets are done by hand with the existing `set-family-login` CLI. Self-serve signup and emailed resets wait until going public, so no email provider is needed yet.
+- [x] **Invite-only accounts, with separate parent logins** (built in Sprint 14, tester next). A `parent` table holds each parent's own login; every family's old login became its first parent. Will and DeeDee make a new family's invite link with `create-family-invite`; a family invites its second parent from Family settings. Links are single use, last 7 days and are stored only as a hash. Sessions last 30 days from last use. Password resets are by hand with `set-parent-login`. Self-serve signup and emailed resets wait until going public, so no email provider is needed yet.
+- [x] **Undo for Add several and CSV import** (Sprint 14): one undo for the lot, like the copy panels; CSV import takes up to 200 rows.
 - [ ] **Read-only share link** (before the friends beta, phase 4). A secret, revocable link to one family's timeline and This Week, for a grandparent, evaluator or co-op leader. Links are unguessable and hidden from search engines, since they show children's names.
 
 ### Hosting fixes in code
@@ -250,7 +251,7 @@ Decided by Will on 2026-10-30; DeeDee can still revisit them before the work is 
 ### Needed for hosting (phase 2)
 
 - **H1. Where to host,** within about $20 a month.
-- **H2. Sessions** (O10): sign the cookie or drop `SESSION_SECRET`, and add expired-session cleanup. The login throttle exists; making it work behind a proxy is in "Private hosting".
+- **H2. Sessions** (O10): sign the cookie or drop `SESSION_SECRET`, and add expired-session cleanup (the cleanup is built, S14-04: at sign-in and hourly; the cookie is still unsigned-random, hosting decides the rest). The login throttle exists; making it work behind a proxy is in "Private hosting".
 - **H3. Time-zone fallback** (O6): a bad stored zone falls back to America/Chicago. Keep that, or ask the family?
 
 ### Before going public (phase 5)

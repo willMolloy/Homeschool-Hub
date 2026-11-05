@@ -10,6 +10,10 @@
 
 S12-01 to S12-07 and S12-09 are built and pushed on `claude/test-coverage-analysis-6dehbu` (migration 024, engine 0.13.0). The S12-08 tester pass is next; the PR to `main` comes after it passes.
 
+## Build status: Sprint 14 (see `sprint-14.md`)
+
+S14-00 to S14-06 are built and pushed on `claude/test-coverage-analysis-6dehbu` (migrations 025 `parent` and 026 `invite`: each family's login moved to a first parent, invite links, 30-day sessions with cleanup, "Signed in as", Parents in Family settings, undo for Add several and CSV import). The S14-07 tester pass is next; the PR to `main` comes after it passes. Will and DeeDee make a new family's link with `npm run create-family-invite -w @hh/api` (HOW_WE_WORK, "Accounts and the command line"). Hosting and its code fixes stay on hold.
+
 ## Build status: Sprint 13 (see `sprint-13.md`)
 
 S13-00 to S13-06 are built and pushed on `claude/test-coverage-analysis-6dehbu` (engine 0.14.0: a book finished early ends its bar that day; Print sheets, `/print/week` and `/print/day`; Term in review at `/records/review`). The S13-07 tester pass is next; the PR to `main` comes after it passes, and after Sprint 12's tester (S12-08) has already merged in PR #10.
