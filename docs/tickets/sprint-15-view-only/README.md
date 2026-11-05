@@ -21,4 +21,5 @@ Build in order, one commit per ticket, gate ALL GREEN, push after each. Progress
 | 3 | [S15-03 — The viewer's Schedule and Records](S15-03-viewer-screens.md) | M |
 | 4 | [S15-04 — Docs and smoke](S15-04-docs-and-smoke.md) | XS |
 | 5 | [S15-06 — Day ranges in whole chapters, lessons and pages](S15-06-whole-unit-ranges.md) (Will, build before the tester) | S |
-| 6 | [S15-05 — Tester pass](S15-05-tester-pass.md) | S |
+| 6 | [S15-07 — Month view: day squares, one row per assignment](S15-07-month-view-squares-and-rows.md) (Will, build before the tester) | S |
+| 7 | [S15-05 — Tester pass](S15-05-tester-pass.md) | S |
