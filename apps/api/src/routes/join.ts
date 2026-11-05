@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { HttpError } from "../http/errors";
 import { passwordProblem } from "../auth/passwordRules";
-import { SESSION_COOKIE, SESSION_DAYS, sessionCookieOptions } from "../auth/session";
+import { SESSION_COOKIE, SESSION_DAYS, sessionCookieOptions, sweepExpiredSessions } from "../auth/session";
 import { EmailInUse, INVITE_UNAVAILABLE_MESSAGE, InviteUnavailable, previewInvite, redeemInvite } from "../services/invites";
 
 const JoinBody = z.strictObject({
@@ -29,6 +29,7 @@ export async function joinRoutes(app: FastifyInstance): Promise<void> {
     if (problem) throw new HttpError(400, "invalid_request", problem);
     try {
       const joined = await redeemInvite(app.db, req.params.token, parsed.data, SESSION_DAYS);
+      await sweepExpiredSessions(app.db);
       reply.setCookie(SESSION_COOKIE, joined.sessionToken, sessionCookieOptions(app.config.NODE_ENV === "production"));
       return reply.code(201).send({ familyId: joined.familyId, familyName: joined.familyName, parentName: joined.parentName, kind: joined.kind });
     } catch (e) {

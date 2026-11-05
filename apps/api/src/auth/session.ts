@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { createHash, randomBytes } from "node:crypto";
+import type { Queryable } from "../db";
 
 export const SESSION_COOKIE = "hh_session";
 export const SESSION_DAYS = 30;
@@ -17,6 +18,12 @@ export function hashSessionToken(token: string): string {
 
 export function sessionCookieOptions(production: boolean) {
   return { httpOnly: true, sameSite: "lax" as const, secure: production, path: "/", maxAge: SESSION_MAX_AGE_S };
+}
+
+/** S14-04: deletes sessions past their expiry (every device, every family: they are dead anyway). Returns how many. Run at sign-in and hourly. */
+export async function sweepExpiredSessions(db: Queryable): Promise<number> {
+  const { rowCount } = await db.query("DELETE FROM session WHERE expires_at <= now()");
+  return rowCount ?? 0;
 }
 
 // ---------------------------------------------------------------- session check (S1-13)
@@ -37,7 +44,7 @@ declare module "fastify" {
 /**
  * Adds a preHandler on the root instance: every /api/* route except those with
  * `config: { public: true }` needs a live hh_session cookie, else 401 `unauthenticated`.
- * Sliding expiry: at most once an hour, last_seen_at = now() and expires_at = now() + 30 days
+ * Sliding expiry (S14-04): a session lasts 30 days from its last use. At most once an hour, last_seen_at = now() and expires_at = now() + 30 days
  * (and the cookie is re-sent with a fresh max-age).
  */
 export function registerSessionAuth(app: FastifyInstance): void {

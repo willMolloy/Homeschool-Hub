@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { HttpError } from "../http/errors";
 import { hashPassword, verifyPassword } from "../auth/password";
-import { SESSION_COOKIE, SESSION_DAYS, hashSessionToken, newSessionToken, sessionCookieOptions } from "../auth/session";
+import { SESSION_COOKIE, SESSION_DAYS, hashSessionToken, newSessionToken, sessionCookieOptions, sweepExpiredSessions } from "../auth/session";
 
 const LoginBody = z.strictObject({ email: z.string().trim().min(1).max(320).refine((s) => !s.includes("\u0000")), password: z.string().min(1).max(1000) });
 
@@ -34,6 +34,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     await app.db.query(
       `INSERT INTO session (id, family_id, parent_id, expires_at) VALUES ($1, $2, $3, now() + make_interval(days => $4))`,
       [hashSessionToken(token), family.family_id, family.id, SESSION_DAYS]);
+    await sweepExpiredSessions(app.db); // S14-04: expired sessions are cleaned up on sign-in
     reply.setCookie(SESSION_COOKIE, token, sessionCookieOptions(app.config.NODE_ENV === "production"));
     return { familyId: family.family_id, familyName: family.family_name, parentName: family.name };
   });
