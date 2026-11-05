@@ -40,10 +40,11 @@ export function ChildSheetView({ sheet, kind, heading, dayWord, child }: { sheet
           ))}
         </section>
       ))}
-      <section className="sheet-notes" aria-label={`Notes for ${sheet.childName}`}>
+      {/* S15-00 (N2): not a landmark (no label), so a sheet with nothing planned has one region, not two with near-identical names. */}
+      <div className="sheet-notes">
         <h2>Notes</h2>
         {Array.from({ length: NOTE_LINES[kind] }, (_, i) => <div key={i} className="sheet-line" />)}
-      </section>
+      </div>
     </section>
   );
 }

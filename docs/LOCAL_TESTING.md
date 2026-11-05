@@ -90,3 +90,12 @@ Write anything you notice in a list; Claude will turn it into tickets.
 - [ ] The demo family (`demo@example.com`) and the other seeded families (`smoke@`, `empty@`, `fresh@example.com`, all with the demo password) still sign in as before. The demo family can't invite.
 - [ ] Assignments → **Add several**: add two or three books and Save; the undo bar says "Added 3 assignments. Undo" and one tap removes exactly those. **Import CSV**: a file with 60 rows imports in one go ("Imported 60 assignments. Undo") and one tap removes all 60. After you check in a week that includes one of them, Undo says it can't be undone any more.
 - [ ] 320 px and dark mode: the join page, the Parents card and the undo bar don't scroll sideways and every button and link is easy to tap. Scenario: `node flow.mjs accounts` (scripts/smoke; it makes its own family with the command, so it needs no seed).
+
+
+**View-only access (Sprint 15):** run `npm run demo` and the seed script first (`smoke@example.com`). Nothing is emailed; you copy the links yourself.
+- [ ] Sign in as `smoke@example.com`, Set up → Family settings → **View-only access**: type a label ("Co-op"), **Create a sign-up link**; the link shows once with Copy link. Open it in a private window: "View {family}", create a login (or "I already have an account").
+- [ ] The viewer lands on Schedule with a **View only** label and the family's name; the bar or rail has Schedule and Records only. Week: change week and child, open a bar (a read-only detail with only Close), Print sheets. Year: zoom, month and child, open a bar. Records: range and child, Export, Term in review. There is no add, edit, Log, Delete, Update status, Copy or More anywhere, and typing /setup in the address goes back to Schedule.
+- [ ] As the parent, the card lists the viewer with name, email and joined date; **Remove** asks first. Reload the viewer's window: it is signed out. The used link and a made-up link show the same plain message.
+- [ ] One login, two accounts: a viewer who also has a family (join the link with "I already have an account" using that family's login) sees "Switch to {family}" in the Account menu, and in that family's menu "Switch to {co-op} (View only)"; signing in again opens the account used last.
+- [ ] 320 px and dark mode: nothing scrolls sideways and every control is easy to tap. Scenario: `node flow.mjs view-only` (scripts/smoke; it needs the seed and leaves its viewer removed). Set `CHROME_PATH` to the Chromium you have.
+

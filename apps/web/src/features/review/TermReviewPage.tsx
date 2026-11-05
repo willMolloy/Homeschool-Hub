@@ -114,7 +114,7 @@ export function TermReviewPage() {
         {failedLoad ? (
           <div className="form-error" role="alert"><p>Couldn&apos;t load the review.</p><Button variant="secondary" onClick={() => { family.reload(); subjects.reload(); children.reload(); assignments.reload(); }}>Retry</Button></div>
         ) : loading ? <p aria-busy="true">Loading…</p> : kids.length === 0 ? (
-          <p className="review-empty">Add a child first: each card is for a child. <Link to="/setup/children">Add a child</Link></p>
+          <p className="review-empty">{me.role === "viewer" ? "No children yet." : <>Add a child first: each card is for a child. <Link to="/setup/children">Add a child</Link></>}</p>
         ) : (
           <>
             <div className="range-chips" role="group" aria-label="Range">

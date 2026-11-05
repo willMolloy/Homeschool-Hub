@@ -41,6 +41,7 @@ Accounts (Sprint 14) are invite-only; Will and DeeDee run these by hand (details
 npm run create-family-invite -w @hh/api                 # prints a /join/<token> link for a new family, once (single use, 7 days)
 npm run create-family-invite -w @hh/api -- list         # open invites (no links: only a hash is stored)
 npm run create-family-invite -w @hh/api -- revoke <id>  # cancel an open invite
+npm run remove-parent -w @hh/api -- <email>              # remove a parent (and their sessions); refuses a family's last parent
 npm run set-parent-login -w @hh/api -- <email>          # reset a parent's password (prompts; never printed)
 ```
 

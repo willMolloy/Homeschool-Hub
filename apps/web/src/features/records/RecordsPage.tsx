@@ -36,6 +36,8 @@ export function RecordsPage() {
   const children = useApi<Child[]>("/api/children");
   const entries = useApi<RecordEntry[]>("/api/log-entries");
   const me = useMe();
+  // S15-03: a viewer reads the same records (range, child, totals, entries, Export, Term in review) and can change none of them.
+  const readOnly = me.role === "viewer";
   const assignments = useApi<Assignment[]>("/api/assignments");
   const [changing, setChanging] = useState(false);
   const [params, setParams] = useSearchParams();
@@ -71,7 +73,10 @@ export function RecordsPage() {
   if (!family.data || !subjects.data || !children.data || !entries.data || !assignments.data || !totals.data) return <section className="records-page"><h1>Records</h1><p aria-busy="true">Loading…</p></section>;
 
   const saved = (f: FamilySettings, s: Subject[]) => { family.setData(f); subjects.setData(s); setChanging(false); };
-  if (!setup || changing) {
+  if (readOnly && !setup) {
+    return <section className="records-page"><h1>Records</h1><p className="records-lead">Nothing has been set up to track yet.</p><p className="records-wording">{RECORDS_WORDING}</p></section>;
+  }
+  if (!readOnly && (!setup || changing)) {
     return (
       <section className="records-page">
         <h1>{setup ? "Log setup" : "Set up your log"}</h1>
@@ -92,14 +97,14 @@ export function RecordsPage() {
   return (
     <section className="records-page">
       <h1>Records</h1>
-      <p className="records-lead">Your log tracks <strong>{trackedWords(setup.fields, true)}</strong>. <button type="button" className="btn-link" onClick={() => setChanging(true)}>Change log setup</button></p>
+      <p className="records-lead">{readOnly ? "The log tracks" : "Your log tracks"} <strong>{trackedWords(setup!.fields, true)}</strong>.{readOnly ? null : <> <button type="button" className="btn-link" onClick={() => setChanging(true)}>Change log setup</button></>}</p>
       {kids.length === 0 ? (
-        <EmptyState text="Add a child first: each entry in your log is for a child." action={<Link className="btn" to="/setup/children">Add a child</Link>} />
+        <EmptyState text={readOnly ? "No children yet." : "Add a child first: each entry in your log is for a child."} action={readOnly ? undefined : <Link className="btn" to="/setup/children">Add a child</Link>} />
       ) : entries.data.length === 0 ? (
-        <EmptyState text="Nothing logged yet." action={<Button onClick={() => setLogging("new")}>Log</Button>} />
+        <EmptyState text="Nothing logged yet." action={readOnly ? undefined : <Button onClick={() => setLogging("new")}>Log</Button>} />
       ) : (
         <>
-          <div className="records-actions"><Button onClick={() => setLogging("new")}>Log</Button><Button variant="secondary" onClick={() => setExporting(true)}>Export</Button>
+          <div className="records-actions">{readOnly ? null : <Button onClick={() => setLogging("new")}>Log</Button>}<Button variant="secondary" onClick={() => setExporting(true)}>Export</Button>
             <Link className="btn btn-secondary" to={`/records/review?${new URLSearchParams({ ...(rangeKey !== "dates" && rangeKey !== "week" ? { range: rangeKey } : {}), ...(choice ? { child: choice } : {}) }).toString()}`}>Term in review</Link></div>
           <ChildSwitch kids={kids} value={choice} onChange={setChoice} />
           <div className="range-chips" role="group" aria-label="Range">
@@ -115,7 +120,7 @@ export function RecordsPage() {
           <p className="range-note">{range ? formatRangeYears(range.start, range.end) : "Pick the first and last day."}</p>
           {range ? (
             <>
-              <Totals totals={totals.data} fields={setup.fields} subjects={subjects.data} anyChild={childId === null && kids.length > 1} />
+              <Totals totals={totals.data} fields={setup!.fields} subjects={subjects.data} anyChild={childId === null && kids.length > 1} />
               {error ? <p className="form-error" role="alert">{error}</p> : null}
               {inRange.length === 0 ? <p className="records-lead">Nothing logged in these dates.</p> : (
                 <ul className="entry-list" aria-label="Log entries">
@@ -124,10 +129,12 @@ export function RecordsPage() {
                       <div className="entry-head">{dayWords(e)} · {nameOf(e.childId)}</div>
                       {e.whole ? <p className="entry-part">{partWords(e.whole)}</p> : null}
                       <p className="entry-sum">{summaryOf(e, subjects.data!)}</p>
-                      <div className="entry-actions">
-                        <Button variant="quiet" aria-label={`Edit ${nameOf(e.childId)}, ${dayWords(e.whole ?? e)}`} onClick={() => setLogging(e.whole ?? e)}>Edit</Button>
-                        <Button variant="quiet" aria-label={`Delete ${nameOf(e.childId)}, ${dayWords(e.whole ?? e)}`} onClick={() => void remove(e.whole ?? e)}>Delete</Button>
-                      </div>
+                      {readOnly ? null : (
+                        <div className="entry-actions">
+                          <Button variant="quiet" aria-label={`Edit ${nameOf(e.childId)}, ${dayWords(e.whole ?? e)}`} onClick={() => setLogging(e.whole ?? e)}>Edit</Button>
+                          <Button variant="quiet" aria-label={`Delete ${nameOf(e.childId)}, ${dayWords(e.whole ?? e)}`} onClick={() => void remove(e.whole ?? e)}>Delete</Button>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -139,16 +146,16 @@ export function RecordsPage() {
       <p className="records-wording">{RECORDS_WORDING}</p>
       <ResponsiveSheet open={exporting} onOpenChange={(o) => !o && setExporting(false)} title="Export" wide="side">
         {exporting && range ? (
-          <ExportSheet fields={setup.fields} children={children.data} subjects={subjects.data} entries={entries.data} start={range.start} end={range.end}
+          <ExportSheet fields={setup!.fields} children={children.data} subjects={subjects.data} entries={entries.data} start={range.start} end={range.end}
             childIds={childId ? [childId] : kids.map((k) => k.id)} onClose={() => setExporting(false)} />
         ) : null}
       </ResponsiveSheet>
-      <ResponsiveSheet open={logging !== null} onOpenChange={(o) => !o && setLogging(null)} title={logging === "new" || logging === null ? "Log" : "Change entry"} wide="side">
+      {readOnly ? null : <ResponsiveSheet open={logging !== null} onOpenChange={(o) => !o && setLogging(null)} title={logging === "new" || logging === null ? "Log" : "Change entry"} wide="side">
         {logging ? (
-          <LogEntryForm key={logging === "new" ? "new" : logging.id} fields={setup.fields} children={children.data} subjects={subjects.data}
+          <LogEntryForm key={logging === "new" ? "new" : logging.id} fields={setup!.fields} children={children.data} subjects={subjects.data}
             entry={logging === "new" ? undefined : logging} onCancel={() => setLogging(null)} onSaved={() => { setLogging(null); refresh(); }} />
         ) : null}
-      </ResponsiveSheet>
+      </ResponsiveSheet>}
     </section>
   );
 }

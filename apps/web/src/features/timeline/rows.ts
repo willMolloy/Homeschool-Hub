@@ -47,3 +47,20 @@ export function packRows<T extends Pick<TimelineAssignment, "assignmentId" | "da
   rows[0]!.push(...empty);
   return rows;
 }
+
+/**
+ * S15-07: at daily detail (This month, and any view of about five weeks or less) every assignment gets a row of its own, even when it does
+ * not overlap another of its subject. Ordered by first drawn day, then id (as packRows). Assignments that draw nothing go in the first
+ * row, so a child always has at least one row. Term and Year zoom keep `packRows`.
+ */
+export function soloRows<T extends Pick<TimelineAssignment, "assignmentId" | "daily" | "weekly">>(assignments: readonly T[]): T[][] {
+  const drawn = assignments
+    .map((a) => ({ a, span: drawnExtent(a) }))
+    .filter((x): x is { a: T; span: [number, number] } => x.span !== null)
+    .sort((x, y) => x.span[0] - y.span[0] || (x.a.assignmentId < y.a.assignmentId ? -1 : x.a.assignmentId > y.a.assignmentId ? 1 : 0));
+  const rows: T[][] = drawn.map(({ a }) => [a]);
+  const empty = assignments.filter((a) => drawnExtent(a) === null);
+  if (rows.length === 0) return [[...empty]];
+  rows[0]!.push(...empty);
+  return rows;
+}

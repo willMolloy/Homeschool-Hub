@@ -17,14 +17,28 @@ export interface WeekBarData {
   total: number;
 }
 
-/** "pages 120–150", "lesson 31", "chapters 4–6", "90 minutes": fractions round outward, never "4.38". */
-export function rangeWords(unitType: UnitType, from: number, to: number): string {
+/**
+ * S15-06: a whole unit belongs to exactly one day. The plan's cumulative positions are fractional (about 1.3 chapters a day), so a chapter
+ * split across two days used to be listed on both ("chapters 17–18, 18–19"). Display only: each range runs from the unit after the previous
+ * rounded end to this range's rounded end (the cumulative position rounded to the nearest whole unit), so consecutive days never overlap and
+ * the last day lands on the total. A range that does not move (under half a unit) reads "Keep going: Chapter 7". The plan and stored data
+ * are unchanged. `total` (when known) stops "Keep going" naming a unit past the end.
+ */
+export const wholeUnit = (position: number): number => Math.round(position + 1e-9);
+
+/** "pages 120–150", "lesson 31", "chapters 4–6", "Keep going: Chapter 7", "90 minutes". */
+export function rangeWords(unitType: UnitType, from: number, to: number, total?: number): string {
   if (unitType === "minutes") {
     const n = Math.round(to - from);
     return `${unitNumber(n)} ${n === 1 ? UNIT_LABELS.minutes.one : UNIT_LABELS.minutes.many}`;
   }
-  const first = Math.floor(from + 1e-9) + 1;
-  const last = Math.max(first, Math.ceil(to - 1e-9));
+  const first = wholeUnit(from) + 1;
+  const last = wholeUnit(to);
+  if (last < first) {
+    const n = total !== undefined ? Math.min(first, Math.max(1, Math.round(total))) : first;
+    const one = UNIT_LABELS[unitType].one;
+    return `Keep going: ${one[0]!.toUpperCase()}${one.slice(1)} ${n}`;
+  }
   const word = UNIT_LABELS[unitType][first === last ? "one" : "many"];
   return `${word} ${first === last ? first : `${first}–${last}`}`;
 }

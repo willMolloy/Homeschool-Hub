@@ -25,7 +25,7 @@ describe.skipIf(!hasDb)("POST /api/auth/login (integration)", () => {
     const app = buildApp(testConfig(), { db: pool });
     const res = await login(app, EMAIL, PASSWORD);
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ familyId, familyName: "Login family", parentName: "Test parent" });
+    expect(res.json()).toEqual({ familyId, familyName: "Login family", parentName: "Test parent", role: "parent" });
     const c = res.cookies.find((x) => x.name === "hh_session")!;
     expect(c).toMatchObject({ httpOnly: true, sameSite: "Lax", path: "/", maxAge: 30 * 24 * 3600 });
     expect(c.secure).toBeFalsy(); // only in production

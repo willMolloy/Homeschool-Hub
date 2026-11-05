@@ -192,7 +192,7 @@ describe("week bars (pure)", () => {
     expect(rangeWords("lessons", 30.2, 35)).toBe("lessons 31–35");
     expect(rangeWords("chapters", 8, 9)).toBe("chapter 9");
     expect(rangeWords("minutes", 600, 750)).toBe("150 minutes");
-    expect(rangeWords("pages", 119.99, 150.01)).toBe("pages 120–151");
+    expect(rangeWords("pages", 119.99, 150.01)).toBe("pages 121–150"); // S15-06: nearest whole unit at each end (was rounded outward)
   });
   it("only assignments with work that week get a bar", () => {
     const look = { children: [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }], subjects: SUBJECTS, titleOf: () => "X", subjectOf: () => "lit" };

@@ -72,7 +72,7 @@ export function UpdateStatusSheet({ item, position, mode, plan, whenText, onSave
   return (
     <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={item.title}>
       <div className="status-sheet">
-        <p className="status-sub">{item.childName} · {rangeWords(item.unitType, item.plannedFrom, item.plannedTo)} {whenText}</p>
+        <p className="status-sub">{item.childName} · {rangeWords(item.unitType, item.plannedFrom, item.plannedTo, item.totalUnits)} {whenText}</p>
         <h3 className="status-label" id={labelId}>How did it go?</h3>
         <div className="status-ways" role="group" aria-labelledby={labelId}>
           {WAYS.map(({ way: w, label }) => <Chip key={w} selected={way === w} onClick={() => pick(w)}>{label}</Chip>)}

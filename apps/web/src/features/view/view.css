@@ -1,0 +1,17 @@
+/* S15-03: the viewer's bar bar and the read-only bar detail. Everything is 44 px or larger where it can be pressed. */
+.viewer-bar { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 10px var(--page-pad); padding-top: max(10px, env(safe-area-inset-top)); border-bottom: 1px solid var(--line); background: var(--tl-card); }
+.viewer-name { flex: 1 1 8rem; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.viewer-badge { display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; border-radius: 999px; background: var(--tl-primary-soft); color: var(--tl-primary); font-size: 0.8125rem; font-weight: 700; }
+.viewer-menu-btn { box-sizing: border-box; min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--tl-input); background: var(--tl-card); color: var(--tl-foreground); font: inherit; font-weight: 600; cursor: pointer; }
+.viewer-signed-in { margin: 0 0 8px; color: var(--tl-muted-foreground); overflow-wrap: anywhere; }
+.viewer-signout { margin-top: 12px; }
+.viewer-note { margin: 0 0 12px; color: var(--tl-muted-foreground); }
+
+.view-detail { display: grid; gap: 10px; padding-bottom: 8px; }
+.view-detail-sub { margin: 0; color: var(--tl-muted-foreground); overflow-wrap: anywhere; }
+.view-detail-list { margin: 0; display: grid; gap: 8px; }
+.view-detail-list > div { display: grid; gap: 2px; }
+.view-detail-list dt { font-size: 0.8125rem; color: var(--tl-muted-foreground); }
+.view-detail-list dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.view-detail-pace { margin: 0; display: flex; align-items: center; gap: 8px; }
+.view-detail-ended { margin: 0; font-weight: 600; }

@@ -34,10 +34,13 @@ describe("This month shows only what is in the month", () => {
     const together = model.lanes.filter((s) => s.children.some((c) => c.assignments.some((a) => shared.has(a.assignmentId)))).length;
     expect(together).toBeGreaterThan(0);
     expect(year.badges).toHaveLength(own + together);
-    const key = (b: { assignmentId: string; laneKey: string }) => `${b.laneKey}/${b.assignmentId}`;
-    const rowOf = new Map(year.bands.map((b) => [key(b), b.rowKey]));
+    // S15-07: at This month (daily detail) every assignment has a row of its own, in start order, so a bar's row number is not the Year's packed one.
     for (const month of gridMonths(model)) {
-      for (const b of layoutTimeline(model, { zoom: "month", width: 390, month }).bands) expect(b.rowKey).toBe(rowOf.get(key(b)));
+      const bands = layoutTimeline(model, { zoom: "month", width: 390, month }).bands.filter((b) => b.runs.length > 0);
+      for (const lane of new Set(bands.map((b) => b.laneKey))) {
+        const mine = bands.filter((b) => b.laneKey === lane);
+        expect(new Set(mine.map((b) => b.rowKey)).size).toBe(new Set(mine.map((b) => b.assignmentId)).size);
+      }
     }
   });
 });

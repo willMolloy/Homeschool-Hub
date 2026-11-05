@@ -49,7 +49,8 @@ describe("in the layout", () => {
         const spans = bands.map((b) => ({ b, x0: b.runs[0]!.x0, x1: b.runs.at(-1)!.x1 })).sort((a, z) => a.x0 - z.x0);
         for (let i = 1; i < spans.length; i++) expect(spans[i]!.x0 - spans[i - 1]!.x1).toBeGreaterThanOrEqual(ASSIGNMENT_GAP_PX - 0.01);
         for (const { b, x0, x1 } of spans) {
-          expect(b.connectors).toHaveLength(b.runs.length - 1);
+          if (zoom === "month") expect(b.connectors).toEqual([]); // S15-07: no string between an assignment's blocks at daily detail
+          else expect(b.connectors).toHaveLength(b.runs.length - 1);
           for (const c of b.connectors) {
             expect(c.x0).toBeGreaterThanOrEqual(x0);
             expect(c.x1).toBeLessThanOrEqual(x1);
@@ -60,13 +61,14 @@ describe("in the layout", () => {
     });
   }
 
-  it("year view connects across the winter break; This month across every break", () => {
+  it("year view connects across the winter break; This month joins nothing (S15-07)", () => {
     const year = layoutTimeline(sample, { zoom: "year", width: 1280 });
     expect(year.bands.some((b) => b.connectors.length > 0)).toBe(true);
     const month = layoutTimeline(sample, { zoom: "month", width: 1280, month: "2026-12" });
     const split = month.bands.filter((b) => b.runs.length > 1);
     expect(split.length).toBeGreaterThan(0);
-    for (const b of split) expect(b.connectors).toHaveLength(b.runs.length - 1);
+    for (const b of split) expect(b.connectors).toEqual([]);
+    expect(month.bands.every((b) => b.connectors.length === 0)).toBe(true);
   });
 
   it("draws connectors as faint centre lines in the bar's colour", () => {

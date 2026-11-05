@@ -17,7 +17,7 @@ import type { ChildStep, SubjectLane, TimelineAssignment, TimelineModel } from "
 import { barTitle, estimateTextWidth, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
-import { drawnExtent, packRows } from "./rows";
+import { drawnExtent, packRows, soloRows } from "./rows";
 import { sumSeries } from "./grid";
 import { bridgeBreaks, smoothSeries } from "./smooth";
 import { makeXScale, type XScale } from "./xscale";
@@ -531,8 +531,11 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   };
   // T-07f: This month leaves out rows, lanes and groups with nothing in the month. Rows are packed from every
   // assignment first, so a bar keeps its row across zooms.
-  const rowsOf = (assignments: readonly TimelineAssignment[]) =>
-    options.zoom === "month" ? packRows(assignments).map((r) => r.filter(inMonth)).filter((r) => r.length > 0) : packRows(assignments);
+  // S15-07: at daily detail every assignment has a row of its own (and no connector joins its blocks); Term and Year pack and join as before.
+  const rowsOf = (assignments: readonly TimelineAssignment[]) => {
+    const packed = detail === "daily" ? soloRows(assignments) : packRows(assignments);
+    return options.zoom === "month" ? packed.map((r) => r.filter(inMonth)).filter((r) => r.length > 0) : packed;
+  };
   const children = model.children ?? [...new Map(model.lanes.flatMap((l) => l.children.map((c) => [c.childId, { childId: c.childId, name: c.childName }] as const))).values()];
   const sharedIds = children.length > 1 ? sharedAssignmentIds(model) : new Set<string>();
   const initials = new Map(children.map((c) => [c.childId, initialOf(c.name)]));
@@ -626,7 +629,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
           bands.push({
             rowKey: key, laneKey: lane.laneKey, assignmentId: a.assignmentId, childId: a.childId, title: a.title,
             paletteSlot: lane.paletteSlot, step: "base", d: pathFor(columns), runs: runsOf(columns), cy,
-            connectors: connectorsOf(pieces), ...(a.endedAs ? { ended: a.endedAs } : {}),
+            connectors: detail === "daily" ? [] : connectorsOf(pieces), ...(a.endedAs ? { ended: a.endedAs } : {}),
           });
           const limits = pieces.map((p) => freeTo(p[p.length - 1]!.x1));
           for (const name of placePieceNames(barTitle(a.title, a.endedAs), pieces, cy, detail === "smooth", measure, limits, a.endedAs === "stopped" ? { left: starts[0]! < pieces[pieces.length - 1]![0]!.x0 - 0.01 ? Number.POSITIVE_INFINITY : plotX, right: plotRight } : undefined)) {
