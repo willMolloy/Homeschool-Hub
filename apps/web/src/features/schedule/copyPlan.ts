@@ -58,7 +58,11 @@ export interface ChunkedResult {
  * created so far, `already` counting an earlier part of the same copy) the copy is one undo entry: the first chunk makes it and each
  * later chunk adds to it.
  */
-export async function saveInChunks(bodies: readonly CopyBody[], undoLabel?: (created: number) => string, already = 0): Promise<ChunkedResult> {
+export async function saveInChunks(
+  bodies: readonly object[], undoLabel?: (created: number) => string, already = 0,
+  /** S14-05: names item `position` (1-based, over every chunk) in a server message; default its title. */
+  nameOf: (position: number) => string | undefined = (n) => (bodies[n - 1] as { title?: string } | undefined)?.title,
+): Promise<ChunkedResult> {
   const created: Assignment[] = [];
   const parts = Math.ceil(bodies.length / BULK_CHUNK);
   for (let p = 0; p < parts; p++) {
@@ -67,10 +71,22 @@ export async function saveInChunks(bodies: readonly CopyBody[], undoLabel?: (cre
       const undo = undoLabel ? { undo: { label: undoLabel(already + created.length + chunk.length), ...(p > 0 || already > 0 ? { append: true } : {}) } } : {};
       created.push(...(await apiPost<Assignment[]>("/api/assignments/bulk", { assignments: chunk, ...undo })));
     } catch (err) {
-      return { created, failure: { part: p + 1, parts, message: bulkSaveError(err, (n) => chunk[n - 1]?.title) } };
+      return { created, failure: { part: p + 1, parts, message: bulkSaveError(err, (n) => nameOf(p * BULK_CHUNK + n)) } };
     }
   }
   return { created, failure: null };
+}
+
+/**
+ * S14-05: the message under Add several and Import CSV after a failed save. One chunk (the usual case): just the server's reason, named by
+ * its row; several: which part failed and how many earlier ones were saved (they stay, and the undo bar offers to remove them).
+ */
+export function bulkFailureText(r: ChunkedResult): string {
+  const f = r.failure;
+  if (!f) return "";
+  if (f.parts === 1) return f.message;
+  const done = r.created.length === 0 ? "Nothing was added." : `${r.created.length} ${r.created.length === 1 ? "assignment was" : "assignments were"} added. Undo removes them.`;
+  return `Part ${f.part} of ${f.parts} didn't save: ${f.message} ${done}`;
 }
 
 /** "Part 2 of 3 didn't save" plus how many were created, for the panel's message. */

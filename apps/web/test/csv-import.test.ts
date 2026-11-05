@@ -152,20 +152,20 @@ describe("parseAssignmentsCsv", () => {
   it("10,000 rows give the row-cap error without reading them all (S3b-05)", () => {
     const row = (i: number) => `Math,Book ${i},Frank,lessons,20,2026-11-02,2026-11-26`;
     const many = Array.from({ length: 10_000 }, (_, i) => row(i)).join("\n");
-    const capped = { rows: [], errors: [{ line: 0, message: "Import at most 50 assignments at a time." }] };
+    const capped = { rows: [], errors: [{ line: 0, message: "Import at most 200 assignments at a time." }] };
     expect(parse(`${HEADER}\n${many}`)).toEqual(capped);
-    // Proof it stopped at row 51: an open quote far past it is never reached.
-    const fifty1 = Array.from({ length: 51 }, (_, i) => row(i)).join("\n");
+    // Proof it stopped at row 201: an open quote far past it is never reached.
+    const fifty1 = Array.from({ length: 201 }, (_, i) => row(i)).join("\n");
     expect(parse(`${HEADER}\n${fifty1}\nMath,"never closed`)).toEqual(capped);
   });
 
-  it("50 rows are fine, 51 are one whole-file error", () => {
+  it("200 rows are fine, 201 are one whole-file error (S14-05: was 50; the import sends chunks of 50 as one undo)", () => {
     const row = (i: number) => `Math,Book ${i},Frank,lessons,20,2026-11-02,2026-11-26`;
-    const fifty = Array.from({ length: 50 }, (_, i) => row(i)).join("\n");
-    expect(parse(`${HEADER}\n${fifty}`).rows).toHaveLength(50);
+    const fifty = Array.from({ length: 200 }, (_, i) => row(i)).join("\n");
+    expect(parse(`${HEADER}\n${fifty}`).rows).toHaveLength(200);
     const r = parse(`${HEADER}\n${fifty}\n${row(51)}`);
-    expect(r).toEqual({ rows: [], errors: [{ line: 0, message: "Import at most 50 assignments at a time." }] });
-    expect(errorText(r.errors[0]!)).toBe("Import at most 50 assignments at a time.");
+    expect(r).toEqual({ rows: [], errors: [{ line: 0, message: "Import at most 200 assignments at a time." }] });
+    expect(errorText(r.errors[0]!)).toBe("Import at most 200 assignments at a time.");
   });
 });
 

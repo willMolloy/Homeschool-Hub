@@ -30,7 +30,7 @@ export type UndoStep =
   | { op: "weekOverride"; id: string; set: WeekOverrideState | null }
   /** S9-07: a log entry; `set` is what to put back, or null for "this entry should not exist". Never touches the plan. */
   | { op: "logEntry"; id: string; set: RecordEntryState | null }
-  /** S7b-11: assignments a copy created; undone by deleting exactly these (refused once any has a check-in). */
+  /** S7b-11 / S14-05: assignments a copy, Add several or CSV import created; undone by deleting exactly these (refused once any has a check-in, a completion answer or a log entry). */
   | { op: "assignmentsCreated"; ids: string[] }
   /** weight_choice rows the change appended (S2b-07), taken back so an undone nudge doesn't steer the next suggestion. */
   | { op: "weightChoices"; ids: string[] };
@@ -136,8 +136,14 @@ async function applyStep(tx: Tx, familyId: string, step: UndoStep): Promise<void
       return;
     }
     case "assignmentsCreated": {
-      const { rowCount } = await tx.query("SELECT 1 FROM progress_checkin WHERE family_id = $1 AND assignment_id = ANY($2::uuid[]) LIMIT 1", [familyId, step.ids]);
-      if (rowCount) throw new Stale(); // a check-in now depends on one of the copies
+      // Refused (409, "can't be undone any more") once anything depends on one of them: a check-in, a completion answer (finished or
+      // stopped), or a log entry that refers to it. S14-05: this holds for Add several and CSV import as it did for the copy panels.
+      const { rowCount } = await tx.query(
+        `SELECT 1 FROM assignment a WHERE a.family_id = $1 AND a.id = ANY($2::uuid[]) AND (
+           a.ended_as IS NOT NULL
+           OR EXISTS (SELECT 1 FROM progress_checkin c WHERE c.family_id = a.family_id AND c.assignment_id = a.id)
+           OR EXISTS (SELECT 1 FROM log_entry l WHERE l.family_id = a.family_id AND l.assignment_id = a.id)) LIMIT 1`, [familyId, step.ids]);
+      if (rowCount) throw new Stale();
       await tx.query("DELETE FROM assignment WHERE family_id = $1 AND id = ANY($2::uuid[])", [familyId, step.ids]);
       return;
     }

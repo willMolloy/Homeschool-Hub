@@ -54,7 +54,7 @@ describe("Add several assignments (S3a-04)", () => {
     const shared = { subjectId: READING.id, unitType: "pages", weightPerUnit: null, startDate: "2026-11-02", endDate: "2026-12-18", childIds: [FRANK.id], weekdays: null };
     expect(writes()).toEqual([{
       method: "POST", path: "/api/assignments/bulk",
-      body: { assignments: [{ ...shared, title: "Charlotte's Web", totalUnits: 184 }, { ...shared, title: "Little House", totalUnits: 300 }] },
+      body: { assignments: [{ ...shared, title: "Charlotte's Web", totalUnits: 184 }, { ...shared, title: "Little House", totalUnits: 300 }], undo: { label: "Added 2 assignments" } },
     }]);
     expect(await screen.findByText("Little House")).toBeInTheDocument();
     expect(screen.getByText("Charlotte's Web")).toBeInTheDocument();

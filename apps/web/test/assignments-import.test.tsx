@@ -46,7 +46,7 @@ describe("Import assignments from a CSV (S3a-06)", () => {
       body: { assignments: [
         { ...shared, subjectId: MATH.id, title: "Fractions", unitType: "lessons", totalUnits: 30, childIds: [FRANK.id] },
         { ...shared, subjectId: READING.id, title: "Charlotte's Web, part 1", unitType: "pages", totalUnits: 184, childIds: [FRANK.id, MAGGIE.id] },
-      ] },
+      ], undo: { label: "Imported 2 assignments" } },
     }]);
     expect(await screen.findByText("Fractions")).toBeInTheDocument();
     expect(screen.getByText("Charlotte's Web, part 1")).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe("Import assignments from a CSV (S3a-06)", () => {
     const { user, form } = await setup();
     const read = vi.spyOn(FileReader.prototype, "readAsText");
     await user.upload(within(form).getByLabelText("CSV file"), new File(["x".repeat(1024 * 1024 + 1)], "big.csv", { type: "text/csv" }));
-    expect(await within(form).findByText("This file is too large. Import at most 50 assignments at a time.")).toBeInTheDocument();
+    expect(await within(form).findByText("This file is too large. Import at most 200 assignments at a time.")).toBeInTheDocument();
     expect(read).not.toHaveBeenCalled();
     expect(within(form).getByLabelText("Or paste it here")).toHaveValue("");
     expect(within(form).getByRole("button", { name: "Import" })).toBeDisabled();

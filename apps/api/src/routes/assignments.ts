@@ -38,9 +38,9 @@ const MAX_BULK = 50;
 const BulkBody = z.strictObject({
   assignments: z.array(z.unknown(), "Must be a list.").min(1, "Send at least one assignment.").max(MAX_BULK, `Send at most ${MAX_BULK} assignments.`),
   /**
-   * S7b-11: the copy panels ask for one undo entry covering what they create ("Copied 21 assignments to 2027–28"). Without
-   * it the request is not undoable (Add several and CSV import are not). `append` adds a later chunk of the same copy to
-   * the entry the first chunk made.
+   * S7b-11 / S14-05: the copy panels, Add several and CSV import ask for one undo entry covering what they create ("Copied 21
+   * assignments to 2027–28", "Added 6 assignments", "Imported 24 assignments"). Without it the request is not undoable. `append`
+   * adds a later chunk of the same save to the entry the first chunk made.
    */
   undo: z.strictObject({
     label: z.string("label must be text.").trim().min(1, "label is required.").max(200, "label must be 200 characters or fewer."),

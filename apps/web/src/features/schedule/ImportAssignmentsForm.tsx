@@ -1,17 +1,19 @@
 /**
  * S3a-06: "Import CSV" on the Assignments screen. Choose or paste a CSV, see what it holds (or what to fix), and import
- * every row in one POST /api/assignments/bulk. Parsing and checking are csvImport.ts; any error blocks the whole import.
+ * every row through POST /api/assignments/bulk (S14-05: in chunks of 50, as one undo). Parsing and checking are csvImport.ts; any error blocks the whole import.
  */
 import { useId, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
-import { apiPost } from "../../api/client";
 import type { Assignment } from "../../api/types";
 import { assignmentsCsvTemplate, errorText, MAX_IMPORT_BYTES, MAX_IMPORT_ROWS, parseAssignmentsCsv } from "./csvImport";
-import { bulkSaveError, dateRange } from "./formBits";
+import { bulkFailureText, saveInChunks } from "./copyPlan";
+import { dateRange } from "./formBits";
 import type { Lookups } from "./lookups";
 
 interface Props {
   l: Lookups;
   onSaved: (created: Assignment[]) => void;
+  /** Some were saved before a later chunk failed (S14-05): show them, keep the form open with the reason. */
+  onAdded: (created: Assignment[]) => void;
   onCancel: () => void;
 }
 
@@ -23,7 +25,7 @@ const readText = (file: File) =>
     reader.readAsText(file);
   });
 
-export function ImportAssignmentsForm({ l, onSaved, onCancel }: Props) {
+export function ImportAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) {
   const [text, setText] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -55,10 +57,12 @@ export function ImportAssignmentsForm({ l, onSaved, onCancel }: Props) {
     setFormError(null);
     setSaving(true);
     try {
-      onSaved(await apiPost<Assignment[]>("/api/assignments/bulk", { assignments: result.rows }));
-    } catch (err) {
-      // The server names an item by its position; say its title instead.
-      setFormError(bulkSaveError(err, (n) => result.rows[n - 1]?.title));
+      // S14-05: one undo for the lot ("Imported 24 assignments"); chunks of 50 add to the same entry. A server message names the row by its title.
+      const r = await saveInChunks(result.rows, (n) => `Imported ${n} ${n === 1 ? "assignment" : "assignments"}`);
+      if (r.failure) {
+        setFormError(bulkFailureText(r));
+        if (r.created.length > 0) onAdded(r.created);
+      } else onSaved(r.created);
     } finally {
       setSaving(false);
     }

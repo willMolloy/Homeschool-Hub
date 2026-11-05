@@ -52,9 +52,9 @@ interface Props<T extends ListItem> {
   /** Gives the edit form a Copy button: closes it and opens the Add form prefilled with this (S3a-01). */
   copyOf?: (item: T) => Draft<T>;
   /** S3a-04: gives the screen an "Add several" button that opens this form beside the single Add form. */
-  renderBulkForm?: (p: { onSaved: (created: T[]) => void; onCancel: () => void }) => ReactNode;
+  renderBulkForm?: (p: { onSaved: (created: T[]) => void; onAdded: (created: T[]) => void; onCancel: () => void }) => ReactNode;
   /** S3a-06: the same for an "Import CSV" button. */
-  renderImportForm?: (p: { onSaved: (created: T[]) => void; onCancel: () => void }) => ReactNode;
+  renderImportForm?: (p: { onSaved: (created: T[]) => void; onAdded: (created: T[]) => void; onCancel: () => void }) => ReactNode;
   /** S5-05: more buttons beside Add, each opening a panel in place of the Add buttons. `existing` is the list as loaded; S7-01: `onAdded` adds rows without closing the panel. */
   panels?: { id: string; label: string; render: (p: { existing: T[]; onSaved: (created: T[]) => void; onAdded: (created: T[]) => void; onCancel: () => void }) => ReactNode }[];
   /** Extra content above the list (e.g. a hint). */
@@ -83,7 +83,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
   const panelList = [
     ...(renderBulkForm ? [{ id: "several", label: "Add several", render: renderBulkForm }] : []),
     ...(renderImportForm ? [{ id: "import", label: "Import CSV", render: renderImportForm }] : []),
-    ...(panels ?? []).map((p) => ({ id: p.id, label: p.label, render: (q: { onSaved: (created: T[]) => void; onCancel: () => void }) => p.render({ existing: data ?? [], onAdded: (created) => setData((prev) => [...(prev ?? []), ...created]), ...q }) })),
+    ...(panels ?? []).map((p) => ({ id: p.id, label: p.label, render: (q: { onSaved: (created: T[]) => void; onAdded: (created: T[]) => void; onCancel: () => void }) => p.render({ existing: data ?? [], ...q }) })),
   ];
   const openPanel = panelList.find((p) => p.id === panel);
 
@@ -304,6 +304,8 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
               setPanel(null);
               if (created[0]) focusRow(created[0].id);
             },
+            // S14-05: some of a several/import save went in before a later chunk failed: the cards appear and the form stays open.
+            onAdded: (created) => setData((prev) => [...(prev ?? []), ...created]),
             onCancel: closePanel,
           })
           : null}
