@@ -8,6 +8,7 @@ import { capacityDays, ENGINE_VERSION, EngineInputError, planAll, toDayNumber, t
 import { HttpError } from "../http/errors";
 import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_DAYS, Weekdays } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
+import { requireOwned } from "../repos/refs";
 import { familyToday } from "../http/today";
 import { FamilyNotFoundError, loadPlanInputs, type PlanInputs } from "../plan/loadPlanInputs";
 
@@ -85,6 +86,10 @@ export async function planRoutes(app: FastifyInstance): Promise<void> {
   app.post("/api/plan/pace", async (req) => {
     const { drafts } = parseBody(PaceBody, req.body);
     for (const d of drafts) checkDateOrder(d.startDate, d.endDate, MAX_ASSIGNMENT_DAYS);
+    // S17-02: a child or subject that is not this family's is a 404, not an answer built from nothing.
+    await requireOwned(app.db, req.familyId, {
+      childIds: drafts.flatMap((d) => d.childIds), subjectIds: drafts.flatMap((d) => (d.subjectId ? [d.subjectId] : [])),
+    });
     let inputs: PlanInputs;
     try {
       inputs = await loadPlanInputs(app.db, req.familyId);

@@ -19,3 +19,17 @@ export async function checkRefs(db: Queryable, familyId: string, refs: { subject
   await checkActive(db, "subject", familyId, refs.subjectIds ?? [], refs.subjectIds?.length === 1 ? "subjectId" : "subjectRules");
   await checkActive(db, "child", familyId, refs.childIds ?? [], "childIds");
 }
+
+/**
+ * S17-02: ids named in a read (a query filter, a pace draft) must be this family's own, archived rows included, else 404 `not_found`
+ * (a write's body ids stay a 400 `invalid_reference` above). The same answer for another account's id and one that does not exist.
+ */
+export async function requireOwned(db: Queryable, familyId: string, refs: { childIds?: string[]; subjectIds?: string[] }): Promise<void> {
+  for (const [table, ids] of [["child", refs.childIds ?? []], ["subject", refs.subjectIds ?? []]] as const) {
+    const distinct = [...new Set(ids)];
+    if (distinct.length === 0) continue;
+    // `table` is a closed union, never user input.
+    const { rows } = await db.query<{ n: number }>(`SELECT count(*)::int AS n FROM ${table} WHERE family_id = $1 AND id = ANY($2::uuid[])`, [familyId, distinct]);
+    if (rows[0]!.n !== distinct.length) throw new HttpError(404, "not_found", `No such ${table}.`);
+  }
+}
