@@ -140,11 +140,14 @@ describe("the weekly sheet (S13-02)", () => {
     const p = plans().find((x) => x.assignmentId === "ti")!;
     const wk = plannedRange(p, "2026-11-02");
     expect(wk.from).toBeCloseTo(205.48, 1);
-    expect(ti.rows[0]!.range).toBe(`pages ${Math.floor(wk.from) + 1}–${Math.ceil(plannedRangeBetween(p, "2026-11-02", "2026-11-02").to)}`);
-    expect(ti.rows[4]!.range).toBe(`pages ${Math.floor(plannedRangeBetween(p, "2026-11-06", "2026-11-06").from) + 1}–${Math.ceil(wk.to)}`);
+    expect(ti.rows[0]!.range).toBe(`pages ${Math.round(wk.from) + 1}–${Math.round(plannedRangeBetween(p, "2026-11-02", "2026-11-02").to)}`);
+    expect(ti.rows[4]!.range).toBe(`pages ${Math.round(plannedRangeBetween(p, "2026-11-06", "2026-11-06").from) + 1}–${Math.round(wk.to)}`);
     // Each day starts where the day before ended.
     const ends = ti.rows.map((r) => plannedRangeBetween(p, r.date, r.date));
     for (let i = 1; i < ends.length; i++) expect(ends[i]!.from).toBeCloseTo(ends[i - 1]!.to, 6);
+    // S15-06: and the printed ranges never overlap: each day's first page is the page after the day before's last.
+    const nums = ti.rows.map((r) => r.range!.match(/\d+/g)!.map(Number));
+    for (let i = 1; i < nums.length; i++) expect(nums[i]![0]).toBe(nums[i - 1]![nums[i - 1]!.length - 1]! + 1);
   });
   it("leaves out days the assignment does not run on", () => {
     const margaret = buildSheet(KIDS[1]!, plans(), "2026-11-02", "2026-11-08", lookups(), BLOCKED_ROWS, [1, 2, 3, 4, 5]);

@@ -54,7 +54,7 @@ export function buildSheet(child: Child, plans: readonly ChildPlan[], from: Loca
       if (!day || day.units <= EPS || (p.endedOn && d > p.endedOn)) continue;
       const r = plannedRangeBetween(p, d, d);
       if (!r.hasPlannedWork) continue;
-      rows.push({ date: d, day: dayAbbr(d), range: p.unitType === "minutes" ? null : rangeWords(p.unitType, r.from, r.to) });
+      rows.push({ date: d, day: dayAbbr(d), range: p.unitType === "minutes" ? null : rangeWords(p.unitType, r.from, r.to, p.totalUnits) });
     }
     if (rows.length === 0) continue;
     const sid = l.subjectOf(p.assignmentId);
