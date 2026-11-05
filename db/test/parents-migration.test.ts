@@ -27,9 +27,10 @@ describe.skipIf(!hasDb)("025_parents (integration)", () => {
 
   it("moves every login into a first parent, with the same email and password hash", async () => {
     expect((await migrate(url, after.dir, () => {})).applied).toEqual(["025_parents"]);
-    expect(await q(url, "SELECT family_id, name, email, password_hash FROM parent ORDER BY email")).toEqual([
-      { family_id: B, name: "Parent", email: "@odd.example", password_hash: "scrypt$hashB" },
+    // Ordered by family id, not email: email order depends on the database's collation (C puts "@" first, en_US does not).
+    expect(await q(url, "SELECT family_id, name, email, password_hash FROM parent ORDER BY family_id")).toEqual([
       { family_id: A, name: "Alice.Smith", email: "Alice.Smith@Example.com", password_hash: "scrypt$hashA" },
+      { family_id: B, name: "Parent", email: "@odd.example", password_hash: "scrypt$hashB" },
     ]);
     expect(await q(url, "SELECT count(*)::int AS n FROM parent")).toEqual([{ n: 2 }]);
   });
