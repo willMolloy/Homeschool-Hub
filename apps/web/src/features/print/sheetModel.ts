@@ -7,7 +7,7 @@
 import { addDays, EPS, type ChildPlan, type LocalDate } from "@hh/engine";
 import type { BlockedRange, Child } from "../../api/types";
 import { WEEKDAY_NAMES } from "../../lib/dates";
-import { plannedRangeBetween, rangeWords, type Lookups } from "../week/weekBars";
+import { daySpanLabels, plannedRangeBetween, rangeWords, type Lookups } from "../week/weekBars";
 
 export interface SheetRow { date: LocalDate; /** "Mon" */ day: string; /** "pages 120–126", or null for work counted in minutes. */ range: string | null }
 export interface SheetAssignment { assignmentId: string; title: string; rows: SheetRow[] }
@@ -49,12 +49,14 @@ export function buildSheet(child: Child, plans: readonly ChildPlan[], from: Loca
   for (const p of plans) {
     if (p.childId !== child.id) continue;
     const rows: SheetRow[] = [];
+    // S16-11: a chapter or lesson's exact start / day N of M / finish, from the whole sequence of days the plan holds (it must hold days either side).
+    const spanWords = daySpanLabels(p);
     for (let d = from; d <= to; d = addDays(d, 1)) {
       const day = p.days.find((x) => x.date === d);
       if (!day || day.units <= EPS || (p.endedOn && d > p.endedOn)) continue;
       const r = plannedRangeBetween(p, d, d);
       if (!r.hasPlannedWork) continue;
-      rows.push({ date: d, day: dayAbbr(d), range: p.unitType === "minutes" ? null : rangeWords(p.unitType, r.from, r.to, p.totalUnits) });
+      rows.push({ date: d, day: dayAbbr(d), range: p.unitType === "minutes" ? null : spanWords.get(d) ?? rangeWords(p.unitType, r.from, r.to, p.totalUnits) });
     }
     if (rows.length === 0) continue;
     const sid = l.subjectOf(p.assignmentId);

@@ -33,7 +33,7 @@ export function PastWeek({ weekStart, choice, look, readOnly = false, layout = "
   return (
     <div className="board">
       {layout === "days" ? (
-        <WeekDays weekStart={weekStart} plans={plans!} kids={kids} look={look} markers={choice === ALL && kids.length > 1}
+        <WeekDays weekStart={weekStart} kids={kids} look={look} markers={choice === ALL && kids.length > 1}
           onOpen={(l) => {
             // A finished week's line opens what its bar opens: Update status for that assignment (a viewer: the read-only detail).
             const item = week.items.find((i) => i.assignmentId === l.assignmentId && i.childId === l.childId);

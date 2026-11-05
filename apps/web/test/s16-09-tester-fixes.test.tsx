@@ -107,3 +107,19 @@ describe("N5: the print summary", () => {
     expect(pages[1]!.text).not.toMatch(/Books read|None/);
   });
 });
+
+describe("N11 (S16-11): the print summary shows a dash, not 0, for school days with nothing logged", () => {
+  it("This week, with no entries", async () => {
+    const user = userEvent.setup();
+    window.print = vi.fn();
+    renderAt("/records?range=week");
+    await user.click(await screen.findByRole("button", { name: "Export" }));
+    const form = within(await screen.findByRole("dialog"));
+    await user.click(form.getByRole("button", { name: "Print summary" }));
+    await waitFor(() => expect(window.print).toHaveBeenCalled());
+    const rows = [...document.querySelectorAll(".print-summary .print-page tr")].filter((r) => r.querySelector("th")!.textContent === "School days");
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) expect(r.querySelector("td")!.textContent).toBe("—");
+    fireEvent(window, new Event("afterprint"));
+  });
+});

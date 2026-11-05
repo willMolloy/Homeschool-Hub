@@ -118,7 +118,7 @@ function PrintSummary({ input }: { input: ExportInput }) {
         const mine = exportEntries(input).filter((e) => e.childId === id);
         const t = totalsFor(mine, coreOf);
         const lines: [string, string][] = [];
-        if (want("schoolDays")) lines.push(["School days", String(t.schoolDays)]);
+        if (want("schoolDays")) lines.push(["School days", t.schoolDays > 0 ? String(t.schoolDays) : "—"]); // S16-11 (N11): never a zero, as on screen
         if (want("subjectHours")) for (const [sid, m] of [...t.bySubject].sort((a, b) => b[1] - a[1])) lines.push([input.subjects.find((s) => s.id === sid)?.name ?? "Subject", formatMinutes(m)]);
         // S9b-05 (N7): an amount nothing was typed for is left out, as in the CSV, never "0 m".
         const hours = (label: string, m: number) => { if (m > 0) lines.push([label, formatMinutes(m)]); };

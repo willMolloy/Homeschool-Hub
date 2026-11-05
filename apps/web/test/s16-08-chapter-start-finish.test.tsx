@@ -8,43 +8,19 @@ import { rangeWords } from "../src/features/week/weekBars";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
-/** The day ranges of a book of `total` units at `perDay`, for the days given (cumulative positions, as the plan has them). */
-function walk(unit: "chapters" | "lessons" | "pages", perDay: number[], total: number): string[] {
-  let pos = 0;
-  return perDay.map((d) => { const end = Math.min(total, pos + d); const r = rangeWords(unit, pos, end, total); pos = end; return r; });
-}
-
-describe("the day range helper (S16-08)", () => {
-  it("about 0.5 a day: start, then finish", () => {
-    expect(walk("chapters", [0.5, 0.5, 0.5, 0.5], 19)).toEqual(["Chapter 1 · start", "Chapter 1 · finish", "Chapter 2 · start", "Chapter 2 · finish"]);
-  });
-  it("about 0.33 a day: start, day 2 of 3, finish", () => {
-    expect(walk("chapters", Array(6).fill(1 / 3), 19)).toEqual(["Chapter 1 · start", "Chapter 1 · day 2 of 3", "Chapter 1 · finish", "Chapter 2 · start", "Chapter 2 · day 2 of 3", "Chapter 2 · finish"]);
-  });
-  it("a longer span counts its place: about 0.25 a day", () => {
-    expect(walk("chapters", Array(4).fill(0.25), 19)).toEqual(["Chapter 1 · start", "Chapter 1 · day 2 of 4", "Chapter 1 · day 3 of 4", "Chapter 1 · finish"]);
-  });
-  it("whole-chapter days keep their ranges, and a span can sit beside them", () => {
-    // 1 chapter, 2 chapters, then half a chapter twice
-    expect(walk("chapters", [1, 2, 0.5, 0.5, 1], 19)).toEqual(["chapter 1", "chapters 2–3", "Chapter 4 · start", "Chapter 4 · finish", "chapter 5"]);
-  });
-  it("lessons and pages say the same, and the last chapter of the book finishes on the total", () => {
-    expect(walk("lessons", [0.5, 0.5], 10)).toEqual(["Lesson 1 · start", "Lesson 1 · finish"]);
-    expect(rangeWords("chapters", 18.5, 19, 19)).toBe("Chapter 19 · finish");
-    expect(rangeWords("pages", 119.5, 120, 300)).toBe("Page 120 · finish");
-  });
-  it("a day that ends one chapter and begins the next names the one it spends more of; never 'Keep going'", () => {
-    expect(rangeWords("chapters", 16.6, 17.2, 19)).toBe("Chapter 17 · finish");
-    expect(rangeWords("chapters", 16.9, 17.6, 19)).toBe("chapter 18"); // rounds to one whole chapter, as in S15-06
-    for (let f = 0; f < 6; f += 0.17) expect(rangeWords("chapters", f, f + 0.17, 19)).not.toMatch(/Keep going/);
-  });
-  it("a week or a status line over part of a chapter says start, finish or in progress", () => {
+describe("a week's or status line's words (S16-08, S16-11)", () => {
+  it("name the whole units it finishes, else part-way through one: start, or in progress", () => {
     expect(rangeWords("chapters", 16, 16.4, 19, true)).toBe("Chapter 17 · start");
     expect(rangeWords("chapters", 16.4, 16.7, 19, true)).toBe("Chapter 17 · in progress");
-    expect(rangeWords("chapters", 16.7, 17, 19, true)).toBe("Chapter 17 · finish");
-    expect(rangeWords("chapters", 16.2, 18.7, 19, true)).toBe("chapters 17–19"); // several units: the whole-unit range
+    expect(rangeWords("chapters", 16.7, 17, 19, true)).toBe("chapter 17");
+    expect(rangeWords("chapters", 16.2, 18.7, 19, true)).toBe("chapters 17–18");
+    expect(rangeWords("chapters", 16.2, 19, 19, true)).toBe("chapters 17–19");
+    expect(rangeWords("lessons", 30.2, 35)).toBe("lessons 31–35");
   });
-  it("minutes are unchanged", () => {
+  it("never says Keep going; pages and minutes keep plain ranges", () => {
+    for (let f = 0; f < 6; f += 0.17) expect(rangeWords("chapters", f, f + 0.17, 19)).not.toMatch(/Keep going/);
+    expect(rangeWords("pages", 119.5, 120.4, 300)).toBe("page 120");
+    expect(rangeWords("pages", 0, 0.2, 300)).toBe("page 1");
     expect(rangeWords("minutes", 0, 30)).toBe("30 minutes");
   });
 });

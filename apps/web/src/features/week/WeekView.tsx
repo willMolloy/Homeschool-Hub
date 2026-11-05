@@ -121,7 +121,7 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look, readOnly, layo
   return (
     <>
       {layout === "days" ? (
-        <WeekDays weekStart={weekStart} plans={plans} kids={kids} look={look} markers={choice === ALL && kids.length > 1}
+        <WeekDays weekStart={weekStart} kids={kids} look={look} markers={choice === ALL && kids.length > 1}
           onOpen={(l) => (readOnly ? setViewing(l.assignmentId) : setAdjusting({ childId: l.childId, childName: l.childName }))} />
       ) : kids.map((k) => {
         const mine = bars.filter((b) => b.childId === k.id);
