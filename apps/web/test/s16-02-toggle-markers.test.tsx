@@ -100,27 +100,24 @@ describe("the Bars | Days toggle (S16-02)", () => {
   });
 });
 
-describe("the child markers (S16-02)", () => {
-  it("show under All children only: the initial in the child's colour, with the name for screen readers", async () => {
+describe("child headings instead of markers (S16-02, S16-07)", () => {
+  it("show under All children only, as headings; no initials ever", async () => {
     localStorage.setItem("hh.child", "all");
     const user = userEvent.setup();
     renderAt(WEEK + "&layout=days");
     await screen.findByRole("region", { name: "Mon, Nov 2" });
-    const dots = [...document.querySelectorAll<HTMLElement>(".day-dot")];
-    expect(dots.length).toBeGreaterThan(5);
-    const frank = dots.find((d) => d.textContent === "F")!;
-    expect(frank.style.background).toMatch(/rgb\(59, 111, 176\)|#3b6fb0/i);
-    expect(frank).toHaveAttribute("aria-hidden", "true");
+    expect(document.querySelectorAll(".day-child").length).toBeGreaterThan(5);
+    expect(document.querySelectorAll(".day-dot")).toHaveLength(0);
     await user.click(screen.getByRole("button", { name: "Margaret" }));
-    await waitFor(() => expect(document.querySelectorAll(".day-dot")).toHaveLength(0));
+    await waitFor(() => expect(document.querySelectorAll(".day-child")).toHaveLength(0));
     await user.click(screen.getByRole("button", { name: "All children" }));
-    await waitFor(() => expect(document.querySelectorAll(".day-dot").length).toBeGreaterThan(5));
+    await waitFor(() => expect(document.querySelectorAll(".day-child").length).toBeGreaterThan(5));
   });
-  it("a family with one child never sees markers", async () => {
+  it("a family with one child never sees headings", async () => {
     fakeApi.on("GET /api/children", 200, [KIDS[0]!]);
     renderAt(WEEK + "&layout=days");
     await screen.findByRole("region", { name: "Mon, Nov 2" });
-    expect(document.querySelectorAll(".day-dot")).toHaveLength(0);
+    expect(document.querySelectorAll(".day-child")).toHaveLength(0);
   });
 });
 

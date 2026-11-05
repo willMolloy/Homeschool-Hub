@@ -101,7 +101,7 @@ Write anything you notice in a list; Claude will turn it into tickets.
 
 **The week, day by day, and clearer Records (Sprint 16):** run `npm run demo` (and the seed script for the Records and log checks, `smoke@example.com`).
 - [ ] Schedule · Week: **Bars** is selected on a fresh device. Tap **Days**: every school day of the week is on the page, each with a load bar and one line per assignment (icon, title, range). Reload: Days is still chosen. Tap Bars and reload: Bars.
-- [ ] Under **All children** each line has a coloured initial; pick one child and the initials go. A week with Thanksgiving shows "Thanksgiving break" as one quiet line; a day with nothing says "Nothing planned".
+- [ ] Under **All children** each day has a heading per child and a **Together** group for shared work (no initials); pick one child and the headings go. A week with Thanksgiving shows "Thanksgiving break" as one quiet line; a day with nothing says "Nothing planned".
 - [ ] Open Print sheets for the same week: each day's ranges on paper match the Days lines exactly. Tap a Days line: it opens the same adjustment as the bar.
 - [ ] 360 px: the days stack in one scroll. 840 px and up: the days are side by side, with no sideways scroll at 1280 px. Light and dark. A viewer sees the toggle and Days, and a line opens the read-only detail. Scenario: `node flow.mjs days` (scripts/smoke, demo family, writes nothing; set `CHROME_PATH` to a Chromium).
 - [ ] Records (log set up, with entries for two children): School days names each child's number; Books finished counts only reading assignments you marked finished (tap it for titles and dates); typed titles are a "Books mentioned in your log" list. Export, Totals: a "Books finished" column.

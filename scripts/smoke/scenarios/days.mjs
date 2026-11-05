@@ -66,12 +66,14 @@ export default async function ({ page, login, log, BASE }) {
       check(small.length === 0, `${where}: controls under 44 px: ${small.join("; ")}`);
       const onScreen = await page.evaluate(() => [...document.querySelectorAll(".day")].flatMap((d) => {
         const day = d.getAttribute("aria-label").slice(0, 3);
-        return [...d.querySelectorAll(".day-line")].map((l) => `${l.querySelector(".sr-only")?.textContent}|${day}|${l.querySelector(".day-title").textContent}|${l.querySelector(".day-range")?.textContent ?? "-"}`);
+        // a Together line stands for each child's identical row on the sheet
+        return [...d.querySelectorAll(".day-line")].flatMap((l) => l.getAttribute("data-children").split(",").map((c) => `${c}|${day}|${l.querySelector(".day-title").textContent}|${l.querySelector(".day-range")?.textContent ?? "-"}`));
       }).sort());
       const same = JSON.stringify(onScreen) === JSON.stringify(paper);
       check(same, `${where}: Days differs from the printed sheet (${onScreen.length} lines vs ${paper.length} rows)`);
-      const initials = await page.$$eval(".day-dot", (d) => new Set(d.map((x) => x.textContent)).size);
-      check(initials === 2, `${where}: expected two child initials, saw ${initials}`);
+      const heads = await page.$$eval(".day-child", (d) => [...new Set(d.map((x) => x.textContent))]);
+      check(heads.length >= 3 && heads.includes("Together"), `${where}: expected child and Together headings, saw ${heads.join(", ")}`);
+      check((await page.$$(".day-dot")).length === 0, `${where}: initials are still drawn`);
       if (width === 1280) {
         const rows = await page.$$eval(".day", (d) => new Set(d.map((x) => Math.round(x.getBoundingClientRect().top))).size);
         check(rows === 1, `${where}: the days are not side by side`);

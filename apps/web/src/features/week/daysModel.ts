@@ -18,16 +18,28 @@ export interface DayLine {
   slot: number;
   /** "pages 120–126"; null for work counted in minutes (the title alone). */
   range: string | null;
+  /** Together lines: every child it is for (one line stands for each child's identical row on the sheet). */
+  togetherWith?: string[];
+}
+/** S16-07: under All children a day's lines sit under a child's heading, then Together (work shared by two or more children, once). */
+export interface DayGroup {
+  key: string;
+  /** The child's name, or "Together"; null when the day is not grouped (one child shown). */
+  heading: string | null;
+  childId: string | null;
+  lines: DayLine[];
+  /** A quiet line under the heading: that child's day off ("Dentist"). */
+  off: string | null;
 }
 export interface DayColumn {
   date: LocalDate;
   /** "Mon, Nov 2" */
   heading: string;
   lines: DayLine[];
+  /** The same lines in groups (S16-07). Ungrouped (one group, no heading) unless several children are shown. */
+  groups: DayGroup[];
   /** A whole day off for everyone shown: one quiet line ("Thanksgiving break"). */
   off: string | null;
-  /** Under several children, a child who is off while the others work: "Frank · Dentist". */
-  notes: string[];
   /** 0..1, this day's effort against the week's busiest day (no numbers are shown). */
   load: number;
 }
@@ -46,7 +58,7 @@ export function dayOffName(blocked: readonly BlockedRange[], childId: string, da
 }
 
 /** The days of the week starting `weekStart`: the family's school days, plus any other day that has work (so no line on paper is missing here). */
-export function buildDays(kids: readonly Child[], plans: readonly ChildPlan[], weekStart: LocalDate, l: SheetLookups, blocked: readonly BlockedRange[], schoolDays: readonly number[], withNames: boolean): DayColumn[] {
+export function buildDays(kids: readonly Child[], plans: readonly ChildPlan[], weekStart: LocalDate, l: SheetLookups, blocked: readonly BlockedRange[], schoolDays: readonly number[], withNames: boolean, sharedIds: ReadonlySet<string> = new Set()): DayColumn[] {
   const weekEnd = addDays(weekStart, 6);
   const sheets = kids.map((k) => buildSheet(k, plans, weekStart, weekEnd, l, blocked, schoolDays));
   const kidIds = new Set(kids.map((k) => k.id));
@@ -78,9 +90,27 @@ export function buildDays(kids: readonly Child[], plans: readonly ChildPlan[], w
     const offBy = kids.map((k) => ({ k, name: dayOffName(blocked, k.id, date) })).filter((x): x is { k: Child; name: string } => x.name !== null);
     const everyoneOff = mine.length === 0 && offBy.length === kids.length && kids.length > 0;
     const off = everyoneOff ? [...new Set(offBy.map((x) => x.name))].join(" · ") : null;
-    const notes = !everyoneOff && withNames ? offBy.filter((x) => !mine.some((m) => m.childId === x.k.id)).map((x) => `${x.k.name} · ${x.name}`) : [];
     const e = effort.get(date) ?? 0;
-    columns.push({ date, heading: `${dayAbbr(date)}, ${formatShort(date)}`, lines: mine, off, notes, load: busiest > 0 ? e / busiest : 0 });
+    const groups: DayGroup[] = [];
+    if (!withNames) groups.push({ key: "all", heading: null, childId: null, lines: mine, off: null });
+    else if (!everyoneOff) {
+      // Work shared by two or more children is one Together line when every child's row is identical; otherwise it stays under each child.
+      const together: DayLine[] = [];
+      const rest: DayLine[] = [];
+      for (const l of mine) {
+        if (!sharedIds.has(l.assignmentId) || rest.includes(l) || together.some((t) => t.assignmentId === l.assignmentId)) { if (!sharedIds.has(l.assignmentId)) rest.push(l); continue; }
+        const same = mine.filter((m) => m.assignmentId === l.assignmentId);
+        if (same.length >= 2 && same.every((m) => m.range === l.range)) together.push({ ...l, key: `${date}/together/${l.assignmentId}`, togetherWith: same.map((m) => m.childName) });
+        else rest.push(...same);
+      }
+      for (const k of kids) {
+        const lines = rest.filter((l) => l.childId === k.id);
+        const name = offBy.find((x) => x.k.id === k.id)?.name ?? null;
+        if (lines.length > 0 || name) groups.push({ key: k.id, heading: k.name, childId: k.id, lines, off: lines.length === 0 ? name : null });
+      }
+      if (together.length > 0) groups.push({ key: "together", heading: "Together", childId: null, lines: together, off: null });
+    }
+    columns.push({ date, heading: `${dayAbbr(date)}, ${formatShort(date)}`, lines: mine, groups, off, load: busiest > 0 ? e / busiest : 0 });
   }
   return columns;
 }

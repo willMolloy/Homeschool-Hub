@@ -63,7 +63,9 @@ button.bar-body { cursor: pointer; }
 .day-line:hover { background: var(--tl-secondary); }
 .day-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 0.9375rem; }
 .day-range { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; color: var(--tl-muted-foreground); }
-.day-dot { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; font-size: 0.6875rem; font-weight: 700; }
+.day-group + .day-group { margin-top: 6px; }
+/* S16-07: a small heading per child (their colour as a rule, the name in the page's text) and Together. */
+.day-child { margin: 8px 4px 2px; padding-bottom: 2px; border-bottom: 2px solid var(--kid, var(--tl-border)); font-family: var(--tl-font); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; color: var(--tl-foreground); }
 .day-quiet { margin: 2px 4px 6px; min-height: 28px; display: flex; align-items: center; font-size: 0.875rem; color: var(--tl-muted-foreground); }
 @media (min-width: 840px) {
   .days-grid { grid-template-columns: repeat(var(--days), minmax(0, 1fr)); align-items: start; gap: 10px; }
@@ -74,8 +76,7 @@ button.bar-body { cursor: pointer; }
   .day-line { flex-wrap: wrap; row-gap: 0; }
   .day-title { flex: 1 1 0; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
   .day-range { max-width: 100%; min-width: 0; flex-basis: 100%; padding-left: 26px; order: 3; white-space: normal; overflow-wrap: anywhere; }
-  .day-dot { order: 2; }
-}
+  }
 /* The columns need the width: the Days layout drops the content column's cap, as Year does. */
 @media (min-width: 840px) { .shell-main:has(.days-grid) { max-width: none; } }
 
