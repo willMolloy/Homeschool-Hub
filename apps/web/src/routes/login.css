@@ -19,3 +19,5 @@
 .login .btn {
   width: 100%;
 }
+/* S14-02: the join page's links are 44 px tall tap targets. */
+.login .card p > a, .login .card p > a:visited { display: inline-flex; align-items: center; min-height: 44px; color: var(--tl-primary); }

@@ -15,6 +15,7 @@ import { SignedInShell } from "./layout/SignedInShell";
 import { REDIRECTS } from "./layout/nav";
 import { KidsPage } from "./routes/KidsPage";
 import { LoginPage } from "./routes/LoginPage";
+import { JoinPage } from "./features/join/JoinPage";
 import { NotFoundPage } from "./routes/NotFoundPage";
 import { SubjectsPage } from "./routes/SubjectsPage";
 import { PrintDayPage, PrintWeekPage } from "./features/print/PrintPage";
@@ -60,6 +61,8 @@ export const routes: RouteObject[] = [
     element: <Root />,
     children: [
       { path: "/login", element: <LoginRoute /> },
+      // S14-02: the page behind an invite link (no session needed).
+      { path: "/join/:token", element: <JoinPage /> },
       // S11-01: the setup flow is signed-in but outside the shell (no tab bar while setting up).
       { path: "/welcome", element: <RequireAuth><WelcomePage /></RequireAuth> },
       // S13-01: the print pages are signed-in but outside the shell (no bar or rail on the sheets).
