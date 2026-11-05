@@ -58,11 +58,12 @@ button.bar-body { cursor: pointer; }
 .day-load { flex: 1; min-width: 24px; max-width: 120px; height: 6px; margin-left: auto; border-radius: 999px; background: var(--tl-secondary); overflow: hidden; }
 .day-load i { display: block; height: 100%; border-radius: 999px; background: var(--tl-primary); color: var(--tl-primary-foreground); }
 .day-lines { list-style: none; margin: 0; padding: 0; }
-.day-line { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; box-sizing: border-box; padding: 4px 6px 4px 8px; border: 0; border-left: var(--tl-rule) solid var(--cs); border-radius: 6px;
+.day-line { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; box-sizing: border-box; padding: 4px 6px 4px 8px; border: 0; border-left: var(--tl-rule) solid var(--cs); border-radius: 6px; flex-wrap: wrap; row-gap: 0;
   background: transparent; color: var(--tl-foreground); font: inherit; text-align: left; cursor: pointer; }
 .day-line:hover { background: var(--tl-secondary); }
-.day-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 0.9375rem; }
-.day-range { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; color: var(--tl-muted-foreground); }
+.day-title { flex: 1 1 7rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 0.9375rem; }
+/* S16-09 (N2): the range is never cut. The title gives way first (it truncates); if the range will not fit beside at least 7rem of title it wraps under it. */
+.day-range { flex: 0 1 auto; max-width: 100%; margin-left: auto; text-align: right; white-space: normal; overflow-wrap: anywhere; font-size: 0.8125rem; color: var(--tl-muted-foreground); }
 .day-group + .day-group { margin-top: 6px; }
 /* S16-07: a small heading per child (their colour as a rule, the name in the page's text) and Together. */
 .day-child { margin: 8px 4px 2px; padding-bottom: 2px; border-bottom: 2px solid var(--kid, var(--tl-border)); font-family: var(--tl-font); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; color: var(--tl-foreground); }

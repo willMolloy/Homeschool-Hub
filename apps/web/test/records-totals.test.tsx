@@ -63,10 +63,10 @@ describe("the big numbers (pure): tracked fields only", () => {
     expect(bigNumbers(t, { ...NO_FIELDS, schoolDays: true, totalHours: true }).map((n) => n.label)).toEqual(["school days", "in total"]);
     expect(bigNumbers(t, { ...NO_FIELDS, notes: true })).toEqual([]);
   });
-  it("S9b-05 (N7): hours and books nothing was typed for show a dash, never 0 m; school days stay a number", () => {
+  it("S9b-05 (N7): nothing typed shows a dash, never 0 m or a zero (S16-09, N3)", () => {
     const none = { ...t, schoolDays: 0, totalMinutes: 0, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [] };
     const shown = bigNumbers(none, ALLF).map((n) => [n.label, n.value]);
-    expect(shown).toEqual([["school days", "0"], ["in total", "—"], ["core hours", "—"], ["non-core hours", "—"], ["hours at home", "—"], ["hours away", "—"]]);
+    expect(shown).toEqual([["school days", "—"], ["in total", "—"], ["core hours", "—"], ["non-core hours", "—"], ["hours at home", "—"], ["hours away", "—"]]);
     expect(shown.flat().join(" ")).not.toMatch(/\b0 m\b|hours hours/);
   });
 });

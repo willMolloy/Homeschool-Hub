@@ -37,7 +37,8 @@ describe("the card's layout (S13-05)", () => {
     expect([l.width, l.height]).toEqual([1080, 1350]);
     expect(l.title).toBe("Frank · Fall 2026");
     const t = texts(l.items);
-    expect(t).toEqual(expect.arrayContaining(["TERM IN REVIEW", "Homeschool Hub", "Frank · Fall 2026", "Aug 31 – Dec 31, 2026", "72", "school days", "6", "finished", "3", "books finished", "TIME BY SUBJECT", "60 h in all", "35 h", "25 h", "FINISHED", "BOOKS FINISHED"]));
+    expect(t).toEqual(expect.arrayContaining(["TERM IN REVIEW", "Homeschool Hub", "Frank · Fall 2026", "Aug 31 – Dec 31, 2026", "72", "school days", "6", "finished", "3", "books finished", "TIME BY SUBJECT", "60 h in all", "35 h", "25 h", "FINISHED"])); // S16-09 (N4): books finished is a number only, no second list
+    expect(t).not.toContain("BOOKS FINISHED");
     expect(l.roomy).toBe(false);
   });
   it("a year says so: 'Year in review' and 2026–27", () => {
@@ -66,7 +67,7 @@ describe("the card's layout (S13-05)", () => {
     expect(layout(review({ schoolDays: 72 })).roomy).toBe(true);
     expect(layout(review({ finished: fin(2), schoolDays: 72 })).roomy).toBe(true);
     expect(texts(layout(review({ finished: fin(2), schoolDays: 72 })).items)).toContain("across 72 school days");
-    expect(layout(review({ finished: fin(2), books: ["Heidi"] })).roomy).toBe(false); // two lists use the full layout
+    expect(layout(review({ finished: fin(2), books: ["Heidi"] })).roomy).toBe(false); // a finished list and a books tile use the full layout
   });
   it("long lists show the rows that fit, then 'and N more'; the tiles keep the true totals; nothing is shrunk", () => {
     const books = Array.from({ length: 40 }, (_, i) => `Book ${i + 1}`);
@@ -75,11 +76,10 @@ describe("the card's layout (S13-05)", () => {
     expect(t).toContain("30");
     expect(t).toContain("40");
     const more = t.filter((x) => /^and \d+ more$/.test(x));
-    expect(more).toHaveLength(2);
+    expect(more).toHaveLength(1); // only the finished list is drawn (S16-09, N4)
     const shownFinished = t.filter((x) => /^Book number \d+$/.test(x)).length;
-    const shownBooks = t.filter((x) => /^Book \d+$/.test(x)).length;
     expect(shownFinished + Number(more[0]!.match(/\d+/)![0])).toBe(30);
-    expect(shownBooks + Number(more[1]!.match(/\d+/)![0])).toBe(40);
+    expect(t.some((x) => /^Book \d+$/.test(x))).toBe(false); // the books' titles are not written a second time
     // Row text never shrinks: every list row is drawn at its size (26 for finished, 27 for books).
     for (const i of l.items) if (i.k === "text" && /^Book number/.test(i.text)) expect(i.size).toBe(26);
     // Nothing is drawn below the card.

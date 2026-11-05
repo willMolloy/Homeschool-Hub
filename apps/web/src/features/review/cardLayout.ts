@@ -142,9 +142,9 @@ export function layoutCard(input: CardInput): CardLayout {
       y += 178 + GAP;
     }
     if (hasHours) y = bars(y) + GAP;
-    if (hasFinished || hasBooks) {
-      const both = hasFinished && hasBooks;
-      const colW = both ? (BODY_W - 48) / 2 : BODY_W;
+    // S16-09 (N4): one list. Books finished is a number only (a tile or the hero), so no title is written twice.
+    if (hasFinished) {
+      const colW = BODY_W;
       const rowsTop = y + 48;
       const avail = BOTTOM - rowsTop;
       const list = (x: number, head: string, n: number, rowH: number, draw: (i: number, cy: number) => void, moreIndent: number) => {
@@ -158,13 +158,6 @@ export function layoutCard(input: CardInput): CardLayout {
         badgeFor(f.subjectId, PAD + 18, cy, 36);
         text(PAD + 50, cy + 9, fit(f.title, 26, 700, "sans", colW - 50), 26, 700, colors.ink);
       }, 50);
-      if (hasBooks) {
-        const x = both ? PAD + colW + 48 : PAD;
-        list(x, "BOOKS FINISHED", r.books.length, 40, (i, cy) => {
-          items.push({ k: "icon", x, y: cy - 12, size: 24, name: "book", fill: colors.muted });
-          text(x + 38, cy + 9, fit(r.books[i]!, 27, 500, "serif", colW - 38), 27, 500, colors.ink, "serif");
-        }, 38);
-      }
     }
   } else {
     let y = BAND_H + 56;
@@ -212,18 +205,6 @@ export function layoutCard(input: CardInput): CardLayout {
         const x = PAD + col * (colW + 48), top = y + row * rowH;
         text(x + (two ? 88 : 96), top + rowH / 2 + 10, `and ${more} more`, 28, 700, colors.muted);
       }
-    } else if (hasBooks) {
-      const two = r.books.length > 8;
-      const rowH = two ? 64 : 80, cols = two ? 2 : 1, colW = two ? (BODY_W - 48) / 2 : BODY_W;
-      const perCol = Math.max(1, Math.floor(area / rowH));
-      const { shown, more } = slots(r.books, perCol * cols);
-      const at = (idx: number) => ({ x: PAD + Math.floor(idx / perCol) * (colW + 48), top: y + (idx % perCol) * rowH });
-      shown.forEach((b, i) => {
-        const { x, top } = at(i);
-        items.push({ k: "icon", x, y: top + rowH / 2 - 16, size: 32, name: "book", fill: colors.muted });
-        text(x + 52, top + rowH / 2 + 12, fit(b, two ? 30 : 36, 500, "serif", colW - 52), two ? 30 : 36, 500, colors.ink, "serif");
-      });
-      if (more > 0) { moreCount += more; const { x, top } = at(shown.length); text(x + 52, top + rowH / 2 + 10, `and ${more} more`, 28, 700, colors.muted); }
     }
     // The closing sprig, so the page ends on purpose.
     items.push({ k: "rect", x: PAD, y: closeTop + 19, w: (BODY_W - 40 - 48) / 2, h: 2, r: 0, fill: colors.line });

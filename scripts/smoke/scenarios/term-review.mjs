@@ -71,7 +71,7 @@ export default async function ({ page, shot, login, log, BASE }) {
   const cardText = () => page.$eval(".review-card svg", (s) => [...s.querySelectorAll("text")].map((t) => t.textContent));
   const first = await cardText();
   log("first card:", first.join(" | "));
-  check(first.includes("TIME BY SUBJECT") && first.includes("BOOKS READ"), "the card lacks time by subject or books");
+  check(first.includes("TIME BY SUBJECT") && first.includes("books finished") || first.includes("book finished"), "the card lacks time by subject or the books finished tile");
   check(first.includes("school days"), "the card lacks school days");
   check(!first.some((t) => /favou?rite|note|estimate/i.test(t)), "the card has an invented part");
   check(kids.length < 2 || (await page.$$eval(".review-print .review-print-page", (p) => p.length)) === kids.length, "not one print page per child");

@@ -22,7 +22,7 @@ export interface TotalsExtras {
 
 /**
  * S9b-05 (N7): hours with nothing typed show a dash; the total's caption is "in total" ("13 h 30 m in total", not "hours hours").
- * S16-05: the school-days card is one child's own count, or under All children each child's own ("Frank 42 · Margaret 40"): never a
+ * S16-05, S16-09 (N3): the school-days card is one child's own count, or under All children each child's own ("Frank 42 · Margaret 40"): never a
  * union, and no "any child" wording. Books are no longer a number here: "Books finished" (from completions) is its own card and the
  * typed titles are a list below.
  */
@@ -32,7 +32,7 @@ export function bigNumbers(t: RecordTotals, f: LogFields, extras: TotalsExtras =
   if (f.schoolDays) {
     const per = extras.perChild;
     if (per && per.length > 1) out.push({ label: "school days", value: per.map((c) => `${c.name} ${c.days > 0 ? c.days : NOTHING}`).join(" · "), parts: per.map((c) => ({ name: c.name, value: c.days > 0 ? String(c.days) : NOTHING })) });
-    else out.push({ label: "school days", value: String(t.schoolDays) });
+    else out.push({ label: "school days", value: t.schoolDays > 0 ? String(t.schoolDays) : NOTHING }); // S16-09 (N3): never a zero
   }
   if (f.subjectHours || f.totalHours) out.push({ label: "in total", value: hours(t.totalMinutes) });
   if (f.coreSplit) { out.push({ label: "core hours", value: hours(t.coreMinutes) }); out.push({ label: "non-core hours", value: hours(t.nonCoreMinutes) }); }
