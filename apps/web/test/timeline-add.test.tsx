@@ -141,7 +141,7 @@ describe("adding an assignment from the timeline", () => {
     await fillEssentials(user, sheet);
     await user.click(within(sheet).getByRole("button", { name: "Add" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    const post = fakeApi.calls.find((c) => c.method === "POST")!;
+    const post = fakeApi.calls.find((c) => c.method === "POST" && c.path === "/api/assignments")!;
     expect(post.body).toMatchObject({ subjectId: "hist", title: "Ancient Egypt", childIds: ["margaret"], startDate: "2026-11-02", endDate: "2026-12-18", totalUnits: 10 });
     const band = await waitFor(() => {
       const b = document.querySelector('path.tl-band[data-assignment="new1"]');

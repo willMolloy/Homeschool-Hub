@@ -84,6 +84,14 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
 
   registerSessionAuth(app);
 
+  // S15-02: what a viewer is shown is not for search engines or other sites: no indexing, no referrer, nothing kept by a shared cache.
+  app.addHook("onSend", async (req, reply) => {
+    if (req.role !== "viewer") return;
+    reply.header("x-robots-tag", "noindex, nofollow");
+    reply.header("referrer-policy", "no-referrer");
+    reply.header("cache-control", "private, no-store");
+  });
+
   // Always 200 so the web app can show a "database down" banner instead of an error page.
   app.get("/api/health", { config: { public: true } }, async () => {
     let dbStatus: "ok" | "down" = "ok";
