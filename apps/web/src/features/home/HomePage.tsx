@@ -165,6 +165,7 @@ function FamilyButton() {
     <>
       <button type="button" className="home-avatar" aria-label="Family and settings" aria-haspopup="dialog" onClick={() => setOpen(true)}>{initial}</button>
       <ResponsiveSheet open={open} onOpenChange={setOpen} title={me.name}>
+        {me.parentName ? <p className="home-signed-in">Signed in as {me.parentName}</p> : null}
         <ListRow to="/setup/settings" title="Family settings" description="Name, school days, week start, appearance" />
         <div className="btn-row home-signout">
           <Button variant="secondary" disabled={busy} onClick={() => { setBusy(true); void signOut().then(() => navigate("/login", { replace: true })); }}>Sign out</Button>

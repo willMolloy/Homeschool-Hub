@@ -38,14 +38,16 @@ export async function seed(databaseUrl: string, email: string = DEMO_EMAIL, fami
   const one = async (sql: string, params: unknown[]): Promise<string> => (await client.query(sql, params)).rows[0].id;
   try {
     await client.query("BEGIN");
-    await client.query("DELETE FROM family WHERE lower(login_email) = lower($1)", [email]);
+    await client.query("DELETE FROM family WHERE id IN (SELECT family_id FROM parent WHERE lower(email) = lower($1))", [email]);
     const familyId = await one(
       // S11-01: a seeded family has already set up (the first-run flow is for families created after 019); S11-06: and has seen
       // the one-time hints on Schedule ("Show tips again" in Family settings brings them back).
-      `INSERT INTO family (name, week_start, school_days, time_zone, login_email, password_hash, setup_done, tips_seen)
-       VALUES ('Demo family', $1, $2, 'America/Chicago', $3, $4, true, '{bars,edit,icons}') RETURNING id`,
-      [calendar.weekStart, calendar.schoolDays, email, passwordHash],
+      `INSERT INTO family (name, week_start, school_days, time_zone, setup_done, tips_seen)
+       VALUES ('Demo family', $1, $2, 'America/Chicago', true, '{bars,edit,icons}') RETURNING id`,
+      [calendar.weekStart, calendar.schoolDays],
     );
+    // S14-01: the family's login is its first parent.
+    await client.query("INSERT INTO parent (family_id, name, email, password_hash) VALUES ($1, 'Demo parent', $2, $3)", [familyId, email, passwordHash]);
     const ids: SeedSummary["ids"] = { child: {}, subject: {}, assignment: {}, event: {} };
     for (const [i, c] of family.children.entries()) {
       ids.child[c.key] = await one(

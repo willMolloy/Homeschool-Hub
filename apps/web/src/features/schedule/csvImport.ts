@@ -7,7 +7,7 @@ import { addDays, isValidLocalDate, toDayNumber, UNIT_TYPES, type LocalDate, typ
 import type { Child, Subject } from "../../api/types";
 import { LIMITS, YEARS } from "./assignmentLimits";
 
-export const MAX_IMPORT_ROWS = 50;
+export const MAX_IMPORT_ROWS = 200; // S14-05: was 50; the import sends chunks of 50 as one undo
 /** S3b-05: a chosen file bigger than this is turned away unread (50 rows are a few KB). */
 export const MAX_IMPORT_BYTES = 1024 * 1024;
 const tooManyRows = { line: 0, message: `Import at most ${MAX_IMPORT_ROWS} assignments at a time.` };

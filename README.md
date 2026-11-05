@@ -35,6 +35,15 @@ npm run dev:web     # Vite dev server on :5173 (proxies /api to :3000)
 npm run dev:api     # API on :3000
 ```
 
+Accounts (Sprint 14) are invite-only; Will and DeeDee run these by hand (details in docs/HOW_WE_WORK.md, "Accounts and the command line"):
+
+```
+npm run create-family-invite -w @hh/api                 # prints a /join/<token> link for a new family, once (single use, 7 days)
+npm run create-family-invite -w @hh/api -- list         # open invites (no links: only a hash is stored)
+npm run create-family-invite -w @hh/api -- revoke <id>  # cancel an open invite
+npm run set-parent-login -w @hh/api -- <email>          # reset a parent's password (prompts; never printed)
+```
+
 ## Local database
 
 Postgres 16 runs in Docker:

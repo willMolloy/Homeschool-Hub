@@ -26,9 +26,9 @@ describe.skipIf(!hasDb)("demo family is read-only for events (integration)", () 
   let other: Awaited<ReturnType<typeof signedInFamily>>;
   beforeAll(async () => {
     // Another run may have left a demo-login family behind; the login is unique, so clear it first.
-    await pool.query("DELETE FROM family WHERE lower(login_email) = lower($1)", [DEMO_LOGIN_EMAIL]);
+    await pool.query("DELETE FROM family WHERE id IN (SELECT family_id FROM parent WHERE lower(email) = lower($1))", [DEMO_LOGIN_EMAIL]);
     demo = await signedInFamily(pool, "Demo read-only");
-    await pool.query("UPDATE family SET login_email = $2 WHERE id = $1", [demo.familyId, DEMO_LOGIN_EMAIL]);
+    await pool.query("INSERT INTO parent (family_id, name, email, password_hash) VALUES ($1, 'Demo parent', $2, 'x')", [demo.familyId, DEMO_LOGIN_EMAIL]);
     other = await signedInFamily(pool, "Not the demo");
   });
   afterAll(async () => {

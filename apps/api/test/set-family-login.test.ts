@@ -29,12 +29,12 @@ describe.skipIf(!hasDb)("set-family-login CLI (integration)", () => {
     await pool.end();
   });
 
-  it("sets login_email and a verifiable password hash, and drops old sessions", async () => {
+  it("the alias creates a first parent with a verifiable password hash, and drops old sessions", async () => {
     const r = await run([familyId, "cli-test@example.com"], "a-good-password\n");
     expect(r.err).toBe("");
     expect(r.code).toBe(0);
-    const row = (await pool.query("SELECT login_email, password_hash FROM family WHERE id = $1", [familyId])).rows[0];
-    expect(row.login_email).toBe("cli-test@example.com");
+    const row = (await pool.query("SELECT email, password_hash FROM parent WHERE family_id = $1", [familyId])).rows[0];
+    expect(row.email).toBe("cli-test@example.com");
     expect(await verifyPassword("a-good-password", row.password_hash)).toBe(true);
     expect((await pool.query("SELECT 1 FROM session WHERE family_id = $1", [familyId])).rowCount).toBe(0);
   }, 20000);

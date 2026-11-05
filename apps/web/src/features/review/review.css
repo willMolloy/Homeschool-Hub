@@ -9,6 +9,7 @@
 /* The card as large as fits: 4:5, at most the space between the chips and the buttons. */
 .review-stage { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; }
 .review-card { flex: 0 1 auto; width: min(100%, calc((100dvh - 360px) * 0.8)); min-width: 200px; aspect-ratio: 4 / 5; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 8px 24px rgb(60 40 20 / 0.12); }
+.review-body.has-empty-line .review-card { width: min(100%, calc((100dvh - 430px) * 0.8)); } /* S14-00 (N2): the line about a child with nothing costs room */
 .review-card svg { display: block; width: 100%; height: 100%; }
 .review-pager { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .review-dots { display: flex; justify-content: center; gap: 6px; min-width: 40px; }
@@ -19,6 +20,7 @@
 .review-note { margin: 0 0 8px; text-align: center; font-size: 0.875rem; }
 .review-actions { display: flex; gap: 10px; }
 .review-actions .btn { flex: 1; min-height: 52px; white-space: nowrap; padding-left: 10px; padding-right: 10px; justify-content: center; display: inline-flex; align-items: center; gap: 8px; }
+@media (max-height: 640px) { .review-foot { position: static; } } /* S14-00 (N2): on a short phone the footer scrolls with the page, so it never covers the card or arrows */
 @media (max-width: 359.98px) { .review-actions { flex-direction: column; } }
 .review-print { display: none; }
 

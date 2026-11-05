@@ -18,11 +18,14 @@ export const REDACT_PATHS = [
   "*.password_hash",
 ];
 
+/** S14-02: an invite link's token is a secret in the path (`/join/<token>`, `/api/join/<token>`); logs show `[redacted]` instead. */
+export const redactInviteUrl = (url: string): string => url.replace(/(\/join\/)[^/?#\s]+/g, "$1[redacted]");
+
 /** Only what we need to follow a request: no headers, no body, no cookies. Query strings carry no secrets. */
 export const serializers = {
   req: (req: FastifyRequest) => ({
     method: req.method,
-    url: req.url,
+    url: redactInviteUrl(req.url),
     route: req.routeOptions?.url,
     ip: req.ip,
   }),

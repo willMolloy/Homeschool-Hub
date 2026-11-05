@@ -171,15 +171,16 @@ DO $$ BEGIN
   RAISE NOTICE 'ok   deleting a family removes all its rows';
 END $$;
 
--- 9. auth (002_auth): login emails unique case-insensitively; sessions die with their family
-INSERT INTO family (id, name, week_start, login_email, password_hash) VALUES
-  ('f0000000-0000-0000-0000-0000000000a1', 'Auth family', 'mon', 'Parent@Example.com', 'x');
-SELECT pg_temp.expect_error($$INSERT INTO family (name, week_start, login_email) VALUES ('Dup', 'mon', 'parent@example.COM')$$,
-  '23505', 'login_email is unique case-insensitively');
+-- 9. auth (002_auth, 025_parents): parent emails unique case-insensitively; sessions and parents die with their family
+INSERT INTO family (id, name, week_start) VALUES ('f0000000-0000-0000-0000-0000000000a1', 'Auth family', 'mon');
+INSERT INTO parent (id, family_id, name, email, password_hash) VALUES
+  ('f0000000-0000-0000-0000-0000000000b1', 'f0000000-0000-0000-0000-0000000000a1', 'Parent', 'Parent@Example.com', 'x');
+SELECT pg_temp.expect_error($$INSERT INTO parent (family_id, name, email, password_hash) VALUES ('f0000000-0000-0000-0000-0000000000a1', 'Dup', 'parent@example.COM', 'x')$$,
+  '23505', 'parent email is unique case-insensitively');
 INSERT INTO family (name, week_start) VALUES ('No login 1', 'mon'), ('No login 2', 'mon');
-DO $$ BEGIN RAISE NOTICE 'ok   several families may have no login yet'; END $$;
-INSERT INTO session (id, family_id, expires_at) VALUES
-  (encode(sha256('token-1'), 'hex'), 'f0000000-0000-0000-0000-0000000000a1', now() + interval '30 days');
+DO $$ BEGIN RAISE NOTICE 'ok   several families may have no parent yet'; END $$;
+INSERT INTO session (id, family_id, parent_id, expires_at) VALUES
+  (encode(sha256('token-1'), 'hex'), 'f0000000-0000-0000-0000-0000000000a1', 'f0000000-0000-0000-0000-0000000000b1', now() + interval '30 days');
 SELECT pg_temp.expect_error($$INSERT INTO session (id, family_id, expires_at) VALUES ('s', 'f0000000-0000-0000-0000-0000000000ff', now())$$,
   '23503', 'a session must belong to an existing family');
 DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000a1';

@@ -31,6 +31,8 @@ export interface Me {
   tipsSeen: TipId[];
   /** S11b-02: the family hid Home's getting-started reminders (stored on the family, so another family on this browser is not affected). */
   checklistHidden: boolean;
+  /** S14-01: the signed-in parent's name, shown in the family menu (null for a session made without one). */
+  parentName: string | null;
 }
 
 /** S11-06: the three one-time hints on Schedule: the bars' thickness, the open bar's dates, the subject icons. */
@@ -108,7 +110,7 @@ export interface RecordTotals {
 }
 
 /** GET/PATCH /api/family */
-export type FamilySettings = Omit<Me, "familyId" | "today" | "demo" | "setupStep" | "setupDone" | "setupDeferred" | "tipsSeen" | "checklistHidden"> & {
+export type FamilySettings = Omit<Me, "familyId" | "today" | "demo" | "setupStep" | "setupDone" | "setupDeferred" | "tipsSeen" | "checklistHidden" | "parentName"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */
   weekStartLocked: boolean;
   /** S7-03 */
@@ -138,6 +140,7 @@ export type FamilySettingsPatch = Partial<Omit<FamilySettings, "weekStartLocked"
 export interface LoginResponse {
   familyId: string;
   familyName: string;
+  parentName: string;
 }
 
 /** GET/POST/PATCH /api/children */

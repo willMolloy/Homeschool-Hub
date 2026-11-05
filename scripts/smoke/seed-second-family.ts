@@ -15,17 +15,16 @@ const s = await seed(url, email);
 console.log(`Second family ${s.familyId}: ${email} / demo-password`);
 
 const pool = new pg.Pool({ connectionString: url });
-await pool.query("DELETE FROM family WHERE login_email = $1", ["empty@example.com"]);
-await pool.query(
-  "INSERT INTO family (name, week_start, school_days, time_zone, login_email, password_hash, setup_done, tips_seen) VALUES ('Empty family', 'mon', '{1,2,3,4,5}', 'America/Chicago', $1, $2, true, '{bars,edit,icons}')",
-  ["empty@example.com", await hashPassword("demo-password")],
-);
+const hash = await hashPassword("demo-password");
+// S14-01: a family's login is its first parent (the parent table), so each family is a family row and a parent row.
+const addFamily = async (name: string, email: string, extra: string) => {
+  await pool.query("DELETE FROM family WHERE id IN (SELECT family_id FROM parent WHERE lower(email) = lower($1))", [email]);
+  const { rows } = await pool.query(`INSERT INTO family (name, week_start, school_days, time_zone${extra ? ", setup_done, tips_seen" : ""}) VALUES ($1, 'mon', '{1,2,3,4,5}', 'America/Chicago'${extra ? ", true, '{bars,edit,icons}'" : ""}) RETURNING id`, [name]);
+  await pool.query("INSERT INTO parent (family_id, name, email, password_hash) VALUES ($1, $2, $3, $4)", [rows[0].id, name.split(" ")[0], email, hash]);
+};
+await addFamily("Empty family", "empty@example.com", "done");
 // S11-01: a brand-new family that has not been through the first-run flow (setup_done false, step 1): signing in as it opens /welcome.
-await pool.query("DELETE FROM family WHERE login_email = $1", ["fresh@example.com"]);
-await pool.query(
-  "INSERT INTO family (name, week_start, school_days, time_zone, login_email, password_hash) VALUES ('Fresh family', 'mon', '{1,2,3,4,5}', 'America/Chicago', $1, $2)",
-  ["fresh@example.com", await hashPassword("demo-password")],
-);
+await addFamily("Fresh family", "fresh@example.com", "");
 await pool.end();
 console.log("Empty family: empty@example.com / demo-password");
 console.log("Fresh family (opens the setup flow): fresh@example.com / demo-password");

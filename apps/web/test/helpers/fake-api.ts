@@ -42,6 +42,7 @@ export const DEMO_ME: Me = {
   timeZone: "America/Chicago",
   today: "2026-10-28",
   demo: false,
+  parentName: "Dana",
   // S11-01: the demo has set up; a test of the flow overrides these.
   setupStep: 1,
   setupDone: true,
@@ -111,6 +112,8 @@ class FakeApi {
     // S2b-25: no work last week (card hidden); a save echoes the week back as reviewed or skipped.
     this.on("GET /api/check-ins", 200, EMPTY_WEEK);
     this.on("GET /api/check-ins/weeks", 200, { weeks: [] });
+    // S14-03: Family settings' Parents section: one parent (you), no open invites, unless a test says otherwise.
+    this.on("GET /api/family/parents", 200, { parents: [{ id: "p1", name: "Dana", you: true }], invites: [] });
     // S6-08: nothing to undo unless a test says so.
     this.on("GET /api/undo", 200, null);
     // S9b-07: a Mon-Fri family with no days off, unless a test says otherwise.

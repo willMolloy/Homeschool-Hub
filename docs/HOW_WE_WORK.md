@@ -60,6 +60,20 @@ bash scripts/check.sh                             # the full gate: lint, typeche
 - `npm test` runs the tests alone.
 - Never commit or print secrets: `.env`, session secrets, tokens.
 
+## Accounts and the command line
+
+Accounts are invite-only and there is no admin screen: Will and DeeDee run these commands from `apps/api` (or with `-w @hh/api` from the repo root). They read `DATABASE_URL` and `SESSION_SECRET` from `.env`. Nothing is emailed or sent anywhere: share a link by hand. A token, link or password is never logged; the commands print a link once and never print a password.
+
+| Command | What it does |
+|---------|--------------|
+| `npm run create-family-invite -w @hh/api` | Makes an invite for a **new family** and prints its link once: `${PUBLIC_BASE_URL or http://localhost:5173}/join/<token>`. Single use, 7 days. Only the token's SHA-256 is stored, so a lost link means making another. |
+| `... create-family-invite -- list` | The open invites by id (kind, made, expires). No links. |
+| `... create-family-invite -- revoke <id>` | Cancels an open invite (the full id, or its first 8 or more characters). The link then shows the same plain message as an expired one. |
+| `npm run set-parent-login -w @hh/api -- <email>` | Resets that parent's password (prompts without echo; from a pipe it reads the first line). Signs that parent out everywhere. |
+| `npm run set-family-login -w @hh/api -- <familyId> <email>` | The old name, kept as an alias: sets the family's first parent's email and password (creating a first parent when there is none). |
+
+A second parent is invited by the family itself, from Family settings, Parents, "Invite another parent". Removing a parent is not in the app (Will): it is a database change, done by hand.
+
 ## Rules
 
 - Contact no one unless DeeDee explicitly asks and then confirms a second time.

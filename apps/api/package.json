@@ -8,7 +8,9 @@
     "start": "tsx src/server.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
-    "set-family-login": "tsx src/cli/set-family-login.ts"
+    "set-family-login": "tsx src/cli/set-family-login.ts",
+    "set-parent-login": "tsx src/cli/set-parent-login.ts",
+    "create-family-invite": "tsx src/cli/create-family-invite.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",

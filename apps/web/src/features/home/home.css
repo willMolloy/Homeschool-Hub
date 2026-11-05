@@ -61,3 +61,4 @@
 .home-panes { display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, calc(100% - 504px), 360px); gap: 24px; align-items: start; }
 .home-pane { min-width: 0; }
 .home-pane > :last-child { margin-bottom: 0; }
+.home-signed-in { margin: 0 0 8px; color: var(--tl-muted-foreground); overflow-wrap: anywhere; }

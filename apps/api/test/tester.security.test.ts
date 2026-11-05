@@ -30,7 +30,7 @@ describe.skipIf(!hasDb)("tester: cross-family isolation on every route", () => {
   });
   afterAll(async () => {
     await app.close();
-    await pool.query("DELETE FROM family WHERE id = ANY($1) OR lower(login_email) = 'tester-iso-seed@example.com'", [[a.familyId, b.familyId]]);
+    await pool.query("DELETE FROM family WHERE id = ANY($1) OR id IN (SELECT family_id FROM parent WHERE lower(email) = 'tester-iso-seed@example.com')", [[a.familyId, b.familyId]]);
     await pool.end();
   });
 

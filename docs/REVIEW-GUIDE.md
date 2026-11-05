@@ -116,7 +116,7 @@ npm **workspaces** work like Maven modules: one root `package.json`, one lockfil
 | `auth/session.ts` | A hook that runs before every `/api/*` route and requires a session unless the route sets `config: { public: true }` | A Spring Security filter chain, deny by default |
 | `auth/password.ts` | scrypt hashing | `PasswordEncoder` |
 | `plan/loadPlanInputs.ts` | Loads one family's rows and shapes them into engine input; `routes/plan.ts` calls the engine | A service method assembling a DTO for the domain layer |
-| `cli/set-family-login.ts` | Sets a family's login from the command line | A `CommandLineRunner` |
+| `cli/set-parent-login.ts`, `cli/set-family-login.ts` (alias), `cli/create-family-invite.ts` | Reset a parent's password, set a family's first login, make/list/revoke invite links (Sprint 14) | A `CommandLineRunner` |
 
 A route reads like this (from `routes/children.ts`): a zod schema describes the body, `parseBody` throws a 400 if it doesn't match, the repo does the SQL, and the handler returns an object that Fastify serializes to JSON.
 

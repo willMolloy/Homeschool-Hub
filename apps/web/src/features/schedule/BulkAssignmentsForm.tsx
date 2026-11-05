@@ -6,11 +6,11 @@
  */
 import { useId, useRef, useState, type FormEvent } from "react";
 import { UNIT_TYPES } from "@hh/engine";
-import { apiPost } from "../../api/client";
 import type { Assignment, UnitType } from "../../api/types";
 import { unitTitle } from "../../components/unitLabels";
 import { LIMITS } from "./assignmentLimits";
-import { bulkSaveError, ChildPicker, dateRangeError, parsePositive, WeekdayPicker } from "./formBits";
+import { bulkFailureText, saveInChunks } from "./copyPlan";
+import { ChildPicker, dateRangeError, parsePositive, WeekdayPicker } from "./formBits";
 import type { Lookups } from "./lookups";
 import { SubjectSelect } from "./SubjectSelect";
 import { useWeekdayChoice } from "./useWeekdayChoice";
@@ -29,10 +29,12 @@ const isEmpty = (r: Row) => !r.title.trim() && !r.total.trim();
 interface Props {
   l: Lookups;
   onSaved: (created: Assignment[]) => void;
+  /** Some were saved before a later chunk failed (S14-05): show them, keep the form open. */
+  onAdded: (created: Assignment[]) => void;
   onCancel: () => void;
 }
 
-export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
+export function BulkAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) {
   const activeSubjects = l.subjects.filter((s) => !s.archived);
   const activeChildren = l.children.filter((c) => !c.archived);
   const [subjectId, setSubjectId] = useState(activeSubjects.length === 1 ? activeSubjects[0]!.id : "");
@@ -94,12 +96,15 @@ export function BulkAssignmentsForm({ l, onSaved, onCancel }: Props) {
 
     setSaving(true);
     try {
-      const body = { assignments: items.map((i) => ({ subjectId: sid, ...i, unitType, weightPerUnit: null, childIds, weekdays: dayChoice.value })) };
-      onSaved(await apiPost<Assignment[]>("/api/assignments/bulk", body));
-    } catch (err) {
+      const bodies = items.map((i) => ({ subjectId: sid, ...i, unitType, weightPerUnit: null, childIds, weekdays: dayChoice.value }));
+      // S14-05: one undo for the lot ("Added 6 assignments"); chunks of 50 add to the same entry.
       // The server counts only the rows sent; name them by the row numbers on screen.
       const shown = rows.flatMap((r, i) => (isEmpty(r) ? [] : [i + 1]));
-      setFormError(bulkSaveError(err, (n) => (shown[n - 1] ? `Row ${shown[n - 1]}` : undefined)));
+      const r = await saveInChunks(bodies, (n) => `Added ${n} ${n === 1 ? "assignment" : "assignments"}`, 0, (n) => (shown[n - 1] ? `Row ${shown[n - 1]}` : undefined));
+      if (r.failure) {
+        setFormError(bulkFailureText(r));
+        if (r.created.length > 0) onAdded(r.created);
+      } else onSaved(r.created);
     } finally {
       setSaving(false);
     }
