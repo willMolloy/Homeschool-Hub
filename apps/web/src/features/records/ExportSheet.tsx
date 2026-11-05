@@ -5,11 +5,12 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import type { Child, LogFields, RecordEntry, Subject } from "../../api/types";
+import type { Assignment, Child, LogFields, RecordEntry, Subject } from "../../api/types";
 import { formatRangeYears } from "../../lib/dates";
 import { Button, Chip } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
 import { formatMinutes } from "./entryText";
+import { booksFinished } from "./booksFinished";
 import { availableColumns, buildCsv, csvBlob, csvFileName, exportEntries, totalsFor, type ColumnKey, type ExportInput, type ExportMode } from "./exportData";
 import { dayWords, summaryOf } from "./entryText";
 import { RECORDS_WORDING } from "./wording";
@@ -20,6 +21,8 @@ export interface ExportSheetProps {
   children: readonly Child[];
   subjects: readonly Subject[];
   entries: readonly RecordEntry[];
+  /** S16-05: for the Books finished column and line. */
+  assignments?: readonly Assignment[];
   /** The Records range and child, as the starting dates and children. */
   start: string;
   end: string;
@@ -38,7 +41,7 @@ function download(name: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function ExportSheet({ fields, children, subjects, entries, start: s0, end: e0, childIds: c0, onClose }: ExportSheetProps) {
+export function ExportSheet({ fields, children, subjects, entries, assignments, start: s0, end: e0, childIds: c0, onClose }: ExportSheetProps) {
   const kids = children.filter((c) => !c.archived);
   const [start, setStart] = useState(s0);
   const [end, setEnd] = useState(e0);
@@ -49,8 +52,8 @@ export function ExportSheet({ fields, children, subjects, entries, start: s0, en
   const [printing, setPrinting] = useState(false);
   const valid = Boolean(start && end && end >= start && picked.length > 0);
   const input: ExportInput = useMemo(() => ({
-    entries, children: kids, subjects, fields, start, end, childIds: picked, mode, columns: offered.map((c) => c.key).filter((k) => !off.includes(k)),
-  }), [entries, kids, subjects, fields, start, end, picked, mode, offered, off]);
+    entries, assignments, children: kids, subjects, fields, start, end, childIds: picked, mode, columns: offered.map((c) => c.key).filter((k) => !off.includes(k)),
+  }), [entries, assignments, kids, subjects, fields, start, end, picked, mode, offered, off]);
   const allPicked = kids.length > 1 && picked.length === kids.length;
 
   useEffect(() => {
@@ -122,6 +125,7 @@ function PrintSummary({ input }: { input: ExportInput }) {
         if (want("totalHours")) hours("Total hours", t.totalMinutes);
         if (want("coreSplit")) { hours("Core hours", t.coreMinutes); hours("Non-core hours", t.nonCoreMinutes); }
         if (want("homeAway")) { hours("Hours at home", t.homeMinutes); hours("Hours away", t.awayMinutes); }
+        if (want("booksFinished")) { const f = booksFinished(input.assignments ?? [], { start: input.start, end: input.end }, [id]); if (f.length > 0) lines.push(["Books finished", f.map((b) => b.title).join("; ")]); }
         if (want("books")) lines.push(["Books read", t.books.length ? t.books.join("; ") : "None"]);
         return (
           <section key={id} className="print-page">

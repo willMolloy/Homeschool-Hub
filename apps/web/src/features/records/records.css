@@ -76,3 +76,12 @@
 .log-days { border: 0; padding: 0; margin: 0; min-width: 0; }
 .log-days legend { font-weight: 600; margin-bottom: 6px; }
 .log-day-chips .chip { padding: 0 10px; }
+
+/* S16-05: the school-days card names each child; Books finished is a card you can tap; the typed titles are a short list. */
+.big-number .per-child { display: flex; flex-direction: column; font-size: 1.05rem; white-space: normal; }
+.big-number-button { border: 0; min-height: 44px; font: inherit; color: inherit; text-align: left; cursor: pointer; box-shadow: inset 0 0 0 1px var(--tl-border); }
+.big-number-button:hover { background: var(--tl-primary-soft); }
+.finished-list, .mentioned-list { list-style: none; margin: 0 0 16px; padding: 0; }
+.finished-list li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--tl-border); }
+.finished-on { color: var(--tl-muted-foreground); white-space: nowrap; }
+.mentioned-list li { padding: 6px 4px; }

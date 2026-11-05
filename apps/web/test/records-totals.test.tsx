@@ -58,7 +58,7 @@ describe("ranges (pure)", () => {
 describe("the big numbers (pure): tracked fields only", () => {
   const t = totals();
   it("shows each tracked field and nothing else", () => {
-    expect(bigNumbers(t, ALLF).map((n) => [n.label, n.value])).toEqual([["school days", "5"], ["in total", "5 h 30 m"], ["core hours", "3 h 30 m"], ["non-core hours", "2 h"], ["hours at home", "1 h 30 m"], ["hours away", "30 m"], ["book", "1"]]);
+    expect(bigNumbers(t, ALLF).map((n) => [n.label, n.value])).toEqual([["school days", "5"], ["in total", "5 h 30 m"], ["core hours", "3 h 30 m"], ["non-core hours", "2 h"], ["hours at home", "1 h 30 m"], ["hours away", "30 m"]]); // S16-05: books are no longer a number card
     expect(bigNumbers(t, { ...NO_FIELDS, schoolDays: true }).map((n) => n.label)).toEqual(["school days"]);
     expect(bigNumbers(t, { ...NO_FIELDS, schoolDays: true, totalHours: true }).map((n) => n.label)).toEqual(["school days", "in total"]);
     expect(bigNumbers(t, { ...NO_FIELDS, notes: true })).toEqual([]);
@@ -66,7 +66,7 @@ describe("the big numbers (pure): tracked fields only", () => {
   it("S9b-05 (N7): hours and books nothing was typed for show a dash, never 0 m; school days stay a number", () => {
     const none = { ...t, schoolDays: 0, totalMinutes: 0, coreMinutes: 0, nonCoreMinutes: 0, homeMinutes: 0, awayMinutes: 0, books: [] };
     const shown = bigNumbers(none, ALLF).map((n) => [n.label, n.value]);
-    expect(shown).toEqual([["school days", "0"], ["in total", "—"], ["core hours", "—"], ["non-core hours", "—"], ["hours at home", "—"], ["hours away", "—"], ["books", "—"]]);
+    expect(shown).toEqual([["school days", "0"], ["in total", "—"], ["core hours", "—"], ["non-core hours", "—"], ["hours at home", "—"], ["hours away", "—"]]);
     expect(shown.flat().join(" ")).not.toMatch(/\b0 m\b|hours hours/);
   });
 });
@@ -129,20 +129,23 @@ describe("Records with entries", () => {
     stub({ ...NO_FIELDS, schoolDays: true });
     renderAt("/records");
     const nums = within(await screen.findByRole("group", { name: "Totals" }));
-    // S9b-01: All children with two children counts the days any child did school
-    expect(nums.getAllByText(/school|hours|books?/).map((e) => e.textContent)).toEqual(["days any child did school"]);
+    // S16-05: All children names each child's own days; no "any child" wording
+    expect(nums.getAllByText(/school|hours|books?/).map((e) => e.textContent)).toEqual(["school days"]);
+    expect(nums.getByText("Frank 5")).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Hours by subject" })).toBeNull();
   });
 
-  it("S9b-01: one child chosen says school days; All children says days any child did school", async () => {
+  it("S16-05: one child chosen says school days; All children gives each child's own count", async () => {
     stub({ ...NO_FIELDS, schoolDays: true });
     const user = userEvent.setup();
     renderAt("/records");
     const nums = within(await screen.findByRole("group", { name: "Totals" }));
-    expect(nums.getByText("days any child did school")).toBeInTheDocument();
+    expect(nums.getByText("Frank 5")).toBeInTheDocument();
+    expect(nums.getByText("Margaret —")).toBeInTheDocument(); // nothing logged for her: a dash, never a zero
+    expect(screen.queryByText(/any child/i)).toBeNull();
     await user.click(screen.getByRole("button", { name: "Frank" }));
     expect(await within(screen.getByRole("group", { name: "Totals" })).findByText("school days")).toBeInTheDocument();
-    expect(bigNumbers(totals(), { ...NO_FIELDS, schoolDays: true }, true)).toEqual([{ label: "days any child did school", value: "5" }]);
+    expect(bigNumbers(totals(), { ...NO_FIELDS, schoolDays: true }, { perChild: [{ name: "Frank", days: 42 }, { name: "Margaret", days: 40 }] }).map((n) => [n.label, n.value])).toEqual([["school days", "Frank 42 · Margaret 40"]]);
   });
 
   it("S9b-01: an entry partly in the range is listed as its part inside, with where it came from, and Edit opens the whole entry", async () => {

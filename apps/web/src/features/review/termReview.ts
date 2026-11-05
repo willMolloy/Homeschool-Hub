@@ -6,6 +6,7 @@
  * A part that isn't tracked or has nothing in it is absent (null or an empty list), never zero. No favourites, no notes, no estimates.
  */
 import type { Assignment, Child, LogFields, RecordTotals, Subject } from "../../api/types";
+import { booksFinished } from "../records/booksFinished";
 
 export interface FinishedItem { assignmentId: string; title: string; subjectId: string; subjectName: string; finishedOn: string }
 export interface SubjectTime { subjectId: string; name: string; minutes: number }
@@ -19,7 +20,7 @@ export interface TermReview {
   end: string;
   /** In the order they were finished, then by title. Empty when none. */
   finished: FinishedItem[];
-  /** Titles in the order they were first logged. Empty when not tracked or none. */
+  /** S16-05: the reading assignments (pages or chapters) the parent marked finished in the range, the same definition as Records' "Books finished" (titles, in the order finished). Empty when books aren't tracked or none. */
   books: string[];
   /** Most time first. Empty when subject hours aren't tracked or nothing was logged. */
   bySubject: SubjectTime[];
@@ -56,7 +57,7 @@ export function buildTermReview({ child, range, assignments, subjects, fields, t
   return {
     childId: child.id, childName: child.name, childColor: child.color, start: range.start, end: range.end,
     finished: finishedIn(child, range, assignments, subjects),
-    books: fields.books ? [...totals.books] : [],
+    books: fields.books ? booksFinished(assignments, range, [child.id]).map((b) => b.title) : [],
     bySubject,
     totalMinutes: timeTracked && totals.totalMinutes > 0 ? totals.totalMinutes : null,
     schoolDays: fields.schoolDays && totals.schoolDays > 0 ? totals.schoolDays : null,

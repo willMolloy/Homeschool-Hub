@@ -128,7 +128,7 @@ export function layoutCard(input: CardInput): CardLayout {
     const tiles: { value: string; label: string }[] = [];
     if (hasDays) tiles.push({ value: String(r.schoolDays), label: plural(r.schoolDays!, "school day", "school days") });
     if (hasFinished) tiles.push({ value: String(r.finished.length), label: "finished" });
-    if (hasBooks) tiles.push({ value: String(r.books.length), label: plural(r.books.length, "book read", "books read") });
+    if (hasBooks) tiles.push({ value: String(r.books.length), label: plural(r.books.length, "book finished", "books finished") });
     if (hasTotalOnly) tiles.push({ value: formatMinutes(r.totalMinutes!), label: "hours in all" });
     if (tiles.length > 0) {
       const w = (BODY_W - 20 * (tiles.length - 1)) / tiles.length;
@@ -160,7 +160,7 @@ export function layoutCard(input: CardInput): CardLayout {
       }, 50);
       if (hasBooks) {
         const x = both ? PAD + colW + 48 : PAD;
-        list(x, "BOOKS READ", r.books.length, 40, (i, cy) => {
+        list(x, "BOOKS FINISHED", r.books.length, 40, (i, cy) => {
           items.push({ k: "icon", x, y: cy - 12, size: 24, name: "book", fill: colors.muted });
           text(x + 38, cy + 9, fit(r.books[i]!, 27, 500, "serif", colW - 38), 27, 500, colors.ink, "serif");
         }, 38);
@@ -170,7 +170,7 @@ export function layoutCard(input: CardInput): CardLayout {
     let y = BAND_H + 56;
     // The hero: one large number and its words.
     const hero = hasFinished ? { value: String(r.finished.length), words: [plural(r.finished.length, "assignment", "assignments"), "finished"] }
-      : hasBooks ? { value: String(r.books.length), words: [plural(r.books.length, "book", "books"), "read"] }
+      : hasBooks ? { value: String(r.books.length), words: [plural(r.books.length, "book", "books"), "finished"] }
       : hasHours || hasTotalOnly ? { value: formatMinutes(r.totalMinutes!), words: ["in all"] }
       : hasDays ? { value: String(r.schoolDays), words: ["school", plural(r.schoolDays!, "day", "days")] }
       : null;

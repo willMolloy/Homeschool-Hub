@@ -37,7 +37,7 @@ describe("the card's layout (S13-05)", () => {
     expect([l.width, l.height]).toEqual([1080, 1350]);
     expect(l.title).toBe("Frank · Fall 2026");
     const t = texts(l.items);
-    expect(t).toEqual(expect.arrayContaining(["TERM IN REVIEW", "Homeschool Hub", "Frank · Fall 2026", "Aug 31 – Dec 31, 2026", "72", "school days", "6", "finished", "3", "books read", "TIME BY SUBJECT", "60 h in all", "35 h", "25 h", "FINISHED", "BOOKS READ"]));
+    expect(t).toEqual(expect.arrayContaining(["TERM IN REVIEW", "Homeschool Hub", "Frank · Fall 2026", "Aug 31 – Dec 31, 2026", "72", "school days", "6", "finished", "3", "books finished", "TIME BY SUBJECT", "60 h in all", "35 h", "25 h", "FINISHED", "BOOKS FINISHED"]));
     expect(l.roomy).toBe(false);
   });
   it("a year says so: 'Year in review' and 2026–27", () => {
@@ -55,7 +55,7 @@ describe("the card's layout (S13-05)", () => {
     expect(t).not.toContain("TIME BY SUBJECT");
     expect(t).not.toContain("0");
     expect(t).not.toContain("school days");
-    expect(t).toEqual(expect.arrayContaining(["3", "finished", "1", "book read"]));
+    expect(t).toEqual(expect.arrayContaining(["3", "finished", "1", "book finished"]));
   });
   it("one or two parts is the roomy card: a large number, big rows with subject and date, a sprig", () => {
     const l = layout(review({ finished: fin(3) }));

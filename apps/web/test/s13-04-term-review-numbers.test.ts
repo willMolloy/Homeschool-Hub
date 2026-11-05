@@ -48,7 +48,8 @@ describe("finished work (S13-04)", () => {
 describe("what Records tracks (S13-04)", () => {
   it("takes the Records totals as they are: books, hours by subject (most first), total, school days", () => {
     const r = review();
-    expect(r.books).toEqual(["Treasure Island", "Heidi"]);
+    // S16-05: books are the reading assignments marked finished in the range (completions), not the titles typed in the log
+    expect(r.books).toEqual(["Treasure Island"]);
     expect(r.bySubject.map((s) => [s.name, s.minutes])).toEqual([["Literature", 2700], ["Math", 900]]);
     expect(r.totalMinutes).toBe(3600);
     expect(r.schoolDays).toBe(60);
