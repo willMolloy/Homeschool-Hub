@@ -10,6 +10,9 @@ export interface ApiErrorBody {
 }
 
 /** GET /api/me */
+/** S15-01: one account (a family, or a co-op) a login belongs to, and the role there. */
+export interface Account { familyId: string; familyName: string; role: "parent" | "viewer"; current: boolean }
+
 export interface Me {
   familyId: string;
   name: string;
@@ -33,6 +36,10 @@ export interface Me {
   checklistHidden: boolean;
   /** S14-01: the signed-in parent's name, shown in the family menu (null for a session made without one). */
   parentName: string | null;
+  /** S15-01: "viewer" is view-only (the shell shows Schedule and Records only, and nothing editable is drawn). */
+  role: "parent" | "viewer";
+  /** S15-01: every account this login belongs to (the menu's "Switch to"); the person's own memberships only. */
+  accounts: Account[];
 }
 
 /** S11-06: the three one-time hints on Schedule: the bars' thickness, the open bar's dates, the subject icons. */
@@ -110,7 +117,7 @@ export interface RecordTotals {
 }
 
 /** GET/PATCH /api/family */
-export type FamilySettings = Omit<Me, "familyId" | "today" | "demo" | "setupStep" | "setupDone" | "setupDeferred" | "tipsSeen" | "checklistHidden" | "parentName"> & {
+export type FamilySettings = Omit<Me, "familyId" | "today" | "demo" | "setupStep" | "setupDone" | "setupDeferred" | "tipsSeen" | "checklistHidden" | "parentName" | "role" | "accounts"> & {
   /** A week has a check-in or review, so the week start can't change (S2c-01, D25). */
   weekStartLocked: boolean;
   /** S7-03 */

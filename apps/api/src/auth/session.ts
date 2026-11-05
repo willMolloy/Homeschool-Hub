@@ -1,6 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { createHash, randomBytes } from "node:crypto";
 import type { Queryable } from "../db";
+import { viewerMayCall } from "./viewerAccess";
+
+export type MemberRole = "parent" | "viewer";
 
 export const SESSION_COOKIE = "hh_session";
 export const SESSION_DAYS = 30;
@@ -34,6 +37,9 @@ declare module "fastify" {
     familyId: string;
     /** S14-01: the parent who signed in on this session ("" for a session made without one). Never used to scope queries. */
     parentId: string;
+    /** S15-01: this person's role in the account the session is looking at, read from the membership on every request. A session made
+     *  without a person (old test fixtures only) counts as "parent". Anything that is not "parent" is view-only (auth/viewerAccess.ts). */
+    role: MemberRole;
   }
   interface FastifyContextConfig {
     /** Route needs no session (health, login, logout). */
@@ -50,19 +56,28 @@ declare module "fastify" {
 export function registerSessionAuth(app: FastifyInstance): void {
   app.decorateRequest("familyId", "");
   app.decorateRequest("parentId", "");
-  app.addHook("preHandler", async (req: FastifyRequest, reply: FastifyReply) => {
+  app.decorateRequest("role", "parent");
+  // preValidation (not preHandler): a missing session is 401, and a viewer's write is refused (403), before the body is checked,
+  // so an invalid body from either gets no more of an answer than a valid one.
+  app.addHook("preValidation", async (req: FastifyRequest, reply: FastifyReply) => {
     const url = req.routeOptions.url;
     if (!url || !url.startsWith("/api/") || req.routeOptions.config.public) return;
     const token = req.cookies[SESSION_COOKIE];
     if (!token) return reply.code(401).send({ error: "unauthenticated" });
     const id = hashSessionToken(token);
-    const { rows } = await app.db.query<{ family_id: string; parent_id: string | null; stale: boolean }>(
-      `SELECT family_id, parent_id, last_seen_at < now() - interval '1 hour' AS stale
-         FROM session WHERE id = $1 AND expires_at > now()`, [id]);
+    // The membership is read with the session on every request: a person removed from an account (or who left) is refused at once.
+    const { rows } = await app.db.query<{ family_id: string; parent_id: string | null; role: MemberRole | null; stale: boolean }>(
+      `SELECT s.family_id, s.parent_id, m.role, s.last_seen_at < now() - interval '1 hour' AS stale
+         FROM session s LEFT JOIN family_member m ON m.family_id = s.family_id AND m.parent_id = s.parent_id
+        WHERE s.id = $1 AND s.expires_at > now()`, [id]);
     const s = rows[0];
-    if (!s) return reply.code(401).send({ error: "unauthenticated" });
+    if (!s || (s.parent_id !== null && s.role === null)) return reply.code(401).send({ error: "unauthenticated" });
     req.familyId = s.family_id;
     req.parentId = s.parent_id ?? "";
+    req.role = s.role ?? "parent";
+    if (req.role === "viewer" && !viewerMayCall(req.method, url)) {
+      return reply.code(403).send({ error: "view_only", message: "This account is view-only." });
+    }
     if (s.stale) {
       await app.db.query(
         `UPDATE session SET last_seen_at = now(), expires_at = now() + make_interval(days => $2) WHERE id = $1`,

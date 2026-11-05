@@ -50,6 +50,9 @@ export const DEMO_ME: Me = {
   // S11-06: the demo has seen the hints; a test of them says otherwise.
   tipsSeen: ["bars", "edit", "icons"],
   checklistHidden: false,
+  // S15-01: a parent in one account, unless a test says otherwise.
+  role: "parent",
+  accounts: [{ familyId: "00000000-0000-4000-8000-000000000001", familyName: "Demo family", role: "parent", current: true }],
 };
 
 const ROSTER_PATCH = ["name", "color", "sortOrder", "archived"];
@@ -59,6 +62,8 @@ const BLOCKED = ["label", "kind", "startDate", "endDate", "childIds"];
 /** The keys each API body schema accepts (apps/api/src/routes/*, all z.strictObject). `:id` = one path segment. */
 export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/auth/login": ["email", "password"],
+  "POST /api/auth/switch": ["familyId"],
+  "POST /api/family/view-links": ["label"],
   "POST /api/plan/preview-event": ["event", "eventId"],
   "POST /api/blocked-ranges/bulk": ["blockedRanges"],
   "POST /api/calendar-templates": ["name", "breaks"],
@@ -114,6 +119,8 @@ class FakeApi {
     this.on("GET /api/check-ins/weeks", 200, { weeks: [] });
     // S14-03: Family settings' Parents section: one parent (you), no open invites, unless a test says otherwise.
     this.on("GET /api/family/parents", 200, { parents: [{ id: "p1", name: "Dana", you: true }], invites: [] });
+    // S15-01: Family settings' View-only access section: no links and no viewers unless a test says otherwise.
+    this.on("GET /api/family/viewers", 200, { links: [], viewers: [] });
     // S6-08: nothing to undo unless a test says so.
     this.on("GET /api/undo", 200, null);
     // S9b-07: a Mon-Fri family with no days off, unless a test says otherwise.

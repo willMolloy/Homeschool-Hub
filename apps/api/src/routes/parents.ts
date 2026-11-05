@@ -15,8 +15,10 @@ const IdParam = z.object({ id: z.string().uuid() });
 
 export async function parentsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/family/parents", async (req) => {
-    const parents = await app.db.query<{ id: string; name: string }>("SELECT id, name FROM parent WHERE family_id = $1 ORDER BY created_at, id", [req.familyId]);
-    const invites = await listOpenInvites(app.db, req.familyId);
+    // Members with the parent role only (S15-01): viewers are listed by the View-only access card, never here.
+    const parents = await app.db.query<{ id: string; name: string }>(
+      `SELECT p.id, p.name FROM family_member m JOIN parent p ON p.id = m.parent_id WHERE m.family_id = $1 AND m.role = 'parent' ORDER BY m.created_at, p.id`, [req.familyId]);
+    const invites = await listOpenInvites(app.db, req.familyId, "parent");
     return {
       parents: parents.rows.map((p) => ({ id: p.id, name: p.name, you: p.id === req.parentId })),
       invites: invites.map((i) => ({ id: i.id, createdAt: i.createdAt, expiresAt: i.expiresAt })),
@@ -29,7 +31,7 @@ export async function parentsRoutes(app: FastifyInstance): Promise<void> {
     // S15-00 (N1): the count and the insert happen under a lock on the family row, so requests that arrive together queue up and the cap holds.
     const invite = await withTransaction(app.db, async (tx) => {
       await tx.query("SELECT 1 FROM family WHERE id = $1 FOR UPDATE", [req.familyId]);
-      if ((await listOpenInvites(tx, req.familyId)).length >= MAX_OPEN_PARENT_INVITES) {
+      if ((await listOpenInvites(tx, req.familyId, "parent")).length >= MAX_OPEN_PARENT_INVITES) {
         throw new HttpError(409, "too_many_invites", "Cancel an invite you no longer need before making another.");
       }
       return createInvite(tx, { familyId: req.familyId, createdBy: req.parentId || null });
@@ -40,7 +42,7 @@ export async function parentsRoutes(app: FastifyInstance): Promise<void> {
   app.delete("/api/family/invites/:id", async (req, reply) => {
     const params = IdParam.safeParse(req.params);
     if (!params.success) throw new HttpError(404, "not_found", "Invite not found.");
-    if (!(await revokeInvite(app.db, params.data.id, req.familyId))) throw new HttpError(404, "not_found", "Invite not found.");
+    if (!(await revokeInvite(app.db, params.data.id, req.familyId, "parent"))) throw new HttpError(404, "not_found", "Invite not found.");
     return reply.code(204).send();
   });
 }

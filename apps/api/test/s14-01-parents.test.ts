@@ -40,7 +40,7 @@ describe.skipIf(!hasDb)("parent logins (integration)", () => {
   it("signs in by the parent's email (any case) and /api/me names the family and that parent", async () => {
     const res = await login("S14-01-A1@EXAMPLE.com");
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ familyId: famA, familyName: "Family A", parentName: "Test parent" });
+    expect(res.json()).toEqual({ familyId: famA, familyName: "Family A", parentName: "Test parent", role: "parent" });
     const me = await get("/api/me", sessionCookie(res)!);
     expect(me.json()).toMatchObject({ familyId: famA, name: "Family A", parentName: "Test parent", demo: false });
   });

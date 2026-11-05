@@ -1,3 +1,4 @@
+import { Fragment, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, Outlet, useLocation, type RouteObject } from "react-router-dom";
 import { AssignmentsPage } from "./features/schedule/AssignmentsPage";
 import { DaysOffPage } from "./features/schedule/DaysOffPage";
@@ -28,6 +29,12 @@ function Root() {
       <Outlet />
     </AuthProvider>
   );
+}
+
+/** S15-01: the signed-in screens are keyed by the account on screen, so switching accounts remounts them and nothing from the other account is left. */
+function Account({ children }: { children: ReactNode }) {
+  const me = useMe();
+  return <Fragment key={me.familyId}>{children}</Fragment>;
 }
 
 function LoginRoute() {
@@ -73,7 +80,7 @@ export const routes: RouteObject[] = [
       {
         element: (
           <RequireAuth>
-            <SignedInShell />
+            <Account><SignedInShell /></Account>
           </RequireAuth>
         ),
         children: [

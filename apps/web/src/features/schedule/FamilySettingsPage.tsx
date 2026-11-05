@@ -8,6 +8,7 @@ import "../../ui/forms.css";
 import { saveError, WeekdayPicker } from "./formBits";
 import { AppearanceChoice } from "../settings/AppearanceChoice";
 import { ParentsSection } from "../settings/ParentsSection";
+import { ViewersSection } from "../settings/ViewersSection";
 import { BackToSetup } from "../setup/SetupPage";
 import "./schedule.css";
 
@@ -43,6 +44,7 @@ export function FamilySettingsPage() {
         <SettingsForm initial={data} onSettings={(s) => setData(s)} />
       )}
       <ParentsSection />
+      <ViewersSection />
       <div className="card schedule-form">
         <AppearanceChoice />
       </div>

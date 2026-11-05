@@ -54,6 +54,10 @@ const toSettings = (r: FamilyRow, weekStartLocked: boolean): FamilySettings =>
     schoolYear: r.school_year_start && r.school_year_end ? { start: r.school_year_start, end: r.school_year_end, shape: r.school_year_shape } : null,
     tipsSeen: r.tips_seen });
 
+/** S15-02: what a viewer's GET /api/family carries: the calendar and zoom views the screens draw, the year's dates and the Records setup; no setup state, hints or reminders. */
+const toViewerSettings = (r: FamilyRow): FamilySettings =>
+  ({ ...toSettings(r, false), setupStep: SETUP_STEPS, setupDone: true, setupDeferred: [], tipsSeen: [...TIPS] });
+
 export const WEEK_START_LOCKED_MESSAGE = "weekStart: the week start can't change after weeks have been checked in.";
 
 /** Whether any check-in or week review is stored for the family (they are keyed to its week start). */
@@ -105,6 +109,7 @@ export async function familyRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/family", async (req) => {
     const { rows } = await app.db.query<FamilyRow>(`SELECT ${COLS} FROM family WHERE id = $1`, [req.familyId]);
     if (!rows[0]) throw gone();
+    if (req.role === "viewer") return toViewerSettings(rows[0]);
     return toSettings(rows[0], await weekStartLocked(app.db, req.familyId));
   });
 

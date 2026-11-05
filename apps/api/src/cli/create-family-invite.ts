@@ -31,7 +31,7 @@ async function main(): Promise<number> {
     if (cmd === "list") {
       const open = await listOpenInvites(pool);
       if (open.length === 0) console.log("No open invites.");
-      for (const i of open) console.log(`${i.id}  ${i.kind === "new_family" ? "new family" : `parent of ${i.familyName ?? "a family"}`}  made ${i.createdAt.slice(0, 16).replace("T", " ")}  expires ${i.expiresAt.slice(0, 16).replace("T", " ")} UTC`);
+      for (const i of open) console.log(`${i.id}  ${i.kind === "new_family" ? "new family" : i.kind === "viewer" ? `viewer of ${i.familyName ?? "a family"}` : `parent of ${i.familyName ?? "a family"}`}  made ${i.createdAt.slice(0, 16).replace("T", " ")}  expires ${i.expiresAt.slice(0, 16).replace("T", " ")} UTC`);
       return 0;
     }
     if (cmd === "revoke") {

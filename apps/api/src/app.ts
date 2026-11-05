@@ -8,6 +8,7 @@ import { authRoutes } from "./routes/auth";
 import { meRoutes } from "./routes/me";
 import { joinRoutes } from "./routes/join";
 import { parentsRoutes } from "./routes/parents";
+import { viewersRoutes } from "./routes/viewers";
 import { familyRoutes } from "./routes/family";
 import { childrenRoutes } from "./routes/children";
 import { subjectsRoutes } from "./routes/subjects";
@@ -99,6 +100,7 @@ export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstan
   app.register(meRoutes);
   app.register(familyRoutes);
   app.register(parentsRoutes);
+  app.register(viewersRoutes);
   app.register(timeZonesRoutes);
   app.register(childrenRoutes);
   app.register(subjectsRoutes);

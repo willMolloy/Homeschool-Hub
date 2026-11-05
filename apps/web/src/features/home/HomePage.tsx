@@ -17,6 +17,7 @@ import { useAuth, useMe } from "../../auth/AuthProvider";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { Logo } from "../../layout/Logo";
 import { Button, Card, ListRow } from "../../ui/components";
+import { AccountSwitcher } from "../account/AccountSwitcher";
 import { HomeBriefing } from "../plan/HomeBriefing";
 import { CompletionQuestions } from "../completion/CompletionQuestions";
 import { todayOf, waitingQuestions } from "../completion/waiting";
@@ -167,6 +168,7 @@ function FamilyButton() {
       <ResponsiveSheet open={open} onOpenChange={setOpen} title={me.name}>
         {me.parentName ? <p className="home-signed-in">Signed in as {me.parentName}</p> : null}
         <ListRow to="/setup/settings" title="Family settings" description="Name, school days, week start, appearance" />
+        <AccountSwitcher onDone={() => setOpen(false)} />
         <div className="btn-row home-signout">
           <Button variant="secondary" disabled={busy} onClick={() => { setBusy(true); void signOut().then(() => navigate("/login", { replace: true })); }}>Sign out</Button>
         </div>
