@@ -15,7 +15,8 @@
 .log-core-row .segmented { flex: 0 1 15rem; margin: 0; }
 
 /* S9-07: the log form and the entries list. */
-.records-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.records-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin: 0 0 16px; }
+.records-actions .btn { box-sizing: border-box; flex: none; white-space: nowrap; } /* S14-00 (N3): Term in review is one line, as tall as Log and Export */
 .log-form fieldset { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
 .log-form legend { font-weight: 700; font-size: 0.95rem; margin: 0 0 6px; padding: 0; }
 .log-chips { display: flex; flex-wrap: wrap; gap: 6px; }

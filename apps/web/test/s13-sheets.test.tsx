@@ -164,6 +164,15 @@ describe("the weekly sheet (S13-02)", () => {
     expect(breakNames([row({ childIds: ["c2"] })], "c1", "2026-11-23", "2026-11-29", [1, 2, 3, 4, 5])).toEqual([]);
     expect(breakNames([row({ label: null, kind: "sick", startDate: "2026-11-24", endDate: "2026-11-24" })], "c1", "2026-11-23", "2026-11-29", [1, 2, 3, 4, 5])).toEqual(["Sick day"]);
   });
+  it("a one-child day off on a week's sheet names its day; a family break and a day sheet do not (S14-00, N5)", () => {
+    const row = (over: Partial<BlockedRange>): BlockedRange => ({ ...BLOCKED_ROWS[0]!, ...over });
+    const week = (b: BlockedRange) => breakNames([b], "c1", "2026-11-02", "2026-11-08", [1, 2, 3, 4, 5]);
+    expect(week(row({ label: "Dentist", kind: "other", childIds: ["c1"], startDate: "2026-11-04", endDate: "2026-11-04" }))).toEqual(["Wed · Dentist"]);
+    expect(week(row({ label: null, kind: "other", childIds: ["c1"], startDate: "2026-11-05", endDate: "2026-11-06" }))).toEqual(["Thu–Fri · Day off"]);
+    expect(week(row({ label: "Co-op", childIds: ["c1", "c2"], startDate: "2026-11-03", endDate: "2026-11-03" }))).toEqual(["Tue · Co-op"]);
+    expect(week(row({ label: "Open house", childIds: [], startDate: "2026-11-04", endDate: "2026-11-04" }))).toEqual(["Open house"]);
+    expect(breakNames([row({ label: "Dentist", childIds: ["c1"], startDate: "2026-11-04", endDate: "2026-11-04" })], "c1", "2026-11-04", "2026-11-04", [1, 2, 3, 4, 5])).toEqual(["Dentist"]);
+  });
   it("work counted in minutes shows its days with no range: no minutes on a sheet", () => {
     const frank = buildSheet(KIDS[0]!, plans(), "2026-11-02", "2026-11-08", lookups(), BLOCKED_ROWS, [1, 2, 3, 4, 5]);
     const piano = frank.subjects.find((s) => s.name === "Music")!.assignments[0]!;

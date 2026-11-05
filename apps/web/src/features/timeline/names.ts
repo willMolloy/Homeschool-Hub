@@ -148,15 +148,16 @@ export interface PlotBounds { left: number; right: number }
 
 /**
  * S13-00 (N1): "Stopped" on its own for a stopped bar whose full name (with the word) did not fit: inside the piece in full, else
- * outside to its right while the row is free, else outside to its right up to the plot's edge, else outside to its left. Never a
- * bare stub. Null only when the plot has no room at all for it.
+ * outside to its right while the row is free (`limitX`: the next bar's start, or the plot's edge), else outside to its left when no
+ * bar sits earlier in the row (`bounds.left` is then the plot's edge, else infinite). Never over another bar's label (S14-00, N1)
+ * and never a bare stub. Null when there is no free room for it.
  */
 export function placeStoppedWord(
   piece: readonly BandColumn[], cy: number, limitX: number, bounds: PlotBounds, measure: MeasureText = estimateTextWidth,
 ): (NamePlacement & { outside: boolean }) | null {
   const inside = placePieceName(STOPPED_WORD, piece, cy, measure, true);
   if (inside) return { ...inside, outside: false };
-  const right = placeRightName(STOPPED_WORD, piece, cy, limitX, measure) ?? placeRightName(STOPPED_WORD, piece, cy, bounds.right, measure);
+  const right = placeRightName(STOPPED_WORD, piece, cy, limitX, measure);
   if (right) return { ...right, outside: true };
   const width = measure(STOPPED_WORD);
   const x = piece[0]!.x0 - OUTSIDE_GAP_PX - width;

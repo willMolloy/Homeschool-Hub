@@ -30,10 +30,13 @@ export function breakNames(blocked: readonly BlockedRange[], childId: string, fr
   for (const b of blocked) {
     if (b.kind === "missed") continue; // a missed day carries its work forward; it is not a break
     if (b.childIds.length > 0 && !b.childIds.includes(childId)) continue;
-    let covers = false;
-    for (let d = from < b.startDate ? b.startDate : from; d <= to && d <= b.endDate; d = addDays(d, 1)) if (schoolDays.includes(weekdayOf(d))) { covers = true; break; }
-    if (!covers) continue;
-    const name = b.label?.trim() || BREAK_WORD[b.kind] || "Day off";
+    const covered: LocalDate[] = [];
+    for (let d = from < b.startDate ? b.startDate : from; d <= to && d <= b.endDate; d = addDays(d, 1)) if (schoolDays.includes(weekdayOf(d))) covered.push(d);
+    if (covered.length === 0) continue;
+    const label = b.label?.trim() || BREAK_WORD[b.kind] || "Day off";
+    // S14-00 (N5): on a week's sheet, a day off for particular children names its day ("Wed · Dentist"); a whole-family break reads by its name.
+    const first = dayAbbr(covered[0]!), last = dayAbbr(covered[covered.length - 1]!);
+    const name = from < to && b.childIds.length > 0 ? `${first === last ? first : `${first}–${last}`} · ${label}` : label;
     if (!names.includes(name)) names.push(name);
   }
   return names;
