@@ -20,4 +20,5 @@ Build in order, one commit per ticket, gate ALL GREEN, push after each. Progress
 | 2 | [S15-02 — A viewer can never write](S15-02-read-only-session.md) | M |
 | 3 | [S15-03 — The viewer's Schedule and Records](S15-03-viewer-screens.md) | M |
 | 4 | [S15-04 — Docs and smoke](S15-04-docs-and-smoke.md) | XS |
-| 5 | [S15-05 — Tester pass](S15-05-tester-pass.md) | S |
+| 5 | [S15-06 — Day ranges in whole chapters, lessons and pages](S15-06-whole-unit-ranges.md) (Will, build before the tester) | S |
+| 6 | [S15-05 — Tester pass](S15-05-tester-pass.md) | S |
