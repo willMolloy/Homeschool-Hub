@@ -33,3 +33,7 @@ SMOKE_EMAIL=smoke@example.com node flow.mjs s2a-16-events      # also s2a-harden
 
 Environment: `SCREENS_DIR` (default `docs/progress/screens`), `CHROME_PATH` (default `/usr/bin/google-chrome`), `BASE_URL` (default `http://localhost:5173`), `PREVIEW_URL` (default `http://localhost:4173`).
 Scenarios that add data leave rows in `hh_dev`; `npm run demo` resets it.
+
+## End-to-end family (S17-03)
+
+`npm run e2e:seed` builds the Hartley family (a Charlotte Mason household: three children, a second parent, a viewer grandparent, a co-op account with the parents as its viewers, about 30 assignments and six weeks of log entries, dated as of Nov 5, 2026) in the `*_dev` database of `DATABASE_URL`, through the app's own API in process, and prints its local logins at the end. `-- --reset` wipes and re-migrates that database first; `-- --url <url>` picks another. It refuses any database whose name does not end in `_dev` (and `NODE_ENV=production`) before touching anything, and running it again replaces only its own accounts. The walk that uses it is `docs/e2e/cm-term-run-2.md`.

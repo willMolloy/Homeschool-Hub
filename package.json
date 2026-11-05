@@ -25,7 +25,8 @@
     "db:seed": "tsx db/seed.ts",
     "db:validate": "node db/test/validate.cjs --scratch",
     "check": "bash scripts/check.sh",
-    "demo": "tsx db/demo.ts"
+    "demo": "tsx db/demo.ts",
+    "e2e:seed": "tsx scripts/e2e/seed-cm-family.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
