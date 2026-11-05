@@ -26,8 +26,8 @@ describe("whole-unit day ranges", () => {
   it("exactly one a day is one each day", () => {
     expect(days("lessons", 1, 4, 4)).toEqual(["lesson 1", "lesson 2", "lesson 3", "lesson 4"]);
   });
-  it("0.4 a day shows Keep going on the days that do not finish a unit", () => {
-    expect(days("chapters", 0.4, 2, 5)).toEqual(["Keep going: Chapter 1", "chapter 1", "Keep going: Chapter 2", "chapter 2", "Keep going: Chapter 2"]);
+  it("0.4 a day says where in the chapter each day is (S16-08 replaced \"Keep going\")", () => {
+    expect(days("chapters", 0.4, 2, 5)).toEqual(["Chapter 1 · start", "Chapter 1 · day 2 of 3", "Chapter 1 · finish", "Chapter 2 · day 2 of 3", "Chapter 2 · finish"]);
   });
   it("3.7 pages a day: ranges never overlap and the last day lands on the total", () => {
     const r = days("pages", 3.7, 37, 10);
