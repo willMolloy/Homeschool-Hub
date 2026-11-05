@@ -14,7 +14,7 @@
 import { weekdayOf } from "@hh/engine";
 import type { BuiltInZoomOverrides, CustomZoomView } from "../../api/types";
 import type { ChildStep, SubjectLane, TimelineAssignment, TimelineModel } from "./model";
-import { barTitle, estimateTextWidth, placePieceNames, type MeasureText } from "./names";
+import { ABOVE_NAME_PX, barTitle, estimateTextWidth, OUTSIDE_CLEAR_PX, placeNameAbove, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows, soloRows } from "./rows";
@@ -194,7 +194,7 @@ export interface LaneRow {
   height: number;
   /** The fixed centerline. */
   cy: number;
-  /** T-11d/T-11e: space above `y` for names over thin bars. S10-04b: always 0 (outside names sit to the right). */
+  /** Space above `y` for a name over a row of thin blocks: 0, or ABOVE_NAME_PX at daily detail when no block can hold a name (S17-01). */
   labelLane: number;
 }
 
@@ -606,43 +606,72 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     for (const lane of lanes) {
       rules.push({ kind: "lane", x0: m.gutter, y });
       const laneTop = y;
+      // S17-01 (Sprint 15 N2): at daily detail a row whose blocks are too thin for any name gets a small muted line just above it,
+      // which costs ABOVE_NAME_PX for that row (and pushes the rows below it down); rows that can name their bars inside cost nothing.
+      let above = 0;
+      let firstRowShift = 0;
       lane.packed.forEach((members, r) => {
         // S10-02 (mockup): the first row is centred in the lane's pitch; overlapping work stacks below in thinner sub-rows.
         // S10-04: extra rows use the same curve, topping out at EXTRA_ROW_FACTOR of the maximum (minimum still BAR_H_MIN).
         const heightOf = barHeightOf(r === 0 ? m.barMax : Math.max(m.barMin, m.barMax * EXTRA_ROW_FACTOR));
-        const cy = r === 0 ? laneTop + m.pitch / 2 : laneTop + m.pitch + (r - 0.5) * m.sub;
+        const rowCy = (shift: number) => (r === 0 ? laneTop + m.pitch / 2 : laneTop + m.pitch + (r - 0.5) * m.sub) + shift;
         const height = rowHeight(members, heightOf);
         const key = `${lane.laneKey}#${r}`;
-        rows.push({
-          key, laneKey: lane.laneKey, row: r, subjectId: lane.subjectId, subjectName: lane.subjectName, childId: g.childId ?? "",
-          childName: g.name, groupKey: g.key, paletteSlot: lane.paletteSlot, step: "base", y: cy - height / 2, height, cy, labelLane: 0,
-        });
         // T-11: the outer ends pulled in, so neighbouring assignments never touch.
-        const drawnPieces = members.map((a) => {
+        const drawAt = (cy: number) => members.map((a) => {
           const columns = insetEnds(columnsFor(throughBreaks(a), cy, heightOf));
           return { a, columns, pieces: piecesOf(columns) };
         });
         // S10-04b: where each piece's row stops being free on the right: the next piece in the row, or the plot's edge.
-        const starts = drawnPieces.flatMap((d) => d.pieces.map((p) => p[0]!.x0)).sort((x, z) => x - z);
-        const freeTo = (end: number) => starts.find((x) => x > end + 0.01) ?? plotRight;
-        for (const { a, columns, pieces } of drawnPieces) {
+        const namesOf = (drawn: ReturnType<typeof drawAt>, cy: number) => {
+          const starts = drawn.flatMap((d) => d.pieces.map((p) => p[0]!.x0)).sort((x, z) => x - z);
+          const freeTo = (end: number) => starts.find((x) => x > end + 0.01) ?? plotRight;
+          return drawn.map(({ a, pieces }) => {
+            const limits = pieces.map((p) => freeTo(p[p.length - 1]!.x1));
+            const placed = placePieceNames(barTitle(a.title, a.endedAs), pieces, cy, detail === "smooth", measure, limits, a.endedAs === "stopped" ? { left: starts[0]! < pieces[pieces.length - 1]![0]!.x0 - 0.01 ? Number.POSITIVE_INFINITY : plotX, right: plotRight } : undefined);
+            return { a, pieces, limits, placed };
+          });
+        };
+        let cy = rowCy(above);
+        let drawnPieces = drawAt(cy);
+        let named = namesOf(drawnPieces, cy);
+        const unnamed = detail === "daily" ? named.filter((n) => n.placed.length === 0 && n.pieces.length > 0) : [];
+        if (unnamed.length > 0) {
+          above += ABOVE_NAME_PX;
+          cy = rowCy(above);
+          drawnPieces = drawAt(cy);
+          named = namesOf(drawnPieces, cy);
+        }
+        if (r === 0) firstRowShift = above;
+        rows.push({
+          key, laneKey: lane.laneKey, row: r, subjectId: lane.subjectId, subjectName: lane.subjectName, childId: g.childId ?? "",
+          childName: g.name, groupKey: g.key, paletteSlot: lane.paletteSlot, step: "base", y: cy - height / 2, height, cy, labelLane: unnamed.length > 0 ? ABOVE_NAME_PX : 0,
+        });
+        for (const { a, columns, pieces, placed } of named.map((n, i) => ({ ...n, columns: drawnPieces[i]!.columns }))) {
           bands.push({
             rowKey: key, laneKey: lane.laneKey, assignmentId: a.assignmentId, childId: a.childId, title: a.title,
             paletteSlot: lane.paletteSlot, step: "base", d: pathFor(columns), runs: runsOf(columns), cy,
             connectors: detail === "daily" ? [] : connectorsOf(pieces), ...(a.endedAs ? { ended: a.endedAs } : {}),
           });
-          const limits = pieces.map((p) => freeTo(p[p.length - 1]!.x1));
-          for (const name of placePieceNames(barTitle(a.title, a.endedAs), pieces, cy, detail === "smooth", measure, limits, a.endedAs === "stopped" ? { left: starts[0]! < pieces[pieces.length - 1]![0]!.x0 - 0.01 ? Number.POSITIVE_INFINITY : plotX, right: plotRight } : undefined)) {
+          for (const name of placed) {
             names.push({ rowKey: key, assignmentId: a.assignmentId, paletteSlot: lane.paletteSlot, step: "base", ...(a.endedAs ? { ended: a.endedAs } : {}), ...name });
           }
         }
+        // The names for the thin rows, on one muted line above, left-aligned with each bar's first block (never over a neighbour's line).
+        let lineEnd = Number.NEGATIVE_INFINITY;
+        for (const n of unnamed.slice().sort((p, q) => p.pieces[0]![0]!.x0 - q.pieces[0]![0]!.x0)) {
+          const placement = placeNameAbove(barTitle(n.a.title, n.a.endedAs), n.pieces[0]![0]!.x0, cy - height / 2 - ABOVE_NAME_PX / 2, plotX, plotRight, measure);
+          if (!placement || placement.x < lineEnd) continue;
+          lineEnd = placement.x + placement.width + OUTSIDE_CLEAR_PX;
+          names.push({ rowKey: key, assignmentId: n.a.assignmentId, paletteSlot: lane.paletteSlot, step: "base", ...(n.a.endedAs ? { ended: n.a.endedAs } : {}), ...placement, piece: 0, outside: true });
+        }
       });
-      y = laneTop + m.pitch + (lane.packed.length - 1) * m.sub;
+      y = laneTop + m.pitch + (lane.packed.length - 1) * m.sub + above;
       // S10-02: the badge is pinned to the centre of the lane's first row, however many rows the lane has.
       groupBadges.push({
         laneKey: lane.laneKey, subjectId: lane.subjectId, subjectName: lane.subjectName, childName: g.name, groupKey: g.key,
         text: lane.subjectName, label: children.length > 1 ? `${lane.subjectName} · ${g.name}` : lane.subjectName,
-        paletteSlot: lane.paletteSlot, step: "base", cx: m.gutter / 2, cy: laneTop + m.pitch / 2, top: laneTop, bottom: y,
+        paletteSlot: lane.paletteSlot, step: "base", cx: m.gutter / 2, cy: laneTop + m.pitch / 2 + firstRowShift, top: laneTop, bottom: y,
       });
     }
     badges.push(...groupBadges);

@@ -194,3 +194,20 @@ export function placePieceNames(
   }
   return out;
 }
+
+/** S17-01 (Sprint 15 N2): the height a row gains for its name when its blocks are too thin for any name (daily detail only). */
+export const ABOVE_NAME_PX = 14;
+
+/**
+ * S17-01 (Sprint 15 N2, Will): a thin row's name on its own small muted line just above the row, left-aligned with the row's first
+ * visible block (`x0`), centred on `cy`. Never cut; kept inside the plot by sliding left when it would run past the right edge. Null
+ * when it cannot fit in the plot at all.
+ */
+export function placeNameAbove(title: string, x0: number, cy: number, plotLeft: number, plotRight: number, measure: MeasureText = estimateTextWidth): NamePlacement | null {
+  const text = title.trim();
+  if (!text) return null;
+  const width = measure(text);
+  const x = Math.max(plotLeft, Math.min(x0, plotRight - width));
+  if (x < plotLeft || x + width > plotRight) return null;
+  return { text, x, y: cy - NAME_FONT_PX / 2, width, height: NAME_FONT_PX, textX: x, textY: cy };
+}

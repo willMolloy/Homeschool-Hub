@@ -83,7 +83,7 @@ function Week({ headSlot, titleSlot }: { headSlot: HTMLElement | null; titleSlot
         <Segmented label="Week layout" value={layout} onChange={setLayout} options={[{ value: "bars", label: "Bars" }, { value: "days", label: "Days" }]} />
       </div>
       <ChildSwitch kids={look.activeChildren} value={choice} onChange={setChoice} />
-      {!past && !readOnly && <Briefing weekStart={week.weekStart} />}
+      {!past && !readOnly && <Briefing weekStart={week.weekStart} childId={choice === ALL ? null : choice} />}
       {past ? <PastWeek weekStart={week.weekStart} choice={choice} look={look} readOnly={readOnly} layout={layout} /> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} readOnly={readOnly} layout={layout} />}
       {debug ? <PlanDebugView weekStart={week.weekStart} debug={debug} /> : null}
     </div>

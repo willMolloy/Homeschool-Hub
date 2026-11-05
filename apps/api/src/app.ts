@@ -48,7 +48,9 @@ export interface BuildOptions {
 }
 
 export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstance {
-  const app = Fastify({ logger: loggerOptions(config, opts.logStream) });
+  // S17-01 (Sprint 15 N5): a join token longer than Fastify's default 100-character parameter limit gets the same plain bad-link answer as any other
+  // wrong token (previewInvite rejects it), not the framework's 414 that echoes the path.
+  const app = Fastify({ logger: loggerOptions(config, opts.logStream), routerOptions: { maxParamLength: 2000 } });
 
   app.setNotFoundHandler((_req, reply) => {
     reply.code(404).send({ error: "not_found" });

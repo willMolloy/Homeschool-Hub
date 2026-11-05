@@ -7,6 +7,7 @@
 import { addDays, EPS, type ChildPlan, type LocalDate } from "@hh/engine";
 import type { BlockedRange, Child } from "../../api/types";
 import { WEEKDAY_NAMES } from "../../lib/dates";
+import { dayOffTitle, KIND_NAMES } from "../../lib/kindNames";
 import { daySpanLabels, plannedRangeBetween, rangeWords, type Lookups } from "../week/weekBars";
 
 export interface SheetRow { date: LocalDate; /** "Mon" */ day: string; /** "pages 120–126", or null for work counted in minutes. */ range: string | null }
@@ -22,7 +23,7 @@ export const dayAbbr = (d: LocalDate): string => WEEKDAY_NAMES[weekdayOf(d)]!.sl
 /** "Tuesday" */
 export const dayName = (d: LocalDate): string => WEEKDAY_NAMES[weekdayOf(d)]!;
 
-export const BREAK_WORD: Record<string, string> = { vacation: "Break", holiday: "Holiday", sick: "Sick day", other: "Day off" };
+export const BREAK_WORD: Record<string, string> = KIND_NAMES;
 
 /** Names of the breaks and days off that cover a school day between `from` and `to` for this child ("Thanksgiving break"), once each. */
 export function breakNames(blocked: readonly BlockedRange[], childId: string, from: LocalDate, to: LocalDate, schoolDays: readonly number[]): string[] {
@@ -33,7 +34,7 @@ export function breakNames(blocked: readonly BlockedRange[], childId: string, fr
     const covered: LocalDate[] = [];
     for (let d = from < b.startDate ? b.startDate : from; d <= to && d <= b.endDate; d = addDays(d, 1)) if (schoolDays.includes(weekdayOf(d))) covered.push(d);
     if (covered.length === 0) continue;
-    const label = b.label?.trim() || BREAK_WORD[b.kind] || "Day off";
+    const label = dayOffTitle(b);
     // S14-00 (N5): on a week's sheet, a day off for particular children names its day ("Wed · Dentist"); a whole-family break reads by its name.
     const first = dayAbbr(covered[0]!), last = dayAbbr(covered[covered.length - 1]!);
     const name = from < to && b.childIds.length > 0 ? `${first === last ? first : `${first}–${last}`} · ${label}` : label;

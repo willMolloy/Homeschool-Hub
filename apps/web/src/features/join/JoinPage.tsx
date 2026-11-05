@@ -11,6 +11,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError, apiGet, apiPost } from "../../api/client";
 import { useAuth } from "../../auth/AuthProvider";
 import { Field } from "../../ui/components";
+import { THROTTLED } from "../schedule/formBits";
 import "../../ui/forms.css";
 import "../../routes/login.css";
 
@@ -21,7 +22,7 @@ type Look = Preview | "loading" | "unavailable" | "error";
 
 function messageFor(e: unknown): string {
   if (e instanceof ApiError) {
-    if (e.status === 429) return "Too many attempts, wait a minute.";
+    if (e.status === 429) return THROTTLED;
     if (e.status === 0) return "Can't reach the server.";
     if ((e.status === 400 || e.status === 409) && e.message) return e.message;
   }
@@ -41,13 +42,16 @@ export function JoinPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The link is a secret in the address: no referrer leaves this page.
+  // The link is a secret in the address: no referrer leaves this page, and (S17-01, Sprint 15 N6) search engines are told not to index it.
   useEffect(() => {
-    const meta = document.createElement("meta");
-    meta.name = "referrer";
-    meta.content = "no-referrer";
-    document.head.appendChild(meta);
-    return () => { meta.remove(); };
+    const metas = [["referrer", "no-referrer"], ["robots", "noindex, nofollow"]].map(([name, content]) => {
+      const meta = document.createElement("meta");
+      meta.name = name!;
+      meta.content = content!;
+      document.head.appendChild(meta);
+      return meta;
+    });
+    return () => { metas.forEach((m) => m.remove()); };
   }, []);
 
   useEffect(() => {

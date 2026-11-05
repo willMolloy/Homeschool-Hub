@@ -103,17 +103,19 @@ function writeKept(kept: Record<string, string>): void {
 }
 
 /** The Week view's briefing: every child's lines, only when something needs attention. (Home shows one line instead: `HomeBriefing`.) */
-export function Briefing({ weekStart }: { weekStart: LocalDate }) {
+export function Briefing({ weekStart, childId = null }: { weekStart: LocalDate; childId?: string | null }) {
   const assignments = useApi<Assignment[]>("/api/assignments");
   const children = useApi<Child[]>("/api/children");
   if (!assignments.data || !children.data) return null;
-  return <BriefingBody assignments={assignments.data} children={children.data} weekStart={weekStart} />;
+  return <BriefingBody assignments={assignments.data} children={children.data} weekStart={weekStart} childId={childId} />;
 }
 
 interface BodyProps {
   assignments: Assignment[];
   children: Child[];
   weekStart: LocalDate;
+  /** S17-01: with Schedule · Week filtered to one child, only that child's lines; null (All children) shows every child's. */
+  childId: string | null;
 }
 
 /**
@@ -155,9 +157,10 @@ export function useBriefingGroups(assignments: Assignment[], children: Child[], 
   return { groups, late, keep };
 }
 
-function BriefingBody({ assignments, children, weekStart }: BodyProps) {
-  const { groups = [], keep } = useBriefingGroups(assignments, children, weekStart);
+function BriefingBody({ assignments, children, weekStart, childId }: BodyProps) {
+  const { groups: all = [], keep } = useBriefingGroups(assignments, children, weekStart);
   const { invalidate } = usePlanRefresh();
+  const groups = childId ? all.filter((g) => g.childId === childId) : all;
 
   if (groups.length === 0) return null;
   return (

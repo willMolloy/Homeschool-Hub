@@ -193,11 +193,7 @@ Each follows the module rules above. In order:
 
 ## Open backlog (Low)
 
-- **N8: a saved school year can't be cleared.** The PATCH in `apps/api/src/routes/family.ts` (~127–131) uses `COALESCE`, so sending null keeps the old value. "I'll set this later" after saving keeps the year and still shows the reminder.
-- **Flaky web test:** `timeline-add.test.tsx` fails under load.
-- **Week filter:** with Week filtered to Frank, Margaret's late card still shows.
-- **N2:** no control to show Home's checklist again once it's hidden.
-- **N7 and N9:** cosmetic (see the Sprint 11 review in `docs/reviews/`).
+None open. Sprint 17 (S17-01) closed the last ones: the Week filter and the briefing, the Home checklist control, Rose and Lilac, day-off wording, the throttled-invite message, Term in review on short desktops and the Sprint 15 Lows. (Earlier: N8, N7 and N9 in S12-09; the `timeline-add` flake in Sprint 15.)
 
 ## Done
 

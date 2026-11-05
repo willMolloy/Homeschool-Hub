@@ -3,6 +3,7 @@ import { useId, useState, type FormEvent } from "react";
 import { BLOCKED_KINDS } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
 import type { BlockedKind, BlockedRange } from "../../api/types";
+import { dayOffTitle, KIND_NAMES } from "../../lib/kindNames";
 import { ChildPicker, dateRange, dateRangeError, saveError, sameSet, spanDays } from "./formBits";
 import { WithLookups, type Lookups } from "./lookups";
 import { SaveTemplatePanel } from "./SaveTemplatePanel";
@@ -13,10 +14,10 @@ import { DateField } from "../../ui/DateField";
 /** Mirrors apps/api/src/routes/blockedRanges.ts and scheduleLimits.ts. */
 export const LIMITS = { label: 60, days: 366 } as const;
 
-export const KIND_LABELS: Record<BlockedKind, string> = { vacation: "Vacation", holiday: "Holiday", sick: "Sick day", other: "Other", missed: "Missed day" };
+export const KIND_LABELS: Record<BlockedKind, string> = KIND_NAMES;
 
 const byStart = (a: BlockedRange, b: BlockedRange) => a.startDate.localeCompare(b.startDate) || a.endDate.localeCompare(b.endDate);
-const titleOf = (r: BlockedRange) => r.label ?? KIND_LABELS[r.kind];
+const titleOf = (r: BlockedRange) => dayOffTitle(r);
 
 export function DaysOffPage() {
   return (

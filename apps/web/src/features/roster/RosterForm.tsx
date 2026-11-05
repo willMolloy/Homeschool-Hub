@@ -41,6 +41,8 @@ export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extr
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [looking, setLooking] = useState<string | null>(null);
+  const noteColor = looking ?? (color && (PALETTE as readonly string[]).includes(color.toLowerCase()) ? color.toLowerCase() : null);
   const nameId = useId();
   const errId = useId();
 
@@ -99,13 +101,15 @@ export function RosterForm({ label, initial, submitLabel, onSave, onCancel, extr
           const chosen = color?.toLowerCase() === c;
           return (
             <label key={c} className="swatch" title={name}>
-              <input type="radio" name="color" value={c} checked={chosen} onChange={() => setColor(c)} aria-label={name} />
+              <input type="radio" name="color" value={c} checked={chosen} onChange={() => setColor(c)} aria-label={name} onFocus={() => setLooking(c)} onBlur={() => setLooking(null)} />
               <span className={`swatch-chip${usedBy[c] ? " is-used" : ""}`} style={{ background: swatchColor(c) ?? c }} aria-hidden="true">
                 {chosen ? <Check size={14} weight="bold" /> : null}
               </span>
             </label>
           );
         })}
+        {/* S17-01 (L5): the cue in words, for the swatch being looked at (focused) or else the chosen one: "Lilac is also used by Reading." */}
+        {noteColor && usedBy[noteColor] ? <p className="swatch-note" role="status">{PALETTE_NAMES[noteColor]} is also used by {usedBy[noteColor]}.</p> : null}
       </fieldset>
       {children}
       <div className="btn-row">

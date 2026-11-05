@@ -106,7 +106,7 @@ describe("the join page (S14-02)", () => {
     await screen.findByRole("heading", { name: "Welcome" });
     await fill(user);
     await user.click(screen.getByRole("button", { name: "Create my sign-in" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Too many attempts, wait a minute.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Too many tries. Please wait a minute and try again.");
   });
 
   it("asks the browser not to send the link as a referrer", async () => {
