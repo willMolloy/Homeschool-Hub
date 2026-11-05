@@ -16,4 +16,5 @@
 | 5 | [S16-03 — Screenshots for Will, docs and smoke](S16-03-screenshots-docs-smoke.md) | XS |
 | 6 | [S16-07 — Days view: work grouped by child](S16-07-days-grouped-by-child.md) (Will, after the tester) | S |
 | 7 | [S16-08 — Chapters that take more than one day say start and finish](S16-08-chapter-start-finish.md) (Will, after the tester) | S |
-| 8 | [S16-04 — Tester pass](S16-04-tester-pass.md) | S |
+| 8 | [S16-09 — Fixes from the Sprint 16 tester](S16-09-tester-fixes.md) | S |
+| 9 | [S16-04 — Tester pass] (re-test after S16-07 to S16-09)(S16-04-tester-pass.md) | S |
