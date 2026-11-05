@@ -37,8 +37,8 @@ describe.skipIf(!hasDb)("seed (integration)", () => {
     const s = await seed(url);
     expect(s.counts).toMatchObject(DEMO_EXPECTED);
     const [ti] = await q<{ total_units: string; start_date: Date; end_date: Date }>(url,
-      `SELECT total_units, start_date, end_date FROM assignment a JOIN family f ON f.id = a.family_id
-        WHERE f.login_email = $1 AND a.title = 'Treasure Island'`, [DEMO_EMAIL]);
+      `SELECT total_units, start_date, end_date FROM assignment a JOIN parent f ON f.family_id = a.family_id
+        WHERE f.email = $1 AND a.title = 'Treasure Island'`, [DEMO_EMAIL]);
     expect(ti?.total_units).toBe("270.00");
     expect((ti!.end_date.getTime() - ti!.start_date.getTime()) / 86400000).toBe(18); // three school weeks
     const checkIns = await q<{ title: string; position: string; mode: string }>(url,
@@ -59,7 +59,7 @@ describe.skipIf(!hasDb)("seed (integration)", () => {
       expect(rows[0]?.n, t).toBe(n);
     }
     expect(await q(url, "SELECT count(*)::int AS n FROM family")).toEqual([{ n: 2 }]);
-    expect(await q(url, "SELECT count(*)::int AS n FROM family WHERE login_email = $1", [DEMO_EMAIL])).toEqual([{ n: 1 }]);
+    expect(await q(url, "SELECT count(*)::int AS n FROM parent WHERE email = $1", [DEMO_EMAIL])).toEqual([{ n: 1 }]);
     expect(DEMO_FAMILY.assignments).toHaveLength(DEMO_EXPECTED.assignment);
   });
 

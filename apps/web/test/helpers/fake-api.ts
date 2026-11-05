@@ -42,6 +42,7 @@ export const DEMO_ME: Me = {
   timeZone: "America/Chicago",
   today: "2026-10-28",
   demo: false,
+  parentName: "Dana",
   // S11-01: the demo has set up; a test of the flow overrides these.
   setupStep: 1,
   setupDone: true,

@@ -21,20 +21,21 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
     const { email, password } = parsed.data;
 
-    const { rows } = await app.db.query<{ id: string; name: string; password_hash: string | null }>(
-      "SELECT id, name, password_hash FROM family WHERE lower(login_email) = lower($1)", [email]);
+    const { rows } = await app.db.query<{ id: string; family_id: string; name: string; family_name: string; password_hash: string }>(
+      `SELECT p.id, p.family_id, p.name, f.name AS family_name, p.password_hash
+         FROM parent p JOIN family f ON f.id = p.family_id WHERE lower(p.email) = lower($1)`, [email]);
     const family = rows[0];
     const ok = await verifyPassword(password, family?.password_hash ?? (await getDummyHash()));
-    if (!family || !family.password_hash || !ok) {
+    if (!family || !ok) {
       return reply.code(401).send({ error: "invalid_credentials", message: "That email and password don't match." });
     }
 
     const token = newSessionToken();
     await app.db.query(
-      `INSERT INTO session (id, family_id, expires_at) VALUES ($1, $2, now() + make_interval(days => $3))`,
-      [hashSessionToken(token), family.id, SESSION_DAYS]);
+      `INSERT INTO session (id, family_id, parent_id, expires_at) VALUES ($1, $2, $3, now() + make_interval(days => $4))`,
+      [hashSessionToken(token), family.family_id, family.id, SESSION_DAYS]);
     reply.setCookie(SESSION_COOKIE, token, sessionCookieOptions(app.config.NODE_ENV === "production"));
-    return { familyId: family.id, familyName: family.name };
+    return { familyId: family.family_id, familyName: family.family_name, parentName: family.name };
   });
 
   // Public and idempotent: always 204, so the client can always get back to a clean state.

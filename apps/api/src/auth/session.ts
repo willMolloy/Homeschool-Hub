@@ -25,6 +25,8 @@ declare module "fastify" {
   interface FastifyRequest {
     /** Set by the session hook on protected routes. The ONLY source of family id for queries. */
     familyId: string;
+    /** S14-01: the parent who signed in on this session ("" for a session made without one). Never used to scope queries. */
+    parentId: string;
   }
   interface FastifyContextConfig {
     /** Route needs no session (health, login, logout). */
@@ -40,18 +42,20 @@ declare module "fastify" {
  */
 export function registerSessionAuth(app: FastifyInstance): void {
   app.decorateRequest("familyId", "");
+  app.decorateRequest("parentId", "");
   app.addHook("preHandler", async (req: FastifyRequest, reply: FastifyReply) => {
     const url = req.routeOptions.url;
     if (!url || !url.startsWith("/api/") || req.routeOptions.config.public) return;
     const token = req.cookies[SESSION_COOKIE];
     if (!token) return reply.code(401).send({ error: "unauthenticated" });
     const id = hashSessionToken(token);
-    const { rows } = await app.db.query<{ family_id: string; stale: boolean }>(
-      `SELECT family_id, last_seen_at < now() - interval '1 hour' AS stale
+    const { rows } = await app.db.query<{ family_id: string; parent_id: string | null; stale: boolean }>(
+      `SELECT family_id, parent_id, last_seen_at < now() - interval '1 hour' AS stale
          FROM session WHERE id = $1 AND expires_at > now()`, [id]);
     const s = rows[0];
     if (!s) return reply.code(401).send({ error: "unauthenticated" });
     req.familyId = s.family_id;
+    req.parentId = s.parent_id ?? "";
     if (s.stale) {
       await app.db.query(
         `UPDATE session SET last_seen_at = now(), expires_at = now() + make_interval(days => $2) WHERE id = $1`,
