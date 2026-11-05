@@ -58,6 +58,7 @@ import { filterChildren, forChild } from "../features/timeline/childView";
 import { useTips } from "../features/tips/useTips";
 import { TIP_TEXT } from "../features/tips/tips";
 import { TipBubble } from "../features/tips/TipBubble";
+import { BarDetailSheet } from "../features/view/BarDetail";
 import { ChangeEndingSheet } from "../features/completion/ChangeEnding";
 import "../features/timeline/timeline.css";
 
@@ -74,6 +75,9 @@ const layoutFor = (model: TimelineModel | undefined, zoom: Zoom | null, a: Layou
  *  title row where the "+" goes (rendered there through a portal; the add state stays here). */
 export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?: boolean; titleSlot?: HTMLElement | null }) {
   const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects, zoomViews, setZoomViews } = useTimelineData();
+  // S15-03: a viewer looks at the same picture (zoom, month, child), but nothing is editable: no "+", no pencil, no edit bar, and a bar opens a read-only detail.
+  const { schoolDays, role } = useMe();
+  const readOnly = role === "viewer";
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
   // S8b-07: the same child switch as Week and Track work (one child, or All children), remembered on this device.
   const [choice, setChoice] = useChildChoice(childList, "all");
@@ -132,7 +136,7 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
   const pick = (x: number, y: number) => select(layout ? (grabSelected(layout, selectedId, x, y)?.band ?? hitTest(layout, x, y))?.assignmentId ?? null : null);
   const stage = useRef<HTMLDivElement>(null);
   // The side panel covers no bar, so only the bottom bar keeps the selection above itself.
-  const keep = useKeepAbove<HTMLElement>(selection && !panel ? selectedId : null,
+  const keep = useKeepAbove<HTMLElement>(selection && !panel && !readOnly ? selectedId : null,
     (id) => [...(stage.current?.querySelectorAll(`:scope > :not(.tl-leaving) path[data-assignment="${id}"]`) ?? [])]);
   const drag = useBarDrag({
     stage, layout, model, zoom: shownZoom, selectedId: selection ? selectedId : null,
@@ -156,13 +160,12 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
     back?.focus();
   }, [openId, panel]);
   // S6-08: the undo bar rides above the edit bar while it is open (not beside the side panel).
-  const barHeight = selection && !panel ? keep.height : 0;
+  const barHeight = selection && !panel && !readOnly ? keep.height : 0;
   useEffect(() => {
     document.documentElement.style.setProperty("--edit-bar-height", `${barHeight}px`);
     return () => { document.documentElement.style.removeProperty("--edit-bar-height"); };
   }, [barHeight]);
   // S7b-02: "Update time estimate" opens a sheet for the selected assignment, at its own pace (its days, else the subject's, else every school day).
-  const { schoolDays } = useMe();
   const [estimating, setEstimating] = useState<string | null>(null);
   // S9-02: Update status from the edit bar's More.
   const [statusing, setStatusing] = useState<string | null>(null);
@@ -171,14 +174,14 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
   const estimatedSubject = estimated ? subjects.find((s) => s.id === estimated.subjectId) : undefined;
   const estimatedDays = estimated ? estimated.weekdays ?? estimatedSubject?.defaultWeekdays ?? schoolDays : null;
   // S7b-10: over the days the plan really has; until that answers, the weekdays in the dates.
-  const estimatedReal = usePace(estimated && estimatedDays ? { subjectId: estimated.subjectId, childIds: estimated.childIds, startDate: estimated.startDate, endDate: estimated.endDate, weekdays: estimatedDays } : null);
+  const estimatedReal = usePace(!readOnly && estimated && estimatedDays ? { subjectId: estimated.subjectId, childIds: estimated.childIds, startDate: estimated.startDate, endDate: estimated.endDate, weekdays: estimatedDays } : null);
   const estimatedPace = !estimated || !estimatedDays ? null
     : estimatedReal ? unitsPerCapacityDay(estimated.totalUnits, estimatedReal.capacityDays) : unitsPerDay(estimated.totalUnits, estimated.startDate, estimated.endDate, estimatedDays);
   // S10-06: the edit sheet's pace line, at the selection's dates (a drag updates it), over the days the plan really has.
   const selected = selection ? assignments.find((a) => a.id === selection.assignmentId) : undefined;
   const selectedSubject = selected ? subjects.find((s) => s.id === selected.subjectId) : undefined;
   const selectedDays = selected ? selected.weekdays ?? selectedSubject?.defaultWeekdays ?? schoolDays : null;
-  const selectedDraft = selected && selection && selectedDays
+  const selectedDraft = !readOnly && selected && selection && selectedDays
     ? { subjectId: selected.subjectId, childIds: selected.childIds, startDate: selection.startDate, endDate: selection.endDate, weekdays: selectedDays } : null;
   const selectedReal = usePace(selectedDraft, 150);
   const selectedPerDay = !selected || !selectedDraft ? null
@@ -231,23 +234,23 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
   // doing what the bars hint says, so it counts as seen.
   const tips = useTips();
   const settled = !!ready && !leavingLayout;
-  const tip = tips.active({ bars: settled && layout.bands.some((b) => b.d), edit: !!selection, icons: settled && layout.badges.length > 0 });
+  const tip = readOnly ? null : tips.active({ bars: settled && layout.bands.some((b) => b.d), edit: !!selection, icons: settled && layout.badges.length > 0 });
   const barsSeen = tips.seen.includes("bars");
   const { markSeen } = tips;
   useEffect(() => {
-    if (selection && !barsSeen) void markSeen("bars");
-  }, [selection, barsSeen, markSeen]);
+    if (selection && !barsSeen && !readOnly) void markSeen("bars");
+  }, [selection, barsSeen, markSeen, readOnly]);
   const calendar = !failed && !loading && model && layout && empty;
 
   return (
     <>
       <header className="timeline-page-header">
         {embedded ? null : <h1>Timeline</h1>}
-        {!failed && !loading && model && (() => {
+        {!readOnly && !failed && !loading && model && (() => {
           const add = <AddAssignmentButton onClick={() => { setCopying(null); setAdding(true); }} />;
           return embedded && titleSlot ? createPortal(add, titleSlot) : add;
         })()}
-        {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews, viewOverrides)} onEdit={() => setEditingViews(true)} />}
+        {(ready || calendar) && <ZoomPresets zooms={zooms} value={shownZoom} onChange={choose} labelOf={(z) => zoomLabel(z, customViews, viewOverrides)} onEdit={readOnly ? undefined : () => setEditingViews(true)} />}
       </header>
       {ready && <ChildSwitch kids={childList} value={choice} onChange={setChoice} />}
       {(ready || calendar) && shownZoom === "month" && month && <MonthNav months={months} value={month} onChange={setMonth} />}
@@ -262,7 +265,7 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
           <>
             <Timeline layout={layout} label={`${shownZoom === "month" && month ? monthName(month) : zoomLabel(shownZoom, customViews, viewOverrides)} timeline`} subjects={subjects} />
             <p className="tl-empty">Nothing planned yet.</p>
-            <p className="tl-empty tl-empty-hint">Tap + above to add an assignment, and your books and lessons appear here.</p>
+            {readOnly ? null : <p className="tl-empty tl-empty-hint">Tap + above to add an assignment, and your books and lessons appear here.</p>}
           </>
         ) : (
           <>
@@ -284,7 +287,10 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
             {/* S7b-07 (F7): This month with nothing in it draws only the axis; say so under it. */}
             {shownZoom === "month" && layout.rows.length === 0 && <p className="tl-empty" role="status">Nothing planned this month.</p>}
             <TimelineLanesList model={model} onSelect={select} />
-            {selection && (
+            {selection && readOnly ? (
+              <BarDetailSheet assignment={selected ?? null} subjects={subjects} children={children} onClose={closeEdit} />
+            ) : null}
+            {selection && !readOnly && (
               <>
                 {panel ? null : <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />}
                 <EditBar ref={keep.ref} selection={selection} pace={selectedPace} panel={panel} ended={selected?.endedAs && selected.endedOn ? { endedAs: selected.endedAs, endedOn: selected.endedOn } : null} onChangeEnding={() => setChangingEnd(true)}
@@ -296,6 +302,8 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
           </>
         )}
       </div>
+      {readOnly ? null : (
+        <>
       {resetting && (
         <ConfirmDialog title={`Put ${resetting.title} back to how you created it?`} confirmLabel="Reset" busy={edit.busy} error={resetError}
           onConfirm={() => void confirmReset()} onCancel={() => setResetting(null)}>
@@ -314,6 +322,8 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
       <EditZoomViewsSheet open={editingViews} views={zoomViews} unavailable={unavailable} defaults={halves} onClose={() => setEditingViews(false)}
         onSaved={(saved) => { setZoomViews(saved); setEditingViews(false); }} />
       <AddAssignmentSheet open={adding} lookups={lookups} initial={copying} onSaved={added} onClose={closeAdd} />
+        </>
+      )}
     </>
   );
 }

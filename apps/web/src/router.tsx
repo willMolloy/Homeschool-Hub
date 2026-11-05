@@ -13,6 +13,7 @@ import { clearSetupLater, setupLaterThisSession } from "./features/welcome/setup
 import { AuthProvider, useAuth, useMe } from "./auth/AuthProvider";
 import { RequireAuth } from "./auth/RequireAuth";
 import { SignedInShell } from "./layout/SignedInShell";
+import { useViewerHead } from "./features/view/useViewerHead";
 import { REDIRECTS } from "./layout/nav";
 import { KidsPage } from "./routes/KidsPage";
 import { LoginPage } from "./routes/LoginPage";
@@ -34,7 +35,14 @@ function Root() {
 /** S15-01: the signed-in screens are keyed by the account on screen, so switching accounts remounts them and nothing from the other account is left. */
 function Account({ children }: { children: ReactNode }) {
   const me = useMe();
+  useViewerHead(me.role === "viewer");
   return <Fragment key={me.familyId}>{children}</Fragment>;
+}
+
+/** S15-03: screens that only a parent has (the setup flow); a viewer who lands on one goes to Schedule. */
+function ParentOnly({ children }: { children: ReactNode }) {
+  const me = useMe();
+  return me.role === "viewer" ? <Navigate to="/schedule" replace /> : <>{children}</>;
 }
 
 function LoginRoute() {
@@ -71,12 +79,12 @@ export const routes: RouteObject[] = [
       // S14-02: the page behind an invite link (no session needed).
       { path: "/join/:token", element: <JoinPage /> },
       // S11-01: the setup flow is signed-in but outside the shell (no tab bar while setting up).
-      { path: "/welcome", element: <RequireAuth><WelcomePage /></RequireAuth> },
+      { path: "/welcome", element: <RequireAuth><Account><ParentOnly><WelcomePage /></ParentOnly></Account></RequireAuth> },
       // S13-01: the print pages are signed-in but outside the shell (no bar or rail on the sheets).
       // S13-05: Term in review is a full-screen page (no bar or rail), reached from Records.
-      { path: "/records/review", element: <RequireAuth><TermReviewPage /></RequireAuth> },
-      { path: "/print/week", element: <RequireAuth><PrintWeekPage /></RequireAuth> },
-      { path: "/print/day", element: <RequireAuth><PrintDayPage /></RequireAuth> },
+      { path: "/records/review", element: <RequireAuth><Account><TermReviewPage /></Account></RequireAuth> },
+      { path: "/print/week", element: <RequireAuth><Account><PrintWeekPage /></Account></RequireAuth> },
+      { path: "/print/day", element: <RequireAuth><Account><PrintDayPage /></Account></RequireAuth> },
       {
         element: (
           <RequireAuth>

@@ -23,6 +23,9 @@ export const TABS: readonly Tab[] = [
   { to: "/setup", label: "Set up", icon: SlidersHorizontal },
 ];
 
+/** S15-03: a viewer's bar or rail: Schedule and Records, nothing else. */
+export const VIEWER_TABS: readonly Tab[] = TABS.filter((t) => t.to === "/schedule" || t.to === "/records");
+
 export interface SetupLink {
   to: string;
   label: string;

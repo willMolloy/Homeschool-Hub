@@ -13,7 +13,9 @@ import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import type { ScheduleEvent } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
+import { useMe } from "../../auth/AuthProvider";
 import { PrintSheetsButton } from "../print/PrintSheets";
+import { BarDetailSheet } from "../view/BarDetail";
 import { ChildSwitch } from "./ChildSwitch";
 import { weekRangeText } from "../checkin/checkinText";
 import { Briefing } from "../plan/Briefing";
@@ -50,6 +52,8 @@ function Week({ headSlot, titleSlot }: { headSlot: HTMLElement | null; titleSlot
   const [choice, setChoice] = useChildChoice(look.activeChildren);
   const past = week.weekStart < week.currentWeekStart;
   const debug = useDebugFlag();
+  // S15-03: a viewer looks at the same weeks, but nothing on the page is editable: no briefing (its buttons move dates), and a bar opens a read-only detail.
+  const readOnly = useMe().role === "viewer";
   const title = week.weekStart === week.currentWeekStart ? "This week"
     : week.weekStart === addDays(week.currentWeekStart, -7) ? "Last week" : week.weekStart < week.currentWeekStart ? "Earlier week" : "Coming week";
   // S10-13: one row with the Week | Year switch: ‹, the range with its word ("This week") as a small muted label, ›.
@@ -71,18 +75,19 @@ function Week({ headSlot, titleSlot }: { headSlot: HTMLElement | null; titleSlot
       {/* S13-01: Print sheets sits at the end of the title row (where Year has its "+"). */}
       {titleSlot && look.activeChildren.length > 0 ? createPortal(<PrintSheetsButton weekStart={week.weekStart} kids={look.activeChildren} />, titleSlot) : null}
       <ChildSwitch kids={look.activeChildren} value={choice} onChange={setChoice} />
-      {!past && <Briefing weekStart={week.weekStart} />}
-      {past ? <PastWeek weekStart={week.weekStart} choice={choice} look={look} /> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} />}
+      {!past && !readOnly && <Briefing weekStart={week.weekStart} />}
+      {past ? <PastWeek weekStart={week.weekStart} choice={choice} look={look} readOnly={readOnly} /> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} readOnly={readOnly} />}
       {debug ? <PlanDebugView weekStart={week.weekStart} debug={debug} /> : null}
     </div>
   );
 }
 
-function PlannedWeek({ weekStart, currentWeekStart, choice, look }: { weekStart: string; currentWeekStart: string; choice: string | null; look: ReturnType<typeof useWeekLookups> }) {
+function PlannedWeek({ weekStart, currentWeekStart, choice, look, readOnly }: { weekStart: string; currentWeekStart: string; choice: string | null; look: ReturnType<typeof useWeekLookups>; readOnly: boolean }) {
   const { plans, failed, retry } = useWeekPlansState(weekStart);
   const events = useApi<ScheduleEvent[]>("/api/events");
   const [adjusting, setAdjusting] = useState<{ childId: string; childName: string } | null>(null);
   const [statusFor, setStatusFor] = useState<{ childId: string; assignmentId: string; title: string } | null>(null);
+  const [viewing, setViewing] = useState<string | null>(null);
   if (failed) {
     return (
       <div className="form-error" role="alert">
@@ -94,12 +99,12 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look }: { weekStart:
   if (!look.ready || !plans) return <p aria-busy="true">Loading…</p>;
   // S8-09: a new family is told what to do first, with the one button that does it.
   if (look.known.children && look.activeChildren.length === 0) {
-    return <EmptyState text="No children yet." hint="Add the children you teach, then their subjects and books."
-      action={<Link className="btn" to="/setup/children">Add your children</Link>} />;
+    return <EmptyState text="No children yet." hint={readOnly ? undefined : "Add the children you teach, then their subjects and books."}
+      action={readOnly ? undefined : <Link className="btn" to="/setup/children">Add your children</Link>} />;
   }
   if (look.known.assignments && !look.assignments.some((a) => !a.archived)) {
-    return <EmptyState text="Nothing is planned yet." hint="Add a book or a lesson and your week fills in."
-      action={<Link className="btn" to="/setup/assignments">Add your first assignment</Link>} />;
+    return <EmptyState text="Nothing is planned yet." hint={readOnly ? undefined : "Add a book or a lesson and your week fills in."}
+      action={readOnly ? undefined : <Link className="btn" to="/setup/assignments">Add your first assignment</Link>} />;
   }
   const bars = barsFromPlans(plans, weekStart, look);
   const kids = choice === ALL ? look.activeChildren : look.activeChildren.filter((c) => c.id === choice);
@@ -117,7 +122,7 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look }: { weekStart:
               <WeekBars label={`${k.name}'s bars`}>
                 {mine.map((b) => (
                   <WeekBar key={b.key} bar={b} slot={look.slotOfAssignment(b.assignmentId)} icon={<SubjectGlyph subject={look.subjectFor(b.assignmentId)} />}
-                    onOpen={() => setAdjusting({ childId: k.id, childName: k.name })} />
+                    onOpen={() => (readOnly ? setViewing(b.assignmentId) : setAdjusting({ childId: k.id, childName: k.name }))} />
                 ))}
               </WeekBars>
             )}
@@ -125,11 +130,12 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look }: { weekStart:
           </section>
         );
       })}
-      <ResponsiveSheet open={adjusting !== null} onOpenChange={(o) => !o && setAdjusting(null)}
+      {readOnly ? <BarDetailSheet assignment={look.assignments.find((a) => a.id === viewing) ?? null} subjects={look.subjects} children={look.children} onClose={() => setViewing(null)} /> : null}
+      {readOnly ? null : <ResponsiveSheet open={adjusting !== null} onOpenChange={(o) => !o && setAdjusting(null)}
         title={adjusting ? aheadTitle(adjusting.childName, weekStart, weekEnd, current) : ""}>
         {adjusting && <WeekAdjustment childId={adjusting.childId} weekStart={weekStart} weekEnd={weekEnd} current={current} onSaved={() => setAdjusting(null)}
           onUpdateStatus={(t) => { setStatusFor({ childId: adjusting.childId, ...t }); setAdjusting(null); }} />}
-      </ResponsiveSheet>
+      </ResponsiveSheet>}
       {statusFor && <UpdateStatusFlow assignmentId={statusFor.assignmentId} childId={statusFor.childId} title={statusFor.title} onClose={() => setStatusFor(null)} />}
     </>
   );
