@@ -200,7 +200,9 @@ describe("the print pages (S13-01, S13-02, S13-03)", () => {
     const frank = within(sheets[0]!);
     expect(frank.getByText("Treasure Island")).toBeInTheDocument();
     expect(frank.getAllByText(/pages 2\d\d–2\d\d/)).toHaveLength(5);
-    expect(frank.getByRole("region", { name: "Notes for Frank" })).toBeInTheDocument();
+    // S15-00 (N2): the notes block is a heading in the sheet, not a second landmark.
+    expect(frank.getByRole("heading", { name: "Notes" })).toBeInTheDocument();
+    expect(screen.getAllByRole("region")).toHaveLength(2); // one landmark per child sheet, none for the notes
     expect(within(sheets[1]!).getByText("Math 5")).toBeInTheDocument();
     expect(within(sheets[1]!).queryByText("Treasure Island")).not.toBeInTheDocument();
   });
@@ -226,6 +228,7 @@ describe("the print pages (S13-01, S13-02, S13-03)", () => {
     expect(frank.getByText(/pages 21\d–21\d/)).toBeInTheDocument();
     // Margaret's Math runs Mon, Wed, Fri only: nothing on Tuesday.
     expect(within(sheets[1]!).getByText("Nothing planned for Tuesday")).toBeInTheDocument();
+    expect(within(sheets[1]!).queryAllByRole("region")).toHaveLength(0); // S15-00 (N2): only the sheet itself is a landmark
     expect(within(sheets[1]!).queryByText("Math 5")).not.toBeInTheDocument();
   });
   it("the daily sheet on a day off and on a weekend says nothing is planned", async () => {

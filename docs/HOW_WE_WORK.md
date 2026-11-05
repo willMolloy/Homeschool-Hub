@@ -71,8 +71,9 @@ Accounts are invite-only and there is no admin screen: Will and DeeDee run these
 | `... create-family-invite -- revoke <id>` | Cancels an open invite (the full id, or its first 8 or more characters). The link then shows the same plain message as an expired one. |
 | `npm run set-parent-login -w @hh/api -- <email>` | Resets that parent's password (prompts without echo; from a pipe it reads the first line). Signs that parent out everywhere. |
 | `npm run set-family-login -w @hh/api -- <familyId> <email>` | The old name, kept as an alias: sets the family's first parent's email and password (creating a first parent when there is none). |
+| `npm run remove-parent -w @hh/api -- <email>` | Removes that parent and ends their sessions. Refuses to remove a family's last parent. |
 
-A second parent is invited by the family itself, from Family settings, Parents, "Invite another parent". Removing a parent is not in the app (Will): it is a database change, done by hand.
+A second parent is invited by the family itself, from Family settings, Parents, "Invite another parent". Removing a parent is not in the app (Will): it is the `remove-parent` command.
 
 ## Rules
 
