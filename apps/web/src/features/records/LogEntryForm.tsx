@@ -8,9 +8,11 @@
  */
 import { useCallback, useState } from "react";
 import { ApiError, apiPatch, apiPost } from "../../api/client";
-import type { Child, LogFields, RecordEntry, Subject } from "../../api/types";
+import type { Assignment, Child, LogFields, RecordEntry, Subject } from "../../api/types";
 import { Button, Chip } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
+import { BookInput } from "./BookInput";
+import { recentBooks, suggestBooks } from "./bookSuggestions";
 import { MAX_DAY_MINUTES } from "./limits";
 import { boxesFor, toMinutes } from "./entryText";
 import { RunDayChips } from "./RunDayChips";
@@ -21,6 +23,9 @@ export interface LogEntryFormProps {
   fields: LogFields;
   children: readonly Child[];
   subjects: readonly Subject[];
+  /** S16-06: the family's earlier entries and assignments, for the books field's suggestions. */
+  entries?: readonly RecordEntry[];
+  assignments?: readonly Assignment[];
   /** Editing: this entry (its child is fixed). */
   entry?: RecordEntry;
   onSaved: () => void;
@@ -45,7 +50,7 @@ function HoursBoxes({ label, value, onChange }: { label: string; value: Box; onC
   );
 }
 
-export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCancel }: LogEntryFormProps) {
+export function LogEntryForm({ fields, children, subjects, entries = [], assignments = [], entry, onSaved, onCancel }: LogEntryFormProps) {
   const kids = children.filter((c) => !c.archived);
   const active = subjects.filter((s) => !s.archived);
   const [start, setStart] = useState(entry?.startDate ?? "");
@@ -68,7 +73,7 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
   const allPicked = kids.length > 1 && picked.length === kids.length;
 
   const toggleChild = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-  const addBook = () => { const t = book.trim(); if (t) { setBooks((b) => [...b, t]); setBook(""); } };
+  const addBook = (title: string) => { const t = title.trim(); if (t) { setBooks((b) => [...b, t]); setBook(""); } };
 
   const last = end || start;
   const isRun = !!start && !!end && end > start;
@@ -154,10 +159,7 @@ export function LogEntryForm({ fields, children, subjects, entry, onSaved, onCan
       {fields.books ? (
         <fieldset className="log-books"><legend>Books read</legend>
           {books.length > 0 ? <ul className="log-book-list">{books.map((b, i) => <li key={`${b}-${i}`}>{b}<button type="button" className="btn btn-quiet" aria-label={`Remove ${b}`} onClick={() => setBooks(books.filter((_, j) => j !== i))}>Remove</button></li>)}</ul> : null}
-          <div className="log-book-add">
-            <input type="text" aria-label="Book title" placeholder="Title" maxLength={200} value={book} onChange={(e) => setBook(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBook(); } }} />
-            <Button variant="secondary" onClick={addBook}>Add</Button>
-          </div>
+          <BookInput value={book} onChange={setBook} onAdd={addBook} suggestions={suggestBooks(book, entries, assignments, books)} recent={recentBooks(entries, picked, books)} />
         </fieldset>
       ) : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}

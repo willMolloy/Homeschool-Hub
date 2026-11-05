@@ -154,7 +154,7 @@ export function RecordsPage() {
       </ResponsiveSheet>
       {readOnly ? null : <ResponsiveSheet open={logging !== null} onOpenChange={(o) => !o && setLogging(null)} title={logging === "new" || logging === null ? "Log" : "Change entry"} wide="side">
         {logging ? (
-          <LogEntryForm key={logging === "new" ? "new" : logging.id} fields={setup!.fields} children={children.data} subjects={subjects.data}
+          <LogEntryForm key={logging === "new" ? "new" : logging.id} entries={entries.data} assignments={assignments.data} fields={setup!.fields} children={children.data} subjects={subjects.data}
             entry={logging === "new" ? undefined : logging} onCancel={() => setLogging(null)} onSaved={() => { setLogging(null); refresh(); }} />
         ) : null}
       </ResponsiveSheet>}
