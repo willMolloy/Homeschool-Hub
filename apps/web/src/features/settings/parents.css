@@ -1,0 +1,10 @@
+/* S14-03: the Parents section of Family settings. */
+.parents-list, .parents-invites { list-style: none; margin: 0 0 12px; padding: 0; }
+.parents-list li { min-height: 44px; display: flex; align-items: center; gap: 0.35em; font-weight: 600; overflow-wrap: anywhere; }
+.parents-you { font-weight: 400; color: var(--tl-muted-foreground); }
+.parents-invites li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 4px 0; }
+.parents-invites li > span { flex: 1 1 9rem; min-width: 0; }
+.parents-invites .btn { box-sizing: border-box; min-height: 44px; }
+.parents-link { margin: 0 0 12px; }
+.parents-link label { display: block; font-weight: 600; margin: 0 0 6px; }
+.parents-link input { width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px 12px; border: 1px solid var(--tl-input); border-radius: var(--tl-radius-bar); background: var(--tl-card); color: var(--tl-foreground); font: inherit; font-size: 0.875rem; }
