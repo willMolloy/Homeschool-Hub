@@ -49,3 +49,32 @@ button.bar-body { cursor: pointer; }
 .child-options { display: grid; gap: 6px; }
 .child-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 0 16px; border: 0; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
 .child-option[aria-pressed="true"] { background: var(--tl-primary-soft); box-shadow: inset 0 0 0 2px var(--tl-primary); color: var(--tl-primary); }
+
+/* S16-01: the Days layout. A phone stacks the days in one scroll; from 840 px they are equal columns (the content area is widened for it). */
+.days-grid { display: grid; gap: 12px; }
+.day { border-radius: var(--tl-radius-bar); background: var(--tl-card); border: 1px solid var(--tl-border); padding: 10px 10px 8px; min-width: 0; }
+.day-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; padding: 0 4px; }
+.day-head h3 { margin: 0; font-family: var(--tl-font); font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tl-muted-foreground); white-space: nowrap; }
+.day-load { flex: 1; min-width: 24px; max-width: 120px; height: 6px; margin-left: auto; border-radius: 999px; background: var(--tl-secondary); overflow: hidden; }
+.day-load i { display: block; height: 100%; border-radius: 999px; background: var(--tl-primary); color: var(--tl-primary-foreground); }
+.day-lines { list-style: none; margin: 0; padding: 0; }
+.day-line { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; box-sizing: border-box; padding: 4px 6px 4px 8px; border: 0; border-left: var(--tl-rule) solid var(--cs); border-radius: 6px;
+  background: transparent; color: var(--tl-foreground); font: inherit; text-align: left; cursor: pointer; }
+.day-line:hover { background: var(--tl-secondary); }
+.day-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 0.9375rem; }
+.day-range { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; color: var(--tl-muted-foreground); }
+.day-dot { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; font-size: 0.6875rem; font-weight: 700; }
+.day-quiet { margin: 2px 4px 6px; min-height: 28px; display: flex; align-items: center; font-size: 0.875rem; color: var(--tl-muted-foreground); }
+@media (min-width: 840px) {
+  .days-grid { grid-template-columns: repeat(var(--days), minmax(0, 1fr)); align-items: start; gap: 10px; }
+  .day { padding: 10px 6px 8px; }
+  .day-head { flex-wrap: wrap; gap: 6px; }
+  .day-load { flex-basis: 100%; max-width: none; margin-left: 0; order: 2; }
+  /* In a column the range sits under the title, so a title keeps its room. */
+  .day-line { flex-wrap: wrap; row-gap: 0; }
+  .day-title { flex: 1 1 0; }
+  .day-range { max-width: 100%; flex-basis: 100%; padding-left: 26px; order: 3; }
+  .day-dot { order: 2; }
+}
+/* The columns need the width: the Days layout drops the content column's cap, as Year does. */
+@media (min-width: 840px) { .shell-main:has(.days-grid) { max-width: none; } }

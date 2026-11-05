@@ -31,6 +31,8 @@ import { SubjectGlyph } from "../subjects/SubjectIcon";
 import { WeekBar, WeekBars } from "./WeekBar";
 import { barsFromPlans, eventLines } from "./weekBars";
 import { ALL, useChildChoice } from "./useChildChoice";
+import { WeekDays } from "./WeekDays";
+import { useWeekLayout, type WeekLayout } from "./useWeekLayout";
 import { useWeekLookups } from "./useWeekLookups";
 
 /** "Frank · This week · Oct 26 – Nov 1", or "Frank · Nov 2 – 8" for a coming week (S6-03). */
@@ -54,6 +56,7 @@ function Week({ headSlot, titleSlot }: { headSlot: HTMLElement | null; titleSlot
   const debug = useDebugFlag();
   // S15-03: a viewer looks at the same weeks, but nothing on the page is editable: no briefing (its buttons move dates), and a bar opens a read-only detail.
   const readOnly = useMe().role === "viewer";
+  const [layout] = useWeekLayout();
   const title = week.weekStart === week.currentWeekStart ? "This week"
     : week.weekStart === addDays(week.currentWeekStart, -7) ? "Last week" : week.weekStart < week.currentWeekStart ? "Earlier week" : "Coming week";
   // S10-13: one row with the Week | Year switch: ‹, the range with its word ("This week") as a small muted label, ›.
@@ -76,13 +79,13 @@ function Week({ headSlot, titleSlot }: { headSlot: HTMLElement | null; titleSlot
       {titleSlot && look.activeChildren.length > 0 ? createPortal(<PrintSheetsButton weekStart={week.weekStart} kids={look.activeChildren} />, titleSlot) : null}
       <ChildSwitch kids={look.activeChildren} value={choice} onChange={setChoice} />
       {!past && !readOnly && <Briefing weekStart={week.weekStart} />}
-      {past ? <PastWeek weekStart={week.weekStart} choice={choice} look={look} readOnly={readOnly} /> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} readOnly={readOnly} />}
+      {past ? <PastWeek weekStart={week.weekStart} choice={choice} look={look} readOnly={readOnly} layout={layout} /> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} readOnly={readOnly} layout={layout} />}
       {debug ? <PlanDebugView weekStart={week.weekStart} debug={debug} /> : null}
     </div>
   );
 }
 
-function PlannedWeek({ weekStart, currentWeekStart, choice, look, readOnly }: { weekStart: string; currentWeekStart: string; choice: string | null; look: ReturnType<typeof useWeekLookups>; readOnly: boolean }) {
+function PlannedWeek({ weekStart, currentWeekStart, choice, look, readOnly, layout }: { weekStart: string; currentWeekStart: string; choice: string | null; look: ReturnType<typeof useWeekLookups>; readOnly: boolean; layout: WeekLayout }) {
   const { plans, failed, retry } = useWeekPlansState(weekStart);
   const events = useApi<ScheduleEvent[]>("/api/events");
   const [adjusting, setAdjusting] = useState<{ childId: string; childName: string } | null>(null);
@@ -112,7 +115,10 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look, readOnly }: { 
   const weekEnd = addDays(weekStart, 6);
   return (
     <>
-      {kids.map((k) => {
+      {layout === "days" ? (
+        <WeekDays weekStart={weekStart} plans={plans} kids={kids} look={look} markers={choice === ALL && kids.length > 1}
+          onOpen={(l) => (readOnly ? setViewing(l.assignmentId) : setAdjusting({ childId: l.childId, childName: l.childName }))} />
+      ) : kids.map((k) => {
         const mine = bars.filter((b) => b.childId === k.id);
         const lines = eventLines(events.data ?? [], weekStart, weekEnd, k.id);
         return (

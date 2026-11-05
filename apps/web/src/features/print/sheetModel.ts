@@ -22,7 +22,7 @@ export const dayAbbr = (d: LocalDate): string => WEEKDAY_NAMES[weekdayOf(d)]!.sl
 /** "Tuesday" */
 export const dayName = (d: LocalDate): string => WEEKDAY_NAMES[weekdayOf(d)]!;
 
-const BREAK_WORD: Record<string, string> = { vacation: "Break", holiday: "Holiday", sick: "Sick day", other: "Day off" };
+export const BREAK_WORD: Record<string, string> = { vacation: "Break", holiday: "Holiday", sick: "Sick day", other: "Day off" };
 
 /** Names of the breaks and days off that cover a school day between `from` and `to` for this child ("Thanksgiving break"), once each. */
 export function breakNames(blocked: readonly BlockedRange[], childId: string, from: LocalDate, to: LocalDate, schoolDays: readonly number[]): string[] {
