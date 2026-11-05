@@ -219,3 +219,56 @@ I set the family's log setup through the API to each template and opened the car
 | `retest-chapter-labels-1280-light.png` | Margaret's week: "Chapter 2 · day 2 of 4" on Monday and again on Wednesday (N10) |
 | `retest-term-crowded-saved-png.png` | The saved PNG (half size) of a crowded Term in review card with every part, "and 11 more" |
 | `retest-term-nothing-logged-360.png` | Term in review with nothing logged: one calm line, Save and Print off |
+
+---
+
+# Re-test 2 (S16-11, commit 2e1b764)
+
+Tested at the branch tip 2e1b764 on 2026-11-05, same rules as before (scratch database `hh16_dev`, dropped afterwards; API and Vite on 127.0.0.1 only; Playwright's Chromium; no product, test or script code changed).
+
+## Re-test 2 verdict: READY (0 High, 0 Medium, 0 Low; N10 and N11 are fixed; 1 note)
+
+- **Gate:** `scripts/check.sh` ended **ALL GREEN**: engine 437 (437 in each of the 7 `test:tz` zones), api 1189, web **1654**, db 180.
+- **Smoke:** `days` "PROBLEMS none", `sheets` "sheets scenario: ok", `term-review` "term-review scenario: ok" (each on a freshly seeded database, exit 0).
+
+## N10, chapter span labels (fixed)
+
+I added chapter books to one child over the same 40 scheduled days (Nov 2 to Jan 29, with a Dentist day off in the middle) at several paces and read every Days line for every week of the run, then checked each chapter's labels as a sequence:
+
+| Pace (chapters a day) | What Days shows | One start and one finish per multi-day chapter? |
+|---|---|---|
+| 0.25 | every chapter: "start", "day 2 of 4", "day 3 of 4", "finish" (10 chapters) | Yes |
+| 0.33 | start, day 2 of 3, finish (13 chapters) | Yes |
+| 0.4 | start, day 2 of 3, finish, then start, finish alternating (16 chapters) | Yes |
+| 0.55 | start / finish pairs, some "day 2 of 3" (18 chapters) | Yes |
+| 0.625 | start and finish, with a plain "chapter 3" between (15 chapters) | Yes |
+| 0.7 | start and finish, with a plain "chapter 2" between (12 chapters) | Yes |
+| Mon/Wed, 0.5 | "Chapter 1 · start" Monday, "Chapter 1 · finish" Wednesday, ten chapters | Yes |
+| 1.075 and 1.3 | plain "chapter 14" and "chapters 14–15", "chapters 1–2" (no start/finish words) | Not needed |
+
+- **Result of the sequence check:** across all of those books (about 100 multi-day chapters), **0 chapters with a wrong, missing or repeated start or finish, and no "day k of M" that disagrees with its M**. The duplicated "day 2 of 4" and the missing "start" of the first re-test are gone.
+- **Lessons** read the same way ("Lesson 1 · start", "· day 2 of 3", "· finish", 16 lessons, no faults).
+- **Pages show plain ranges:** a page book at 0.5 of a page a day read "page 1", "page 2", ... "page 40" over 40 days, never "start", "day N of M" or "finish".
+- **The sheets and Days agree.** Printed weekly sheet = Days for Frank, Margaret and All children in 10 weeks (0 differences), printed daily sheet = Days for 20 single days across the run (20 of 20 equal), including the days either side of the day off.
+- **Bars and Update status** use the whole-unit words by design: a bar reads "chapter 1", "chapters 3–5" or "chapter 2" and Update status says "Frank · chapter 2 last week" (a book part-way through chapter 3 that week), consistent with the days they cover.
+
+## N11, print summary (fixed)
+
+Records, All children, Export, Print summary, in Each entry and in Totals, for This week (nothing logged) and Year: each child with nothing logged prints **"School days —"**; a child with a day prints the number ("School days 1"). It now agrees with the cards.
+
+## Wrapping with the longer labels
+
+Days, five weeks (one with the day off), one child and All children, at 320, 360, 390, 839, 840, 1000 and 1280 px in light and dark = 140 page states: no sideways scroll, axe clean, no control under 44 px, and **no range wider than its box or past the page edge**; the five days stack up to 839 px and sit side by side from 840 px. At 320 px a long label such as "Chapter 4 · day 4 of 5" wraps under the title (`retest2-days-320-light.png`), and in the dark 1280 px columns the labels sit under their titles in full (`retest2-days-1280-dark.png`).
+
+**Note (N15):** a day that finishes one chapter and also begins the next reads only as the finish of the first ("Chapter 1 · finish" on Wednesday, then a plain "chapter 2" on Thursday at about 0.7 of a chapter a day), so that second chapter has no "start" even though it took two days. That is the developer's stated choice ("a unit belongs to the day it is finished on"); a parent is unlikely to be misled, since the plain "chapter 2" is the one they finish that day.
+
+## Notes on the working tree
+
+Running the `sheets` smoke scenario left five untracked `docs/progress/screens/s13-06-print-*.png` files again; I could not delete them in this session (the shell refused `rm`), so I left them untracked and staged only the files named below.
+
+## Re-test 2 screenshots (`docs/reviews/sprint-16/`)
+
+| File | Shows |
+|---|---|
+| `retest2-days-320-light.png` | Days at 320 px: chapter labels "Chapter 2 · start", "· finish", "Chapter 4 · day 4 of 5" and plain "chapter 3", all whole |
+| `retest2-days-1280-dark.png` | The same week at 1280 px, dark: five columns, labels under titles |
