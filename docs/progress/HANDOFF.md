@@ -10,6 +10,10 @@
 
 S12-01 to S12-07 and S12-09 are built and pushed on `claude/test-coverage-analysis-6dehbu` (migration 024, engine 0.13.0). The S12-08 tester pass is next; the PR to `main` comes after it passes.
 
+## Build status: Sprint 15 (see `sprint-15.md`)
+
+S15-00 to S15-04 (view-only access: viewer accounts through sign-up links, a co-op as its own account, one login in several accounts with a switcher, a deny-by-default server allow-list, the viewer's Schedule and Records; migration 027 `family_member`) are built and pushed on `claude/test-coverage-analysis-6dehbu`, followed by S15-06 and S15-07 (Will's later print and month-view fixes). The S15-05 tester pass is next; the PR to `main` comes after it passes.
+
 ## Build status: Sprint 14 (see `sprint-14.md`)
 
 S14-00 to S14-06 are built and pushed on `claude/test-coverage-analysis-6dehbu` (migrations 025 `parent` and 026 `invite`: each family's login moved to a first parent, invite links, 30-day sessions with cleanup, "Signed in as", Parents in Family settings, undo for Add several and CSV import). The S14-07 tester pass is next; the PR to `main` comes after it passes. Will and DeeDee make a new family's link with `npm run create-family-invite -w @hh/api` (HOW_WE_WORK, "Accounts and the command line"). Hosting and its code fixes stay on hold.

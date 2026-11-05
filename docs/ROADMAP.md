@@ -137,7 +137,7 @@ Discuss with Will before it starts (Will, 2026-11-01). The items are in "Account
 ### Accounts
 - [x] **Invite-only accounts, with separate parent logins** (built in Sprint 14, tester next). A `parent` table holds each parent's own login; every family's old login became its first parent. Will and DeeDee make a new family's invite link with `create-family-invite`; a family invites its second parent from Family settings. Links are single use, last 7 days and are stored only as a hash. Sessions last 30 days from last use. Password resets are by hand with `set-parent-login`. Self-serve signup and emailed resets wait until going public, so no email provider is needed yet.
 - [x] **Undo for Add several and CSV import** (Sprint 14): one undo for the lot, like the copy panels; CSV import takes up to 200 rows.
-- [ ] **Read-only share link** (before the friends beta, phase 4). A secret, revocable link to one family's timeline and This Week, for a grandparent, evaluator or co-op leader. Links are unguessable and hidden from search engines, since they show children's names.
+- [x] **Read-only share link** (built in Sprint 15, tester next). Done as view-only **accounts** rather than anonymous links (Will, 2026-11-05): a parent sends a single-use sign-up link (7 days, hashed, no cap); the person becomes a viewer of that family or co-op, sees Schedule and Records only, and keeps access until removed. One login can belong to several accounts with a switcher. The server denies viewers everything not on an allow-list; viewer pages are hidden from search engines. See `progress/sprint-15.md`.
 
 ### Hosting fixes in code
 Done during the core work, since none needs a host. Details are in "Private hosting".
