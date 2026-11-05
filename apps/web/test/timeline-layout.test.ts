@@ -96,6 +96,8 @@ describe("rows, centerlines and spacing", () => {
   const l = layoutTimeline(m, { zoom: "year", width: 1280 });
 
   it("S10-02/S10-04: each row is as tall as its heaviest point on the effort curve; the first row is centred in the lane's pitch and sub-rows follow at a fixed step", () => {
+    // S15-07: this short sample would draw daily detail, where every assignment has its own row; the shared-row packing is Term and Year's.
+    const l = layoutTimeline(m, { zoom: "year", width: 1280, detail: "smooth" });
     const rows = rowsOf(l, "math:frank");
     const d = DESKTOP_METRICS;
     // Loads 0.1 (6 days), 1 (10) and 10 (10): the 95th percentile is 10, so "thick" is at the maximum (an extra row: 80 %).
@@ -125,11 +127,24 @@ describe("rows, centerlines and spacing", () => {
     // S10-02: rows sit at a fixed pitch, so an outside name no longer moves the rows below it.
     const rel = (o: ReturnType<typeof layoutTimeline>) => o.rows.map((r) => r.cy - o.lanesTop);
     const base = rel(layoutTimeline(sample, { zoom: "year", width }));
-    for (const zoom of ZOOMS) for (const detail of ["daily", "weekly", "smooth"] as const) {
+    // S15-07: daily detail gives every assignment its own row, so only the weekly and smooth detail share the Year's rows.
+    for (const zoom of ZOOMS) for (const detail of ["weekly", "smooth"] as const) {
       const got = rel(layoutTimeline(sample, { zoom, width, detail }));
       expect(got).toHaveLength(base.length);
       got.forEach((v, i) => expect(v).toBeCloseTo(base[i]!, 6));
     }
+  });
+
+  it("S15-07: at daily detail every assignment has a row of its own; Year and Term pack non-overlapping ones together", () => {
+    const daily = layoutTimeline(sample, { zoom: "year", width: 1280, detail: "daily" });
+    const packedYear = layoutTimeline(sample, { zoom: "year", width: 1280, detail: "smooth" });
+    for (const lane of new Set(daily.bands.map((b) => b.laneKey))) {
+      const mine = daily.bands.filter((b) => b.laneKey === lane && b.runs.length > 0);
+      const ids = new Set(mine.map((b) => b.assignmentId));
+      expect(new Set(mine.map((b) => b.rowKey)).size).toBe(ids.size);
+      for (const id of ids) expect(new Set(mine.filter((b) => b.assignmentId === id).map((b) => b.rowKey)).size).toBe(1);
+    }
+    expect(daily.rows.length).toBeGreaterThan(packedYear.rows.length);
   });
 
   it("S10-04: the lane pitch is the bar maximum plus the gap, so the heaviest bar never touches its neighbour", () => {
