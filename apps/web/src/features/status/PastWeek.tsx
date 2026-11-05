@@ -11,6 +11,8 @@ import { useWeekPlans } from "../plan/useWeekPlans";
 import { SubjectGlyph } from "../subjects/SubjectIcon";
 import { WeekBar, WeekBars } from "../week/WeekBar";
 import { ALL } from "../week/useChildChoice";
+import { WeekDays } from "../week/WeekDays";
+import type { WeekLayout } from "../week/useWeekLayout";
 import type { WeekLookups } from "../week/useWeekLookups";
 import type { CheckInItem } from "../../api/types";
 import { BarDetailSheet } from "../view/BarDetail";
@@ -18,19 +20,27 @@ import { UpdateStatusSheet } from "./UpdateStatusSheet";
 import { statusBody } from "./saveStatus";
 import "../week/week.css";
 
-export function PastWeek({ weekStart, choice, look, readOnly = false }: { weekStart: string; choice: string | null; look: WeekLookups; readOnly?: boolean }) {
+export function PastWeek({ weekStart, choice, look, readOnly = false, layout = "bars" }: { weekStart: string; choice: string | null; look: WeekLookups; readOnly?: boolean; layout?: WeekLayout }) {
   const state = useWeekCheckIn(weekStart);
   const plans = useWeekPlans(weekStart);
   const [open, setOpen] = useState<CheckInItem | null>(null);
   const [viewing, setViewing] = useState<string | null>(null); // S15-03: a viewer's bar opens a read-only detail, never Update status
   if (state.loadError) return <p className="checkin-error" role="alert">{state.loadError}</p>;
-  if (!state.data || !look.ready) return <p aria-busy="true">Loading…</p>;
+  if (!state.data || !look.ready || (layout === "days" && !plans)) return <p aria-busy="true">Loading…</p>;
   const week = state.data;
   const kids = choice === ALL ? look.activeChildren : look.activeChildren.filter((c) => c.id === choice);
   const positionOf = (i: CheckInItem) => i.actual ?? i.plannedTo;
   return (
     <div className="board">
-      {kids.map((k) => {
+      {layout === "days" ? (
+        <WeekDays weekStart={weekStart} kids={kids} look={look} markers={choice === ALL && kids.length > 1}
+          onOpen={(l) => {
+            // A finished week's line opens what its bar opens: Update status for that assignment (a viewer: the read-only detail).
+            const item = week.items.find((i) => i.assignmentId === l.assignmentId && i.childId === l.childId);
+            if (readOnly) setViewing(l.assignmentId);
+            else if (item) setOpen(item);
+          }} />
+      ) : kids.map((k) => {
         const mine = week.items.filter((i) => i.childId === k.id);
         return (
           <section key={k.id} aria-label={`${k.name}'s week`}>

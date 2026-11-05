@@ -3,10 +3,11 @@
  * (`docs/design/mockups/term-review.html`, notes in `docs/design/term-review-notes.md`). One layout feeds both the on-screen
  * preview and the saved PNG, so what you see is what is saved. Pure: text is measured with the `measure` it is given.
  *
- * - Three or more parts: three stat tiles (school days, finished, books read), time by subject as bars, then two lists.
- * - One or two parts (and not both lists): the roomy card: one large number, large rows, a closing sprig.
+ * S16-10: the card follows the family's log setup, in this order, only for parts with data: school days, total hours, core / non-core,
+ * hours by subject (bars), home / away, books read (typed titles). Nothing from completions; never notes.
+ * - One big number: the roomy card (it is the hero). Two or more: stat tiles (three to a row). Then the bars, then the books list.
  * - A list never scrolls, never shrinks its text and never runs onto a second image: it shows the rows that fit, and the last row
- *   becomes "and N more". The tiles keep the true totals. A part with no data is left out, never shown as 0.
+ *   becomes "and N more". The numbers keep the true totals. A part with no data is left out, never shown as 0.
  */
 import type { Subject } from "../../api/types";
 import { formatRangeYears } from "../../lib/dates";
@@ -85,18 +86,22 @@ export function layoutCard(input: CardInput): CardLayout {
   text(PAD, 187, fit(title, size, 600, "serif", BODY_W), size, 600, colors.kid.strong, "serif");
   text(PAD, 243, formatRangeYears(r.start, r.end), 28, 600, colors.muted);
 
-  // What there is to show.
+  // S16-10: the card shows what the family's log setup tracks, in the log's own words, in this order: school days, total hours,
+  // core / non-core, hours by subject (bars), home / away, books read (the typed titles). Only parts with data are here.
   const hasHours = r.bySubject.length > 0;
-  const hasTotalOnly = !hasHours && r.totalMinutes !== null;
-  const hasFinished = r.finished.length > 0;
+  const numbers: { value: string; label: string; words: string[] }[] = [];
+  if (r.schoolDays !== null) numbers.push({ value: String(r.schoolDays), label: plural(r.schoolDays, "school day", "school days"), words: ["school", plural(r.schoolDays, "day", "days")] });
+  if (r.totalHours && r.totalMinutes !== null) numbers.push({ value: formatMinutes(r.totalMinutes), label: "in total", words: ["in total"] });
+  if (r.coreMinutes !== null) numbers.push({ value: formatMinutes(r.coreMinutes), label: "core hours", words: ["core", "hours"] });
+  if (r.nonCoreMinutes !== null) numbers.push({ value: formatMinutes(r.nonCoreMinutes), label: "non-core hours", words: ["non-core", "hours"] });
+  if (r.homeMinutes !== null) numbers.push({ value: formatMinutes(r.homeMinutes), label: "hours at home", words: ["hours", "at home"] });
+  if (r.awayMinutes !== null) numbers.push({ value: formatMinutes(r.awayMinutes), label: "hours away", words: ["hours", "away"] });
   const hasBooks = r.books.length > 0;
-  const hasDays = r.schoolDays !== null;
-  const parts = [hasDays, hasFinished, hasBooks, hasHours || hasTotalOnly].filter(Boolean).length;
-  const roomy = parts <= 2 && !(hasFinished && hasBooks);
+  const roomy = numbers.length <= 1;
 
-  /** Bars: time by subject, capped at 8 rows (the rest as "and N more"). Returns the next y. */
-  const bars = (y0: number): number => {
-    const rows = r.bySubject.slice(0, 8);
+  /** Bars: time by subject, at most `cap` rows (the rest as "and N more"). Returns the next y. */
+  const bars = (y0: number, cap: number): number => {
+    const rows = r.bySubject.slice(0, cap);
     let y = y0;
     text(PAD, y + 22, "TIME BY SUBJECT", 22, 800, colors.muted, "sans", { ls: 3.08 });
     if (r.totalMinutes !== null) text(CARD_W - PAD, y + 22, `${formatMinutes(r.totalMinutes)} in all`, 24, 700, colors.muted, "sans", { anchor: "end" });
@@ -123,116 +128,55 @@ export function layoutCard(input: CardInput): CardLayout {
     return all.length <= cap ? { shown: [...all], more: 0 } : { shown: all.slice(0, cap - 1), more: all.length - (cap - 1) };
   };
 
-  if (!roomy) {
-    let y = BAND_H + 36;
-    const tiles: { value: string; label: string }[] = [];
-    if (hasDays) tiles.push({ value: String(r.schoolDays), label: plural(r.schoolDays!, "school day", "school days") });
-    if (hasFinished) tiles.push({ value: String(r.finished.length), label: "finished" });
-    if (hasBooks) tiles.push({ value: String(r.books.length), label: plural(r.books.length, "book read", "books read") });
-    if (hasTotalOnly) tiles.push({ value: formatMinutes(r.totalMinutes!), label: "hours in all" });
-    if (tiles.length > 0) {
-      const w = (BODY_W - 20 * (tiles.length - 1)) / tiles.length;
-      tiles.forEach((t, i) => {
-        const x = PAD + i * (w + 20);
-        items.push({ k: "rect", x: x + 1, y: y + 1, w: w - 2, h: 176, r: 28, fill: colors.card, stroke: colors.line, sw: 2 });
-        const vs = [88, 72, 60, 48].find((s) => measure(t.value, s, 600, "serif") <= w - 56) ?? 48;
-        text(x + 30, y + 98, t.value, vs, 600, colors.ink, "serif");
-        text(x + 30, y + 149, fit(t.label, 26, 700, "sans", w - 56), 26, 700, colors.muted);
-      });
-      y += 178 + GAP;
-    }
-    if (hasHours) y = bars(y) + GAP;
-    if (hasFinished || hasBooks) {
-      const both = hasFinished && hasBooks;
-      const colW = both ? (BODY_W - 48) / 2 : BODY_W;
-      const rowsTop = y + 48;
-      const avail = BOTTOM - rowsTop;
-      const list = (x: number, head: string, n: number, rowH: number, draw: (i: number, cy: number) => void, moreIndent: number) => {
-        text(x, y + 22, head, 22, 800, colors.muted, "sans", { ls: 3.08 });
-        const { shown, more } = slots(Array.from({ length: n }, (_, i) => i), Math.floor(avail / rowH));
-        shown.forEach((i, row) => draw(i, rowsTop + row * rowH + rowH / 2));
-        if (more > 0) { moreCount += more; text(x + moreIndent, rowsTop + shown.length * rowH + rowH / 2 + 8, `and ${more} more`, 24, 700, colors.muted); }
-      };
-      if (hasFinished) list(PAD, "FINISHED", r.finished.length, 48, (i, cy) => {
-        const f = r.finished[i]!;
-        badgeFor(f.subjectId, PAD + 18, cy, 36);
-        text(PAD + 50, cy + 9, fit(f.title, 26, 700, "sans", colW - 50), 26, 700, colors.ink);
-      }, 50);
-      if (hasBooks) {
-        const x = both ? PAD + colW + 48 : PAD;
-        list(x, "BOOKS READ", r.books.length, 40, (i, cy) => {
-          items.push({ k: "icon", x, y: cy - 12, size: 24, name: "book", fill: colors.muted });
-          text(x + 38, cy + 9, fit(r.books[i]!, 27, 500, "serif", colW - 38), 27, 500, colors.ink, "serif");
-        }, 38);
-      }
-    }
-  } else {
-    let y = BAND_H + 56;
+  const closeTop = BOTTOM - 40;
+  let y = BAND_H + (roomy ? 56 : 36);
+  if (numbers.length === 1) {
     // The hero: one large number and its words.
-    const hero = hasFinished ? { value: String(r.finished.length), words: [plural(r.finished.length, "assignment", "assignments"), "finished"] }
-      : hasBooks ? { value: String(r.books.length), words: [plural(r.books.length, "book", "books"), "read"] }
-      : hasHours || hasTotalOnly ? { value: formatMinutes(r.totalMinutes!), words: ["in all"] }
-      : hasDays ? { value: String(r.schoolDays), words: ["school", plural(r.schoolDays!, "day", "days")] }
-      : null;
-    const heroIsDays = !hasFinished && !hasBooks && !hasHours && !hasTotalOnly;
-    if (hero) {
-      const hs = [200, 150, 110, 80].find((s) => measure(hero.value, s, 600, "serif") <= BODY_W - 260) ?? 80;
-      text(PAD, y + hs * 0.8, hero.value, hs, 600, colors.kid.strong, "serif");
-      const wx = PAD + measure(hero.value, hs, 600, "serif") + 28;
-      hero.words.forEach((w, i) => text(wx, y + hs * 0.8 - (hero.words.length - 1 - i) * 48, w, 40, 700, colors.ink));
-      y += hs * 0.8 + 44;
-    }
-    if (hasDays && !heroIsDays) {
-      text(PAD, y + 30, `across ${r.schoolDays} ${plural(r.schoolDays!, "school day", "school days")}`, 32, 700, colors.muted);
-      y += 30 + GAP + 10;
-    }
-    if (hasHours) y = bars(y) + GAP + 10;
-    const closeTop = BOTTOM - 40;
-    const area = closeTop - 44 - y;
-    if (hasFinished) {
-      const two = r.finished.length > 6;
-      const rowH = two ? 80 : 106, cols = two ? 2 : 1, colW = two ? (BODY_W - 48) / 2 : BODY_W;
-      const perCol = Math.max(1, Math.floor(area / rowH));
-      const { shown, more } = slots(r.finished, perCol * cols);
-      const draw = (f: TermReview["finished"][number] | null, idx: number) => {
-        const col = Math.floor(idx / perCol), row = idx % perCol;
-        const x = PAD + col * (colW + 48), top = y + row * rowH;
-        if (!two && row > 0) items.push({ k: "rect", x: PAD, y: top - 1, w: BODY_W, h: 2, r: 0, fill: colors.line });
-        if (!f) return;
-        badgeFor(f.subjectId, x + (two ? 28 : 32), top + rowH / 2, two ? 56 : 64);
-        const tx = x + (two ? 28 : 32) + (two ? 28 : 32) + 24, room = colW - (tx - x);
-        const when = `${subjectOf(f.subjectId)?.name ?? f.subjectName} · finished ${shortDate(f.finishedOn)}`;
-        text(tx, top + rowH / 2 - (two ? 4 : 6), fit(f.title, two ? 30 : 36, 700, "sans", room), two ? 30 : 36, 700, colors.ink);
-        text(tx, top + rowH / 2 + (two ? 26 : 34), fit(when, two ? 24 : 26, 600, "sans", room), two ? 24 : 26, 600, colors.muted);
-      };
-      shown.forEach((f, i) => draw(f, i));
-      if (more > 0) {
-        moreCount += more;
-        const idx = shown.length, col = Math.floor(idx / perCol), row = idx % perCol;
-        const x = PAD + col * (colW + 48), top = y + row * rowH;
-        text(x + (two ? 88 : 96), top + rowH / 2 + 10, `and ${more} more`, 28, 700, colors.muted);
-      }
-    } else if (hasBooks) {
-      const two = r.books.length > 8;
-      const rowH = two ? 64 : 80, cols = two ? 2 : 1, colW = two ? (BODY_W - 48) / 2 : BODY_W;
-      const perCol = Math.max(1, Math.floor(area / rowH));
-      const { shown, more } = slots(r.books, perCol * cols);
-      const at = (idx: number) => ({ x: PAD + Math.floor(idx / perCol) * (colW + 48), top: y + (idx % perCol) * rowH });
-      shown.forEach((b, i) => {
-        const { x, top } = at(i);
-        items.push({ k: "icon", x, y: top + rowH / 2 - 16, size: 32, name: "book", fill: colors.muted });
-        text(x + 52, top + rowH / 2 + 12, fit(b, two ? 30 : 36, 500, "serif", colW - 52), two ? 30 : 36, 500, colors.ink, "serif");
-      });
-      if (more > 0) { moreCount += more; const { x, top } = at(shown.length); text(x + 52, top + rowH / 2 + 10, `and ${more} more`, 28, 700, colors.muted); }
-    }
-    // The closing sprig, so the page ends on purpose.
-    items.push({ k: "rect", x: PAD, y: closeTop + 19, w: (BODY_W - 40 - 48) / 2, h: 2, r: 0, fill: colors.line });
-    items.push({ k: "rect", x: CARD_W - PAD - (BODY_W - 40 - 48) / 2, y: closeTop + 19, w: (BODY_W - 40 - 48) / 2, h: 2, r: 0, fill: colors.line });
-    items.push({ k: "icon", x: CARD_W / 2 - 20, y: closeTop, size: 40, name: "plant", fill: colors.kid.strong });
+    const hero = numbers[0]!;
+    const hs = [200, 150, 110, 80].find((s) => measure(hero.value, s, 600, "serif") <= BODY_W - 260) ?? 80;
+    text(PAD, y + hs * 0.8, hero.value, hs, 600, colors.kid.strong, "serif");
+    const wx = PAD + measure(hero.value, hs, 600, "serif") + 28;
+    hero.words.forEach((w, i) => text(wx, y + hs * 0.8 - (hero.words.length - 1 - i) * 48, w, 40, 700, colors.ink));
+    y += hs * 0.8 + 44 + 10;
+  } else if (numbers.length > 1) {
+    // Tiles, up to three to a row; smaller when there are two rows so the rest still fits.
+    const perRow = numbers.length === 2 ? 2 : 3;
+    const th = numbers.length > 3 ? 140 : 176;
+    const w = (BODY_W - 20 * (perRow - 1)) / perRow;
+    numbers.forEach((t, i) => {
+      const x = PAD + (i % perRow) * (w + 20), top = y + Math.floor(i / perRow) * (th + 20);
+      items.push({ k: "rect", x: x + 1, y: top + 1, w: w - 2, h: th - 2, r: 28, fill: colors.card, stroke: colors.line, sw: 2 });
+      const vs = [88, 72, 60, 48, 40].find((v) => measure(t.value, v, 600, "serif") <= w - 56) ?? 40;
+      text(x + 30, top + (th === 176 ? 98 : 80), t.value, th === 176 ? vs : Math.min(vs, 64), 600, colors.ink, "serif");
+      text(x + 30, top + th - 27, fit(t.label, 26, 700, "sans", w - 56), 26, 700, colors.muted);
+    });
+    y += Math.ceil(numbers.length / perRow) * (th + 20) + GAP - 20;
   }
+  // Books read leaves room for its heading and a row, so the bars give way before it does.
+  const booksReserve = hasBooks ? 48 + 44 + GAP : 0;
+  if (hasHours) {
+    const cap = Math.max(1, Math.min(8, Math.floor((closeTop - 44 - y - booksReserve - 48) / 46)));
+    y = bars(y, cap) + GAP;
+  }
+  if (hasBooks) {
+    const two = r.books.length > 6;
+    const rowH = 44, cols = two ? 2 : 1, colW = two ? (BODY_W - 48) / 2 : BODY_W;
+    text(PAD, y + 22, "BOOKS READ", 22, 800, colors.muted, "sans", { ls: 3.08 });
+    const top = y + 48;
+    const perCol = Math.max(1, Math.floor((closeTop - 44 - top) / rowH));
+    const { shown, more } = slots(r.books, perCol * cols);
+    const at = (idx: number) => ({ x: PAD + Math.floor(idx / perCol) * (colW + 48), top: top + (idx % perCol) * rowH });
+    shown.forEach((b, i) => {
+      const p = at(i);
+      items.push({ k: "icon", x: p.x, y: p.top + rowH / 2 - 12, size: 24, name: "book", fill: colors.muted });
+      text(p.x + 38, p.top + rowH / 2 + 9, fit(b, 27, 500, "serif", colW - 38), 27, 500, colors.ink, "serif");
+    });
+    if (more > 0) { moreCount += more; const p = at(shown.length); text(p.x + 38, p.top + rowH / 2 + 9, `and ${more} more`, 24, 700, colors.muted); }
+  }
+  // The closing sprig, so the page ends on purpose.
+  items.push({ k: "rect", x: PAD, y: closeTop + 19, w: (BODY_W - 40 - 48) / 2, h: 2, r: 0, fill: colors.line });
+  items.push({ k: "rect", x: CARD_W - PAD - (BODY_W - 40 - 48) / 2, y: closeTop + 19, w: (BODY_W - 40 - 48) / 2, h: 2, r: 0, fill: colors.line });
+  items.push({ k: "icon", x: CARD_W / 2 - 20, y: closeTop, size: 40, name: "plant", fill: colors.kid.strong });
   return { width: CARD_W, height: CARD_H, colors, items, roomy, title, moreCount };
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-/** "Oct 16" from a YYYY-MM-DD. */
-const shortDate = (d: string) => `${MONTHS[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8, 10))}`;

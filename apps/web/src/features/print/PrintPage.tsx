@@ -12,6 +12,7 @@ import type { BlockedRange, PlanResponse } from "../../api/types";
 import { useMe } from "../../auth/AuthProvider";
 import { useApi } from "../../api/useApi";
 import { formatDate, formatShort } from "../../lib/dates";
+import { spanWindow } from "../plan/useSpanPlans";
 import { useWeekLookups } from "../week/useWeekLookups";
 import { ChildSheetView } from "./ChildSheetView";
 import { parsePrintParams, type SheetKind } from "./printUrl";
@@ -37,7 +38,7 @@ function PrintPage({ kind }: { kind: SheetKind }) {
     if (!from || !to) return;
     let live = true;
     setFailed(false);
-    apiGet<PlanResponse>(`/api/plan?from=${from}&to=${to}`).then((r) => live && setPlans(r.plans), () => live && setFailed(true));
+    apiGet<PlanResponse>(`/api/plan?from=${spanWindow(from, to).from}&to=${spanWindow(from, to).to}`).then((r) => live && setPlans(r.plans), () => live && setFailed(true));
     return () => { live = false; };
   }, [from, to]);
 

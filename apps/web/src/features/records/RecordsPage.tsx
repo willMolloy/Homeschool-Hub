@@ -26,6 +26,7 @@ import { trackedWords } from "./logSetup";
 import { rangeOptions } from "./ranges";
 import { partInRange, type EntryPart } from "./share";
 import { Totals } from "./Totals";
+import { booksFinished, schoolDaysOf } from "./booksFinished";
 import { RECORDS_WORDING } from "./wording";
 import { formatRangeYears } from "../../lib/dates";
 import "./records.css";
@@ -120,7 +121,8 @@ export function RecordsPage() {
           <p className="range-note">{range ? formatRangeYears(range.start, range.end) : "Pick the first and last day."}</p>
           {range ? (
             <>
-              <Totals totals={totals.data} fields={setup!.fields} subjects={subjects.data} anyChild={childId === null && kids.length > 1} />
+              <Totals totals={totals.data} fields={setup!.fields} subjects={subjects.data} finished={booksFinished(assignments.data, range, childId ? [childId] : null)}
+                perChild={childId === null && kids.length > 1 ? kids.map((k) => ({ name: k.name, days: schoolDaysOf(entries.data!, k.id, range) })) : undefined} />
               {error ? <p className="form-error" role="alert">{error}</p> : null}
               {inRange.length === 0 ? <p className="records-lead">Nothing logged in these dates.</p> : (
                 <ul className="entry-list" aria-label="Log entries">
@@ -146,13 +148,13 @@ export function RecordsPage() {
       <p className="records-wording">{RECORDS_WORDING}</p>
       <ResponsiveSheet open={exporting} onOpenChange={(o) => !o && setExporting(false)} title="Export" wide="side">
         {exporting && range ? (
-          <ExportSheet fields={setup!.fields} children={children.data} subjects={subjects.data} entries={entries.data} start={range.start} end={range.end}
+          <ExportSheet fields={setup!.fields} children={children.data} subjects={subjects.data} entries={entries.data} assignments={assignments.data} start={range.start} end={range.end}
             childIds={childId ? [childId] : kids.map((k) => k.id)} onClose={() => setExporting(false)} />
         ) : null}
       </ResponsiveSheet>
       {readOnly ? null : <ResponsiveSheet open={logging !== null} onOpenChange={(o) => !o && setLogging(null)} title={logging === "new" || logging === null ? "Log" : "Change entry"} wide="side">
         {logging ? (
-          <LogEntryForm key={logging === "new" ? "new" : logging.id} fields={setup!.fields} children={children.data} subjects={subjects.data}
+          <LogEntryForm key={logging === "new" ? "new" : logging.id} entries={entries.data} assignments={assignments.data} fields={setup!.fields} children={children.data} subjects={subjects.data}
             entry={logging === "new" ? undefined : logging} onCancel={() => setLogging(null)} onSaved={() => { setLogging(null); refresh(); }} />
         ) : null}
       </ResponsiveSheet>}

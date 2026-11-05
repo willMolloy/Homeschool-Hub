@@ -5,11 +5,12 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import type { Child, LogFields, RecordEntry, Subject } from "../../api/types";
+import type { Assignment, Child, LogFields, RecordEntry, Subject } from "../../api/types";
 import { formatRangeYears } from "../../lib/dates";
 import { Button, Chip } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
 import { formatMinutes } from "./entryText";
+import { booksFinished } from "./booksFinished";
 import { availableColumns, buildCsv, csvBlob, csvFileName, exportEntries, totalsFor, type ColumnKey, type ExportInput, type ExportMode } from "./exportData";
 import { dayWords, summaryOf } from "./entryText";
 import { RECORDS_WORDING } from "./wording";
@@ -20,6 +21,8 @@ export interface ExportSheetProps {
   children: readonly Child[];
   subjects: readonly Subject[];
   entries: readonly RecordEntry[];
+  /** S16-05: for the Books finished column and line. */
+  assignments?: readonly Assignment[];
   /** The Records range and child, as the starting dates and children. */
   start: string;
   end: string;
@@ -38,7 +41,7 @@ function download(name: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function ExportSheet({ fields, children, subjects, entries, start: s0, end: e0, childIds: c0, onClose }: ExportSheetProps) {
+export function ExportSheet({ fields, children, subjects, entries, assignments, start: s0, end: e0, childIds: c0, onClose }: ExportSheetProps) {
   const kids = children.filter((c) => !c.archived);
   const [start, setStart] = useState(s0);
   const [end, setEnd] = useState(e0);
@@ -49,8 +52,8 @@ export function ExportSheet({ fields, children, subjects, entries, start: s0, en
   const [printing, setPrinting] = useState(false);
   const valid = Boolean(start && end && end >= start && picked.length > 0);
   const input: ExportInput = useMemo(() => ({
-    entries, children: kids, subjects, fields, start, end, childIds: picked, mode, columns: offered.map((c) => c.key).filter((k) => !off.includes(k)),
-  }), [entries, kids, subjects, fields, start, end, picked, mode, offered, off]);
+    entries, assignments, children: kids, subjects, fields, start, end, childIds: picked, mode, columns: offered.map((c) => c.key).filter((k) => !off.includes(k)),
+  }), [entries, assignments, kids, subjects, fields, start, end, picked, mode, offered, off]);
   const allPicked = kids.length > 1 && picked.length === kids.length;
 
   useEffect(() => {
@@ -115,14 +118,20 @@ function PrintSummary({ input }: { input: ExportInput }) {
         const mine = exportEntries(input).filter((e) => e.childId === id);
         const t = totalsFor(mine, coreOf);
         const lines: [string, string][] = [];
-        if (want("schoolDays")) lines.push(["School days", String(t.schoolDays)]);
+        if (want("schoolDays")) lines.push(["School days", t.schoolDays > 0 ? String(t.schoolDays) : "—"]); // S16-11 (N11): never a zero, as on screen
         if (want("subjectHours")) for (const [sid, m] of [...t.bySubject].sort((a, b) => b[1] - a[1])) lines.push([input.subjects.find((s) => s.id === sid)?.name ?? "Subject", formatMinutes(m)]);
         // S9b-05 (N7): an amount nothing was typed for is left out, as in the CSV, never "0 m".
         const hours = (label: string, m: number) => { if (m > 0) lines.push([label, formatMinutes(m)]); };
         if (want("totalHours")) hours("Total hours", t.totalMinutes);
         if (want("coreSplit")) { hours("Core hours", t.coreMinutes); hours("Non-core hours", t.nonCoreMinutes); }
         if (want("homeAway")) { hours("Hours at home", t.homeMinutes); hours("Hours away", t.awayMinutes); }
-        if (want("books")) lines.push(["Books read", t.books.length ? t.books.join("; ") : "None"]);
+        // S16-09 (N5): Books finished (from completions) prints whenever there is something, in either mode, unless a Totals file has it unticked.
+        if (input.fields.books && (input.mode === "entries" || input.columns.includes("booksFinished"))) {
+          const f = booksFinished(input.assignments ?? [], { start: input.start, end: input.end }, [id]);
+          if (f.length > 0) lines.push(["Books finished", f.map((b) => b.title).join("; ")]);
+        }
+        // and the typed titles only when there are some (never "None")
+        if (want("books") && t.books.length > 0) lines.push(["Books read", t.books.join("; ")]);
         return (
           <section key={id} className="print-page">
             <h1>{name(id)}</h1>

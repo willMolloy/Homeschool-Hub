@@ -14,4 +14,9 @@
 | 3 | [S16-05 — Records cards that mean something](S16-05-records-cards.md) | S |
 | 4 | [S16-06 — Quicker book logging with suggestions](S16-06-book-suggestions.md) | S |
 | 5 | [S16-03 — Screenshots for Will, docs and smoke](S16-03-screenshots-docs-smoke.md) | XS |
-| 6 | [S16-04 — Tester pass](S16-04-tester-pass.md) | S |
+| 6 | [S16-07 — Days view: work grouped by child](S16-07-days-grouped-by-child.md) (Will, after the tester) | S |
+| 7 | [S16-08 — Chapters that take more than one day say start and finish](S16-08-chapter-start-finish.md) (Will, after the tester) | S |
+| 8 | [S16-09 — Fixes from the Sprint 16 tester](S16-09-tester-fixes.md) | S |
+| 9 | [S16-10 — Term in review follows the family's log setup](S16-10-term-review-days-and-time.md) (Will) | XS |
+| 10 | [S16-11 — Exact start / day N of M / finish](S16-11-exact-chapter-spans.md) (re-test N10, N11) | S |
+| 11 | [S16-04 — Tester pass] (re-test after S16-07 to S16-09)(S16-04-tester-pass.md) | S |

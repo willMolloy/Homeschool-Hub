@@ -7,12 +7,13 @@
  * S9b-05: "Last day" is a column the parent ticks like the others (N6); a Totals file starts each row with the dates it covers
  * (From, To); the file starts with a UTF-8 byte-order mark so Excel reads accents and dashes right (N14).
  */
-import type { LogFields, RecordEntry, Subject } from "../../api/types";
+import type { Assignment, LogFields, RecordEntry, Subject } from "../../api/types";
+import { booksFinished } from "./booksFinished";
 import { distinctSchoolDays, partInRange, type EntryPart } from "./share";
 import { RECORDS_WORDING } from "./wording";
 import { formatShort } from "../../lib/dates";
 
-export type ColumnKey = "lastDay" | "schoolDays" | "subjectHours" | "totalHours" | "coreSplit" | "homeAway" | "notes" | "books";
+export type ColumnKey = "lastDay" | "schoolDays" | "subjectHours" | "totalHours" | "coreSplit" | "homeAway" | "notes" | "booksFinished" | "books";
 export type ExportMode = "entries" | "totals";
 
 /** The ticks the family can offer: only what its log tracks. Notes and the last day of a run only make sense entry by entry. */
@@ -25,6 +26,8 @@ export function availableColumns(f: LogFields, mode: ExportMode = "entries"): { 
     { key: "coreSplit", label: "Core and non-core hours", on: f.coreSplit },
     { key: "homeAway", label: "Hours at home and away", on: f.homeAway },
     { key: "notes", label: "Notes", on: f.notes && mode === "entries" },
+    // S16-05: the books the parent marked finished (completions), per child, so only in a Totals file; the typed titles stay "Books read".
+    { key: "booksFinished", label: "Books finished", on: f.books && mode === "totals" },
     { key: "books", label: "Books read", on: f.books },
   ];
   return all.filter((c) => c.on).map(({ key, label }) => ({ key, label }));
@@ -77,6 +80,8 @@ export interface ExportInput {
   childIds: readonly string[];
   mode: ExportMode;
   columns: readonly ColumnKey[];
+  /** S16-05: for "Books finished". Without them that column is empty (and so left out). */
+  assignments?: readonly Assignment[];
 }
 
 export interface Table { header: string[]; rows: (string | number)[][] }
@@ -97,10 +102,10 @@ export function buildTable(i: ExportInput): Table {
   const subjectIds = i.subjects.filter((s) => exportEntries(i).some((e) => (e.subjectMinutes[s.id] ?? 0) > 0)).map((s) => s.id);
   const subjectName = (id: string) => i.subjects.find((s) => s.id === id)?.name ?? "Subject";
   type Col = { head: string; cell: (r: Row) => string | number; always?: boolean };
-  type Row = { child: string; entry?: RecordEntry; totals: Totals };
+  type Row = { child: string; entry?: RecordEntry; totals: Totals; finished: string[] };
   const rows: Row[] = i.mode === "entries"
-    ? exportEntries(i).map((e) => ({ child: name(e.childId), entry: e, totals: totalsFor([e], coreOf) }))
-    : i.childIds.map((id) => ({ child: name(id), totals: totalsFor(exportEntries(i).filter((e) => e.childId === id), coreOf) }));
+    ? exportEntries(i).map((e) => ({ child: name(e.childId), entry: e, totals: totalsFor([e], coreOf), finished: [] }))
+    : i.childIds.map((id) => ({ child: name(id), totals: totalsFor(exportEntries(i).filter((e) => e.childId === id), coreOf), finished: booksFinished(i.assignments ?? [], { start: i.start, end: i.end }, [id]).map((b) => b.title) }));
   const cols: Col[] = [];
   if (i.mode === "totals") {
     cols.push({ head: "From", cell: () => i.start, always: true });
@@ -125,6 +130,7 @@ export function buildTable(i: ExportInput): Table {
     cols.push({ head: "Hours away", cell: (r) => (r.totals.awayMinutes > 0 ? hoursText(r.totals.awayMinutes) : "") });
   }
   if (want("notes") && i.mode === "entries") cols.push({ head: "Notes", cell: (r) => r.entry!.notes ?? "" });
+  if (want("booksFinished") && i.mode === "totals") cols.push({ head: "Books finished", cell: (r) => r.finished.join("; ") });
   if (want("books")) cols.push({ head: "Books read", cell: (r) => r.totals.books.join("; ") });
   const hasData = (c: Col) => c.always || rows.some((r) => { const v = c.cell(r); return v !== "" && v !== 0; });
   const kept = cols.filter(hasData);

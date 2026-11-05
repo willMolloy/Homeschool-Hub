@@ -63,7 +63,7 @@ export function TermReviewPage() {
   const choice = shownChoice(kids, params.get("child"), "all");
   const chosenKids = choice === null ? [] : choice === ALL ? kids : kids.filter((k) => k.id === choice);
   const set = (next: Record<string, string>) => setParams((p) => { const q = new URLSearchParams(p); for (const [k, v] of Object.entries(next)) q.set(k, v); return q; }, { replace: true });
-  const { reviews, failed } = useTermReviews({ kids: chosenKids, range, assignments: assignments.data, subjects: subjects.data, family: family.data });
+  const { reviews, failed } = useTermReviews({ kids: chosenKids, range, subjects: subjects.data, family: family.data });
   const { measure, ready: fontsReady } = useCardMeasure();
   const theme = usePreviewTheme();
   const [index, setIndex] = useState(0);
@@ -123,9 +123,7 @@ export function TermReviewPage() {
             <ChildSwitch kids={kids} value={choice} onChange={(v) => set({ child: v })} />
             {empty.length > 0 && reviews ? (
               <p className="review-empty" role="status">
-                {empty.length === reviews.length && reviews.length === 1
-                  ? `Nothing to show for ${empty[0]!.childName} yet. Finished work, and what you log in Records, appears here.`
-                  : `Nothing yet for ${empty.map((e) => e.childName).join(", ")}. Finished work, and what you log in Records, appears here.`}
+                {empty.length === reviews.length ? "Nothing logged for this term yet." : `Nothing logged for ${empty.map((e) => e.childName).join(", ")} this term yet.`}
               </p>
             ) : null}
             {cards.length > 0 ? (

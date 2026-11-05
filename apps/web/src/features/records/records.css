@@ -76,3 +76,23 @@
 .log-days { border: 0; padding: 0; margin: 0; min-width: 0; }
 .log-days legend { font-weight: 600; margin-bottom: 6px; }
 .log-day-chips .chip { padding: 0 10px; }
+
+/* S16-05: the school-days card names each child; Books finished is a card you can tap; the typed titles are a short list. */
+.big-number .per-child { display: flex; flex-direction: column; font-size: 1.05rem; white-space: normal; }
+.big-number-button { border: 0; min-height: 44px; font: inherit; color: inherit; text-align: left; cursor: pointer; box-shadow: inset 0 0 0 1px var(--tl-border); }
+.big-number-button:hover { background: var(--tl-primary-soft); }
+.finished-list, .mentioned-list { list-style: none; margin: 0 0 16px; padding: 0; }
+.finished-list li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--tl-border); }
+.finished-on { color: var(--tl-muted-foreground); white-space: nowrap; }
+.mentioned-list li { padding: 6px 4px; }
+
+/* S16-06: the books field's suggestions and the recent row. */
+.book-combo { position: relative; flex: 1; min-width: 0; }
+.book-combo input { width: 100%; }
+.book-options { position: absolute; z-index: var(--z-popover); left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none; max-height: 18rem; overflow: auto;
+  background: var(--tl-popover); color: var(--tl-popover-foreground); border: 1px solid var(--tl-border); border-radius: var(--tl-radius-bar); box-shadow: 0 6px 20px rgb(0 0 0 / 0.14); }
+.book-options[hidden] { display: none; }
+.book-option { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; cursor: pointer; overflow-wrap: anywhere; }
+.book-option:hover, .book-option[aria-selected="true"] { background: var(--tl-primary-soft); color: var(--tl-primary); }
+.book-recent { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.book-recent-label { color: var(--tl-muted-foreground); font-size: 0.875rem; }
