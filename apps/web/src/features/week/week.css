@@ -72,9 +72,14 @@ button.bar-body { cursor: pointer; }
   .day-load { flex-basis: 100%; max-width: none; margin-left: 0; order: 2; }
   /* In a column the range sits under the title, so a title keeps its room. */
   .day-line { flex-wrap: wrap; row-gap: 0; }
-  .day-title { flex: 1 1 0; }
-  .day-range { max-width: 100%; flex-basis: 100%; padding-left: 26px; order: 3; }
+  .day-title { flex: 1 1 0; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
+  .day-range { max-width: 100%; min-width: 0; flex-basis: 100%; padding-left: 26px; order: 3; white-space: normal; overflow-wrap: anywhere; }
   .day-dot { order: 2; }
 }
 /* The columns need the width: the Days layout drops the content column's cap, as Year does. */
 @media (min-width: 840px) { .shell-main:has(.days-grid) { max-width: none; } }
+
+/* S16-02: the Bars | Days toggle sits in its own row under the week arrows (it does not fit beside them at 360 px). */
+.week-layout-row { margin: 0 0 12px; }
+.week-layout-row .segmented { display: inline-flex; margin: 0; }
+.week-layout-row .segmented button { flex: none; min-width: 72px; }

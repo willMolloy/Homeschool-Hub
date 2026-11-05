@@ -8,6 +8,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../../ui/EmptyState";
+import { Segmented } from "../../ui/components";
 import { addDays } from "@hh/engine";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import type { ScheduleEvent } from "../../api/types";
@@ -56,7 +57,7 @@ function Week({ headSlot, titleSlot }: { headSlot: HTMLElement | null; titleSlot
   const debug = useDebugFlag();
   // S15-03: a viewer looks at the same weeks, but nothing on the page is editable: no briefing (its buttons move dates), and a bar opens a read-only detail.
   const readOnly = useMe().role === "viewer";
-  const [layout] = useWeekLayout();
+  const [layout, setLayout] = useWeekLayout();
   const title = week.weekStart === week.currentWeekStart ? "This week"
     : week.weekStart === addDays(week.currentWeekStart, -7) ? "Last week" : week.weekStart < week.currentWeekStart ? "Earlier week" : "Coming week";
   // S10-13: one row with the Week | Year switch: ‹, the range with its word ("This week") as a small muted label, ›.
@@ -77,6 +78,10 @@ function Week({ headSlot, titleSlot }: { headSlot: HTMLElement | null; titleSlot
       {headSlot ? createPortal(group, headSlot) : group}
       {/* S13-01: Print sheets sits at the end of the title row (where Year has its "+"). */}
       {titleSlot && look.activeChildren.length > 0 ? createPortal(<PrintSheetsButton weekStart={week.weekStart} kids={look.activeChildren} />, titleSlot) : null}
+      {/* S16-02: Bars | Days, remembered on this device. A viewer gets it too (it changes only how the week is drawn). */}
+      <div className="week-layout-row">
+        <Segmented label="Week layout" value={layout} onChange={setLayout} options={[{ value: "bars", label: "Bars" }, { value: "days", label: "Days" }]} />
+      </div>
       <ChildSwitch kids={look.activeChildren} value={choice} onChange={setChoice} />
       {!past && !readOnly && <Briefing weekStart={week.weekStart} />}
       {past ? <PastWeek weekStart={week.weekStart} choice={choice} look={look} readOnly={readOnly} layout={layout} /> : <PlannedWeek weekStart={week.weekStart} currentWeekStart={week.currentWeekStart} choice={choice} look={look} readOnly={readOnly} layout={layout} />}
