@@ -1,4 +1,4 @@
-/** S13-05: the Term in review card: its layout (parts only with data, roomy, long lists), the page, Save image and Print, and that nothing leaves the device. */
+/** S13-05: the Term in review card (S16-10: what the log tracks): its layout (parts only with data, roomy, long lists), the page, Save image and Print, and that nothing leaves the device. */
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,75 +21,68 @@ const SUBJECTS = [
 ] as Subject[];
 const measure: CardInput["measure"] = (t, size) => t.length * size * 0.5;
 const review = (over: Partial<TermReview> = {}): TermReview => ({
-  childId: "c1", childName: "Frank", childColor: "#2f6fb0", start: "2026-08-31", end: "2026-12-31", finished: [], books: [], bySubject: [], totalMinutes: null, schoolDays: null, ...over,
+  childId: "c1", childName: "Frank", childColor: "#2f6fb0", start: "2026-08-31", end: "2026-12-31", schoolDays: null, totalMinutes: null, totalHours: false,
+  coreMinutes: null, nonCoreMinutes: null, bySubject: [], homeMinutes: null, awayMinutes: null, books: [], ...over,
 });
-const fin = (n: number) => Array.from({ length: n }, (_, i) => ({ assignmentId: `a${i}`, title: `Book number ${i + 1}`, subjectId: i % 2 ? "math" : "lit", subjectName: i % 2 ? "Math" : "Literature", finishedOn: `2026-10-${String(1 + (i % 28)).padStart(2, "0")}` }));
 const layout = (r: TermReview, over: Partial<CardInput> = {}) => layoutCard({ review: r, rangeLabel: "Fall", isYear: false, subjects: SUBJECTS, theme: "light", measure, ...over });
 const texts = (items: readonly Item[]) => items.flatMap((i) => (i.k === "text" ? [i.text] : []));
 const FULL = review({
-  finished: fin(6), books: ["Treasure Island", "Heidi", "Pagoo"], schoolDays: 72, totalMinutes: 3600,
+  books: ["Treasure Island", "Heidi", "Pagoo"], schoolDays: 72, totalMinutes: 3600, totalHours: true, coreMinutes: 2400, nonCoreMinutes: 1200, homeMinutes: 3000, awayMinutes: 600,
   bySubject: [{ subjectId: "lit", name: "Literature", minutes: 2100 }, { subjectId: "math", name: "Math", minutes: 1500 }],
 });
 
-describe("the card's layout (S13-05)", () => {
-  it("is 1080 x 1350, titled with the child and the term, with the real numbers on the tiles", () => {
+describe("the card's layout (S13-05, S16-10)", () => {
+  it("is 1080 x 1350, titled with the child and the term, with every tracked part in the log's order", () => {
     const l = layout(FULL);
     expect([l.width, l.height]).toEqual([1080, 1350]);
     expect(l.title).toBe("Frank · Fall 2026");
     const t = texts(l.items);
-    expect(t).toEqual(expect.arrayContaining(["TERM IN REVIEW", "Homeschool Hub", "Frank · Fall 2026", "Aug 31 – Dec 31, 2026", "72", "school days", "6", "finished", "3", "books finished", "TIME BY SUBJECT", "60 h in all", "35 h", "25 h", "FINISHED"])); // S16-09 (N4): books finished is a number only, no second list
-    expect(t).not.toContain("BOOKS FINISHED");
-    expect(l.roomy).toBe(false);
+    expect(t).toEqual(expect.arrayContaining(["TERM IN REVIEW", "Homeschool Hub", "Frank · Fall 2026", "Aug 31 – Dec 31, 2026", "72", "school days", "in total", "core hours", "non-core hours", "hours at home", "hours away", "TIME BY SUBJECT", "BOOKS READ", "Treasure Island", "Heidi", "Pagoo"]));
+    // order: school days, total, core, non-core (tiles), then the bars, then home and away?  (tiles first), then books
+    const at = (x: string) => t.indexOf(x);
+    expect(at("school days")).toBeLessThan(at("in total"));
+    expect(at("in total")).toBeLessThan(at("core hours"));
+    expect(at("core hours")).toBeLessThan(at("non-core hours"));
+    expect(at("TIME BY SUBJECT")).toBeLessThan(at("BOOKS READ"));
+    expect(l.items.every((i) => (i.k !== "text" || i.y <= 1350 - 52 + 4))).toBe(true);
   });
-  it("a year says so: 'Year in review' and 2026–27", () => {
-    expect(termTitle("Year", true, "2026-08-31", "2027-05-28")).toBe("2026–27");
-    expect(termTitle("Year", true, "2026-01-01", "2026-12-31")).toBe("2026");
-    expect(termTitle("Fall", false, "2026-08-31", "2026-12-31")).toBe("Fall 2026");
-    expect(termTitle("Fall 2026", false, "2026-08-31", "2026-12-31")).toBe("Fall 2026");
-    const l = layout(FULL, { isYear: true, rangeLabel: "Year", review: { ...FULL, end: "2027-05-28" } });
-    expect(texts(l.items)).toContain("YEAR IN REVIEW");
-    expect(l.title).toBe("Frank · 2026–27");
+  it("nothing from completions and never notes: no finished list, no 'finished' wording", () => {
+    const all = texts(layout(FULL).items).join(" ");
+    expect(all).not.toMatch(/FINISHED|finished|assignment|note/i);
+  });
+  it("one big number is the hero of the roomy card; two or more are tiles", () => {
+    expect(layout(review({ schoolDays: 72 })).roomy).toBe(true);
+    expect(texts(layout(review({ schoolDays: 72 })).items)).toEqual(expect.arrayContaining(["72", "school", "days"]));
+    expect(layout(review({ schoolDays: 72, totalMinutes: 3600, totalHours: true })).roomy).toBe(false);
+    // no big number at all (hours by subject only): the bars lead, and the total is on them
+    const bars = layout(review({ totalMinutes: 3600, bySubject: [{ subjectId: "lit", name: "Literature", minutes: 3600 }] }));
+    expect(bars.roomy).toBe(true);
+    expect(texts(bars.items)).toEqual(expect.arrayContaining(["TIME BY SUBJECT", "60 h in all", "60 h"]));
   });
   it("a part with no data is left out, never shown as 0", () => {
-    const l = layout(review({ finished: fin(3), books: ["Heidi"], schoolDays: null }));
-    const t = texts(l.items);
+    const t = texts(layout(review({ schoolDays: 5 })).items);
     expect(t).not.toContain("TIME BY SUBJECT");
-    expect(t).not.toContain("0");
-    expect(t).not.toContain("school days");
-    expect(t).toEqual(expect.arrayContaining(["3", "finished", "1", "book finished"]));
+    expect(t).not.toContain("BOOKS READ");
+    expect(t.join(" ")).not.toMatch(/\b0\b/);
   });
-  it("one or two parts is the roomy card: a large number, big rows with subject and date, a sprig", () => {
-    const l = layout(review({ finished: fin(3) }));
-    expect(l.roomy).toBe(true);
+  it("long books lists show the rows that fit, then 'and N more'; the numbers keep the true totals; nothing is shrunk or drawn below the card", () => {
+    const books = Array.from({ length: 60 }, (_, i) => `Book ${i + 1}`);
+    const l = layout(review({ books, schoolDays: 160, totalMinutes: 6000, totalHours: true, coreMinutes: 3000, nonCoreMinutes: 3000, homeMinutes: 4000, awayMinutes: 2000,
+      bySubject: Array.from({ length: 9 }, (_, i) => ({ subjectId: "lit", name: `Subject ${i}`, minutes: 600 - i })) }));
     const t = texts(l.items);
-    expect(t).toEqual(expect.arrayContaining(["3", "assignments", "finished", "Book number 1", "Literature · finished Oct 1"]));
-    expect(l.items.some((i) => i.k === "icon" && i.name === "plant")).toBe(true);
-    expect(layout(review({ schoolDays: 72 })).roomy).toBe(true);
-    expect(layout(review({ finished: fin(2), schoolDays: 72 })).roomy).toBe(true);
-    expect(texts(layout(review({ finished: fin(2), schoolDays: 72 })).items)).toContain("across 72 school days");
-    expect(layout(review({ finished: fin(2), books: ["Heidi"] })).roomy).toBe(false); // a finished list and a books tile use the full layout
-  });
-  it("long lists show the rows that fit, then 'and N more'; the tiles keep the true totals; nothing is shrunk", () => {
-    const books = Array.from({ length: 40 }, (_, i) => `Book ${i + 1}`);
-    const l = layout(review({ finished: fin(30), books, schoolDays: 160, totalMinutes: 6000, bySubject: [{ subjectId: "lit", name: "Literature", minutes: 6000 }] }));
-    const t = texts(l.items);
-    expect(t).toContain("30");
-    expect(t).toContain("40");
+    expect(t).toContain("160");
     const more = t.filter((x) => /^and \d+ more$/.test(x));
-    expect(more).toHaveLength(1); // only the finished list is drawn (S16-09, N4)
-    const shownFinished = t.filter((x) => /^Book number \d+$/.test(x)).length;
-    expect(shownFinished + Number(more[0]!.match(/\d+/)![0])).toBe(30);
-    expect(t.some((x) => /^Book \d+$/.test(x))).toBe(false); // the books' titles are not written a second time
-    // Row text never shrinks: every list row is drawn at its size (26 for finished, 27 for books).
-    for (const i of l.items) if (i.k === "text" && /^Book number/.test(i.text)) expect(i.size).toBe(26);
-    // Nothing is drawn below the card.
+    expect(more.length).toBeGreaterThanOrEqual(1);
+    const shown = t.filter((x) => /^Book \d+$/.test(x)).length;
+    expect(shown + Number(more[more.length - 1]!.match(/\d+/)![0])).toBe(60);
+    for (const i of l.items) if (i.k === "text" && /^Book \d+$/.test(i.text)) expect(i.size).toBe(27);
     for (const i of l.items) if (i.k === "text") expect(i.y).toBeLessThanOrEqual(1350 - 52 + 4);
   });
   it("the heading steps down for a long name and ends in an ellipsis if it still doesn't fit", () => {
-    const sizeOf = (name: string) => layout(review({ childName: name, finished: fin(1) })).items.find((i) => i.k === "text" && i.text.startsWith(name.slice(0, 6)) && i.size >= 60);
+    const sizeOf = (name: string) => layout(review({ childName: name, schoolDays: 3 })).items.find((i) => i.k === "text" && i.text.startsWith(name.slice(0, 6)) && i.size >= 60);
     expect((sizeOf("Frank") as Extract<Item, { k: "text" }>).size).toBe(88);
     expect((sizeOf("Bartholomew") as Extract<Item, { k: "text" }>).size).toBeLessThan(88);
-    const huge = texts(layout(review({ childName: "Maximilian Bartholomew Wolfeschlegelstein", finished: fin(1) })).items).find((x) => x.includes("Maximilian"))!;
+    const huge = texts(layout(review({ childName: "Maximilian Bartholomew Wolfeschlegelstein", schoolDays: 3 })).items).find((x) => x.includes("Maximilian"))!;
     expect(huge.endsWith("…")).toBe(true);
   });
   it("no favourites, no notes, no estimates, no grades on the card", () => {
@@ -176,7 +169,7 @@ describe("Term in review page (S13-05)", () => {
     const card = await screen.findByRole("img", { name: "Frank · Fall 2026, term in review" });
     const text = card.textContent ?? "";
     expect(text).toContain("40");
-    expect(text).toContain("school days");
+    expect(text).toMatch(/school\s*days/); // the hero reads "school" over "days"
     expect(text).toContain("Treasure Island");
     expect(screen.getByRole("button", { name: "Fall" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("link", { name: /Records/ })).toHaveAttribute("href", "/records?range=fall&child=c1");
@@ -221,18 +214,19 @@ describe("Term in review page (S13-05)", () => {
     expect(pages).toHaveLength(2);
     expect(pages[0]!.querySelector("rect")!.getAttribute("fill")).toBe("#FAF6EE");
   });
-  it("a child with nothing to show says so and gets no card; the other child still does", async () => {
-    stub({ family: { ...FAMILY, logSetup: null } as FamilySettings, assignments: [asg({}), asg({ id: "long", endedAs: null, endedOn: null, endDate: "2027-05-21" })] });
+  it("a child with nothing logged says so and gets no card; the other child still does", async () => {
+    stub();
+    fakeApi.on("GET /api/records/totals", (_b, _p, q) => [200, q.get("childId") === "c2" ? { ...totals("c2"), schoolDays: 0, totalMinutes: 0, bySubject: [], books: [] } : totals("c1")]);
     renderAt("/records/review?range=fall&child=all");
     expect(await screen.findByRole("img", { name: /^Frank/ })).toBeInTheDocument();
-    expect(screen.getByText(/Nothing yet for Margaret/)).toBeInTheDocument();
+    expect(screen.getByText("Nothing logged for Margaret this term yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save image" })).toBeInTheDocument();
   });
   it("nothing to show at all: a plain sentence, and Print and Save are off", async () => {
     stub({ assignments: [asg({ id: "long", endedAs: null, endedOn: null, endDate: "2027-05-21" })] });
     fakeApi.on("GET /api/records/totals", 200, { ...totals("c1"), schoolDays: 0, books: [], bySubject: [], totalMinutes: 0 });
     renderAt("/records/review?range=fall&child=c1");
-    expect(await screen.findByText(/Nothing to show for Frank yet/)).toBeInTheDocument();
+    expect(await screen.findByText("Nothing logged for this term yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Print" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save image" })).toBeDisabled();
   });
@@ -260,5 +254,12 @@ describe("Records offers Term in review (S13-05)", () => {
     expect(link).toHaveAttribute("href", "/records/review?range=fall&child=c2");
     const row = link.parentElement!;
     expect(within(row).getAllByRole("button").map((b) => b.textContent)).toEqual(["Log", "Export"]);
+  });
+});
+
+describe("the card's title (S13-05)", () => {
+  it("says the family's name for the range with its year, and 2026–27 for a school year", () => {
+    expect(termTitle("Fall", false, "2026-08-31", "2026-12-31")).toBe("Fall 2026");
+    expect(termTitle("Year", true, "2026-08-31", "2027-05-28")).toBe("2026–27");
   });
 });

@@ -1,6 +1,6 @@
 // S13-06: Term in review end to end. Sign in as smoke@example.com (seed-second-family.ts; it can write), turn on a log that tracks
 // hours by subject, school days and books, log two days for each child, then open Records, "Term in review", check a card for each
-// child (the tiles, time by subject, finished and books parts), the card is drawn light for Save and Print even on a dark device, and
+// child (school days, time by subject and the books read, as the log tracks), the card is drawn light for Save and Print even on a dark device, and
 // Save image gives one 1080 x 1350 PNG per child on this device with no request leaving the app. Writes to the family, so reseed first:
 //   DATABASE_URL=postgres://hh:hh@localhost:5432/hh_dev npx tsx scripts/smoke/seed-second-family.ts
 //   node flow.mjs term-review
@@ -71,8 +71,9 @@ export default async function ({ page, shot, login, log, BASE }) {
   const cardText = () => page.$eval(".review-card svg", (s) => [...s.querySelectorAll("text")].map((t) => t.textContent));
   const first = await cardText();
   log("first card:", first.join(" | "));
-  check(first.includes("TIME BY SUBJECT") && first.includes("books finished") || first.includes("book finished"), "the card lacks time by subject or the books finished tile");
-  check(first.includes("school days"), "the card lacks school days");
+  check(first.includes("TIME BY SUBJECT") && first.includes("BOOKS READ"), "the card lacks time by subject or the books read");
+  check(first.includes("school days") || (first.includes("school") && first.includes("days")), "the card lacks school days");
+  check(!first.some((t) => /finished/i.test(t)), "the card has something from completions");
   check(!first.some((t) => /favou?rite|note|estimate/i.test(t)), "the card has an invented part");
   check(kids.length < 2 || (await page.$$eval(".review-print .review-print-page", (p) => p.length)) === kids.length, "not one print page per child");
   if (kids.length > 1) {

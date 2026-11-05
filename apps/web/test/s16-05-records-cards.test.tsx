@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Assignment, Child, FamilySettings, LogFields, RecordEntry, RecordTotals, Subject } from "../src/api/types";
 import { booksFinished, schoolDaysOf } from "../src/features/records/booksFinished";
 import { buildTable } from "../src/features/records/exportData";
-import { buildTermReview } from "../src/features/review/termReview";
 import { NO_FIELDS } from "../src/features/records/logSetup";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { withCovered } from "./helpers/recordEntry";
@@ -135,15 +134,7 @@ describe("Records (S16-05)", () => {
   });
 });
 
-describe("Term in review and the CSV use the same definition (S16-05)", () => {
-  it("Term in review's books are the child's finished reading assignments in the range", () => {
-    const r = buildTermReview({ child: KIDS[0]!, range: RANGE, assignments: ASSIGNMENTS, subjects: SUBJECTS, fields: ALLF, totals: totals(new URLSearchParams("childId=c1")) });
-    expect(r.books).toEqual(booksFinished(ASSIGNMENTS, RANGE, ["c1"]).map((b) => b.title));
-    expect(r.books).toEqual(["Treasure Island", "The Hobbit"]); // the typed "Heidi" is not here
-    const off = buildTermReview({ child: KIDS[0]!, range: RANGE, assignments: ASSIGNMENTS, subjects: SUBJECTS, fields: { ...ALLF, books: false }, totals: totals(new URLSearchParams("childId=c1")) });
-    expect(off.books).toEqual([]);
-  });
-
+describe("the CSV uses the same definition (S16-05)", () => {
   const input = (over = {}) => ({ entries: ENTRIES, assignments: ASSIGNMENTS, children: KIDS, subjects: SUBJECTS, fields: ALLF, start: RANGE.start, end: RANGE.end, childIds: ["c1", "c2"], mode: "totals" as const, columns: ["schoolDays", "booksFinished", "books"] as never, ...over });
   it("a Totals file has Books finished (from completions) and, ticked, Books read (the typed list)", () => {
     const t = buildTable(input());
