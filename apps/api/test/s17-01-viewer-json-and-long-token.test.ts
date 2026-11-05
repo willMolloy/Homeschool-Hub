@@ -48,13 +48,19 @@ describe.skipIf(!hasDb)("S17-01 N1 and N5 (integration)", () => {
   describe("N5: a join token over 100 characters", () => {
     it("gets the plain bad-link answer on both calls, the same as a short unknown token", async () => {
       const short = await app.inject({ method: "GET", url: `/api/join/${"t".repeat(43)}`, remoteAddress: "10.17.9.1" });
-      for (const len of [101, 300, 1500]) {
+      for (const len of [101, 300, 1500, 2500, 20000]) {
         const long = await app.inject({ method: "GET", url: `/api/join/${"t".repeat(len)}`, remoteAddress: "10.17.9.2" });
         expect(long.statusCode).toBe(404);
         expect(long.json().message).toBe(INVITE_UNAVAILABLE_MESSAGE);
         expect(long.body).toBe(short.body);
         expect(long.body).not.toContain("ttttt");
       }
+      const huge = await app.inject({ method: "POST", url: `/api/join/${"t".repeat(5000)}`, remoteAddress: "10.17.9.4", payload: { name: "N", email: "n@example.com", password: "a-long-enough-password-1" } });
+      expect(huge.statusCode).toBe(404);
+      expect(huge.body).not.toContain("tttt");
+      const elsewhere = await app.inject({ method: "PATCH", url: `/api/children/${"c".repeat(5000)}`, remoteAddress: "10.17.9.5", cookies: a.cookies, payload: { name: "x" } });
+      expect(elsewhere.statusCode).toBe(404);
+      expect(elsewhere.body).not.toContain("cccc");
       const post = await app.inject({ method: "POST", url: `/api/join/${"t".repeat(150)}`, remoteAddress: "10.17.9.3", payload: { name: "N", email: "n@example.com", password: "a-long-enough-password-1" } });
       expect(post.statusCode).toBe(404);
       expect(post.json().message).toBe(INVITE_UNAVAILABLE_MESSAGE);

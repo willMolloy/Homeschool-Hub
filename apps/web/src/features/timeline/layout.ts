@@ -627,6 +627,8 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
           const starts = drawn.flatMap((d) => d.pieces.map((p) => p[0]!.x0)).sort((x, z) => x - z);
           const freeTo = (end: number) => starts.find((x) => x > end + 0.01) ?? plotRight;
           return drawn.map(({ a, pieces }) => {
+            // S17-06 (N1): an assignment with nothing drawn in this range (a stopped or finished-early one that ended before it) has no pieces to name.
+            if (pieces.length === 0) return { a, pieces, limits: [] as number[], placed: [] as ReturnType<typeof placePieceNames> };
             const limits = pieces.map((p) => freeTo(p[p.length - 1]!.x1));
             const placed = placePieceNames(barTitle(a.title, a.endedAs), pieces, cy, detail === "smooth", measure, limits, a.endedAs === "stopped" ? { left: starts[0]! < pieces[pieces.length - 1]![0]!.x0 - 0.01 ? Number.POSITIVE_INFINITY : plotX, right: plotRight } : undefined);
             return { a, pieces, limits, placed };

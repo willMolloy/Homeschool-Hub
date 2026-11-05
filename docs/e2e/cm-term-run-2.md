@@ -38,10 +38,10 @@ npm run create-family-invite -w @hh/api
 
 | # | Do | Check |
 |---|---|---|
-| 1.1 | Open the printed link in a **private window** (so Rachel stays signed in elsewhere). Create a sign-in: a name, `cm-new@example.com`, a password of your own for this run. | The page says it is for a new family, asks for name, email, password and nothing else. A wrong or reused link shows one plain message. 44 px targets. |
-| 1.2 | Walk the six setup steps: family name "Run Two family", Mon to Fri, then **two children** (Mina 9, Jory 6), then the school year (type "Aug 17, 2026" and "May 21, 2027", choose Three terms or Fall and spring), breaks (put them off once: "I'll get back to you on this"), subjects (tick Math, Literature, History). | "Step N of 6" with a progress bar; Back works from step 2; children have no Skip; Finish later shows from step 3. Typed dates read back written out. |
-| 1.3 | Land on Home. | The only reminder is "Add your breaks" (and nothing about books). Tap Hide on the list, then find it again in Family settings: **"Show the getting-started checklist again"**. |
-| 1.4 | Open Schedule · Year. | Hints show one at a time with "Got it"; Family settings has "Show tips again". |
+| 1.1 | Open the printed link in a **private window** (so Rachel stays signed in elsewhere). Create a sign-in: a name, `cm-new@example.com`, a password of your own for this run. | The page says "Welcome. Make your sign-in, then we will set up your family together." and asks for name, email, password and nothing else. A wrong or reused link shows one plain message. 44 px targets. |
+| 1.2 | Walk the six setup steps: step 1 the family name ("Run Two family") and the day the week starts; step 2 **two children, names only** (Mina, Jory; there is no age); step 3 the school days (Mon to Fri); step 4 the school year (type "Aug 17, 2026" and "May 21, 2027", choose Three terms or Fall and spring); step 5 breaks (put them off once: "I'll get back to you on this"); step 6 subjects (tick Math, Literature, History). | "Step N of 6" with a progress bar; Back works from step 2; children have no Skip; Finish later shows from step 3. Typed dates read back written out. |
+| 1.3 | After step 6 an "You're all set" page appears: tap **Go to Home**. | The only reminder on Home is "Add your breaks" (and nothing about books). Tap Hide on the list, then find it again in Family settings: **"Show the getting-started checklist again"**. |
+| 1.4 | Open Schedule · Year. | With no assignments yet it says "Nothing planned yet" and shows **no hint**. (The hints are checked in 2.4 once a book exists.) |
 
 Leave that window; switch back to Rachel for everything else.
 
@@ -51,10 +51,10 @@ Sign in as **Rachel**. This part adds work to the *new* family from Part 1, as a
 
 | # | Do | Check |
 |---|---|---|
-| 2.1 | Set up · Assignments · **Add several**: three Literature books for Mina, one date range, in pages and chapters (for example "Heidi, 300 pages", "Little Britches, 24 chapters", "Pilgrim's Progress, 18 chapters"). | Each row has its own title, unit and amount; the preview or the list shows "about N min a day" in parent words; the new rows are listed; the bar at the bottom says "Added 3 assignments. Undo". |
-| 2.2 | **Import CSV**: download the template, add two rows (Math "Math 3, 110 lessons", History "Story of the World, 40 chapters") and one deliberate typo in the subject name, upload. | The preview lists every row; the typo gives a line-numbered message and **nothing** is imported until it is fixed; after the fix the import says how many were added. |
-| 2.3 | Open the Schedule · **Year** view. | Bars sit in lanes by subject, calm, no number a parent did not type. Tap a lane badge: the full subject name shows. |
-| 2.4 | **Undo** the CSV import from the bar. | Its rows disappear; the earlier books stay. |
+| 2.1 | Set up · Assignments · **Add several**: tick **Mina** (no child is pre-ticked: without one it says "Pick at least one child"), choose Literature, one date range and **one Unit for all the rows**, pages. Add two books by title and amount ("Heidi, 300" and "Black Beauty, 250"). Then do a second pass for chapters ("Little Britches, 24"). | Each row has its own title and amount; the list shows "about N min a day" in parent words; the new rows are listed; the bar at the bottom says "Added 2 assignments. Undo" (and again after the second pass). |
+| 2.2 | **Import CSV**: download the template (columns, in this order: `subject,title,children,unit,total,start,end`; children come before unit), add two rows (Math "Math 3", 110 lessons; History "Story of the World", 40 chapters) and one deliberate typo in a subject name, upload. | There is no preview: with an error it lists line-numbered messages and **nothing** is imported; after the fix, Import adds the rows ("Imported 3 assignments. Undo"). |
+| 2.3 | Tap **Undo** in the bar straight after the import (before leaving the screen). | The imported rows disappear; the earlier books stay. (If you have already moved on, check whether the bar is still offered and note it.) Then re-import the fixed file. |
+| 2.4 | Open the Schedule · **Year** view. | Bars sit in lanes by subject, calm, no number a parent did not type. Tap a lane badge: the full subject name shows. Now the first hint ("Thicker bars mean more work each day") appears with **Got it**, one at a time; Family settings has "Show tips again". |
 
 ## Part 3: The Hartley year and month (8 minutes)
 
@@ -63,7 +63,7 @@ Sign out, then sign in as **Rachel** (`cm-rachel@example.com`). Home opens on th
 | # | Do | Check |
 |---|---|---|
 | 3.1 | Read Home. | "2 assignments ended: Winnie-the-Pooh and Geography: Africa", a late line ("A Child's History of the World will finish about 6 weeks late at this pace"), and the Schedule and Records cards. Greeting says "Week 12 of 40". |
-| 3.2 | Schedule · **Year**, All children. Try Year, **Fall**, **Spring** and **This month**. | Fall reads Aug 17 to Dec 18 and Spring Jan 4 to May 21. Together (shared) work is its own lane with the children's initials. Prima Latina is dashed and says "Stopped"; Burgess Bird Book carries a check. Thanksgiving week and the Christmas break are washed. |
+| 3.2 | Schedule · **Year**, All children. Try Year, **Fall**, **Spring** and **This month**. | Fall reads Aug 17 to Dec 18 and Spring Jan 4 to May 21. Together (shared) work is its own lane with the children's initials. In Fall, Prima Latina is dashed and says "Stopped" and Burgess Bird Book carries a check. In **Spring** both are simply absent (they ended in the fall), and the page does not crash; Clara's and All children's Spring view show only the spring work. Thanksgiving week and the Christmas break are washed. |
 | 3.3 | This month (November): look for a thin row. | A row whose blocks are too narrow for a name shows its name on a small muted line just above it, left-aligned with the first block. Nothing is cut off at 320 px (make the window that narrow once). |
 | 3.4 | Add an assignment with the **+**: "The Wind in the Willows", Clara, chapters, 12, Nov 9 to Dec 18. | The form's "About how long" hint uses minutes a day; the bar appears in Clara's lane; the pace text matches the list. |
 
