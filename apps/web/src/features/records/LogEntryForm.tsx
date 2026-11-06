@@ -50,6 +50,26 @@ function HoursBoxes({ label, value, onChange }: { label: string; value: Box; onC
   );
 }
 
+const sameMinutes = (a: Record<string, number>, b: Record<string, number>) => {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) if ((a[k] ?? 0) !== (b[k] ?? 0)) return false;
+  return true;
+};
+
+/**
+ * S18-04 (E7): an entry already in the log that says exactly what this one says (same child, same dates, same switch and, for each
+ * thing the form sends, the same value). Fields the log setup does not track are not in `body` and are not compared.
+ */
+export function identicalEntry(entries: readonly RecordEntry[], childId: string, body: Record<string, unknown>): RecordEntry | undefined {
+  return entries.find((e) => e.childId === childId && e.startDate === body.startDate && e.endDate === body.endDate && e.countsSchoolDay === body.countsSchoolDay
+    && (body.subjectMinutes === undefined || sameMinutes(e.subjectMinutes, body.subjectMinutes as Record<string, number>))
+    && (body.totalMinutes === undefined || (e.totalMinutes ?? null) === body.totalMinutes)
+    && (body.homeMinutes === undefined || (e.homeMinutes ?? null) === body.homeMinutes)
+    && (body.awayMinutes === undefined || (e.awayMinutes ?? null) === body.awayMinutes)
+    && (body.notes === undefined || (e.notes ?? null) === (body.notes ?? null))
+    && (body.books === undefined || JSON.stringify(e.books) === JSON.stringify(body.books)));
+}
+
 export function LogEntryForm({ fields, children, subjects, entries = [], assignments = [], entry, onSaved, onCancel }: LogEntryFormProps) {
   const kids = children.filter((c) => !c.archived);
   const active = subjects.filter((s) => !s.archived);
@@ -66,6 +86,8 @@ export function LogEntryForm({ fields, children, subjects, entries = [], assignm
   const [book, setBook] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** "You already logged this. Add it again?" is showing. */
+  const [twice, setTwice] = useState(false);
   const [runDays, setRunDays] = useState<string[] | null>(null);
   // S10-10b (M2): the parent's day ticks, kept here so a change of dates (or the switch going off and on) never drops them
   const [dayTicks, setDayTicks] = useState<Map<string, boolean>>(() => (entry ? ticksFrom(entry.startDate, entry.endDate, entry.days ?? entry.coveredDays) : new Map()));
@@ -80,7 +102,7 @@ export function LogEntryForm({ fields, children, subjects, entries = [], assignm
   const sameDates = !!entry && start === entry.startDate && last === entry.endDate;
   const onTicks = useCallback((t: Map<string, boolean>) => { setDayTicks(t); setTicksTouched(true); }, []);
 
-  async function save() {
+  async function save(again = false) {
     if (busy) return;
     const problems: string[] = [];
     if (picked.length === 0) problems.push("Pick who this is for.");
@@ -113,6 +135,9 @@ export function LogEntryForm({ fields, children, subjects, entries = [], assignm
     const something = counts || typedMinutes || (typeof body.notes === "string" && body.notes !== "") || ((body.books as string[] | undefined)?.length ?? 0) > 0;
     if (problems.length === 0 && !something) problems.push("Add something to log, or leave \"Count as a school day\" on.");
     if (problems.length > 0) { setError(problems[0]!); return; }
+    // S18-04 (E7): the same entry for the same child and days is asked about once ("Add it again?"), never saved twice by accident.
+    if (!entry && !again && picked.some((id) => identicalEntry(entries, id, body))) { setTwice(true); return; }
+    setTwice(false);
     setBusy(true);
     setError(null);
     try {
@@ -126,7 +151,7 @@ export function LogEntryForm({ fields, children, subjects, entries = [], assignm
   }
 
   return (
-    <form className="log-form schedule-form" aria-label={entry ? "Change log entry" : "Log"} onSubmit={(e) => { e.preventDefault(); void save(); }} noValidate>
+    <form className="log-form schedule-form" aria-label={entry ? "Change log entry" : "Log"} onSubmit={(e) => { e.preventDefault(); void save(); }} onChange={() => setTwice(false)} noValidate>
       <div className="field-row">
         <div className="field"><label htmlFor="log-first">{end || !entry ? "First day" : "Day"}</label><DateField id="log-first" value={start} onChange={setStart} /></div>
         <div className="field"><label htmlFor="log-last">Last day (optional)</label><DateField id="log-last" value={end} onChange={setEnd} clearable /></div>
@@ -163,6 +188,12 @@ export function LogEntryForm({ fields, children, subjects, entries = [], assignm
         </fieldset>
       ) : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
+      {twice ? (
+        <div className="log-twice" role="alert">
+          <p>You already logged this. Add it again?</p>
+          <div className="btn-row"><Button disabled={busy} onClick={() => void save(true)}>Add it again</Button><Button variant="secondary" onClick={() => setTwice(false)}>No</Button></div>
+        </div>
+      ) : null}
       <div className="btn-row"><Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save"}</Button><Button variant="secondary" onClick={onCancel}>Cancel</Button></div>
     </form>
   );

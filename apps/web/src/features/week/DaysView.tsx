@@ -5,10 +5,10 @@
  */
 import type { CSSProperties } from "react";
 import type { ChildPlan } from "@hh/engine";
-import type { BlockedRange, Child } from "../../api/types";
+import type { BlockedRange, Child, ScheduleEvent } from "../../api/types";
 import { useMe } from "../../auth/AuthProvider";
 import { SubjectGlyph } from "../subjects/SubjectIcon";
-import { buildDays, type DayLine } from "./daysModel";
+import { buildDays, eventLineOn, type DayLine } from "./daysModel";
 import type { WeekLookups } from "./useWeekLookups";
 import "./week.css";
 
@@ -18,12 +18,14 @@ export interface DaysViewProps {
   kids: readonly Child[];
   look: WeekLookups;
   blocked: readonly BlockedRange[];
+  /** S18-04 (E10): the family's events; each day with one gets a quiet line under its heading. */
+  events?: readonly ScheduleEvent[];
   /** Under All children (two or more children shown): lines are grouped under child headings and Together. */
   markers: boolean;
   onOpen: (line: DayLine) => void;
 }
 
-export function DaysView({ weekStart, plans, kids, look, blocked, markers, onOpen }: DaysViewProps) {
+export function DaysView({ weekStart, plans, kids, look, blocked, events = [], markers, onOpen }: DaysViewProps) {
   const me = useMe();
   const kidIds = new Set(kids.map((k) => k.id));
   const shared = new Set(look.assignments.filter((a) => a.childIds.filter((id) => kidIds.has(id)).length >= 2).map((a) => a.id));
@@ -37,6 +39,7 @@ export function DaysView({ weekStart, plans, kids, look, blocked, markers, onOpe
             <h3>{d.heading}</h3>
             <span className="day-load" aria-hidden="true"><i style={{ width: `${Math.round(d.load * 100)}%` }} /></span>
           </header>
+          {(() => { const ev = eventLineOn(events, d.date, kidIds); return ev ? <p className="day-quiet day-event">{ev}</p> : null; })()}
           {d.off ? <p className="day-quiet">{d.off}</p> : d.groups.every((g) => g.lines.length === 0 && !g.off) ? <p className="day-quiet">Nothing planned</p> : null}
           {d.groups.map((g) => {
             const kid = g.childId ? byId.get(g.childId) : undefined;

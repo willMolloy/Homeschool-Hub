@@ -9,6 +9,6 @@
 .sheet-side { position: fixed; z-index: var(--z-sheet); top: 0; right: 0; bottom: 0; width: min(440px, 100vw); box-sizing: border-box; padding: 16px 24px 24px; }
 .sheet-grab { width: 40px; height: 5px; border-radius: 99px; background: var(--tl-border); margin: 4px auto 10px; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.sheet-title { font-family: var(--tl-font-display); font-weight: 600; font-size: 1.35rem; margin: 0; }
+.sheet-title { font-family: var(--tl-font-display); font-weight: 600; font-size: 1.35rem; margin: 0; min-width: 0; }
 .sheet-close { min-width: 44px; min-height: 44px; border: 0; background: transparent; font-size: 1.5rem; line-height: 1; color: var(--muted); cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .sheet-drawer { transition: none; } }

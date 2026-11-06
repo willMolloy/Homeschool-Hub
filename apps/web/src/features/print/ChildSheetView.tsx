@@ -9,7 +9,7 @@ export function ChildSheetView({ sheet, kind, heading, dayWord, child }: { sheet
   const rule = child.color && /^#[0-9a-f]{3,8}$/i.test(child.color) ? child.color : undefined;
   return (
     <section className="sheet" aria-label={`${sheet.childName}, ${heading}`}>
-      <header className="sheet-head" style={rule ? ({ "--sheet-rule": rule } as React.CSSProperties) : undefined}>
+      <header className="print-sheet-head" style={rule ? ({ "--sheet-rule": rule } as React.CSSProperties) : undefined}>
         <h1>{sheet.childName}</h1>
         <p className="sheet-when">{heading}</p>
       </header>

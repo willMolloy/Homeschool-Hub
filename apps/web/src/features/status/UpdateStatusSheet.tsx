@@ -101,7 +101,7 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
     return onSave(pos, "keepEndDate", null);
   };
   return (
-    <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={item.title}>
+    <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={<span className="status-title" title={item.title}>{item.title}</span>}>
       <div className="status-sheet">
         <p className="status-sub">{item.childName} · {itemRangeWords(item, plan, weekStart)} {whenText}</p>
         <h3 className="status-label" id={labelId}>How did it go?</h3>

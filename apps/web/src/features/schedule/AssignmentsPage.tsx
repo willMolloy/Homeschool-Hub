@@ -28,7 +28,7 @@ import { UNIT_LABELS, unitTitle } from "../../components/unitLabels";
 import { useWeightSuggestion } from "./useWeightSuggestion";
 import { SubjectSelect } from "./SubjectSelect";
 import { EffortField } from "./EffortField";
-import { paceLooksHigh, paceNoteText, unitsPerCapacityDay, unitsPerDay } from "./effort";
+import { paceWarning, unitsPerCapacityDay, unitsPerDay } from "./effort";
 import { requestPace, usableDraft, usePace, type PaceDraft } from "./usePace";
 import type { EffortPick } from "./effort";
 import { effortCardText } from "./weightText";
@@ -124,17 +124,21 @@ function AssignmentCard({ a, l, planEnd }: { a: Assignment; l: Lookups; planEnd?
   );
 }
 
-type Errors = Partial<Record<"subject" | "title" | "totalUnits" | "effort" | "dates" | "children", string>>;
+type Errors = Partial<Record<"subject" | "title" | "unit" | "totalUnits" | "effort" | "dates" | "children", string>>;
 
 export function AssignmentForm({ item, initial, onSaved, onCancel, extra, externalError, l, look }: FormSlotProps<Assignment> & { l: Lookups; look?: "sheet" }) {
   const sheet = look === "sheet";
   // S3a-01: a copy opens the Add form (item null) prefilled from `initial`.
   const start = item ?? initial ?? null;
   const activeSubjects = l.subjects.filter((s) => !s.archived || s.id === start?.subjectId);
-  // S10-16 (L5): the Add sheet opens on the first subject, as mocked; the page form still asks unless there is only one.
-  const [subjectId, setSubjectId] = useState(start?.subjectId ?? (activeSubjects.length === 1 || (sheet && activeSubjects.length > 0) ? activeSubjects[0]!.id : ""));
+  // S18-04 (E8): the Add sheet no longer opens on the first subject (a quick Add filed a book under Bible): like Add several and the page form it
+  // asks ("Choose a subject…") unless the family has only one. S10-16 (L5) had it open on the first subject, as mocked.
+  const [subjectId, setSubjectId] = useState(start?.subjectId ?? (activeSubjects.length === 1 ? activeSubjects[0]!.id : ""));
   const [title, setTitle] = useState(start?.title ?? "");
   const [unitType, setUnitType] = useState<UnitType>(start?.unitType ?? "lessons");
+  // S18-04 (E8): the Add sheet opens with no unit chosen either (Add several, the page form and edits keep Lessons as the starting unit);
+  // the effort and pace lines wait for the choice, and Add asks "Pick a unit." until it is made.
+  const [unitUnchosen, setUnitUnchosen] = useState(sheet && !start);
   const [totalUnits, setTotalUnits] = useState(start ? String(start.totalUnits) : "");
   // S6-09: what the parent picked for "about how long"; null = untouched (the suggestion, or what is stored, stands).
   const [pick, setPickState] = useState<EffortPick | null>(null);
@@ -168,6 +172,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
 
   /** A weight means effort per *this* unit, so changing the unit goes back to the new unit's suggestion (D7). */
   function changeUnit(u: UnitType) {
+    setUnitUnchosen(false);
     setUnitType(u);
     setPick(null);
     setUsual(false);
@@ -205,6 +210,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     const markedNow = marked && sid === subjectId; // a default marked for the old subject isn't the new one's
     const errs: Errors = {};
     if (!sid) errs.subject = "Pick a subject.";
+    if (unitUnchosen) errs.unit = "Pick a unit.";
     const t = title.trim();
     if (!t) errs.title = "Title is required.";
     else if (t.length > LIMITS.title) errs.title = `Title must be ${LIMITS.title} characters or fewer.`;
@@ -344,15 +350,19 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       {sheet ? (
         <fieldset className="choice-list unit-chips-field">
           <legend>Unit</legend>
-          <div className="kid-chips" role="radiogroup" aria-label="Unit">
-            {UNIT_TYPES.map((u) => (
-              <label key={u} className={`kid-chip unit-chip${u === unitType ? " is-on" : ""}`}>
-                <input type="radio" name={ids.unit} value={u} checked={u === unitType} onChange={() => changeUnit(u)} />
-                {unitTitle(u)}
-                {u === unitType ? <Check className="kid-chip-tick" size={16} weight="bold" aria-hidden="true" /> : null}
-              </label>
-            ))}
+          <div className="kid-chips" role="radiogroup" aria-label="Unit" aria-describedby={errors.unit ? `${ids.unit}-err` : undefined}>
+            {UNIT_TYPES.map((u) => {
+              const on = !unitUnchosen && u === unitType;
+              return (
+                <label key={u} className={`kid-chip unit-chip${on ? " is-on" : ""}`}>
+                  <input type="radio" name={ids.unit} value={u} checked={on} onChange={() => changeUnit(u)} />
+                  {unitTitle(u)}
+                  {on ? <Check className="kid-chip-tick" size={16} weight="bold" aria-hidden="true" /> : null}
+                </label>
+              );
+            })}
           </div>
+          {errors.unit ? <p id={`${ids.unit}-err`} className="field-error" role="alert">{errors.unit}</p> : null}
         </fieldset>
       ) : field(ids.unit, "Unit", undefined,
           <select id={ids.unit} value={unitType} onChange={(e) => changeUnit(e.target.value as UnitType)}>
@@ -364,8 +374,10 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
           <input id={ids.total} type="number" inputMode="decimal" min="0" step="any" value={totalUnits}
             onChange={(e) => setTotalUnits(e.target.value)} {...inv(errors.totalUnits, ids.total)} />)}
       {/* S6b-07: one quiet line for a pace that looks like a typo; it never blocks Save. */}
-      {pace !== null && paceLooksHigh(pace, unitType) ? <p className="hint pace-note" role="note">{paceNoteText(pace, unitType)}</p> : null}
-      <EffortField id={ids.effort} unitType={unitType} pace={pace} paceNote={paceNote} pick={pick} onPick={setPick} baseMinutes={baseMinutes}
+      {/* S18-04 (E9): the same warning Add several and CSV import give (effort.ts `paceWarning`): the unit pace first, then more than two hours a day. */}
+      {!unitUnchosen && paceWarning(pace, unitType, pickedMinutes !== null && Number.isFinite(pickedMinutes) ? pickedMinutes : baseMinutes)
+        ? <p className="hint pace-note" role="note">{paceWarning(pace, unitType, pickedMinutes !== null && Number.isFinite(pickedMinutes) ? pickedMinutes : baseMinutes)}</p> : null}
+      {unitUnchosen ? null : <EffortField id={ids.effort} unitType={unitType} pace={pace} paceNote={paceNote} pick={pick} onPick={setPick} baseMinutes={baseMinutes}
         suggestion={suggesting && !usualNow ? suggestion : null} subjectName={l.subjectName(subjectId)}
         usual={{
           active: usualNow,
@@ -374,7 +386,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
           onUse: () => { setPickState(null); setUsual(true); },
           weight: subjectUsual?.weightPerUnit ?? null,
         }}
-        chosenMinutes={pickedMinutes !== null && Number.isFinite(pickedMinutes) && pickedMinutes > 0 ? pickedMinutes : null} error={errors.effort} />
+        chosenMinutes={pickedMinutes !== null && Number.isFinite(pickedMinutes) && pickedMinutes > 0 ? pickedMinutes : null} error={errors.effort} />}
       <div className="btn-row">
         <button className="btn" type="submit" disabled={saving || awaitingSuggestion} aria-busy={awaitingSuggestion || undefined}>{saving ? "Saving…" : item ? "Save" : "Add"}</button>
         <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>

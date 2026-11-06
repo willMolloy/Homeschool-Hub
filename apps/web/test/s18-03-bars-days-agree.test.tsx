@@ -33,7 +33,7 @@ const titleOf = (id: string) => ASG.find((a) => a.id === id)!.title;
 const look = (): SheetLookups => ({ children: KIDS, subjects: SUBJECTS, titleOf, subjectOf: () => "lit", slotOfAssignment: () => 1 });
 const plans = planAll(E, { calendar: CAL, blocked: BLOCKED, asOf: "2026-09-07" });
 
-/** The unit numbers a line of words names ("chapters 16–17 (starts 17)", "Chapter 17 · finish, chapters 18–19", "Lesson 4 · day 2 of 3"). */
+/** The unit numbers a line of words names ("chapters 16–17 (starts 17)", "chapter 17 · finish, chapters 18–19", "lesson 4 · day 2 of 3"). */
 export function unitsNamed(words: string): number[] {
   const text = words.replace(/day \d+ of \d+/g, "");
   const out = new Set<number>();
@@ -82,7 +82,7 @@ describe("Bars and Days name the same units (E3)", () => {
     const p = { days, unitType: "chapters", totalUnits: 40, endedOn: undefined } as unknown as ChildPlan;
     expect(weekRangeWords(p, "2026-11-02")).toBe("chapters 16–17 (starts 17)");
     // ...and the Days lines name 16 (start, finish) and 17 (start, day 2 of 3, ...), so the bar leaves nothing out
-    expect(unitsNamed("Chapter 16 · start, Chapter 16 · finish, Chapter 17 · start, Chapter 17 · day 2 of 3")).toEqual([16, 17]);
+    expect(unitsNamed("chapter 16 · start, chapter 16 · finish, chapter 17 · start, chapter 17 · day 2 of 3")).toEqual([16, 17]);
   });
 
   it("one unit finished, one unit only begun, one carried on, and several with the last unfinished", () => {
@@ -92,8 +92,8 @@ describe("Bars and Days name the same units (E3)", () => {
       return { days, unitType, totalUnits: 40, endedOn: undefined } as unknown as ChildPlan;
     };
     expect(weekRangeWords(mk("chapters", [0.5, 0.5], 15), "2026-11-02")).toBe("chapter 16");
-    expect(weekRangeWords(mk("chapters", [0.2, 0.2, 0.2], 16), "2026-11-02")).toBe("Chapter 17 · start");
-    expect(weekRangeWords(mk("chapters", [0.2, 0.2], 16.3), "2026-11-02")).toBe("Chapter 17 · in progress");
+    expect(weekRangeWords(mk("chapters", [0.2, 0.2, 0.2], 16), "2026-11-02")).toBe("chapter 17 · start");
+    expect(weekRangeWords(mk("chapters", [0.2, 0.2], 16.3), "2026-11-02")).toBe("chapter 17 · in progress");
     expect(weekRangeWords(mk("chapters", [0.5, 0.5, 0.2], 15.5), "2026-11-02")).toBe("chapters 16–17 (starts 17)");
     expect(weekRangeWords(mk("lessons", [1, 1, 1], 23), "2026-11-02")).toBe("lessons 24–26");
     expect(weekRangeWords(mk("lessons", [1, 1, 0.4], 23), "2026-11-02")).toBe("lessons 24–26 (starts 26)");

@@ -26,7 +26,7 @@ A step-by-step walk through a Charlotte Mason term with the Hartley family from 
 
 5. Today in the family is **Thursday Nov 5, 2026**, Week 12 of 40. Nothing is sent anywhere: no email, no hosting. Do not use real names, addresses or passwords.
 
-**What the seed gives you.** Children Elias (13), Clara (10), Wren (7, Tuesday to Friday). Fall is Aug 17 to Dec 18 and Spring Jan 4 to May 21; Thanksgiving week (Nov 23 to 27) and a Christmas break are off; Friday is co-op. 30 assignments; six weeks of log entries (Sep 21 to Oct 30), none yet for the week of Nov 2. Two finished early (Robinson Crusoe, Burgess Bird Book), one stopped (Prima Latina), one running late (A Child's History of the World, Elias), and two ended and waiting for an answer (Geography: Africa, Winnie-the-Pooh).
+**What the seed gives you.** Children Elias (13), Clara (10), Wren (7, Tuesday to Friday). Fall is Aug 17 to Dec 18 and Spring Jan 4 to May 21; Thanksgiving week (Nov 23 to 27) and a Christmas break are off; Friday is co-op. 34 assignments (the days belong to an assignment, not to a child, so the Monday read-alouds are shared by Elias and Clara and Wren has her own copy of each on Tuesday to Friday); six weeks of log entries (Sep 21 to Oct 30), none yet for the week of Nov 2. Two finished early (Robinson Crusoe, Burgess Bird Book), one stopped (Prima Latina), one running late (A Child's History of the World, Elias), and two ended and waiting for an answer (Geography: Africa, Winnie-the-Pooh).
 
 ## Part 1: A brand-new family's first run (10 minutes)
 

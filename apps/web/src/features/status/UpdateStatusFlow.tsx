@@ -43,7 +43,7 @@ export function UpdateStatusFlow({ assignmentId, childId, title, onClose, onSave
     );
   }
   return (
-    <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={title}>
+    <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={<span className="status-title" title={title}>{title}</span>}>
       <div className="status-sheet">
         {state.loadError ? <p className="checkin-error" role="alert">{state.loadError}</p>
           : !week ? <p aria-busy="true">Loading…</p>

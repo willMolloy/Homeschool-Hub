@@ -23,7 +23,6 @@ export interface WeekBarData {
 export const wholeUnit = (position: number): number => Math.round(position + 1e-9);
 
 const TOL = 1e-6;
-const cap = (w: string) => `${w[0]!.toUpperCase()}${w.slice(1)}`;
 /** Chapters and lessons say where in the unit a day is (S16-08, S16-11); pages keep plain ranges. */
 const spans = (unitType: UnitType): boolean => unitType === "chapters" || unitType === "lessons";
 /** The whole units a range finishes: those whose end (a whole position) lies in (from, to]. */
@@ -34,11 +33,11 @@ const finishedUnits = (from: number, to: number, total?: number): [number, numbe
 const unitWords = (unitType: UnitType, a: number, b: number) => `${UNIT_LABELS[unitType][a === b ? "one" : "many"]} ${a === b ? a : `${a}–${b}`}`;
 
 /**
- * "pages 120–150", "lesson 31", "chapters 4–6", "Chapter 17 · start", "90 minutes". Stateless, from the positions alone: it is the words for
+ * "pages 120–150", "lesson 31", "chapters 4–6", "chapter 17 · start", "90 minutes". Stateless, from the positions alone: it is the words for
  * a week's bar or status line, and the fallback for a day when the days around it are not known.
  * - **Pages** keep the S15-06 plain ranges (each end rounded to the nearest page).
  * - **Chapters and lessons** name the whole units the range finishes ("chapter 18", "chapters 18–19"); a range that finishes none is part-way
- *   through one unit: "Chapter 17 · start" when it begins the unit and `span` is set (a week), else "Chapter 17 · in progress".
+ *   through one unit: "chapter 17 · start" when it begins the unit and `span` is set (a week), else "chapter 17 · in progress".
  *   A single day's exact "start / day 2 of 3 / finish" needs its neighbours: see `daySpanLabels`.
  */
 export function rangeWords(unitType: UnitType, from: number, to: number, total?: number, span = false): string {
@@ -55,7 +54,7 @@ export function rangeWords(unitType: UnitType, from: number, to: number, total?:
   const [a, b] = finishedUnits(from, to, total);
   if (b >= a) return unitWords(unitType, a, b);
   const u = Math.floor(from + TOL) + 1;
-  return `${cap(UNIT_LABELS[unitType].one)} ${u} · ${span && from - (u - 1) < TOL ? "start" : "in progress"}`;
+  return `${UNIT_LABELS[unitType].one} ${u} · ${span && from - (u - 1) < TOL ? "start" : "in progress"}`;
 }
 
 /**
@@ -63,7 +62,7 @@ export function rangeWords(unitType: UnitType, from: number, to: number, total?:
  * (the plan's `days` with work on them: its weekdays, minus days off and breaks, and nothing after the day it ended). A unit is finished on
  * the day whose work reaches its end; the days before that, back to the day after the previous unit finished, are in progress in it. A unit
  * that takes several days reads start, day 2 of M, ... , finish, so each one has exactly one "start" and one "finish". A day that finishes
- * a unit that was started on an earlier day says "Chapter 3 · finish" (then "chapter 4" or "chapters 4–5" for whole units it also
+ * a unit that was started on an earlier day says "chapter 3 · finish" (then "chapter 4" or "chapters 4–5" for whole units it also
  * finishes); a day that finishes units that had no earlier days is just "chapter 4" or "chapters 4–5". The labels come from the positions
  * only, so the daily sheet, the weekly sheet and Days agree provided they are given days either side of the ones shown. Empty for pages
  * and minutes, which keep plain ranges (see `rangeWords`).
@@ -75,7 +74,7 @@ export function daySpanLabels(plan: Pick<ChildPlan, "days" | "unitType" | "total
 /** S18-03: one scheduled day's words and the units they name (first to last, whole numbers), so a week's bar can name exactly what its days name. */
 export interface DaySpan { label: string; lo: number; hi: number }
 
-/** `daySpanLabels` with the units each label names: "Chapter 17 · start" names 17; "Chapter 16 · finish, chapters 17–18" names 16 to 18. */
+/** `daySpanLabels` with the units each label names: "chapter 17 · start" names 17; "chapter 16 · finish, chapters 17–18" names 16 to 18. */
 export function daySpans(plan: Pick<ChildPlan, "days" | "unitType" | "totalUnits" | "endedOn">): Map<LocalDate, DaySpan> {
   const out = new Map<LocalDate, DaySpan>();
   if (!spans(plan.unitType)) return out;
@@ -96,12 +95,12 @@ export function daySpans(plan: Pick<ChildPlan, "days" | "unitType" | "totalUnits
       const mine = inProgress.get(r.ongoing)!;
       const at = mine.indexOf(i);
       const m = mine.length + (finishedBy.has(r.ongoing) ? 1 : 0);
-      out.set(r.date, { label: `${cap(word)} ${r.ongoing} · ${at === 0 ? "start" : finishedBy.has(r.ongoing) ? `day ${at + 1} of ${m}` : "in progress"}`, lo: r.ongoing, hi: r.ongoing });
+      out.set(r.date, { label: `${word} ${r.ongoing} · ${at === 0 ? "start" : finishedBy.has(r.ongoing) ? `day ${at + 1} of ${m}` : "in progress"}`, lo: r.ongoing, hi: r.ongoing });
       return;
     }
     const earlier = (inProgress.get(r.a) ?? []).some((j) => j < i);
     const parts: string[] = [];
-    if (earlier) parts.push(`${cap(word)} ${r.a} · finish`);
+    if (earlier) parts.push(`${word} ${r.a} · finish`);
     if (earlier ? r.b > r.a : true) parts.push(unitWords(plan.unitType, earlier ? r.a + 1 : r.a, r.b));
     out.set(r.date, { label: parts.join(", "), lo: r.a, hi: r.b });
   });
@@ -112,7 +111,7 @@ export function daySpans(plan: Pick<ChildPlan, "days" | "unitType" | "totalUnits
  * S18-03 (E3): a week's range words, from the plan's own days, so the Week bar names the same units as that week's Days lines and the
  * printed sheet (they come from `daySpans`). Pages and minutes are `rangeWords` on the week's positions (their days already agree, S15-06).
  * Chapters and lessons name every unit the week works on, first to last:
- * - one unit that the week finishes: "chapter 16"; one it only begins or goes on with: "Chapter 17 · start" / "Chapter 17 · in progress";
+ * - one unit that the week finishes: "chapter 16"; one it only begins or goes on with: "chapter 17 · start" / "chapter 17 · in progress";
  * - several: "chapters 16–17", with "(starts 17)" when the last one is not finished by the week's end ("lessons 24–26 (starts 26)").
  * `plan` must hold days either side of the week (see `useSpanPlans`); with none of its days in the week it falls back to `rangeWords`.
  */
@@ -135,7 +134,7 @@ export function weekRangeWords(plan: Pick<ChildPlan, "days" | "unitType" | "tota
   const finished = to >= hi - TOL;
   if (lo === hi) {
     if (finished) return unitWords(plan.unitType, lo, hi);
-    return `${cap(UNIT_LABELS[plan.unitType].one)} ${lo} · ${from - (lo - 1) < TOL ? "start" : "in progress"}`;
+    return `${UNIT_LABELS[plan.unitType].one} ${lo} · ${from - (lo - 1) < TOL ? "start" : "in progress"}`;
   }
   return `${unitWords(plan.unitType, lo, hi)}${finished ? "" : ` (starts ${hi})`}`;
 }

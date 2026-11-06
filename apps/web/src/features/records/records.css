@@ -96,3 +96,7 @@
 .book-option:hover, .book-option[aria-selected="true"] { background: var(--tl-primary-soft); color: var(--tl-primary); }
 .book-recent { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .book-recent-label { color: var(--tl-muted-foreground); font-size: 0.875rem; }
+
+/* S18-04 (E7): "You already logged this. Add it again?" */
+.log-twice { margin: 0 0 12px; padding: 12px; border: 1px solid var(--tl-border); border-radius: 12px; background: var(--tl-secondary); }
+.log-twice p { margin: 0 0 10px; font-weight: 600; }

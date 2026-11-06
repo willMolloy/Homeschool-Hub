@@ -35,6 +35,7 @@ const PLAN_CHANGES: readonly (readonly [string, RegExp])[] = [
   ["PUT", /^\/api\/week-overrides(\/batch)?$/], // S7b-01: the batch is one undo entry too
   ["DELETE", /^\/api\/week-overrides\/[^/]+$/],
   ["PUT", /^\/api\/check-ins\/[^/]+$/], // S18-01: an Update status save is one undo entry (check-ins, review and any end date)
+  ["POST", /^\/api\/log-entries$/], // S18-04 (E7): a new entry leaves an undo entry too
   ["PATCH", /^\/api\/log-entries\/[^/]+$/], // S9-07: an edit or delete of a log entry is undoable (it never changes the plan)
   ["DELETE", /^\/api\/log-entries\/[^/]+$/],
 ];

@@ -65,3 +65,11 @@
 .welcome-inline { display: flex; gap: 8px; align-items: stretch; }
 .welcome-inline input { flex: 1; min-width: 0; }
 .welcome-own-subject { margin: 0; }
+
+/* S18-04 (E4): rename and remove on a child added in step 2, and the "Add another child named ...?" question. */
+.welcome-list li .btn { padding: 10px 10px; flex: none; }
+.welcome-list li { flex-wrap: wrap; }
+.welcome-list li .welcome-list-name { flex: 1 1 4.5rem; }
+.welcome-rename input { flex: 1 1 8rem; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--tl-border); border-radius: 10px; background: var(--tl-card); color: inherit; font: inherit; font-weight: 700; }
+.welcome-twin { margin: 0 0 12px; padding: 12px; border: 1px solid var(--tl-border); border-radius: 12px; }
+.welcome-twin p { margin: 0 0 10px; font-weight: 600; overflow-wrap: anywhere; }

@@ -155,6 +155,11 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
       for (const childId of b.childIds) {
         made.push(await insertEntry(tx, req.familyId, { ...base, childId, schoolDays: daysCounted(model, childId, b.startDate, endDate, base.countsSchoolDay, base.days) }));
       }
+      // S18-04 (E7): a new entry can be undone like an edit or a delete: Undo takes exactly the entries this save made.
+      const names = (await tx.query<{ id: string; name: string }>("SELECT id, name FROM child WHERE family_id = $1 AND id = ANY($2::uuid[])", [req.familyId, b.childIds])).rows;
+      const when = base.startDate === endDate ? short(base.startDate) : `${short(base.startDate)} to ${short(endDate)}`;
+      await recordUndo(tx, req.familyId, made.length === 1 ? `Added ${label(base, names[0]?.name ?? "Child")}` : `Added ${made.length} log entries for ${when}`,
+        made.map((r) => ({ op: "logEntry" as const, id: r.id, set: null })));
       return { rows: made, model };
     });
     return reply.code(201).send(rows.map(jsonWith(model)));

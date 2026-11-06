@@ -61,6 +61,8 @@ async function fillEssentials(user: ReturnType<typeof userEvent.setup>, sheet: H
   // S10-07: the Subject row opens a picker sheet.
   await user.click(within(sheet).getByRole("button", { name: /^Subject/ }));
   await user.click(within(await screen.findByRole("dialog", { name: "Subject" })).getByRole("button", { name: "History" }));
+  // S18-04 (E8): no unit is chosen when the sheet opens.
+  await user.click(within(within(sheet).getByRole("radiogroup", { name: "Unit" })).getByRole("radio", { name: "Lessons" }));
   if (title) await user.type(within(sheet).getByLabelText("Title"), title);
   await user.click(within(sheet).getByLabelText("Margaret"));
   fireEvent.change(within(sheet).getByLabelText("Start"), { target: { value: "2026-11-02" } });
@@ -101,7 +103,7 @@ describe("makeLookups", () => {
 describe("adding an assignment from the timeline", () => {
   it("one calm button in the header opens the assignment form in a side panel on wide screens", async () => {
     stubSample();
-    const { sheet } = await openForm();
+    const { sheet, user } = await openForm();
     expect(sheet).toHaveAttribute("data-sheet", "side");
     // Essentials first, in order; then the effort question (S6-09), asked in time, with no weight field and no "More".
     const labels = [...sheet.querySelectorAll("label, legend, summary")].map((e) => e.textContent!.trim()).filter((t) => !["Frank", "Margaret", "Mon", "Tue", "Wed", "Thu", "Fri", "Pages", "Chapters", "Lessons", "Minutes"].includes(t));
@@ -109,11 +111,14 @@ describe("adding an assignment from the timeline", () => {
     // S4-07: the Days chips sit right under the dates.
     // S10-07: the sheet's own controls: For (child chips), Dates (tiles), School days (soft chips).
     expect(labels.slice(0, 9)).toEqual(["Subject", "Title", "For", "Dates", "Start", "End", "School days", "Unit", "Total"]);
-    expect(labels[9]).toBe("About how long will that take?");
+    // S18-04 (E8): the effort question waits until a unit is chosen (it is in minutes per that unit).
+    expect(labels[9]).toBeUndefined();
+    await user.click(within(within(sheet).getByRole("radiogroup", { name: "Unit" })).getByRole("radio", { name: "Pages" }));
+    expect([...sheet.querySelectorAll("label, legend, summary")].map((e) => e.textContent!.trim())).toContain("About how long will that take?");
     expect(within(sheet).queryByText("More")).toBeNull();
     expect(within(sheet).queryByLabelText(/^Weight per/)).toBeNull();
     // Nothing non-essential: the form's own buttons and the close button, no helper text or badges.
-    expect(within(sheet).getAllByRole("button").map((b) => b.textContent)).toEqual(["×", "Literature", "", "", "Add", "Cancel"]) /* S10-07: the subject picker row (S10-16, L5: on the first subject); S9-04: the two calendar buttons (icon only, named "Choose a date") sit after Start and End */;
+    expect(within(sheet).getAllByRole("button").map((b) => b.textContent)).toEqual(["×", "Choose a subject…", "", "", "Add", "Cancel"]) /* S10-07: the subject picker row (S18-04, E8: nothing chosen yet); S9-04: the two calendar buttons (icon only, named "Choose a date") sit after Start and End */;
   });
 
   it("is a bottom sheet on phones", async () => {
@@ -121,6 +126,21 @@ describe("adding an assignment from the timeline", () => {
     stubSample();
     const { sheet } = await openForm();
     expect(sheet).toHaveAttribute("data-sheet", "drawer");
+  });
+
+  it("S18-04 (E8): opens with no subject and no unit chosen, and Add says so instead of filing the book under the first subject", async () => {
+    stubSample();
+    stubCreate();
+    const { user, sheet } = await openForm();
+    expect(within(sheet).getByRole("button", { name: /^Subject/ })).toHaveTextContent("Choose a subject…");
+    for (const r of within(within(sheet).getByRole("radiogroup", { name: "Unit" })).getAllByRole("radio")) expect(r).not.toBeChecked();
+    await user.type(within(sheet).getByLabelText("Title"), "Ancient Egypt");
+    await user.click(within(sheet).getByLabelText("Margaret"));
+    await waitFor(() => expect(within(sheet).getByRole("button", { name: "Add" })).toBeEnabled());
+    await user.click(within(sheet).getByRole("button", { name: "Add" }));
+    expect(await within(sheet).findByText("Pick a subject.")).toBeInTheDocument();
+    expect(within(sheet).getByText("Pick a unit.")).toBeInTheDocument();
+    expect(fakeApi.calls.some((c) => c.method === "POST" && c.path === "/api/assignments")).toBe(false);
   });
 
   it("needs a title before it saves anything", async () => {

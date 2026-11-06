@@ -15,7 +15,8 @@ import "./schedule.css";
 const NAME_MAX = 60;
 
 /** Shown by the week-start choices while stored weeks lock it (S2c-01, D25). */
-export const WEEK_START_LOCKED_HINT = "Can't change after you've checked in a week.";
+/** S18-04 (E6): what actually locks it is a saved Update status (the only thing that stores a check-in or a week's review). */
+export const WEEK_START_LOCKED_HINT = "Can't change once you've used Update status.";
 
 /**
  * The picker's options (S2a-17): the server's zones (GET /api/timezones), with the stored zone first when it
