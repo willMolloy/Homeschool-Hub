@@ -75,7 +75,7 @@ export function useWeekCheckIn(weekStart?: string): WeekCheckInState {
       const row = e instanceof ApiError && e.status === 400 ? itemErrorOf(e.message) : null;
       const item = row ? body.items[row.index] : undefined;
       if (row && item) setItemErrors({ [itemKey(item)]: row.text });
-      else if (e instanceof ApiError && e.status === 400) setError(e.message.replace(/^[a-zA-Z.\d]+: /, ""));
+      else if (e instanceof ApiError && (e.status === 400 || e.status === 409)) setError(e.message.replace(/^[a-zA-Z.\d]+: /, ""));
       else setError("Couldn't save that. Please try again.");
       return null;
     } finally {

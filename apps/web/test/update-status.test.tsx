@@ -311,3 +311,34 @@ describe("a phone at 360 px (S7b re-test R1)", () => {
     expect(css).toMatch(/\.round-btn \{[^}]*width: 44px; height: 44px/);
   });
 });
+
+describe("Update status can be undone (S18-01)", () => {
+  it("Save closes the sheet and shows 'Updated Treasure Island. Undo'; Undo asks the API to take it back", async () => {
+    const user = userEvent.setup();
+    fakeApi.on("GET /api/undo", 200, { label: "Updated Treasure Island", createdAt: "2026-10-28T15:00:00.000Z" });
+    fakeApi.on("POST /api/undo", 200, { label: "Updated Treasure Island" });
+    const sheet = await openStatusFromWeek(user, "Treasure Island");
+    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const bar = await screen.findByRole("status");
+    expect(bar).toHaveTextContent("Updated Treasure Island.");
+    await user.click(within(bar).getByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(fakeApi.calls.some((c) => c.method === "POST" && c.path === "/api/undo")).toBe(true));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Undo" })).toBeNull());
+  });
+
+  it("a finished week's Update status leaves the same bar", async () => {
+    const user = userEvent.setup();
+    fakeApi.on("GET /api/undo", 200, { label: "Updated Treasure Island", createdAt: "2026-10-28T15:00:00.000Z" });
+    renderAt("/schedule?view=week&week=2026-10-19");
+    const bars = within(await screen.findByRole("region", { name: "Frank's week" }));
+    await user.click(bars.getByRole("button", { name: /Treasure Island pages 1–80/ }));
+    const sheet = within(await screen.findByRole("dialog"));
+    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("button", { name: "Undo" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Updated Treasure Island.");
+  });
+});

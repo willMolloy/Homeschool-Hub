@@ -34,6 +34,7 @@ describe("onPlanChange (the requests that can be undone)", () => {
   it.each([
     ["PATCH", "/api/assignments/a1"], ["POST", "/api/assignments/a1/reset"], ["POST", "/api/blocked-ranges"], ["POST", "/api/blocked-ranges/bulk"],
     ["PATCH", "/api/blocked-ranges/b1"], ["DELETE", "/api/blocked-ranges/b1"], ["PUT", "/api/week-overrides"], ["PUT", "/api/week-overrides/batch"], ["DELETE", "/api/week-overrides/o1"],
+    ["PUT", "/api/check-ins/2026-10-19"], // S18-01: Update status is undoable
     ["POST", "/api/assignments/bulk"], // S7b-11: a copy leaves an undo entry (it was in the "is not" list)
   ])("%s %s is announced once", async (method, path) => {
     expect(await fire(method, path, method === "DELETE" ? 204 : 200)).toBe(1);
@@ -41,7 +42,7 @@ describe("onPlanChange (the requests that can be undone)", () => {
 
   it.each([
     ["POST", "/api/assignments"], ["PATCH", "/api/children/c1"], ["POST", "/api/subjects"],
-    ["PATCH", "/api/family"], ["POST", "/api/undo"], ["PUT", "/api/check-ins/2026-10-19"], ["POST", "/api/events"],
+    ["PATCH", "/api/family"], ["POST", "/api/undo"], ["POST", "/api/events"],
   ])("%s %s is not", async (method, path) => {
     expect(await fire(method, path)).toBe(0);
   });

@@ -80,7 +80,7 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "PATCH /api/events/:id": [...EVENT, "archived"],
   "POST /api/blocked-ranges": BLOCKED,
   "PATCH /api/blocked-ranges/:id": BLOCKED,
-  "PUT /api/check-ins/:id": ["status", "items"],
+  "PUT /api/check-ins/:id": ["status", "items", "endDate"],
   "PUT /api/week-overrides": ["assignmentId", "childId", "weekStart", "plannedUnits", "mode"],
   "PUT /api/week-overrides/batch": ["weekStart", "set", "remove"],
 };
