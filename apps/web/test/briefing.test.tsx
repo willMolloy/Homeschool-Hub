@@ -198,6 +198,8 @@ describe("Weekly briefing on This Week (S4-09)", () => {
 
   it("shows unplaced work and no-capacity lines with the end date", async () => {
     stub([{ ...onPaceBase("poems", "c2"), unplacedUnits: 12, end: "2026-11-26" }, { ...onPaceBase("math", "c1"), noCapacity: true, unplacedUnits: 100 }]);
+    // S17-01: the briefing follows the child switch, so this test asks for All children to see both lines.
+    localStorage.setItem("hh.child", "all");
     renderAt("/schedule?view=week");
     const briefing = await screen.findByRole("region", { name: "Weekly briefing" });
     expect(within(briefing).getByText("Poems has work that doesn't fit before Nov 26, 2026.")).toBeInTheDocument();

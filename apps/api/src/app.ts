@@ -1,4 +1,5 @@
-import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
+import { INVITE_UNAVAILABLE_MESSAGE } from "./services/invites";
+import Fastify, { type FastifyError, type FastifyInstance, type FastifyReply } from "fastify";
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
 import { ENGINE_VERSION } from "@hh/engine";
@@ -48,7 +49,20 @@ export interface BuildOptions {
 }
 
 export function buildApp(config: Config, opts: BuildOptions = {}): FastifyInstance {
-  const app = Fastify({ logger: loggerOptions(config, opts.logStream) });
+  // S17-01 (Sprint 15 N5): a join token longer than Fastify's default 100-character parameter limit gets the same plain bad-link answer as any other
+  // wrong token (previewInvite rejects it), not the framework's 414 that echoes the path.
+  const app = Fastify({ logger: loggerOptions(config, opts.logStream), routerOptions: { maxParamLength: 2000 },
+    // S17-06 (N3): a path parameter past even that limit (a join token of thousands of characters) is the plain bad-link answer on the join
+    // routes and a plain 404 elsewhere, never the framework's 414 that echoes the path.
+    frameworkErrors: (err, req, rep) => {
+      const reply = rep as unknown as FastifyReply;
+      if (err.code === "FST_ERR_MAX_PARAM_LENGTH") {
+        if ((req.url ?? "").startsWith("/api/join/")) return reply.code(404).send({ error: "invite_unavailable", message: INVITE_UNAVAILABLE_MESSAGE });
+        return reply.code(404).send({ error: "not_found" });
+      }
+      return reply.code(err.statusCode ?? 400).send({ error: "Bad Request", code: err.code, message: err.message, statusCode: err.statusCode ?? 400 });
+    },
+  });
 
   app.setNotFoundHandler((_req, reply) => {
     reply.code(404).send({ error: "not_found" });

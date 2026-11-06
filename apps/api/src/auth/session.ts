@@ -57,9 +57,9 @@ export function registerSessionAuth(app: FastifyInstance): void {
   app.decorateRequest("familyId", "");
   app.decorateRequest("parentId", "");
   app.decorateRequest("role", "parent");
-  // preValidation (not preHandler): a missing session is 401, and a viewer's write is refused (403), before the body is checked,
+  // onRequest (S17-01, Sprint 15 N1; not preValidation or preHandler): a missing session is 401, and a viewer's write is refused (403), before the body is read or parsed,
   // so an invalid body from either gets no more of an answer than a valid one.
-  app.addHook("preValidation", async (req: FastifyRequest, reply: FastifyReply) => {
+  app.addHook("onRequest", async (req: FastifyRequest, reply: FastifyReply) => {
     const url = req.routeOptions.url;
     if (!url || !url.startsWith("/api/") || req.routeOptions.config.public) return;
     const token = req.cookies[SESSION_COOKIE];

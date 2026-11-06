@@ -211,6 +211,8 @@ describe.skipIf(!hasDb)("/api/log-entries (S9-07, integration)", () => {
     await req("PATCH", `/api/children/${kid}`, { archived: true });
     expect((await list(`?childId=${kid}`)).length).toBe(1);
     await pool.query("DELETE FROM child WHERE id = $1", [kid]);
-    expect((await list(`?childId=${kid}`)).length).toBe(0);
+    // S17-02: a child that is no longer the family's (deleted here, as for another account's id) is a 404, not an empty list.
+    expect((await req("GET", `/api/log-entries?childId=${kid}`)).statusCode).toBe(404);
+    expect((await list("")).filter((e) => e.childId === kid)).toHaveLength(0);
   });
 });

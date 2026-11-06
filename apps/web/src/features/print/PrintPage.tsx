@@ -71,13 +71,25 @@ function PrintPage({ kind }: { kind: SheetKind }) {
       </header>
       <main className="print-main">
       {!choice || !from || !to ? (
-        <p className="print-note" role="alert">That sheet needs a {kind === "week" ? "week" : "day"}. Go back to Schedule and choose Print sheets again.</p>
+        <>
+          <h1 className="print-note-title">Choose a {kind === "week" ? "week" : "day"} to print</h1>
+          <p className="print-note" role="alert">That sheet needs a {kind === "week" ? "week" : "day"}. Go back to Schedule and choose Print sheets again.</p>
+        </>
       ) : failed ? (
-        <p className="print-note" role="alert">Couldn&apos;t load the plan for the sheets. Go back and try again.</p>
+        <>
+          <h1 className="print-note-title">Print sheets</h1>
+          <p className="print-note" role="alert">Couldn&apos;t load the plan for the sheets. Go back and try again.</p>
+        </>
       ) : !ready ? (
-        <p className="print-note" aria-busy="true">Getting the sheets ready…</p>
+        <>
+          <h1 className="print-note-title">Print sheets</h1>
+          <p className="print-note" aria-busy="true">Getting the sheets ready…</p>
+        </>
       ) : kids.length === 0 ? (
-        <p className="print-note" role="alert">No children to print for.</p>
+        <>
+          <h1 className="print-note-title">Print sheets</h1>
+          <p className="print-note" role="alert">No children to print for.</p>
+        </>
       ) : (
         <div className="print-sheets" role="group" aria-label={heading}>
           {sheets.map((s) => <ChildSheetView key={s.childId} sheet={s} kind={kind} heading={heading} dayWord={dayName(from)} child={kids.find((k) => k.id === s.childId)!} />)}

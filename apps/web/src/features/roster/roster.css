@@ -264,3 +264,10 @@
   .roster-row-btn .row-chevron { order: 0; }
   .roster-row-btn .tag { order: 0; margin-left: 0; max-width: none; }
 }
+/* S17-01 (L5): "Lilac is also used by Reading." in words, on its own line under the swatches. */
+.swatch-note {
+  flex-basis: 100%;
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}

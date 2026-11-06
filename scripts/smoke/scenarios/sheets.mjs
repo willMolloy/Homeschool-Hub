@@ -5,6 +5,9 @@
 //   npm run demo   (another terminal)       node flow.mjs sheets
 import fs from "node:fs";
 
+// S17-01: the screenshots are for looking at, not for the repo: they go to the temp folder (flow.mjs).
+export const scratchScreens = true;
+
 const AXE = fs.readFileSync(new URL("../node_modules/axe-core/axe.min.js", import.meta.url), "utf8");
 
 export default async function ({ page, shot, login, log, BASE }) {

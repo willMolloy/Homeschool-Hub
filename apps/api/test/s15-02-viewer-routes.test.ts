@@ -132,7 +132,8 @@ describe.skipIf(!hasDb)("a viewer can never write (integration)", () => {
       const qs = [QUERY[u] ?? "", `${QUERY[u] ? QUERY[u] + "&" : "?"}childId=${childG}`];
       for (const q of qs) {
         const res = await call("GET", u + q, viewerF.cookies);
-        expect([200, 400]).toContain(res.statusCode);
+        // S17-02: another family's child id as a filter is a 404 where the route checks it (records), else 200 with nothing of theirs, or 400.
+        expect([200, 400, 404]).toContain(res.statusCode);
         bodies.push(res.body);
       }
     }

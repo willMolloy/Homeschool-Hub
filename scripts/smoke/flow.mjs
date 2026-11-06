@@ -1,12 +1,20 @@
 // Usage: node flow.mjs <scenario>   (runs scenarios/<scenario>.mjs against BASE_URL; screens go to docs/progress/screens)
 import puppeteer from "puppeteer-core";
-import { BASE_URL as BASE, SCREENS_DIR as OUT, launchOptions } from "./common.mjs";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { BASE_URL as BASE, SCREENS_DIR, launchOptions } from "./common.mjs";
 
 const scenario = process.argv[2];
 if (!scenario) {
   console.error("usage: node flow.mjs <scenario>   (see scenarios/)");
   process.exit(2);
 }
+// S17-01: a scenario that only needs its screenshots to look at (`export const scratchScreens = true`) writes them to the
+// system temp folder, so a run leaves no untracked files in the repo. SCREENS_DIR, when set, still wins.
+const scenarioModule = await import(`./scenarios/${scenario}.mjs`);
+const OUT = scenarioModule.scratchScreens && !process.env.SCREENS_DIR ? path.join(os.tmpdir(), "hh-smoke-screens") : SCREENS_DIR;
+fs.mkdirSync(OUT, { recursive: true });
 const browser = await puppeteer.launch(launchOptions);
 const page = await browser.newPage();
 const log = (...a) => console.log(...a);
@@ -50,8 +58,7 @@ async function signOut() {
 const h1 = () => page.$eval("h1", (e) => e.textContent).catch(() => null);
 try {
   await page.setViewport({ width: 360, height: 740 });
-  const s = await import(`./scenarios/${scenario}.mjs`);
-  await s.default({ page, shot, login, signOut, h1, log, BASE });
+  await scenarioModule.default({ page, shot, login, signOut, h1, log, BASE });
 } finally {
   await browser.close();
 }

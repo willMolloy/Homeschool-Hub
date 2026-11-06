@@ -11,7 +11,7 @@ import { short } from "../http/checkInDates";
 import { HttpError } from "../http/errors";
 import { checkDateOrder, CommaList, IdList, LocalDate } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
-import { checkRefs } from "../repos/refs";
+import { checkRefs, requireOwned } from "../repos/refs";
 import {
   deleteEntry, insertEntry, listEntries, lockEntry, replaceEntry, stateOf, toJson, type RecordEntryRow, type RecordEntryState,
 } from "../repos/recordEntryRepo";
@@ -112,7 +112,9 @@ const jsonWith = (model: Model) => (r: RecordEntryRow) => toJson(r, coveredOf(mo
 
 export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/log-entries", async (req) => {
-    const rows = await listEntries(app.db, req.familyId, parseBody(ListQuery, req.query));
+    const q = parseBody(ListQuery, req.query);
+    if (q.childId) await requireOwned(app.db, req.familyId, { childIds: [q.childId] });
+    const rows = await listEntries(app.db, req.familyId, q);
     return rows.length === 0 ? [] : rows.map(jsonWith(await calendarModel(app.db, req.familyId)));
   });
 
@@ -127,6 +129,7 @@ export async function recordEntriesRoutes(app: FastifyInstance): Promise<void> {
   /** S9-08, S9b-01: read-only totals for a range (each entry's days inside it) and one child or all, from log entries only. */
   app.get("/api/records/totals", async (req) => {
     const q = parseBody(ListQuery, req.query);
+    if (q.childId) await requireOwned(app.db, req.familyId, { childIds: [q.childId] });
     const entries = await listEntries(app.db, req.familyId, q);
     const { rows } = await app.db.query<{ id: string; core: boolean }>("SELECT id, core FROM subject WHERE family_id = $1", [req.familyId]);
     const core = new Map(rows.map((r) => [r.id, r.core]));

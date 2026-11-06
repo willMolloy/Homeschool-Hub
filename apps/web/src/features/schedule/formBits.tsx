@@ -39,10 +39,14 @@ export function weekdayRanges(days: number[]): string {
 /** S4-06: the days to offer as chips: the family's school days plus any already chosen outside them (so nothing is hidden). */
 export const offeredDays = (schoolDays: readonly number[], chosen: readonly number[]): number[] => [...new Set([...schoolDays, ...chosen])];
 
+/** S17-01 (Sprint 14 N4): the answer to a 429 on an invite, a view link or a join. */
+export const THROTTLED = "Too many tries. Please wait a minute and try again.";
+
 /** A user-facing message for a failed save. Server 400 messages lose their "field: " prefix. */
 export function saveError(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.status === 0) return "Can't reach the server.";
+    if (err.status === 429) return THROTTLED;
     if (err.status === 400 || err.status === 409) return err.message.replace(/^[a-zA-Z.]+: /, "");
     if (err.status === 404) return "That item no longer exists. Reload the page.";
   }

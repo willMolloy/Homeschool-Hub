@@ -6,6 +6,8 @@ DeeDee and Will co-own the product. DeeDee approves what gets built. This plan w
 
 Design direction: [DESIGN_DIRECTION.md](DESIGN_DIRECTION.md) (from Will's reviews of 2026-10-31).
 
+Hosting plan (proposal, on hold): [HOSTING_PLAN.md](HOSTING_PLAN.md).
+
 
 **A steering tool for the homeschool year.** A parent sees the shape of the whole year in seconds, corrects course when life happens, and gets their records with no extra work. It is a planning tool parents steer with, not a daily to-do app they have to feed. Nothing in the core needs daily input or tedious data entry.
 
@@ -193,11 +195,7 @@ Each follows the module rules above. In order:
 
 ## Open backlog (Low)
 
-- **N8: a saved school year can't be cleared.** The PATCH in `apps/api/src/routes/family.ts` (~127–131) uses `COALESCE`, so sending null keeps the old value. "I'll set this later" after saving keeps the year and still shows the reminder.
-- **Flaky web test:** `timeline-add.test.tsx` fails under load.
-- **Week filter:** with Week filtered to Frank, Margaret's late card still shows.
-- **N2:** no control to show Home's checklist again once it's hidden.
-- **N7 and N9:** cosmetic (see the Sprint 11 review in `docs/reviews/`).
+None open. Sprint 17 (S17-01) closed the last ones: the Week filter and the briefing, the Home checklist control, Rose and Lilac, day-off wording, the throttled-invite message, Term in review on short desktops and the Sprint 15 Lows. (Earlier: N8, N7 and N9 in S12-09; the `timeline-add` flake in Sprint 15.)
 
 ## Done
 

@@ -3,7 +3,7 @@ import { useId, useMemo, useState, type FormEvent } from "react";
 import { ApiError, apiPatch } from "../../api/client";
 import type { FamilySettings, FamilySettingsPatch, TimeZones } from "../../api/types";
 import { useApi } from "../../api/useApi";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth, useMe } from "../../auth/AuthProvider";
 import "../../ui/forms.css";
 import { saveError, WeekdayPicker } from "./formBits";
 import { AppearanceChoice } from "../settings/AppearanceChoice";
@@ -49,6 +49,7 @@ export function FamilySettingsPage() {
         <AppearanceChoice />
       </div>
       <ShowTipsAgain />
+      <ShowChecklistAgain />
     </section>
   );
 }
@@ -78,6 +79,41 @@ function ShowTipsAgain() {
         <div className="btn-row">
           <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => void show()}>Show tips again</button>
         </div>
+        <p className="form-status" role="status">{status}</p>
+      </fieldset>
+    </div>
+  );
+}
+
+/** S17-01: once Home's getting-started list has been hidden, this brings it back (for the family, on every device). Offered only while it is hidden. */
+function ShowChecklistAgain() {
+  const { refresh } = useAuth();
+  const hidden = useMe().checklistHidden;
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function show() {
+    setBusy(true);
+    setStatus(null);
+    try {
+      await apiPatch("/api/family", { checklistHidden: false });
+      await refresh();
+      setStatus("The getting-started list will show on Home again.");
+    } catch (err) {
+      setStatus(saveError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (!hidden && !status) return null;
+  return (
+    <div className="card schedule-form">
+      <fieldset className="choice-list">
+        <legend>Getting started</legend>
+        {hidden ? (
+          <div className="btn-row">
+            <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => void show()}>Show the getting-started checklist again</button>
+          </div>
+        ) : null}
         <p className="form-status" role="status">{status}</p>
       </fieldset>
     </div>

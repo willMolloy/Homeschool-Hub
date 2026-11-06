@@ -8,4 +8,5 @@
 | 2 | [S17-02 — Small security tidy-ups](S17-02-security-tidy-ups.md) | XS |
 | 3 | [S17-03 — A realistic Charlotte Mason family for the end-to-end run](S17-03-cm-family-seed.md) | M |
 | 4 | [S17-04 — The end-to-end run script](S17-04-e2e-run-script.md) | S |
-| 5 | [S17-05 — Tester pass](S17-05-tester-pass.md) | S |
+| 5 | [S17-06 — Fixes from the Sprint 17 tester](S17-06-tester-fixes.md) | S |
+| 6 | [S17-05 — Tester pass](S17-05-tester-pass.md) | S |

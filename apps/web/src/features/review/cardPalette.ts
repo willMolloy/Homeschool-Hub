@@ -28,7 +28,7 @@ const NEUTRAL: Record<CardTheme, { bg: string; card: string; ink: string; muted:
 export const HUES: readonly { light: Hue; dark: Hue }[] = [
   ["#F0D6A8", "#A86A00", "#5B4826", "#F5C46B"], ["#BDDCF0", "#2A7DB0", "#2A485D", "#8FCBF0"], ["#B5DFD1", "#1F8063", "#265044", "#7FD3B6"],
   ["#EAE2A5", "#8A7A00", "#565126", "#E9DB6A"], ["#C1D0EA", "#3F64A8", "#2E3E5D", "#9DB7EA"], ["#F0C8B4", "#B4532A", "#5E3728", "#F2A786"],
-  ["#E5C8DB", "#9B4F80", "#543649", "#E0A6CB"], ["#D1D5C9", "#5F6B50", "#41453B", "#B6C0A6"], ["#FBCBD2", "#A1475C", "#57383E", "#F8ACB9"],
+  ["#E5C8DB", "#9B4F80", "#543649", "#E0A6CB"], ["#D1D5C9", "#5F6B50", "#41453B", "#B6C0A6"], ["#F9C0BE", "#A8243F", "#613033", "#FA9DA6"],
   ["#C7E3C0", "#3F7932", "#364831", "#A5D39B"], ["#AFE5E7", "#00787D", "#224A4C", "#78D6DB"], ["#E1D1F7", "#7955A0", "#483C56", "#D1B6F3"],
 ].map(([lf, ls, df, ds]) => ({ light: { pastel: lf!, strong: ls! }, dark: { pastel: df!, strong: ds! } }));
 /** The fern accent (`primary-soft`, `primary`) for a child with no colour. */

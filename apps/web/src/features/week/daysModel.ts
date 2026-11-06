@@ -6,7 +6,8 @@
 import { addDays, EPS, type ChildPlan, type LocalDate } from "@hh/engine";
 import type { BlockedRange, Child } from "../../api/types";
 import { formatShort } from "../../lib/dates";
-import { buildSheet, dayAbbr, BREAK_WORD, type SheetLookups } from "../print/sheetModel";
+import { dayOffTitle } from "../../lib/kindNames";
+import { buildSheet, dayAbbr, type SheetLookups } from "../print/sheetModel";
 
 export interface DayLine {
   key: string;
@@ -52,7 +53,7 @@ export function dayOffName(blocked: readonly BlockedRange[], childId: string, da
     if (b.kind === "missed") continue;
     if (b.childIds.length > 0 && !b.childIds.includes(childId)) continue;
     if (date < b.startDate || date > b.endDate) continue;
-    return b.label?.trim() || BREAK_WORD[b.kind] || "Day off";
+    return dayOffTitle(b);
   }
   return null;
 }

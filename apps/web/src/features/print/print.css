@@ -4,6 +4,7 @@
 .print-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 8px; color: var(--tl-primary, #3f6b5c); font-weight: 700; text-decoration: none; }
 .print-go { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
 .print-note { max-width: 8.5in; margin: 24px auto; font-size: 1rem; }
+.print-note-title { max-width: 8.5in; margin: 24px auto 0; font-size: 1.25rem; }
 .print-sheets { display: flex; flex-direction: column; gap: 24px; align-items: center; }
 /* On screen each page is a sheet of paper; its width is Letter's inner width, never wider than the screen. */
 .sheet { width: 100%; max-width: 7.5in; box-sizing: border-box; padding: 20px 18px 24px; background: #fff; color: #1f1b16; border: 1px solid #d9d2c6; border-radius: 6px; }

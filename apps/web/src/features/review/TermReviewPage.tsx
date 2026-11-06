@@ -110,22 +110,25 @@ export function TermReviewPage() {
         <Link className="review-back" to={backTo}><span aria-hidden="true">‹</span> Records</Link>
         <h1>Term in review</h1>
       </header>
-      <main className={`review-body no-print${empty.length > 0 ? " has-empty-line" : ""}`}>
+      <main className={`review-body no-print${empty.length > 0 ? " has-empty-line" : ""}${cards.length > 0 ? " has-card" : ""}`}>
         {failedLoad ? (
           <div className="form-error" role="alert"><p>Couldn&apos;t load the review.</p><Button variant="secondary" onClick={() => { family.reload(); subjects.reload(); children.reload(); assignments.reload(); }}>Retry</Button></div>
         ) : loading ? <p aria-busy="true">Loading…</p> : kids.length === 0 ? (
           <p className="review-empty">{me.role === "viewer" ? "No children yet." : <>Add a child first: each card is for a child. <Link to="/setup/children">Add a child</Link></>}</p>
         ) : (
           <>
-            <div className="range-chips" role="group" aria-label="Range">
-              {options.map((o) => <Chip key={o.key} selected={picked?.key === o.key} onClick={() => set({ range: o.key })}>{o.label}</Chip>)}
+            {/* S17-01: on a short desktop the controls sit beside the card (review.css), so the card can use the page's height. */}
+            <div className="review-controls">
+              <div className="range-chips" role="group" aria-label="Range">
+                {options.map((o) => <Chip key={o.key} selected={picked?.key === o.key} onClick={() => set({ range: o.key })}>{o.label}</Chip>)}
+              </div>
+              <ChildSwitch kids={kids} value={choice} onChange={(v) => set({ child: v })} />
+              {empty.length > 0 && reviews ? (
+                <p className="review-empty" role="status">
+                  {empty.length === reviews.length ? "Nothing logged for this term yet." : `Nothing logged for ${empty.map((e) => e.childName).join(", ")} this term yet.`}
+                </p>
+              ) : null}
             </div>
-            <ChildSwitch kids={kids} value={choice} onChange={(v) => set({ child: v })} />
-            {empty.length > 0 && reviews ? (
-              <p className="review-empty" role="status">
-                {empty.length === reviews.length ? "Nothing logged for this term yet." : `Nothing logged for ${empty.map((e) => e.childName).join(", ")} this term yet.`}
-              </p>
-            ) : null}
             {cards.length > 0 ? (
               <div className="review-stage" onTouchStart={(e) => { swipe.current = e.touches[0]?.clientX ?? null; }}
                 onTouchEnd={(e) => { const s = swipe.current; swipe.current = null; const x = e.changedTouches[0]?.clientX; if (s !== null && x !== undefined && many && Math.abs(x - s) > 50) setIndex(Math.max(0, Math.min(cards.length - 1, at + (x < s ? 1 : -1)))); }}>

@@ -44,7 +44,7 @@ export const SUBJECT_HUES: readonly SubjectHue[] = [
   { name: "coral", light: { fill: "#F0C8B4", strong: "#B4532A" }, dark: { fill: "#5E3728", strong: "#F2A786" } },
   { name: "lilac", light: { fill: "#E5C8DB", strong: "#9B4F80" }, dark: { fill: "#543649", strong: "#E0A6CB" } },
   { name: "sage", light: { fill: "#D1D5C9", strong: "#5F6B50" }, dark: { fill: "#41453B", strong: "#B6C0A6" } },
-  { name: "rose", light: { fill: "#FBCBD2", strong: "#A1475C" }, dark: { fill: "#57383E", strong: "#F8ACB9" } },
+  { name: "rose", light: { fill: "#F9C0BE", strong: "#A8243F" }, dark: { fill: "#613033", strong: "#FA9DA6" } },
   { name: "leaf", light: { fill: "#C7E3C0", strong: "#3F7932" }, dark: { fill: "#364831", strong: "#A5D39B" } },
   { name: "aqua", light: { fill: "#AFE5E7", strong: "#00787D" }, dark: { fill: "#224A4C", strong: "#78D6DB" } },
   { name: "plum", light: { fill: "#E1D1F7", strong: "#7955A0" }, dark: { fill: "#483C56", strong: "#D1B6F3" } },
