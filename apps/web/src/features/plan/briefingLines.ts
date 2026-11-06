@@ -54,6 +54,38 @@ export function weeksLate(end: LocalDate, forecast: LocalDate): number {
   return Math.max(1, Math.round((toDayNumber(forecast) - toDayNumber(end)) / 7));
 }
 
+/**
+ * S18-02: the one place that says when a late assignment would finish and which end date to offer for it. The briefing's late
+ * line ("Move end to Feb 1") and Update status's "Move the end to ..." both read it, so they always name the same date for the
+ * same plan. `moveTo` is null when there is no date to move to (a pace so slow the forecast gives up).
+ */
+export interface LateEnd {
+  kind: "extended" | "forecast" | "beyond";
+  /** The end date as it stands (what "Keep" keeps). */
+  end: LocalDate;
+  moveTo: LocalDate | null;
+  signature: string;
+  /** Weeks past `end`, 0 for "beyond". */
+  weeks: number;
+}
+
+/** null when the plan is not late (or is finished, stopped, stuck, short of room or without progress: those have their own lines). */
+export function lateEnd(p: ChildPlan, calendar: FamilyCalendar): LateEnd | null {
+  if (p.complete || p.endedAs || p.noCapacity || p.unplacedUnits > EPS || noRecentProgress(p, calendar)) return null;
+  // S7b-18: a keepEndDate adjustment left no free day from today, so the plan itself runs past its end: say so, and offer the move.
+  if (p.warnings.includes("keep-end-extended") && p.end > p.plannedEnd) {
+    return { kind: "extended", end: p.plannedEnd, moveTo: p.end, signature: `extended-${p.end}`, weeks: weeksLate(p.plannedEnd, p.end) };
+  }
+  const forecast = forecastOutcome(p, appliedCheckIns(p), calendar);
+  // S7-10: a pace so slow the forecast gives up (past its limit) is the same plain line as a very late one.
+  if (forecast && "beyondLimit" in forecast) return { kind: "beyond", end: p.end, moveTo: null, signature: "beyond", weeks: 0 };
+  if (forecast && forecast.finish > p.end) return { kind: "forecast", end: p.end, moveTo: forecast.finish, signature: forecast.finish, weeks: weeksLate(p.end, forecast.finish) };
+  return null;
+}
+
+/** The end date the late line offers for this plan, or null (not late, or nothing to offer). */
+export const suggestedEnd = (p: ChildPlan, calendar: FamilyCalendar): LocalDate | null => lateEnd(p, calendar)?.moveTo ?? null;
+
 /** Children with at least one line; a child with nothing to flag is left out. */
 export function buildBriefing(input: BriefingInput): ChildBriefing[] {
   const { plans, weekStart, calendar, titleOf } = input;
@@ -78,25 +110,19 @@ export function buildBriefing(input: BriefingInput): ChildBriefing[] {
         late.push({ key: `noprogress-${p.assignmentId}`, text: `No progress on ${title} in the last ${new Set(p.checkInWeeks).size} weeks.` });
         continue;
       }
-      // S7b-18: a keepEndDate adjustment left no free day from today, so the plan itself runs past its end: say so, and offer the move.
-      if (p.warnings.includes("keep-end-extended") && p.end > p.plannedEnd) {
-        const n = weeksLate(p.plannedEnd, p.end);
-        late.push({
-          key: `late-${p.assignmentId}`, text: `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late.`,
-          action: { assignmentId: p.assignmentId, childId: p.childId, end: p.plannedEnd, moveTo: p.end, signature: `extended-${p.end}` },
-        });
-        continue;
-      }
-      const forecast = forecastOutcome(p, appliedCheckIns(p), calendar);
+      const finish = lateEnd(p, calendar);
+      if (!finish) continue;
+      const action: LateAction = { assignmentId: p.assignmentId, childId: p.childId, end: finish.end, moveTo: finish.moveTo, signature: finish.signature };
       const wontFinish = `${title} won't finish this school year at this pace.`;
-      // S7-10: a pace so slow the forecast gives up (past its limit) is the same plain line as a very late one.
-      const action = (moveTo: LocalDate | null, signature: string): LateAction => ({ assignmentId: p.assignmentId, childId: p.childId, end: p.end, moveTo, signature });
-      if (forecast && "beyondLimit" in forecast) {
-        late.push({ key: `late-${p.assignmentId}`, text: wontFinish, action: action(null, "beyond") });
-      } else if (forecast && forecast.finish > p.end) {
-        const n = weeksLate(p.end, forecast.finish);
+      if (finish.kind === "extended") {
+        const n = finish.weeks;
+        late.push({ key: `late-${p.assignmentId}`, text: `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late.`, action });
+      } else if (finish.kind === "beyond") {
+        late.push({ key: `late-${p.assignmentId}`, text: wontFinish, action });
+      } else {
+        const n = finish.weeks;
         const text = n > VERY_LATE_WEEKS ? wontFinish : `${title} will finish about ${n} ${n === 1 ? "week" : "weeks"} late at this pace.`;
-        late.push({ key: `late-${p.assignmentId}`, text, action: action(forecast.finish, forecast.finish) });
+        late.push({ key: `late-${p.assignmentId}`, text, action });
       }
     }
     const heavy: BriefingLine[] = [];

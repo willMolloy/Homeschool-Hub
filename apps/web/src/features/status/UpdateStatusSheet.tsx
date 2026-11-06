@@ -1,7 +1,9 @@
 /**
  * S8-06 / S9-02: "Update status" for one bar (from Schedule · Week, or the Year edit bar's More), against the last finished week (or the week being looked at): How did it go? (As planned / Got ahead / Fell behind),
- * "They got to {page}" with a − and +, and, when the plan moved, "What about the end date?" with the two dates worked
- * out. Cancel or Save; Save hands the position and the choice to the board, which sends the week once.
+ * "They got to {page}" with a − and +, and, when the plan moved, "What about the end date?" (S18-02): Keep the end date, Move
+ * the end to the suggested date, or Pick a date (the shared DateField). The suggestion for a late assignment is the briefing's
+ * own (`lateEnd`), so the late line and this sheet name the same date. Cancel or Save; Save hands the position, the mode and
+ * the end date to the board, which sends the week once.
  */
 import { useId, useState } from "react";
 import type { OverrideMode } from "@hh/engine";
@@ -9,9 +11,12 @@ import type { CheckInItem } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { UNIT_LABELS } from "../../components/unitLabels";
 import { Button, Chip } from "../../ui/components";
-import { DEFAULT_MODE, rowOutcome } from "../checkin/absorb";
+import { rowOutcome } from "../checkin/absorb";
 import { stepOf } from "../checkin/amount";
-import { dayMonth } from "../home/homeSummary";
+import { isValidLocalDate, type LocalDate } from "@hh/engine";
+import { DateField } from "../../ui/DateField";
+import type { LateEnd } from "../plan/briefingLines";
+import { shortDate } from "../schedule/formBits";
 import { rangeWords } from "../week/weekBars";
 import { endChoices, type EndChoices } from "./endDates";
 import "../checkin/checkin.css";
@@ -27,7 +32,12 @@ export interface UpdateStatusProps {
   plan: ChildPlan | undefined;
   /** "Last week" in "pages 120–150 last week". */
   whenText: string;
-  onSave: (position: number, mode: OverrideMode | null) => void;
+  /** S18-02: the briefing's late answer for this assignment (null: no late line), undefined while it loads. */
+  late?: LateEnd | null;
+  /** S18-02: a picked end date must come after this day (the end of the week being updated). */
+  afterDay?: LocalDate;
+  /** `endDate` is the new end for the assignment, or null to leave it (the default). */
+  onSave: (position: number, mode: OverrideMode | null, endDate: LocalDate | null) => void;
   onClose: () => void;
   /** While the save is on its way, and what went wrong (the sheet stays open to try again). */
   busy?: boolean;
@@ -49,13 +59,17 @@ const wayOf = (item: CheckInItem, position: number): Way => {
   return o === "asPlanned" ? "asPlanned" : o === "behind" ? "behind" : "ahead";
 };
 
-export function UpdateStatusSheet({ item, position, mode, plan, whenText, onSave, onClose, busy = false, error = null }: UpdateStatusProps) {
+type EndWay = "keep" | "suggest" | "pick";
+
+export function UpdateStatusSheet({ item, position, mode, plan, late, afterDay, whenText, onSave, onClose, busy = false, error = null }: UpdateStatusProps) {
   const me = useMe();
   const [pos, setPosition] = useState(position);
   /** The number box's own text, so a half-typed number is not rewritten under the finger. */
   const [text, setText] = useState(shown(position));
   const setPos = (n: number) => { setPosition(n); setText(shown(n)); };
-  const [end, setEnd] = useState<OverrideMode>(mode ?? DEFAULT_MODE);
+  const [endWay, setEndWay] = useState<EndWay>("keep");
+  const [picked, setPicked] = useState<string>("");
+  const [pickError, setPickError] = useState<string | null>(null);
   const labelId = useId();
   const step = stepOf(item.unitType);
   const way = wayOf(item, pos);
@@ -67,8 +81,23 @@ export function UpdateStatusSheet({ item, position, mode, plan, whenText, onSave
     setPos(clamp(item.plannedTo - step <= item.plannedFrom ? item.plannedFrom : item.plannedTo - step));
   };
   const choices: EndChoices | null = plan && way !== "asPlanned" && !finished ? endChoices(plan, item.plannedTo - pos, me.schoolDays) : null;
+  // S18-02: behind, a late assignment's suggestion is the late line's date (and its end the line's "Keep" date); otherwise the shortfall estimate.
+  const lateNow = way === "behind" && late ? late : null;
+  const keepDate = lateNow ? lateNow.end : choices?.keep ?? null;
+  const rawSuggest = lateNow?.moveTo ?? choices?.move ?? null;
+  const suggested = rawSuggest && rawSuggest !== keepDate ? rawSuggest : null;
   const unit = item.unitType === "minutes" ? UNIT_LABELS.minutes.many : UNIT_LABELS[item.unitType].one;
-  const save = () => onSave(pos, finished ? null : way === "asPlanned" ? mode : end);
+  const save = () => {
+    if (finished) return onSave(pos, null, null);
+    if (way === "asPlanned") return onSave(pos, mode, null);
+    if (endWay === "suggest" && suggested) return onSave(pos, "keepEndDate", suggested);
+    if (endWay === "pick") {
+      if (!isValidLocalDate(picked)) return setPickError("Pick the new end date.");
+      if (afterDay && picked <= afterDay) return setPickError(`Pick a date after ${shortDate(afterDay)}.`);
+      return onSave(pos, "keepEndDate", picked);
+    }
+    return onSave(pos, "keepEndDate", null);
+  };
   return (
     <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={item.title}>
       <div className="status-sheet">
@@ -94,15 +123,25 @@ export function UpdateStatusSheet({ item, position, mode, plan, whenText, onSave
           <>
             <h3 className="status-label" id={`${labelId}-end`}>What about the end date?</h3>
             <div role="radiogroup" aria-labelledby={`${labelId}-end`} className="status-ends">
-              <label className={`status-end${end === "keepEndDate" ? " is-on" : ""}`}>
-                <input type="radio" name="end-date" checked={end === "keepEndDate"} onChange={() => setEnd("keepEndDate")} />
-                <span>Keep {dayMonth(choices.keep)}<small>The remaining days get a little {way === "behind" ? "heavier" : "lighter"}</small></span>
+              <label className={`status-end${endWay === "keep" ? " is-on" : ""}`}>
+                <input type="radio" name="end-date" checked={endWay === "keep"} onChange={() => setEndWay("keep")} />
+                <span>Keep {shortDate(keepDate ?? choices.keep)}<small>The remaining days get a little {way === "behind" ? "heavier" : "lighter"}</small></span>
               </label>
-              {choices.move ? (
-                <label className={`status-end${end === "pushEndDate" ? " is-on" : ""}`}>
-                  <input type="radio" name="end-date" checked={end === "pushEndDate"} onChange={() => setEnd("pushEndDate")} />
-                  <span>Move to {dayMonth(choices.move)}<small>Keep the same pace</small></span>
+              {suggested ? (
+                <label className={`status-end${endWay === "suggest" ? " is-on" : ""}`}>
+                  <input type="radio" name="end-date" checked={endWay === "suggest"} onChange={() => setEndWay("suggest")} />
+                  <span>Move the end to {shortDate(suggested)}<small>About the same pace</small></span>
                 </label>
+              ) : null}
+              <label className={`status-end${endWay === "pick" ? " is-on" : ""}`}>
+                <input type="radio" name="end-date" checked={endWay === "pick"} onChange={() => { setEndWay("pick"); if (!picked) setPicked(suggested ?? keepDate ?? choices.keep); }} />
+                <span>Pick a date<small>Any day you choose</small></span>
+              </label>
+              {endWay === "pick" ? (
+                <div className="status-pick">
+                  <DateField value={picked} onChange={(v) => { setPicked(v); setPickError(null); }} aria-label="New end date" aria-invalid={pickError ? true : undefined} opens="up" />
+                  {pickError ? <p className="field-error" role="alert">{pickError}</p> : null}
+                </div>
               ) : null}
             </div>
           </>

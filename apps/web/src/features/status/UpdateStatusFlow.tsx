@@ -8,6 +8,7 @@ import { useState } from "react";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { Button } from "../../ui/components";
 import { useWeekCheckIn } from "../checkin/useLastWeekCheckIn";
+import { useLateEnd } from "../plan/useLateEnd";
 import { useWeekPlans } from "../plan/useWeekPlans";
 import { UpdateStatusSheet } from "./UpdateStatusSheet";
 import { statusBody } from "./saveStatus";
@@ -31,13 +32,14 @@ export function UpdateStatusFlow({ assignmentId, childId, title, onClose, onSave
   const week = state.data;
   const rows = week ? [...week.items, ...week.addable].filter((i) => i.assignmentId === assignmentId) : [];
   const item = rows.find((i) => i.childId === picked) ?? null;
+  const late = useLateEnd(assignmentId, item?.childId ?? picked);
 
   if (item && week) {
     return (
       <UpdateStatusSheet key={item.childId} item={item} position={item.actual ?? item.plannedTo} mode={item.mode}
-        plan={plans?.find((p) => p.assignmentId === item.assignmentId && p.childId === item.childId)} whenText="last week"
+        plan={plans?.find((p) => p.assignmentId === item.assignmentId && p.childId === item.childId)} late={late} afterDay={week.weekEnd} whenText="last week"
         busy={state.busy} error={state.error ?? Object.values(state.itemErrors)[0] ?? null} onClose={onClose}
-        onSave={(position, mode) => { void state.save(statusBody(week, item, position, mode)).then((res) => { if (res) { onSaved?.(); onClose(); } }); }} />
+        onSave={(position, mode, endDate) => { void state.save(statusBody(week, item, position, mode, endDate)).then((res) => { if (res) { onSaved?.(); onClose(); } }); }} />
     );
   }
   return (

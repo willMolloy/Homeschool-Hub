@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useWeekCheckIn } from "../checkin/useLastWeekCheckIn";
 import { compactText } from "../checkin/amount";
 import { itemKey, rowOutcome } from "../checkin/absorb";
+import { useLateEnd } from "../plan/useLateEnd";
 import { useWeekPlans } from "../plan/useWeekPlans";
 import { SubjectGlyph } from "../subjects/SubjectIcon";
 import { WeekBar, WeekBars } from "../week/WeekBar";
@@ -24,6 +25,7 @@ export function PastWeek({ weekStart, choice, look, readOnly = false, layout = "
   const state = useWeekCheckIn(weekStart);
   const plans = useWeekPlans(weekStart);
   const [open, setOpen] = useState<CheckInItem | null>(null);
+  const late = useLateEnd(open?.assignmentId ?? "", open?.childId ?? null);
   const [viewing, setViewing] = useState<string | null>(null); // S15-03: a viewer's bar opens a read-only detail, never Update status
   if (state.loadError) return <p className="checkin-error" role="alert">{state.loadError}</p>;
   if (!state.data || !look.ready || (layout === "days" && !plans)) return <p aria-busy="true">Loading…</p>;
@@ -63,8 +65,8 @@ export function PastWeek({ weekStart, choice, look, readOnly = false, layout = "
       {readOnly ? <BarDetailSheet assignment={look.assignments.find((a) => a.id === viewing) ?? null} subjects={look.subjects} children={look.children} onClose={() => setViewing(null)} /> : null}
       {open && !readOnly ? (
         <UpdateStatusSheet key={itemKey(open)} item={open} position={positionOf(open)} mode={open.mode} plan={plans?.find((p) => p.assignmentId === open.assignmentId && p.childId === open.childId)}
-          whenText="that week" busy={state.busy} error={state.error ?? Object.values(state.itemErrors)[0] ?? null} onClose={() => setOpen(null)}
-          onSave={(position, mode) => { void state.save(statusBody(week, open, position, mode)).then((res) => { if (res) setOpen(null); }); }} />
+          late={late} afterDay={week.weekEnd} whenText="that week" busy={state.busy} error={state.error ?? Object.values(state.itemErrors)[0] ?? null} onClose={() => setOpen(null)}
+          onSave={(position, mode, endDate) => { void state.save(statusBody(week, open, position, mode, endDate)).then((res) => { if (res) setOpen(null); }); }} />
       ) : null}
     </div>
   );

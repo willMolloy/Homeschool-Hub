@@ -66,7 +66,7 @@ export function mergePlans(responses: readonly PlanResponse[]): ChildPlan[] {
 }
 
 /** The briefing's plans for `ranges` (one request each, merged); undefined while loading or when any request fails. */
-function usePlans(ranges: readonly DateRange[], refreshKey: number): ChildPlan[] | undefined {
+export function usePlans(ranges: readonly DateRange[], refreshKey: number): ChildPlan[] | undefined {
   const [plans, setPlans] = useState<ChildPlan[] | undefined>(undefined);
   const key = ranges.map((r) => `/api/plan?from=${r.from}&to=${r.to}`).join(" ");
   useEffect(() => {

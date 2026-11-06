@@ -101,7 +101,7 @@ describe("the weekly check-in is retired (S9-02)", () => {
 });
 
 describe("Update status from a Week bar (S9-02)", () => {
-  it("Fell behind, got to p. 38, move to the computed date: one PUT for last week with pushEndDate", async () => {
+  it("Fell behind, got to p. 38, move the end to the computed date: one PUT for last week with the new end date", async () => {
     const user = userEvent.setup();
     const sheet = await openStatusFromWeek(user, "Treasure Island");
     expect(sheet.getByText("How did it go?")).toBeInTheDocument();
@@ -112,12 +112,13 @@ describe("Update status from a Week bar (S9-02)", () => {
     // 42 pages behind at 10 a day is 4 school days: Tue Dec 1 moves to Mon Dec 7.
     expect(sheet.getByText("What about the end date?")).toBeInTheDocument();
     expect(sheet.getByText(/Keep Dec 1/)).toBeInTheDocument();
-    await user.click(sheet.getByRole("radio", { name: /Move to Dec 7/ }));
+    await user.click(sheet.getByRole("radio", { name: /Move the end to Dec 7, 2026/ }));
     expect(puts()).toHaveLength(0); // nothing is sent until Save
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(puts()[0]!.path).toBe("/api/check-ins/2026-10-19");
-    expect(body()).toEqual({ status: "reviewed", items: [{ assignmentId: "ti", childId: "c1", position: 38, mode: "pushEndDate" }] });
+    // S18-02: moving the end moves the assignment's end date in the same save (the check-in is keepEndDate against the new end).
+    expect(body()).toEqual({ status: "reviewed", items: [{ assignmentId: "ti", childId: "c1", position: 38, mode: "keepEndDate" }], endDate: { assignmentId: "ti", endDate: "2026-12-07" } });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
@@ -139,7 +140,7 @@ describe("Update status from a Week bar (S9-02)", () => {
     await user.type(got, "100");
     expect(sheet.getByRole("button", { name: "Got ahead" })).toHaveAttribute("aria-pressed", "true");
     expect(sheet.getByText("The remaining days get a little lighter")).toBeInTheDocument();
-    expect(sheet.getByRole("radio", { name: /Move to Nov 27/ })).toBeInTheDocument(); // 20 pages ahead is 2 school days earlier
+    expect(sheet.getByRole("radio", { name: /Move the end to Nov 27, 2026/ })).toBeInTheDocument(); // 20 pages ahead is 2 school days earlier
   });
 
   it("finishing sends no mode and asks nothing about the end date", async () => {
@@ -277,7 +278,8 @@ describe("a finished week on Schedule (S9-02)", () => {
     expect(await bars.findByText("40 of 80 pp.")).toBeInTheDocument();
     await user.click(bars.getByRole("button", { name: /Treasure Island pages/ }));
     const sheet = within(await screen.findByRole("dialog"));
-    expect(sheet.getByRole("radio", { name: /Move to/ })).toBeChecked();
+    // S18-02: "Move" now moves the assignment's end date, so a stored pushEndDate row opens on Keep (it is not re-saved as a move).
+    expect(sheet.getByRole("radio", { name: /^Keep / })).toBeChecked();
     await user.click(sheet.getByRole("button", { name: "As planned" }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
