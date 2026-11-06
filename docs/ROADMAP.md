@@ -6,6 +6,8 @@ DeeDee and Will co-own the product. DeeDee approves what gets built. This plan w
 
 Design direction: [DESIGN_DIRECTION.md](DESIGN_DIRECTION.md) (from Will's reviews of 2026-10-31).
 
+Hosting plan (proposal, on hold): [HOSTING_PLAN.md](HOSTING_PLAN.md).
+
 
 **A steering tool for the homeschool year.** A parent sees the shape of the whole year in seconds, corrects course when life happens, and gets their records with no extra work. It is a planning tool parents steer with, not a daily to-do app they have to feed. Nothing in the core needs daily input or tedious data entry.
 
