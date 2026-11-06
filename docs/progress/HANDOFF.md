@@ -1,13 +1,15 @@
-# Handoff — start here (updated 2026-11-06)
+# Handoff — start here (updated 2026-11-06, Sprint 18 merged)
 
 For anyone picking up Homeschool Hub: Will, DeeDee, Grok, or a new Claude session. Read this, then [ROADMAP.md](../ROADMAP.md) and [HOW_WE_WORK.md](../HOW_WE_WORK.md). Older handoff notes are in git history and in each sprint's progress doc.
 
 ## 1. Where things stand
 
-- **Everything through Sprint 17 is merged to `main`** (last: PR #15, `3d08e96`). Every sprint had a tester pass (reports in `docs/reviews/`). The core is built: year timeline with effort bars, steering (week adjust, Update status, undo), the completion question and needs-you dot, Records (configurable logging, totals, CSV, print, term in review), first-run setup, printable weekly/daily sheets, the Days view, parent logins and invites, view-only accounts and co-ops, light and dark Soft Paper design.
-- **Second end-to-end run done** (`docs/reviews/cm-term-run-2.md`, 2026-11-06): "Nearly — fix E1 to E3 and it's a clear yes." **Next: Sprint 18** (`docs/tickets/sprint-18-e2e-fixes/`).
-- **On hold (Will, 2026-11-05):** hosting and the hosting fixes in code. The full plan is ready: [HOSTING_PLAN.md](../HOSTING_PLAN.md).
-- **Open Low backlog:** none (ROADMAP "Open backlog (Low)").
+- **Everything through Sprint 18 is merged to `main`** (last: PR #17, `75086dd`). Every sprint had a tester pass (reports in `docs/reviews/`). The core is built: year timeline with effort bars, steering (week adjust, Update status, undo), the completion question and needs-you dot, Records (configurable logging, totals, CSV, print, term in review), first-run setup, printable weekly/daily sheets, the Days view, parent logins and invites, view-only accounts and co-ops, light and dark Soft Paper design.
+- **Sprint 18 is on `main`.** DeeDee explicitly chose merge first, with the tester at 0 High / 2 Medium / 3 Low. The report is `docs/reviews/sprint-18-verification.md` and the same text again at `docs/reviews/pr17-verification.md`. She decided both Mediums on 2026-11-06. The tickets are `docs/tickets/sprint-18b-follow-ups/`. Neither is built.
+  - **S18b-01, decided.** Pick a date may be before today. Saving a past date requires an explicit confirmation ("That's before today; this ends the book now. Continue?"). A minimum of today was the provisional idea and is not the decision.
+  - **S18b-02, decided.** An assignment uses the same school days for everyone on it. A child who needs different days gets their own assignment: a separate workbook with its own schedule and daily flow. Readings on those copies need not stay aligned day to day. This is that separate workbook. It is not a per-child school-days planner. The same ticket specifies a usability follow-up, also not built: make copying a book, and updating the other copies, clearer and easier. The tester's evidence (four duplicated books, split page ranges, duplicated updates, a shared Mon–Thu book adding Monday for a Tue–Fri child) is in the ticket.
+- **On hold (Will, 2026-11-05):** hosting and the hosting fixes in code. The full plan is ready: [HOSTING_PLAN.md](../HOSTING_PLAN.md). The two follow-ups do not block it.
+- **Open Low backlog:** none ticketed (ROADMAP "Open backlog (Low)"). Sprint 18's three Lows stay in the verification report and were not opened as tickets.
 
 ## 2. The finish line
 
@@ -17,8 +19,8 @@ ROADMAP phases: (1) build the core ✔ nearly → (2) private hosting for DeeDee
 
 ## 3. Next steps, in order
 
-1. **End-to-end run results.** Read `docs/reviews/cm-term-run-2.md`. **Done 2026-11-06:** 38 Works, 4 Confusing, 1 Broken of 43; verdict "Nearly". The fix sprint is written and ready to build: `docs/tickets/sprint-18-e2e-fixes/` (E1–E3 Medium first: Update status undo and pick-your-own end date, Bars agreeing with Days; then the Lows).
-2. **Hosting fixes in code sprint** (HOSTING_PLAN §4): health live/ready, graceful shutdown, migration advisory lock, proxy-aware throttle, production build + Dockerfile (`HOST=0.0.0.0`), security headers. No AWS needed. Tester pass. *Only when Will says hosting is a go.*
+1. **Sprint 18 is merged** (PR #17, `75086dd`). The second end-to-end run is `docs/reviews/cm-term-run-2.md` (38 Works, 4 Confusing, 1 Broken of 43; verdict "Nearly"). DeeDee chose merge first with the tester at 0 High / 2 Medium / 3 Low. Both Mediums are decided and written in `docs/tickets/sprint-18b-follow-ups/`: S18b-01 (a past Pick a date stays allowed and asks for confirmation) and S18b-02 (one set of school days on a shared book; a different schedule is a separate workbook, with a usability follow-up for copies). Nothing in that folder is built. The three Lows are in the report only.
+2. **Hosting fixes in code sprint** (HOSTING_PLAN §4): health live/ready, graceful shutdown, migration advisory lock, proxy-aware throttle, production build + Dockerfile (`HOST=0.0.0.0`), security headers. No AWS needed. Tester pass. *Only when Will says hosting is a go.* The Sprint 18b follow-ups do not block this.
 3. **Decisions with DeeDee** (HOSTING_PLAN §10): H1 host (recommended AWS App Runner + RDS + S3/CloudFront), H2 sessions (keep server-side Postgres sessions), H3 time-zone fallback (keep America/Chicago), domain, region.
 4. **Terraform** in `infra/` (HOSTING_PLAN §3, §5): `terraform plan` only, reviewed by Will.
 5. **First deploy, with Will at the keyboard** (HOSTING_PLAN §6): apply, push the image, run migrations as a one-off task, upload the web build. Agents never deploy on their own (HOW_WE_WORK).
@@ -28,7 +30,7 @@ ROADMAP phases: (1) build the core ✔ nearly → (2) private hosting for DeeDee
 9. **After hosting:** the calendar feed (ROADMAP "Order of work", item 6), CI deploys, then the friends beta.
 10. **Later, only with feedback:** curriculum import, "smooth this month", optional daily checklist, co-op classes inside family plans (ROADMAP "Optional modules").
 
-## 4. How the work is driven (the loop that built Sprints 1–17)
+## 4. How the work is driven (the loop that built Sprints 1–18)
 
 - **Roles:** a coordinator (writes tickets, reviews, talks to Will), a **developer** agent, and a separate **tester** agent. Will (and DeeDee) approve scope and merge PRs; agents never merge.
 - **Tickets:** one folder per sprint in `docs/tickets/sprint-NN-name/`, a README with Will's decisions and the build order, one small file per ticket (Goal, Steps, Done when, Tests). Keep them simple and testable.
@@ -75,3 +77,4 @@ Useful commands:
 - **For hosting:** H1–H3, domain, region (HOSTING_PLAN §10).
 - **Before going public:** working name, pricing, signup and password-reset email, kid logins and COPPA, which states get helpers first (ROADMAP "Open decisions for DeeDee").
 - **Small product questions left open:** whether "Days attended" / "Days and hours" term cards need more presence (Sprint 16 note N14); whether a day that finishes one chapter and starts the next should also show the next chapter's start (Sprint 16 note N15).
+- **Decided 2026-11-06, not built** (ROADMAP "Decided after Sprint 18"): a past Pick a date stays allowed and needs an explicit confirmation (S18b-01); a shared book uses one set of school days, and a different schedule is a separate workbook whose readings need not stay aligned (S18b-02). No choice on either is still open.

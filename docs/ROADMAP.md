@@ -22,7 +22,7 @@ Hosting plan (proposal, on hold): [HOSTING_PLAN.md](HOSTING_PLAN.md).
 
 ## The plan, in order
 
-**Core decisions C1–C3 were decided on 2026-10-30** (see "Open decisions for DeeDee"), so nothing in the core is blocked on a decision now.
+**Core decisions C1–C3 were decided on 2026-10-30** (see "Open decisions for DeeDee"), so nothing in the core is blocked on a decision now. The two Sprint 18 follow-ups are decided too (2026-11-06, "Decided after Sprint 18"); they are written and not built, and they do not block hosting.
 
 | # | Phase | Target | Done when |
 |---|---|---|---|
@@ -50,9 +50,9 @@ Agreed now, so they don't drift later. We consider going public only if:
 
 ## 1. Core checklist
 
-Status as of 2026-11-05 (updated from the merged sprints on `main`, through Sprint 10b, PR #6). "Built" means a sprint delivered it and its tester passed; the end-to-end pass in the last row confirms it.
+Status as of 2026-11-06 (updated from the merged sprints on `main`, through Sprint 18, PR #17, `75086dd`). "Built" means a sprint delivered it and its tester passed; the end-to-end pass in the last row confirms it.
 
-**What's left, in order:** see "Order of work after Sprint 10" below (Will, 2026-11-05): first run, the completion question, printable sheets and term in review, accounts and hosting fixes, the end-to-end run, then hosting.
+**What's left, in order:** Sprints 11 through 18 are merged (see "Order of work after Sprint 10"). Two Medium follow-ups from the Sprint 18 tester are decided and not built (`tickets/sprint-18b-follow-ups/`): a past Pick a date asks for confirmation, and a shared book keeps one set of school days, with a usability follow-up for the separate copies. Then hosting. The three Lows from that tester are in the report only.
 
 ### Assignment weekdays
 - [x] **Which weekdays an assignment runs on** (built in Sprint 4: tappable day chips, a subject default that assignments follow until customised). Today the engine spreads every assignment over all school days, so a once-a-week subject (picture study, composer, nature study) shows as a fifth of a lesson every day, and math can't be Monday to Thursday only. An assignment gets optional weekdays (default: every school day); the plan places its work only on those days, and the bars, This Week and check-ins follow. Events already have weekdays; assignments don't.
@@ -131,7 +131,7 @@ Sprint 10a and 10b are merged (PRs #5 and #6). Each sprint gets its own branch o
    - **Printable work sheets, weekly and daily (a parent feature).** The parent prints them; children never use the app. "Print sheets" on Schedule · Week: a week or a single day, and one, several or All children, one page per child. Each subject, the assignment and that week's or day's range ("Treasure Island · pages 120–150"), split by day on the weekly sheet; the daily sheet shows only what's scheduled that weekday. Paper checkboxes and a notes line. No minutes, no family overview page (Will).
    - **Term in review.** One card image per child for a term or the year, from Records: the assignments marked finished (Sprint 12), books read, time by subject and school days, each only if the family tracks it. No invented numbers, no favourite-book guess, no parent note. Saved as an image or printed; no public link.
 4. [x] **Sprint 14: Accounts, and undo for Add several and CSV import** (merged in PR #12). Then, added by Will: **Sprint 15** view-only accounts and co-ops, whole-chapter day ranges, month-view rows (PR #13); **Sprint 16** the Days view, chapter start/finish labels, clearer Records cards, book suggestions, term in review following the log setup (PR #14); **Sprint 17** backlog cleanup, the Hartley seed family and the end-to-end run script (PR #15). The hosting fixes in code (below) stay on hold with hosting.
-5. [ ] **The end-to-end run** on a realistic Charlotte Mason term (script `e2e/cm-term-run-2.md`, family from `npm run e2e:seed`; report `reviews/cm-term-run-2.md`), its fix sprint, then **phase 2, private hosting** for DeeDee per [HOSTING_PLAN.md](HOSTING_PLAN.md) (H1–H3 decided first). Next steps in order: `progress/HANDOFF.md` §3.
+5. [x] **The second end-to-end run and Sprint 18** (script `e2e/cm-term-run-2.md`, family from `npm run e2e:seed`; report `reviews/cm-term-run-2.md`; fixes merged in PR #17, `75086dd`, after DeeDee chose merge first). Tester on that PR: 0 High / 2 Medium / 3 Low (`reviews/sprint-18-verification.md`, same text in `reviews/pr17-verification.md`). **Decided 2026-11-06 and not built:** `tickets/sprint-18b-follow-ups/`. S18b-01: a past Pick a date stays allowed and needs an explicit confirmation. S18b-02: an assignment uses the same school days for every child on it; a child with different days gets their own assignment, a separate workbook with its own schedule, and readings need not stay aligned day to day. The same ticket specifies a usability follow-up for copying a book and updating the other copies. The three Lows were not opened as tickets. **Next: phase 2, private hosting** for DeeDee per [HOSTING_PLAN.md](HOSTING_PLAN.md) (H1–H3 decided first). Next steps in order: `progress/HANDOFF.md` §3.
 6. [ ] **After hosting: the calendar feed.** One-way: a private subscription link a parent adds to Google, Apple or Outlook Calendar, holding events, breaks and optionally assignment start and finish dates (never daily work), with children's names in the titles and an optional feed per child. We never sign in to or read their calendar; Google refreshes within about a day, which the app says. Two-way sync is not planned.
 ### Hosting fixes in code and accounts (accounts done in Sprint 14; hosting fixes on hold)
 Discuss with Will before it starts (Will, 2026-11-01). The items are in "Accounts" and "Hosting fixes in code" below.
@@ -149,7 +149,8 @@ Done during the core work, since none needs a host. Details are in "Private host
 - [ ] Login throttle that trusts the proxy.
 
 ### End to end
-- [ ] **The whole loop works on a real family's term:** set up a term, see it on the timeline, adjust a week, update a status, log a week and export it, undo a mistake. Run on a realistic Charlotte Mason-style term, not only the demo family, before phase 2.
+- [x] **The second end-to-end run and Sprint 18 are merged** (PR #17, `75086dd`). The loop was walked on the Hartley term (`reviews/cm-term-run-2.md`), then the fix sprint merged after DeeDee chose merge first. Tester: 0 High / 2 Medium / 3 Low.
+- [ ] **Two decided follow-ups, not built** (`tickets/sprint-18b-follow-ups/`). S18b-01: Pick a date may be before today, and saving it asks "That's before today; this ends the book now. Continue?" S18b-02: a shared book keeps one set of school days; a different schedule is a separate workbook, and a usability follow-up makes copying it and updating the other copies clearer. Readings on the copies need not stay aligned. The per-child school-days planner is not the change.
 
 ## 2. Private hosting
 
@@ -196,7 +197,7 @@ Each follows the module rules above. In order:
 
 ## Open backlog (Low)
 
-None open. Sprint 17 (S17-01) closed the last ones: the Week filter and the briefing, the Home checklist control, Rose and Lilac, day-off wording, the throttled-invite message, Term in review on short desktops and the Sprint 15 Lows. (Earlier: N8, N7 and N9 in S12-09; the `timeline-add` flake in Sprint 15.)
+None ticketed. Sprint 17 (S17-01) closed the last ones: the Week filter and the briefing, the Home checklist control, Rose and Lilac, day-off wording, the throttled-invite message, Term in review on short desktops and the Sprint 15 Lows. (Earlier: N8, N7 and N9 in S12-09; the `timeline-add` flake in Sprint 15.) Sprint 18's tester left three Lows (L1 to L3) in `reviews/sprint-18-verification.md`. They were not opened as tickets.
 
 ## Done
 
@@ -216,6 +217,7 @@ Commit hashes and notes are in each progress doc.
 | Sprint 10a: the Year view polish · PR #5 | 6069278 | `progress/sprint-10.md` |
 | Sprint 10b: colours, navigation, wide layout, run-of-days chips · PR #6 | f54fb01 | `progress/sprint-10b.md` |
 | Sprints 11 and 11b: first run (setup flow, Schedule hints, School year in Set up) · PR #8 | fc8a510 | `progress/sprint-11.md` |
+| Sprint 18: fixes from the second end-to-end run (S18-01 to S18-04) · PR #17. Merged after DeeDee chose merge first (tester 0 High / 2 Medium / 3 Low). Follow-ups decided and not built: `tickets/sprint-18b-follow-ups/` | 75086dd | `progress/sprint-18.md`, `reviews/sprint-18-verification.md` |
 
 The timeline tickets, in `progress/timeline.md`:
 
@@ -246,6 +248,13 @@ Decided by Will on 2026-10-30; DeeDee can still revisit them before the work is 
 - **C1. Week-adjust mode rule** (overnight O3): **decided: the most recent edit wins**, as the engine does today (`packages/engine/src/placement.ts`). Unblocks "Adjust the current or a coming week".
 - **C2. How far undo goes:** **decided: undo the last change, plus reset an assignment to how it was created.** Removal (O4) stays as built: days off are hard-deleted, assignments and events archive-only.
 - **C3. Effort input:** **decided: approved as written** in "Effort" above (ask in time, store as effort, carry corrections forward); the heavier/lighter nudge became Update time estimate (Will, 2026-10-31).
+
+### Decided after Sprint 18 (DeeDee, 2026-11-06)
+
+Both are recorded in `tickets/sprint-18b-follow-ups/`. Neither is built. The tester's repro is in the tickets and in `reviews/sprint-18-verification.md`.
+
+- **Past Pick a date (S18b-01): decided.** A date before today stays allowed. Saving it requires an explicit confirmation: "That's before today; this ends the book now. Continue?" The provisional recommendation, a minimum of today, is not the decision. A date on or before the end of the week being updated is still refused.
+- **School days on a shared book (S18b-02): decided.** An assignment uses the same school days for everyone on it. A child who needs different days gets their own assignment: a separate workbook with its own schedule and daily flow. Readings need not stay aligned day to day. The per-child school-days planner is not the change. A usability follow-up, also not built, is to make copying a book and updating the other copies clearer, from the tester's evidence (four duplicated books, split ranges, duplicated updates, a shared Mon–Thu book adding Monday work for a Tue–Fri child).
 
 ### Needed for hosting (phase 2)
 
