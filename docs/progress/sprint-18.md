@@ -2,6 +2,8 @@
 
 Branch: `claude/sprint-18-e2e-fixes`, cut from `main` on 2026-11-06 with Will's permission for per-sprint branches. Tickets: `docs/tickets/sprint-18-e2e-fixes/` (findings E1 to E13 in `docs/reviews/cm-term-run-2.md`). S18-05 (the tester pass) is not part of this build.
 
+**Merged:** PR #17, `75086dd`, 2026-11-06. DeeDee chose merge first. The independent tester reported 0 High / 2 Medium / 3 Low (`docs/reviews/sprint-18-verification.md`, same text in `docs/reviews/pr17-verification.md`). She decided both Mediums the same day; the tickets are `docs/tickets/sprint-18b-follow-ups/` and are not built. See "Later decisions" below.
+
 | Ticket | Commit | Notes |
 |---|---|---|
 | S18-01 Update status confirms and can be undone | bdc27a8 | **E1.** `PUT /api/check-ins/:weekStart` now goes through `services/statusSave.ts` (`saveStatus`): it writes the week as before, then records ONE undo entry ("Updated Treasure Island") whose new step `weekCheckIns` holds every check-in row the week had and its review status, so Undo puts the week back exactly (rows, positions, modes and the review row, or no review row if there was none). The web client lists the PUT among the plan-changing requests, so the undo bar asks `/api/undo` and shows "Updated Treasure Island. Undo" after a save from a Week bar, the Year edit bar or a finished week. A 409 on that save now shows the API's sentence in the sheet instead of the generic one. **Also built here for S18-02:** the body takes an optional `endDate: { assignmentId, endDate }`, applied in the same transaction after the check-ins (so the latest check-in holds the new end), with the assignment's earlier state as a second undo step (label "Updated X, end moved to Feb 1"). A refused end date rolls the whole save back and records nothing. No new route; viewers still cannot call it (the viewer allow-list is untouched and a test pins `PUT /api/check-ins/:weekStart` and `POST /api/undo` as closed). Tests: api `s18-01-update-status-undo` (5: label and undo of a save, second save replaces the entry, end date with one undo, refused date changes nothing, viewer allow-list), web `update-status` (2: the bar after a Week save and a finished-week save, and Undo). **Changed expectations:** web `undo-bar` moved `PUT /api/check-ins/…` from "is not announced" to "is announced once"; the fake API's body keys for `PUT /api/check-ins/:id` gained `endDate` |
@@ -27,7 +29,7 @@ Branch: `claude/sprint-18-e2e-fixes`, cut from `main` on 2026-11-06 with Will's 
 - **S18-04 E9 minutes threshold:** the ticket's "about 165 min a day, that's a lot" is not a warning the single form had (it only warned on units a day, so 110 lessons in six weeks never tripped it). One function now serves all three: the unit note first, then more than 120 min a day for one assignment. 120 is my number; it is `MINUTES_NOTE_THRESHOLD`.
 - **S18-04 E9 duplicates** are flags, not blocks (a parent may mean it); a "repeat" is same subject and title (case and spaces ignored) for at least one shared child.
 - **S18-04 E7 identical** means every field the form sends matches, so Math today and Reading today as two entries are not warned about.
-- **S18-04 E11:** the app has no per-child school days; days belong to each assignment, so a shared assignment runs on one set of days for every child. Building per-child days is a product change, not a small fix. The seed was the inconsistency (Wren Tuesday to Friday but sharing Monday read-alouds), so Wren now has her own copies of Gospel of Luke, The Hobbit, Our Island Story and the recitation on Tuesday to Friday (34 assignments). A test pins that Days and the sheet show nothing for a Tuesday-to-Friday child on Monday. If Will wants one shared assignment to follow each child's days, that is a new ticket.
+- **S18-04 E11:** the app has no per-child school days; days belong to each assignment, so a shared assignment runs on one set of days for every child. Building per-child days is a product change, not a small fix. The seed was the inconsistency (Wren Tuesday to Friday but sharing Monday read-alouds), so Wren now has her own copies of Gospel of Luke, The Hobbit, Our Island Story and the recitation on Tuesday to Friday (34 assignments). A test pins that Days and the sheet show nothing for a Tuesday-to-Friday child on Monday. If Will wants one shared assignment to follow each child's days, that is a new ticket. **Superseded 2026-11-06:** DeeDee decided against that planner. The separate copies are the rule (S18b-02).
 - **S18-04 E12 Records choice:** its own key rather than a reset, so a parent's pick on Records is kept for next time.
 - **S18-04 E13:** the Remove/Rename buttons and the twin prompt use the standard 44 px buttons.
 
@@ -39,3 +41,10 @@ Branch: `claude/sprint-18-e2e-fixes`, cut from `main` on 2026-11-06 with Will's 
 | S18-02 | 437 | 1203 | 1723 | 190 |
 | S18-03 | 437 | 1203 | 1728 | 190 |
 | S18-04 | 437 | 1207 | 1750 | 190 |
+
+## Later decisions (DeeDee, 2026-11-06)
+
+Recorded after the merge, in `docs/tickets/sprint-18b-follow-ups/`. Not built in that docs pass.
+
+- **S18-02 past dates (S18b-01).** A picked date before today stays allowed. Saving it asks "That's before today; this ends the book now. Continue?" The lower limit in the S18-02 decision above (after the end of the week being updated) stays. A minimum of today is not the decision.
+- **S18-04 E11 (S18b-02).** An assignment keeps one set of school days for every child on it. A child with different days gets their own assignment, a separate workbook with its own schedule. Readings on the copies need not stay aligned day to day. The per-child planner named in the E11 decision above is not a ticket. A usability follow-up, also not built, covers making those copies and updating them.

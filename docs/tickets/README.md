@@ -199,3 +199,7 @@ See [sprint-7b-fixes/README.md](sprint-7b-fixes/README.md) (S7b-01 to S7b-07).
 ## Sprint 8: Soft Paper — the new look, Home and navigation, light and dark
 
 See [sprint-8-soft-paper/README.md](sprint-8-soft-paper/README.md) (S8-01 to S8-10). Absorbs the held S6b-02, S6b-03 and S6b-11.
+
+## Sprint 18b: follow-ups after the Sprint 18 merge
+
+See [sprint-18b-follow-ups/README.md](sprint-18b-follow-ups/README.md) (S18b-01, S18b-02). Both decided by DeeDee on 2026-11-06 and not built. S18b-01 is the past-date confirmation. S18b-02 is one set of school days per assignment, plus a usability follow-up for copying a book and updating the other copies. The three Lows from `reviews/sprint-18-verification.md` have no tickets.

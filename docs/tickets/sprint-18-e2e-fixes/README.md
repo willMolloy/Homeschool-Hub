@@ -1,6 +1,6 @@
 # Sprint 18 — Fixes from the second end-to-end run
 
-> **Status: ready to build** (from `docs/reviews/cm-term-run-2.md`, 2026-11-06: 38 Works, 4 Confusing, 1 Broken of 43 steps; verdict "Nearly… Fix E1 to E3 and it's a clear yes"). One branch for the sprint off `main`; PR after its tester passes. If time is short, build S18-01 to S18-03 (the Mediums) first; S18-04 can follow.
+> **Status: merged** in PR #17 (`75086dd`, 2026-11-06) after DeeDee chose merge first. Tester: 0 High / 2 Medium / 3 Low (`docs/reviews/sprint-18-verification.md`; the same report is `docs/reviews/pr17-verification.md`). Written from `docs/reviews/cm-term-run-2.md` (38 Works, 4 Confusing, 1 Broken of 43 steps; verdict "Nearly… Fix E1 to E3 and it's a clear yes"). The two Medium follow-ups are decided and not built: `docs/tickets/sprint-18b-follow-ups/`. The three Lows were not opened as tickets.
 
 | # | Ticket | Findings | Size |
 |---|--------|----------|------|
