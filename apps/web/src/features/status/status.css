@@ -19,3 +19,7 @@
 .status-pick .field-error { margin: 6px 0 0; }
 /* S18-04 (E13): a long title is cut with an ellipsis so the close button stays on the title row (the full title is in the tooltip and the dialog's name). */
 .status-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* S18b-01: the question a past picked date asks before it saves. */
+.status-past { margin-top: 20px; padding: 14px; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); box-shadow: inset 0 0 0 2px var(--tl-primary); }
+.status-past p { margin: 0 0 12px; font-weight: 600; }
+.status-past .btn { flex: 1; }

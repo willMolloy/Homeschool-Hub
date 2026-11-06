@@ -1,5 +1,7 @@
 # S18b-01 — A past Pick a date asks before it saves
 
+> **Status: built in Sprint 18b** (`docs/progress/sprint-18b.md`). The text below is the decision as written.
+
 **Source:** M1 (Medium) in `docs/reviews/sprint-18-verification.md` (the same report is in `docs/reviews/pr17-verification.md`). **Depends on:** DeeDee's decision of 2026-11-06, recorded here. **Size:** S when a later sprint builds it. This file does not build it.
 
 ## Goal

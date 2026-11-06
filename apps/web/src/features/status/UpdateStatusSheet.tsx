@@ -1,7 +1,8 @@
 /**
  * S8-06 / S9-02: "Update status" for one bar (from Schedule · Week, or the Year edit bar's More), against the last finished week (or the week being looked at): How did it go? (As planned / Got ahead / Fell behind),
  * "They got to {page}" with a − and +, and, when the plan moved, "What about the end date?" (S18-02): Keep the end date, Move
- * the end to the suggested date, or Pick a date (the shared DateField). The suggestion for a late assignment is the briefing's
+ * the end to the suggested date, or Pick a date (the shared DateField; S18b-01: a picked date before today is allowed, and saving it
+ * asks "That's before today; this ends the book now. Continue?" first). The suggestion for a late assignment is the briefing's
  * own (`lateEnd`), so the late line and this sheet name the same date. Cancel or Save; Save hands the position, the mode and
  * the end date to the board, which sends the week once.
  */
@@ -22,6 +23,7 @@ import { endChoices, type EndChoices } from "./endDates";
 import "../checkin/checkin.css";
 import "./status.css";
 import { useMe } from "../../auth/AuthProvider";
+import { todayOf } from "../completion/waiting";
 import type { ChildPlan } from "@hh/engine";
 
 export interface UpdateStatusProps {
@@ -72,6 +74,8 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   const [endWay, setEndWay] = useState<EndWay>("keep");
   const [picked, setPicked] = useState<string>("");
   const [pickError, setPickError] = useState<string | null>(null);
+  /** S18b-01: the past date the parent was just asked about; the question shows while the picked date is still that one. */
+  const [askedPast, setAskedPast] = useState<string | null>(null);
   const labelId = useId();
   const step = stepOf(item.unitType);
   const way = wayOf(item, pos);
@@ -96,10 +100,12 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
     if (endWay === "pick") {
       if (!isValidLocalDate(picked)) return setPickError("Pick the new end date.");
       if (afterDay && picked <= afterDay) return setPickError(`Pick a date after ${shortDate(afterDay)}.`);
+      if (picked < todayOf(me) && askedPast !== picked) return setAskedPast(picked);
       return onSave(pos, "keepEndDate", picked);
     }
     return onSave(pos, "keepEndDate", null);
   };
+  const askingPast = choices !== null && endWay === "pick" && askedPast !== null && askedPast === picked;
   return (
     <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={<span className="status-title" title={item.title}>{item.title}</span>}>
       <div className="status-sheet">
@@ -149,10 +155,20 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
           </>
         ) : null}
         {error ? <p className="checkin-error" role="alert">{error}</p> : null}
-        <div className="btn-row status-actions">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button disabled={busy} onClick={save}>Save</Button>
-        </div>
+        {askingPast ? (
+          <div className="status-past" role="group" aria-label="Before today">
+            <p>That&apos;s before today; this ends the book now. Continue?</p>
+            <div className="btn-row">
+              <Button variant="secondary" disabled={busy} onClick={() => setAskedPast(null)}>No</Button>
+              <Button disabled={busy} onClick={save}>Continue</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="btn-row status-actions">
+            <Button variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button disabled={busy} onClick={save}>Save</Button>
+          </div>
+        )}
       </div>
     </ResponsiveSheet>
   );

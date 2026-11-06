@@ -303,7 +303,7 @@ describe("9. ROADMAP's open backlog", () => {
   it("lists none of the fixed items", () => {
     const section = (read("../../../docs/ROADMAP.md").split("## Open backlog (Low)")[1] ?? "").split("## Done")[0]!;
     expect(section).not.toMatch(/^- /m);
-    expect(section).toMatch(/None open/);
+    expect(section).toMatch(/None (open|ticketed)/);
   });
 });
 
