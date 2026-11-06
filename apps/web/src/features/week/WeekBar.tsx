@@ -20,7 +20,7 @@ export interface WeekBarProps {
 }
 
 export function WeekBar({ bar, slot, onOpen, check, state, icon, error }: WeekBarProps) {
-  const range = rangeWords(bar.unitType, bar.from, bar.to, bar.total, true);
+  const range = bar.range ?? rangeWords(bar.unitType, bar.from, bar.to, bar.total, true);
   const style = { "--c": `var(--tl-subject-${slot})`, "--cs": `var(--tl-subject-${slot}-strong)` } as CSSProperties;
   const text = (
     <>

@@ -17,7 +17,7 @@ import { isValidLocalDate, type LocalDate } from "@hh/engine";
 import { DateField } from "../../ui/DateField";
 import type { LateEnd } from "../plan/briefingLines";
 import { shortDate } from "../schedule/formBits";
-import { rangeWords } from "../week/weekBars";
+import { itemRangeWords } from "../week/weekBars";
 import { endChoices, type EndChoices } from "./endDates";
 import "../checkin/checkin.css";
 import "./status.css";
@@ -34,6 +34,8 @@ export interface UpdateStatusProps {
   whenText: string;
   /** S18-02: the briefing's late answer for this assignment (null: no late line), undefined while it loads. */
   late?: LateEnd | null;
+  /** S18-03: the week being updated, so "pages 120-150 last week" says the same chapters and lessons as that week's Days lines. */
+  weekStart?: LocalDate;
   /** S18-02: a picked end date must come after this day (the end of the week being updated). */
   afterDay?: LocalDate;
   /** `endDate` is the new end for the assignment, or null to leave it (the default). */
@@ -61,7 +63,7 @@ const wayOf = (item: CheckInItem, position: number): Way => {
 
 type EndWay = "keep" | "suggest" | "pick";
 
-export function UpdateStatusSheet({ item, position, mode, plan, late, afterDay, whenText, onSave, onClose, busy = false, error = null }: UpdateStatusProps) {
+export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart, afterDay, whenText, onSave, onClose, busy = false, error = null }: UpdateStatusProps) {
   const me = useMe();
   const [pos, setPosition] = useState(position);
   /** The number box's own text, so a half-typed number is not rewritten under the finger. */
@@ -101,7 +103,7 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, afterDay, 
   return (
     <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={item.title}>
       <div className="status-sheet">
-        <p className="status-sub">{item.childName} · {rangeWords(item.unitType, item.plannedFrom, item.plannedTo, item.totalUnits, true)} {whenText}</p>
+        <p className="status-sub">{item.childName} · {itemRangeWords(item, plan, weekStart)} {whenText}</p>
         <h3 className="status-label" id={labelId}>How did it go?</h3>
         <div className="status-ways" role="group" aria-labelledby={labelId}>
           {WAYS.map(({ way: w, label }) => <Chip key={w} selected={way === w} onClick={() => pick(w)}>{label}</Chip>)}

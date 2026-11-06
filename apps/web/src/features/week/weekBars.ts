@@ -15,6 +15,8 @@ export interface WeekBarData {
   from: number;
   to: number;
   total: number;
+  /** S18-03: the range words, worked out from the plan's own days (`weekRangeWords`) so they name what Days and the sheets name. Without it the bar falls back to `rangeWords` on from/to. */
+  range?: string;
 }
 
 /** Rounding for page ranges (S15-06): each end to the nearest whole page, so consecutive days never overlap. */
@@ -67,7 +69,15 @@ export function rangeWords(unitType: UnitType, from: number, to: number, total?:
  * and minutes, which keep plain ranges (see `rangeWords`).
  */
 export function daySpanLabels(plan: Pick<ChildPlan, "days" | "unitType" | "totalUnits" | "endedOn">): Map<LocalDate, string> {
-  const out = new Map<LocalDate, string>();
+  return new Map([...daySpans(plan)].map(([date, s]) => [date, s.label]));
+}
+
+/** S18-03: one scheduled day's words and the units they name (first to last, whole numbers), so a week's bar can name exactly what its days name. */
+export interface DaySpan { label: string; lo: number; hi: number }
+
+/** `daySpanLabels` with the units each label names: "Chapter 17 · start" names 17; "Chapter 16 · finish, chapters 17–18" names 16 to 18. */
+export function daySpans(plan: Pick<ChildPlan, "days" | "unitType" | "totalUnits" | "endedOn">): Map<LocalDate, DaySpan> {
+  const out = new Map<LocalDate, DaySpan>();
   if (!spans(plan.unitType)) return out;
   const days = plan.days.filter((d) => d.units > EPS && !(plan.endedOn && d.date > plan.endedOn)).sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
   const rows = days.map((d) => {
@@ -86,16 +96,61 @@ export function daySpanLabels(plan: Pick<ChildPlan, "days" | "unitType" | "total
       const mine = inProgress.get(r.ongoing)!;
       const at = mine.indexOf(i);
       const m = mine.length + (finishedBy.has(r.ongoing) ? 1 : 0);
-      out.set(r.date, `${cap(word)} ${r.ongoing} · ${at === 0 ? "start" : finishedBy.has(r.ongoing) ? `day ${at + 1} of ${m}` : "in progress"}`);
+      out.set(r.date, { label: `${cap(word)} ${r.ongoing} · ${at === 0 ? "start" : finishedBy.has(r.ongoing) ? `day ${at + 1} of ${m}` : "in progress"}`, lo: r.ongoing, hi: r.ongoing });
       return;
     }
     const earlier = (inProgress.get(r.a) ?? []).some((j) => j < i);
     const parts: string[] = [];
     if (earlier) parts.push(`${cap(word)} ${r.a} · finish`);
     if (earlier ? r.b > r.a : true) parts.push(unitWords(plan.unitType, earlier ? r.a + 1 : r.a, r.b));
-    out.set(r.date, parts.join(", "));
+    out.set(r.date, { label: parts.join(", "), lo: r.a, hi: r.b });
   });
   return out;
+}
+
+/**
+ * S18-03 (E3): a week's range words, from the plan's own days, so the Week bar names the same units as that week's Days lines and the
+ * printed sheet (they come from `daySpans`). Pages and minutes are `rangeWords` on the week's positions (their days already agree, S15-06).
+ * Chapters and lessons name every unit the week works on, first to last:
+ * - one unit that the week finishes: "chapter 16"; one it only begins or goes on with: "Chapter 17 · start" / "Chapter 17 · in progress";
+ * - several: "chapters 16–17", with "(starts 17)" when the last one is not finished by the week's end ("lessons 24–26 (starts 26)").
+ * `plan` must hold days either side of the week (see `useSpanPlans`); with none of its days in the week it falls back to `rangeWords`.
+ */
+export function weekRangeWords(plan: Pick<ChildPlan, "days" | "unitType" | "totalUnits" | "endedOn">, weekStart: LocalDate): string {
+  const weekEnd = addDays(weekStart, 6);
+  const days = plan.days.filter((d) => d.date >= weekStart && d.date <= weekEnd && !(plan.endedOn && d.date > plan.endedOn));
+  const first = days.find((d) => d.units > EPS);
+  const from = first ? first.position - first.units : 0;
+  const to = days.length ? Math.max(...days.map((d) => d.position)) : 0;
+  if (!first) return rangeWords(plan.unitType, 0, 0, plan.totalUnits, true);
+  if (!spans(plan.unitType)) return rangeWords(plan.unitType, from, to, plan.totalUnits, true);
+  const named = daySpans(plan);
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const d of days) {
+    const sp = named.get(d.date);
+    if (sp) { lo = Math.min(lo, sp.lo); hi = Math.max(hi, sp.hi); }
+  }
+  if (lo > hi) return rangeWords(plan.unitType, from, to, plan.totalUnits, true);
+  const finished = to >= hi - TOL;
+  if (lo === hi) {
+    if (finished) return unitWords(plan.unitType, lo, hi);
+    return `${cap(UNIT_LABELS[plan.unitType].one)} ${lo} · ${from - (lo - 1) < TOL ? "start" : "in progress"}`;
+  }
+  return `${unitWords(plan.unitType, lo, hi)}${finished ? "" : ` (starts ${hi})`}`;
+}
+
+/**
+ * S18-03: the same words for a finished week's check-in row or the Update status line. With the plan (days either side of the week) and
+ * the plan's own range for that week equal to the row's, the words come from the days; otherwise (no plan yet, or the plan has moved since)
+ * from the row's positions.
+ */
+export function itemRangeWords(item: Pick<CheckInItem, "unitType" | "plannedFrom" | "plannedTo" | "totalUnits">, plan: ChildPlan | undefined, weekStart: LocalDate | undefined): string {
+  if (plan && weekStart) {
+    const r = plannedRange(plan, weekStart);
+    if (r.hasPlannedWork && Math.abs(r.from - item.plannedFrom) < 0.011 && Math.abs(r.to - item.plannedTo) < 0.011) return weekRangeWords(plan, weekStart);
+  }
+  return rangeWords(item.unitType, item.plannedFrom, item.plannedTo, item.totalUnits, true);
 }
 
 export interface Lookups {
@@ -146,7 +201,7 @@ export function barsFromPlans(plans: readonly ChildPlan[], weekStart: LocalDate,
     const r = plannedRange(p, weekStart);
     if (!r.hasPlannedWork || !names.has(p.childId)) continue;
     bars.push({ key: `${p.assignmentId}/${p.childId}`, assignmentId: p.assignmentId, childId: p.childId, childName: names.get(p.childId)!, subjectId: p.subjectId,
-      title: l.titleOf(p.assignmentId), unitType: p.unitType, from: r.from, to: r.to, total: p.totalUnits });
+      title: l.titleOf(p.assignmentId), unitType: p.unitType, from: r.from, to: r.to, total: p.totalUnits, range: weekRangeWords(p, weekStart) });
   }
   return sortBars(bars, l);
 }
