@@ -170,7 +170,7 @@ describe.skipIf(!hasDb)("/api/log-entries (S9-07, integration)", () => {
 
     it("delete is undoable, and so is an edit (one step back)", async () => {
       const e = (await req("POST", "/api/log-entries", { childIds: [frank], ...WEEK, totalMinutes: 300, notes: "first" })).json()[0];
-      expect(await undoLabel()).toBeUndefined(); // creating leaves no undo entry
+      expect(await undoLabel()).toBe("Added Frank's log for Nov 2 to Nov 6"); // S18-04 (E7): creating leaves an undo entry too (it was none before)
       await req("PATCH", `/api/log-entries/${e.id}`, { totalMinutes: 400, notes: "second" });
       expect(await undoLabel()).toBe("Changed Frank's log for Nov 2 to Nov 6");
       expect((await req("POST", "/api/undo")).statusCode).toBe(200);

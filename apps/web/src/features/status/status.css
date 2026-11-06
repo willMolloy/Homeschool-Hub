@@ -15,3 +15,7 @@
 .status-end small { display: block; color: var(--tl-muted-foreground); font-size: 0.8125rem; margin-top: 2px; }
 .status-actions { margin-top: 20px; }
 .status-actions .btn { flex: 1; }
+.status-pick { padding: 0 2px; }
+.status-pick .field-error { margin: 6px 0 0; }
+/* S18-04 (E13): a long title is cut with an ellipsis so the close button stays on the title row (the full title is in the tooltip and the dialog's name). */
+.status-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

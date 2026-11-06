@@ -45,6 +45,8 @@ button.bar-body { cursor: pointer; }
 .child-switch .segmented { margin: 0; }
 /* S10-16 (R3): a name never wraps inside its chip ("All chil-/dren"); when the chips don't fit, ChildSwitch shows the pill. */
 .child-switch .segmented button { white-space: nowrap; }
+/* S18-04 (E13): equal-width chips cut "All children" at 390 px with a child chosen ("All childre"); each chip is at least as wide as its own text, and the rest shares the room. */
+.child-switch .segmented button { flex: 1 1 auto; min-width: max-content; }
 .child-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--tl-secondary); color: var(--tl-foreground); font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
 .child-options { display: grid; gap: 6px; }
 .child-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 0 16px; border: 0; border-radius: var(--tl-radius-bar); background: var(--tl-secondary); color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }

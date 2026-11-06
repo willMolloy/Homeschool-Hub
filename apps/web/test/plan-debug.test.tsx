@@ -6,6 +6,9 @@ import type { PlanResponse } from "../src/api/types";
 import { buildDebugTables } from "../src/features/plan/debugTable";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
+import { spanWindow } from "../src/features/plan/useSpanPlans";
+/** S18-03: the Week view asks for its week plus the days around it (the chapter and lesson words need them). */
+const weekPlanPath = (weekStart: string) => { const w = spanWindow(weekStart, new Date(Date.parse(`${weekStart}T00:00:00Z`) + 6 * 86400000).toISOString().slice(0, 10)); return `/api/plan?from=${w.from}&to=${w.to}`; };
 
 const WEEK = ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"];
 /** Day series from thickness per day; units = thickness / weight. */
@@ -97,7 +100,7 @@ describe("Plan debug view", () => {
     setup();
     renderAt("/schedule?view=week&week=2026-10-28&debug=1");
     await screen.findByRole("table", { name: "Frank" });
-    expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01");
+    expect(fakeApi.calls.map((c) => c.path)).toContain(weekPlanPath("2026-10-26"));
     expect(screen.getByRole("heading", { name: "Debug view (temporary)" })).toBeInTheDocument();
     expect(screen.getByText(/Effort \(units × weight\) per day/)).toBeInTheDocument();
   });
@@ -120,7 +123,7 @@ describe("Plan debug view", () => {
     // The child's name is visible to assistive tech now that no table caption carries it.
     expect(screen.getByText("Frank")).not.toHaveAttribute("aria-hidden");
     // asOf is a debug tool: ignored for parents.
-    expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-10-26&to=2026-11-01");
+    expect(fakeApi.calls.map((c) => c.path)).toContain(weekPlanPath("2026-10-26"));
     expect(screen.queryByText(/Prev week|Review a past week/)).toBeNull();
   });
 
@@ -204,7 +207,7 @@ describe("Plan debug view", () => {
       await screen.findByRole("heading", { name: "Frank's work" });
       expect(screen.getByRole("heading", { level: 2, name: "This week" })).toBeInTheDocument();
       expect(screen.getByText("Nov 2 – Nov 8")).toBeInTheDocument();
-      expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
+      expect(fakeApi.calls.map((c) => c.path)).toContain(weekPlanPath("2026-11-02"));
       expect(fakeApi.calls.some((c) => c.path.includes("2026-12-14"))).toBe(false);
     });
 
@@ -215,7 +218,7 @@ describe("Plan debug view", () => {
       fakeApi.on("GET /api/me", 200, { ...DEMO_ME, today: "2026-11-02" });
       renderAt("/schedule?view=week");
       await screen.findByRole("heading", { name: "Frank's work" });
-      expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
+      expect(fakeApi.calls.map((c) => c.path)).toContain(weekPlanPath("2026-11-02"));
     });
   });
 
@@ -229,7 +232,7 @@ describe("Plan debug view", () => {
     await user.click(within(switcher).getByRole("button", { name: "Next week" }));
     expect(await screen.findByText("Nov 2 – Nov 8")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Coming week" })).toBeInTheDocument();
-    expect(fakeApi.calls.map((c) => c.path)).toContain("/api/plan?from=2026-11-02&to=2026-11-08");
+    expect(fakeApi.calls.map((c) => c.path)).toContain(weekPlanPath("2026-11-02"));
     await user.click(within(switcher).getByRole("button", { name: "Previous week" }));
     await user.click(within(switcher).getByRole("button", { name: "Previous week" }));
     expect(await screen.findByText("Oct 19 – Oct 25")).toBeInTheDocument();

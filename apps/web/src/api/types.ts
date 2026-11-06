@@ -330,6 +330,8 @@ export interface WeekCheckIn {
 export interface SaveWeekBody {
   status: WeekReviewStatus;
   items: { assignmentId: string; childId: string; position: number; mode: OverrideMode | null }[];
+  /** S18-02: also move this assignment's end date in the same save (one undo covers both). */
+  endDate?: { assignmentId: string; endDate: string };
 }
 
 /** PUT /api/check-ins/:weekStart (S2b-24) */

@@ -58,7 +58,7 @@ const toSettings = (r: FamilyRow, weekStartLocked: boolean): FamilySettings =>
 const toViewerSettings = (r: FamilyRow): FamilySettings =>
   ({ ...toSettings(r, false), setupStep: SETUP_STEPS, setupDone: true, setupDeferred: [], tipsSeen: [...TIPS] });
 
-export const WEEK_START_LOCKED_MESSAGE = "weekStart: the week start can't change after weeks have been checked in.";
+export const WEEK_START_LOCKED_MESSAGE = "weekStart: the week start can't change once Update status has been used.";
 
 /** Whether any check-in or week review is stored for the family (they are keyed to its week start). */
 export async function weekStartLocked(db: Queryable, familyId: string): Promise<boolean> {

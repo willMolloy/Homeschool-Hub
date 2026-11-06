@@ -6,8 +6,11 @@ export const CHILD_KEY = "hh.child";
 /** Every child. (Saved as "both" before S8b-07: still understood.) */
 export const ALL = "all";
 
-function saved(): string | null {
-  try { return window.localStorage.getItem(CHILD_KEY); } catch { return null; }
+/** S18-04 (E12): Records keeps its own choice, so the child last picked in Schedule never decides whose totals Records opens on. */
+export const RECORDS_CHILD_KEY = "hh.records.child";
+
+function saved(key: string): string | null {
+  try { return window.localStorage.getItem(key); } catch { return null; }
 }
 
 /** The shown choice: a saved child id that still exists, else All children is only offered with several children; default the first child. */
@@ -19,11 +22,11 @@ export function shownChoice(kids: readonly Child[], choice: string | null, fallb
 }
 
 /** `fallback`: what shows when nothing is saved: the first child (Week, Track work) or All children (Year, the overview). */
-export function useChildChoice(kids: readonly Child[], fallback: "first" | "all" = "first"): [string | null, (v: string) => void] {
-  const [choice, setChoice] = useState<string | null>(saved);
+export function useChildChoice(kids: readonly Child[], fallback: "first" | "all" = "first", key: string = CHILD_KEY): [string | null, (v: string) => void] {
+  const [choice, setChoice] = useState<string | null>(() => saved(key));
   const set = useCallback((v: string) => {
     setChoice(v);
-    try { window.localStorage.setItem(CHILD_KEY, v); } catch { /* not remembered */ }
-  }, []);
+    try { window.localStorage.setItem(key, v); } catch { /* not remembered */ }
+  }, [key]);
   return [shownChoice(kids, choice, fallback), set];
 }

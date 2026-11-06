@@ -6,7 +6,8 @@ import { withReadSnapshot, withTransaction } from "../db";
 import { familyToday } from "../http/today";
 import { LocalDate, MAX_IDS, Position } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
-import { listWeeks, readWeek, saveWeek } from "../services/checkInService";
+import { listWeeks, readWeek } from "../services/checkInService";
+import { saveStatus } from "../services/statusSave";
 
 const WeekQuery = z.strictObject({ weekStart: LocalDate.optional() });
 const WeekParams = z.strictObject({ weekStart: LocalDate });
@@ -21,6 +22,8 @@ const SaveBody = z.strictObject({
     position: Position,
     mode: z.enum(OVERRIDE_MODES, `mode must be ${humanList(OVERRIDE_MODES)} or null.`).nullable().default(null),
   })).max(MAX_CHECKIN_ITEMS, `items: at most ${MAX_CHECKIN_ITEMS}.`),
+  /** S18-02: move one assignment's end date as part of the save (the parent's pick, or the late line's date). One undo covers both. */
+  endDate: z.strictObject({ assignmentId: Id("assignmentId"), endDate: LocalDate }).optional(),
 });
 
 export async function checkInsRoutes(app: FastifyInstance): Promise<void> {
@@ -39,6 +42,6 @@ export async function checkInsRoutes(app: FastifyInstance): Promise<void> {
   app.put("/api/check-ins/:weekStart", async (req) => {
     const { weekStart } = parseBody(WeekParams, req.params);
     const body = parseBody(SaveBody, req.body);
-    return withTransaction(app.db, (tx) => saveWeek(tx, req.familyId, { weekStart, ...body, todayIn: (zone) => familyToday(req, zone) }));
+    return withTransaction(app.db, (tx) => saveStatus(tx, req.familyId, { weekStart, ...body, todayIn: (zone) => familyToday(req, zone) }));
   });
 }

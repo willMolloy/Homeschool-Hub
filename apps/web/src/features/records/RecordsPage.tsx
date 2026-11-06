@@ -17,7 +17,7 @@ import { Button, Chip } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
 import { EmptyState } from "../../ui/EmptyState";
 import { ChildSwitch } from "../week/ChildSwitch";
-import { ALL, shownChoice, useChildChoice } from "../week/useChildChoice";
+import { ALL, RECORDS_CHILD_KEY, shownChoice, useChildChoice } from "../week/useChildChoice";
 import { ExportSheet } from "./ExportSheet";
 import { LogEntryForm } from "./LogEntryForm";
 import { LogSetupForm } from "./LogSetupForm";
@@ -56,7 +56,8 @@ export function RecordsPage() {
   const [error, setError] = useState<string | null>(null);
   const setup = family.data?.logSetup ?? null;
   const kids = (children.data ?? []).filter((c) => !c.archived);
-  const [remembered, remember] = useChildChoice(kids, "all");
+  // S18-04 (E12): Records remembers its own choice (All children until a child is picked here), not the one Schedule uses.
+  const [remembered, remember] = useChildChoice(kids, "all", RECORDS_CHILD_KEY);
   const urlChild = params.get("child");
   const choice = urlChild ? shownChoice(kids, urlChild, "all") : remembered;
   const setChoice = (v: string) => { remember(v); setParam({ child: v }); };

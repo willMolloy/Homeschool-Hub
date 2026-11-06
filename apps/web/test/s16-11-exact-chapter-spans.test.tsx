@@ -24,12 +24,12 @@ const labels = (p: ReturnType<typeof plan>) => [...daySpanLabels(p as never).val
 describe("daySpanLabels on uneven paces (N10)", () => {
   it("0.26 a day: each chapter reads start, day 2 of 4, day 3 of 4, finish (3 days now and then)", () => {
     const l = labels(plan("chapters", 0.26, 28, 40));
-    expect(l.slice(0, 8)).toEqual(["Chapter 1 · start", "Chapter 1 · day 2 of 4", "Chapter 1 · day 3 of 4", "Chapter 1 · finish",
-      "Chapter 2 · start", "Chapter 2 · day 2 of 4", "Chapter 2 · day 3 of 4", "Chapter 2 · finish"]);
-    expect(l.slice(24, 27)).toEqual(["Chapter 7 · start", "Chapter 7 · day 2 of 3", "Chapter 7 · finish"]);
+    expect(l.slice(0, 8)).toEqual(["chapter 1 · start", "chapter 1 · day 2 of 4", "chapter 1 · day 3 of 4", "chapter 1 · finish",
+      "chapter 2 · start", "chapter 2 · day 2 of 4", "chapter 2 · day 3 of 4", "chapter 2 · finish"]);
+    expect(l.slice(24, 27)).toEqual(["chapter 7 · start", "chapter 7 · day 2 of 3", "chapter 7 · finish"]);
   });
   it("0.5 a day (Mon/Wed): start, finish", () => {
-    expect(labels(plan("chapters", 0.5, 6, 19))).toEqual(["Chapter 1 · start", "Chapter 1 · finish", "Chapter 2 · start", "Chapter 2 · finish", "Chapter 3 · start", "Chapter 3 · finish"]);
+    expect(labels(plan("chapters", 0.5, 6, 19))).toEqual(["chapter 1 · start", "chapter 1 · finish", "chapter 2 · start", "chapter 2 · finish", "chapter 3 · start", "chapter 3 · finish"]);
   });
   for (const pace of [0.26, 0.3, 0.4, 0.55, 0.7, 0.8, 1.3, 1.7]) {
     it(`${pace} a day: every chapter that takes more than one day has exactly one start and one finish, and each day is named once`, () => {
@@ -38,8 +38,8 @@ describe("daySpanLabels on uneven paces (N10)", () => {
       const l = labels(plan("chapters", pace, n, total));
       expect(l).toHaveLength(n);
       for (let k = 1; k <= total; k++) {
-        const mine = l.filter((x) => x.startsWith(`Chapter ${k} ·`));
-        const starts = mine.filter((x) => x.endsWith("start")), finishes = l.filter((x) => x === `Chapter ${k} · finish`);
+        const mine = l.filter((x) => x.startsWith(`chapter ${k} ·`));
+        const starts = mine.filter((x) => x.endsWith("start")), finishes = l.filter((x) => x === `chapter ${k} · finish`);
         if (starts.length > 0) { expect(starts).toHaveLength(1); expect(finishes).toHaveLength(1); }
         // days of a multi-day chapter count up to M in order
         const mids = mine.filter((x) => /day \d+ of \d+/.test(x));
@@ -51,12 +51,12 @@ describe("daySpanLabels on uneven paces (N10)", () => {
   it("a day that finishes a started chapter and whole chapters says both; whole-chapter days are plain", () => {
     // 0.7, then 1.8 (finishes ch 1 which started on day 1, and ch 2), then 1 (ch 3), then 0.5 (reaches the end of ch 4)
     const l = labels(plan("chapters", (i) => [0.7, 1.8, 1, 0.5][i]!, 4, 19));
-    expect(l).toEqual(["Chapter 1 · start", "Chapter 1 · finish, chapter 2", "chapter 3", "chapter 4"]);
+    expect(l).toEqual(["chapter 1 · start", "chapter 1 · finish, chapter 2", "chapter 3", "chapter 4"]);
   });
   it("lessons say the same; the last chapter finishes on the total; a stopped book has nothing after it", () => {
-    expect(labels(plan("lessons", 0.5, 4, 10))).toEqual(["Lesson 1 · start", "Lesson 1 · finish", "Lesson 2 · start", "Lesson 2 · finish"]);
+    expect(labels(plan("lessons", 0.5, 4, 10))).toEqual(["lesson 1 · start", "lesson 1 · finish", "lesson 2 · start", "lesson 2 · finish"]);
     const last = labels(plan("chapters", 0.5, 4, 2));
-    expect(last).toEqual(["Chapter 1 · start", "Chapter 1 · finish", "Chapter 2 · start", "Chapter 2 · finish"]);
+    expect(last).toEqual(["chapter 1 · start", "chapter 1 · finish", "chapter 2 · start", "chapter 2 · finish"]);
     const stopped = daySpanLabels(plan("chapters", 0.5, 6, 19, "2026-11-04") as never);
     expect([...stopped.keys()]).toEqual(["2026-11-02", "2026-11-03", "2026-11-04"]);
   });
@@ -100,7 +100,7 @@ describe("on a real plan (N10)", () => {
     const bumped = p.map((pl) => { let pos = 0; return { ...pl, days: pl.days.map((d) => { const u = d.date >= "2026-11-09" && d.date <= "2026-11-13" ? d.units * 2.3 : d.units; pos += u; return { ...d, units: u, position: pos }; }) }; });
     const l = [...daySpanLabels(bumped[0]!).values()];
     for (let k = 1; k <= 8; k++) {
-      const starts = l.filter((x) => x === `Chapter ${k} · start`).length, fins = l.filter((x) => new RegExp(`Chapter ${k} · finish`).test(x)).length;
+      const starts = l.filter((x) => x === `chapter ${k} · start`).length, fins = l.filter((x) => new RegExp(`chapter ${k} · finish`).test(x)).length;
       if (starts > 0) expect([starts, fins]).toEqual([1, 1]);
     }
   });

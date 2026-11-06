@@ -38,7 +38,7 @@ describe.skipIf(!hasDb)("PATCH /api/family weekStart with stored weeks (S2c-01)"
     const res = await req("PATCH", "/api/family", { weekStart: "sun", name: "Renamed" });
     expect(res.statusCode, res.body).toBe(409);
     expect(res.json()).toMatchObject({ error: "week_start_locked" });
-    expect(res.json().message).toMatch(/can't change after weeks have been checked in/);
+    expect(res.json().message).toMatch(/can't change once Update status has been used/);
     // The whole PATCH is refused: neither field changed.
     expect(await weekStart()).toBe("mon");
     expect((await req("GET", "/api/family")).json()).toMatchObject({ weekStart: "mon", weekStartLocked: true });

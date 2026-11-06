@@ -35,6 +35,9 @@ export interface CompletionQuestionsProps {
   onAnswered: () => void;
 }
 
+/** S18-04 (E5): "1 assignment ended", "3 assignments ended". */
+export const endedTitle = (n: number): string => `${n} ${n === 1 ? "assignment" : "assignments"} ended`;
+
 export function CompletionQuestions({ questions, subjects, today, onAnswered }: CompletionQuestionsProps) {
   const [open, setOpen] = useState<Open>(null);
   // Answered ones leave at once, before the list is asked for again. (An undo or a reopen remounts Home, which starts afresh.)
@@ -81,7 +84,7 @@ export function CompletionQuestions({ questions, subjects, today, onAnswered }: 
       ) : (
         <Card className="home-question-card" style={{ "--q-strong": "var(--tl-primary)" } as React.CSSProperties}>
           <div className="home-question-text">
-            <h2>{left.length} assignments ended</h2>
+            <h2>{endedTitle(left.length)}</h2>
             <p className="home-question-sub">{summary(left)}</p>
           </div>
           <div className="home-question-actions">
@@ -93,7 +96,7 @@ export function CompletionQuestions({ questions, subjects, today, onAnswered }: 
       <ResponsiveSheet
         open={open !== null}
         onOpenChange={(o) => { if (!o) setOpen(null); }}
-        title={open?.view === "answer" && current ? sheetTitle(open.answer, current.assignment.title) : `${left.length} assignments ended`}
+        title={open?.view === "answer" && current ? sheetTitle(open.answer, current.assignment.title) : endedTitle(left.length)}
       >
         {open?.view === "list" && quickError ? <p className="field-error" role="alert">{quickError}</p> : null}
         {open?.view === "list" ? (

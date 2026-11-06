@@ -19,7 +19,7 @@ const patches = () => fakeApi.calls.filter((c) => c.method === "PATCH");
 
 describe("Family settings form", () => {
   describe("week start lock (S2c-01)", () => {
-    const MSG = "weekStart: the week start can't change after weeks have been checked in.";
+    const MSG = "weekStart: the week start can't change once Update status has been used.";
 
     it("locked: the week start choices are disabled with a hint", async () => {
       await open({ ...SETTINGS, weekStartLocked: true });
@@ -43,7 +43,7 @@ describe("Family settings form", () => {
       await user.click(screen.getByRole("radio", { name: "Sunday" }));
       await user.click(screen.getByRole("button", { name: "Save" }));
       const group = screen.getByRole("group", { name: "Week starts on" });
-      expect(await within(group).findByRole("alert")).toHaveTextContent("the week start can't change after weeks have been checked in.");
+      expect(await within(group).findByRole("alert")).toHaveTextContent("the week start can't change once Update status has been used.");
       expect(within(group).getByRole("radio", { name: "Monday" })).toBeChecked();
       expect(within(group).getByRole("radio", { name: "Monday" })).toBeDisabled();
       expect(screen.getByText(WEEK_START_LOCKED_HINT)).toBeInTheDocument();

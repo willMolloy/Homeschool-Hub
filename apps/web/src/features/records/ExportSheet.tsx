@@ -125,10 +125,11 @@ function PrintSummary({ input }: { input: ExportInput }) {
         if (want("totalHours")) hours("Total hours", t.totalMinutes);
         if (want("coreSplit")) { hours("Core hours", t.coreMinutes); hours("Non-core hours", t.nonCoreMinutes); }
         if (want("homeAway")) { hours("Hours at home", t.homeMinutes); hours("Hours away", t.awayMinutes); }
-        // S16-09 (N5): Books finished (from completions) prints whenever there is something, in either mode, unless a Totals file has it unticked.
+        // S16-09 (N5): Books finished (from completions) prints in either mode unless a Totals file has it unticked; S18-04 (E12): with a dash when there are none.
         if (input.fields.books && (input.mode === "entries" || input.columns.includes("booksFinished"))) {
           const f = booksFinished(input.assignments ?? [], { start: input.start, end: input.end }, [id]);
-          if (f.length > 0) lines.push(["Books finished", f.map((b) => b.title).join("; ")]);
+          // S18-04 (E12): a child with none reads "—", like School days, not a missing row (the typed "Books read" stays left out when empty).
+          lines.push(["Books finished", f.length > 0 ? f.map((b) => b.title).join("; ") : "—"]);
         }
         // and the typed titles only when there are some (never "None")
         if (want("books") && t.books.length > 0) lines.push(["Books read", t.books.join("; ")]);

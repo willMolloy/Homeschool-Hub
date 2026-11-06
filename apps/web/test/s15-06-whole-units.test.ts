@@ -27,7 +27,7 @@ describe("whole-unit day ranges", () => {
     expect(days("lessons", 1, 4, 4)).toEqual(["lesson 1", "lesson 2", "lesson 3", "lesson 4"]);
   });
   it("0.4 a day: a day finishes the chapters whose end it reaches; the exact start / day N of M words are daySpanLabels (S16-11)", () => {
-    expect(days("chapters", 0.4, 2, 5)).toEqual(["Chapter 1 · in progress", "Chapter 1 · in progress", "chapter 1", "Chapter 2 · in progress", "chapter 2"]);
+    expect(days("chapters", 0.4, 2, 5)).toEqual(["chapter 1 · in progress", "chapter 1 · in progress", "chapter 1", "chapter 2 · in progress", "chapter 2"]);
   });
   it("3.7 pages a day: ranges never overlap and the last day lands on the total", () => {
     const r = days("pages", 3.7, 37, 10);

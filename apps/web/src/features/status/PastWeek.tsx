@@ -7,9 +7,11 @@ import { useState } from "react";
 import { useWeekCheckIn } from "../checkin/useLastWeekCheckIn";
 import { compactText } from "../checkin/amount";
 import { itemKey, rowOutcome } from "../checkin/absorb";
+import { useLateEnd } from "../plan/useLateEnd";
 import { useWeekPlans } from "../plan/useWeekPlans";
 import { SubjectGlyph } from "../subjects/SubjectIcon";
 import { WeekBar, WeekBars } from "../week/WeekBar";
+import { itemRangeWords } from "../week/weekBars";
 import { ALL } from "../week/useChildChoice";
 import { WeekDays } from "../week/WeekDays";
 import type { WeekLayout } from "../week/useWeekLayout";
@@ -22,8 +24,9 @@ import "../week/week.css";
 
 export function PastWeek({ weekStart, choice, look, readOnly = false, layout = "bars" }: { weekStart: string; choice: string | null; look: WeekLookups; readOnly?: boolean; layout?: WeekLayout }) {
   const state = useWeekCheckIn(weekStart);
-  const plans = useWeekPlans(weekStart);
+  const plans = useWeekPlans(weekStart, true);
   const [open, setOpen] = useState<CheckInItem | null>(null);
+  const late = useLateEnd(open?.assignmentId ?? "", open?.childId ?? null);
   const [viewing, setViewing] = useState<string | null>(null); // S15-03: a viewer's bar opens a read-only detail, never Update status
   if (state.loadError) return <p className="checkin-error" role="alert">{state.loadError}</p>;
   if (!state.data || !look.ready || (layout === "days" && !plans)) return <p aria-busy="true">Loading…</p>;
@@ -49,7 +52,8 @@ export function PastWeek({ weekStart, choice, look, readOnly = false, layout = "
               <WeekBars label={`${k.name}'s bars`}>
                 {mine.map((i) => {
                   const key = itemKey(i);
-                  const bar = { key, assignmentId: i.assignmentId, childId: i.childId, childName: i.childName, subjectId: look.subjectOf(i.assignmentId), title: i.title, unitType: i.unitType, from: i.plannedFrom, to: i.plannedTo, total: i.totalUnits };
+                  const bar = { key, assignmentId: i.assignmentId, childId: i.childId, childName: i.childName, subjectId: look.subjectOf(i.assignmentId), title: i.title, unitType: i.unitType, from: i.plannedFrom, to: i.plannedTo, total: i.totalUnits,
+                    range: itemRangeWords(i, plans?.find((p) => p.assignmentId === i.assignmentId && p.childId === i.childId), weekStart) };
                   return (
                     <WeekBar key={key} bar={bar} slot={look.slotOfAssignment(i.assignmentId)} icon={<SubjectGlyph subject={look.subjectFor(i.assignmentId)} />} onOpen={() => (readOnly ? setViewing(i.assignmentId) : setOpen(i))}
                       state={rowOutcome(i, positionOf(i)) === "asPlanned" ? undefined : compactText(i, positionOf(i))} />
@@ -63,8 +67,8 @@ export function PastWeek({ weekStart, choice, look, readOnly = false, layout = "
       {readOnly ? <BarDetailSheet assignment={look.assignments.find((a) => a.id === viewing) ?? null} subjects={look.subjects} children={look.children} onClose={() => setViewing(null)} /> : null}
       {open && !readOnly ? (
         <UpdateStatusSheet key={itemKey(open)} item={open} position={positionOf(open)} mode={open.mode} plan={plans?.find((p) => p.assignmentId === open.assignmentId && p.childId === open.childId)}
-          whenText="that week" busy={state.busy} error={state.error ?? Object.values(state.itemErrors)[0] ?? null} onClose={() => setOpen(null)}
-          onSave={(position, mode) => { void state.save(statusBody(week, open, position, mode)).then((res) => { if (res) setOpen(null); }); }} />
+          late={late} weekStart={weekStart} afterDay={week.weekEnd} whenText="that week" busy={state.busy} error={state.error ?? Object.values(state.itemErrors)[0] ?? null} onClose={() => setOpen(null)}
+          onSave={(position, mode, endDate) => { void state.save(statusBody(week, open, position, mode, endDate)).then((res) => { if (res) setOpen(null); }); }} />
       ) : null}
     </div>
   );

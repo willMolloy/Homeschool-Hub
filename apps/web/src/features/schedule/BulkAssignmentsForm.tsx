@@ -1,10 +1,12 @@
 /**
  * S3a-04: "Add several" on the Assignments screen. One subject, children, dates and unit for the term, then a row
  * per book (title and total). Empty rows are ignored; Save sends one POST /api/assignments/bulk, weight left to the default.
+ * S18-04 (E9): each row says, quietly, when its pace looks too high (the single form's own warning) and when it repeats a book the
+ * family already has or another row here. Neither blocks Save.
  * S7b-06: a row's small "Dates" toggle reveals its own Start and End (prefilled from the shared dates until changed), so books
  * read one after another go in one batch; rows left alone use the shared dates.
  */
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { UNIT_TYPES } from "@hh/engine";
 import type { Assignment, UnitType } from "../../api/types";
 import { unitTitle } from "../../components/unitLabels";
@@ -15,6 +17,8 @@ import type { Lookups } from "./lookups";
 import { SubjectSelect } from "./SubjectSelect";
 import { useWeekdayChoice } from "./useWeekdayChoice";
 import { DateField } from "../../ui/DateField";
+import { useApi } from "../../api/useApi";
+import { DuplicateNote, duplicateNote, repeatsOfEarlier, RowPaceNote, type RowFacts } from "./RowChecks";
 
 const START_ROWS = 3;
 
@@ -50,6 +54,7 @@ export function BulkAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) {
   const [rowErrors, setRowErrors] = useState<Record<number, RowErrors>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const existing = useApi<Assignment[]>("/api/assignments");
   const ids = { subject: useId(), start: useId(), end: useId(), unit: useId() };
 
   const setRow = (key: number, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -139,10 +144,21 @@ export function BulkAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) {
           ))}
         </select>
       </div>
-      {rows.map((r, i) => (
-        <BulkRow key={r.key} n={i + 1} row={r} shared={{ start: startDate, end: endDate }} errors={rowErrors[r.key]} canRemove={rows.length > 1}
-          onChange={(patch) => setRow(r.key, patch)} onRemove={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} />
-      ))}
+      {(() => {
+        // S18-04 (E9): row facts for the notes; a row that is empty or has no usable total says nothing yet.
+        const facts = (r: Row): RowFacts => ({ subjectId, title: r.title, childIds, unitType, totalUnits: Number(r.total) || 0, startDate: r.open ? r.start ?? startDate : startDate, endDate: r.open ? r.end ?? endDate : endDate });
+        const earlier = repeatsOfEarlier(rows.map((r) => (isEmpty(r) || !r.title.trim() ? { subjectId: "", title: `\u0000${r.key}`, childIds: [] as string[] } : facts(r))));
+        return rows.map((r, i) => (
+          <BulkRow key={r.key} n={i + 1} row={r} shared={{ start: startDate, end: endDate }} errors={rowErrors[r.key]} canRemove={rows.length > 1}
+            onChange={(patch) => setRow(r.key, patch)} onRemove={() => setRows((rs) => rs.filter((x) => x.key !== r.key))}
+            notes={isEmpty(r) ? null : (
+              <>
+                {subjectId && childIds.length > 0 && r.title.trim() ? <DuplicateNote text={duplicateNote(l, existing.data ?? [], facts(r), earlier[i]!, (n) => `row ${n}`)} /> : null}
+                {subjectId && childIds.length > 0 ? <RowPaceNote l={l} row={facts(r)} weekdays={dayChoice.shown} /> : null}
+              </>
+            )} />
+        ));
+      })()}
       {errors.rows ? <p className="field-error" role="alert">{errors.rows}</p> : null}
       <div className="field">
         <button className="btn btn-secondary" type="button" onClick={() => setRows((rs) => [...rs, blank(nextKey.current++)])}>Add row</button>
@@ -164,9 +180,11 @@ interface RowProps {
   canRemove: boolean;
   onChange: (patch: Partial<Row>) => void;
   onRemove: () => void;
+  /** S18-04 (E9): the row's pace and duplicate notes. */
+  notes?: ReactNode;
 }
 
-function BulkRow({ n, row, shared, errors, canRemove, onChange, onRemove }: RowProps) {
+function BulkRow({ n, row, shared, errors, canRemove, onChange, onRemove, notes }: RowProps) {
   const id = useId();
   return (
     <div className="bulk-row" role="group" aria-label={`Row ${n}`}>
@@ -203,6 +221,7 @@ function BulkRow({ n, row, shared, errors, canRemove, onChange, onRemove }: RowP
         </div>
       </div>
     ) : null}
+    {notes}
     </div>
   );
 }

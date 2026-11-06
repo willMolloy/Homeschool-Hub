@@ -41,6 +41,9 @@ async function fillRest(user: User, form: HTMLElement) {
   fireEvent.change(within(form).getByLabelText("Start"), { target: { value: "2026-11-02" } });
   fireEvent.change(within(form).getByLabelText("End"), { target: { value: "2026-12-18" } });
   await user.click(within(form).getByLabelText("Wednesday"));
+  // S18-04 (E8): the Add sheet opens with no unit chosen; the page form keeps its Lessons dropdown.
+  const units = within(form).queryByRole("radiogroup", { name: "Unit" });
+  if (units) await user.click(within(units).getByRole("radio", { name: "Lessons" }));
   await user.type(within(form).getByLabelText("Total"), "10");
   await waitFor(() => expect(within(form).getByRole("button", { name: "Add" })).toBeEnabled());
   await user.click(within(form).getByRole("button", { name: "Add" }));

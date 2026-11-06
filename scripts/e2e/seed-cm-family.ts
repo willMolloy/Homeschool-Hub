@@ -82,14 +82,19 @@ const SPRING_START = "2027-01-04";
 const SPRING_END = "2027-05-21";
 
 const ASSIGNMENTS: AssignmentDef[] = [
-  // Together: living books read aloud, and the weekly studies
-  { subject: "Bible", title: "Gospel of Luke", unit: "chapters", total: 24, start: FALL_START, end: FALL_END, kids: ["Elias", "Clara", "Wren"], weekdays: [1, 2, 3, 4] },
-  { subject: "Literature", title: "The Hobbit (read aloud)", unit: "pages", total: 300, start: "2026-08-24", end: "2026-12-11", kids: ["Elias", "Clara", "Wren"], weekdays: [1, 2, 3, 4] },
-  { subject: "History", title: "Our Island Story", unit: "chapters", total: 40, start: FALL_START, end: FALL_END, kids: ["Clara", "Wren"] },
+  // Together: living books read aloud, and the weekly studies. The days belong to an assignment, not to a child (S18-04, E11), so the read-alouds
+  // that run on Monday are shared by Elias and Clara, and Wren (Tuesday to Friday) has her own copy of each on her days.
+  { subject: "Bible", title: "Gospel of Luke", unit: "chapters", total: 24, start: FALL_START, end: FALL_END, kids: ["Elias", "Clara"], weekdays: [1, 2, 3, 4] },
+  { subject: "Bible", title: "Gospel of Luke", unit: "chapters", total: 24, start: FALL_START, end: FALL_END, kids: ["Wren"], weekdays: TUE_FRI },
+  { subject: "Literature", title: "The Hobbit (read aloud)", unit: "pages", total: 300, start: "2026-08-24", end: "2026-12-11", kids: ["Elias", "Clara"], weekdays: [1, 2, 3, 4] },
+  { subject: "Literature", title: "The Hobbit (read aloud)", unit: "pages", total: 300, start: "2026-08-24", end: "2026-12-11", kids: ["Wren"], weekdays: TUE_FRI },
+  { subject: "History", title: "Our Island Story", unit: "chapters", total: 40, start: FALL_START, end: FALL_END, kids: ["Clara"] },
+  { subject: "History", title: "Our Island Story", unit: "chapters", total: 40, start: FALL_START, end: FALL_END, kids: ["Wren"], weekdays: TUE_FRI },
   { subject: "Picture study", title: "Picture study: Winslow Homer", unit: "lessons", total: 12, start: "2026-08-26", end: "2026-11-11", kids: ["Elias", "Clara", "Wren"], weekdays: [3] },
   { subject: "Composer study", title: "Composer study: Bach", unit: "lessons", total: 14, start: "2026-08-20", end: "2026-12-10", kids: ["Elias", "Clara", "Wren"], weekdays: [4] },
   { subject: "Nature study", title: "Nature walk and notebook", unit: "minutes", total: 1200, start: "2026-08-18", end: "2026-12-15", kids: ["Elias", "Clara", "Wren"], weekdays: [2] },
-  { subject: "Recitation", title: "Poetry and Psalm 23 recitation", unit: "lessons", total: 60, start: FALL_START, end: FALL_END, kids: ["Elias", "Clara", "Wren"], weekdays: [1, 2, 3, 4] },
+  { subject: "Recitation", title: "Poetry and Psalm 23 recitation", unit: "lessons", total: 60, start: FALL_START, end: FALL_END, kids: ["Elias", "Clara"], weekdays: [1, 2, 3, 4] },
+  { subject: "Recitation", title: "Poetry and Psalm 23 recitation", unit: "lessons", total: 60, start: FALL_START, end: FALL_END, kids: ["Wren"], weekdays: TUE_FRI },
   // Elias, 13
   { subject: "Math", title: "Algebra 1", unit: "lessons", total: 140, start: FALL_START, end: FALL_END, kids: ["Elias"] },
   { subject: "Literature", title: "Robinson Crusoe", unit: "pages", total: 320, start: "2026-08-24", end: "2026-10-30", kids: ["Elias"], ended: { as: "finished", on: "2026-10-16" } },

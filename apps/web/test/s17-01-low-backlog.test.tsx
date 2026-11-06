@@ -255,11 +255,11 @@ describe("7. N2: a thin row's name sits just above it at This month", () => {
 });
 
 describe("7. N3: the last day of a very slow book", () => {
-  it("an 8-chapter book at 0.4 a day finishes on 'Chapter 8 · finish', and nothing says 'Keep going'", () => {
+  it("an 8-chapter book at 0.4 a day finishes on 'chapter 8 · finish', and nothing says 'Keep going'", () => {
     const days = Array.from({ length: 20 }, (_, i) => ({ date: new Date(Date.UTC(2026, 10, 2 + i)).toISOString().slice(0, 10), units: 0.4, position: 0.4 * (i + 1), capacity: 1, schoolDay: true, thickness: 1, kind: "planned" }));
     const labels = daySpanLabels({ days, unitType: "chapters", totalUnits: 8, endedOn: undefined } as never);
     const last = [...labels.values()].at(-1)!;
-    expect(last).toBe("Chapter 8 · finish");
+    expect(last).toBe("chapter 8 · finish");
     expect([...labels.values()].join(" ")).not.toMatch(/Keep going/i);
     expect(read("../src/features/week/weekBars.ts")).not.toMatch(/Keep going/);
   });

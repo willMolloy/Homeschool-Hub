@@ -68,6 +68,20 @@ export const paceLooksHigh = (perDay: number, unitType: UnitType) => perDay > PA
 export const paceNoteText = (perDay: number, unitType: UnitType) =>
   `That's ${paceText(perDay, unitType).replace(/^About/, "about")}. Is that right?`;
 
+/** S18-04 (E9): one assignment taking more than this many minutes a day is a lot (two hours); the note asks if it is right. */
+export const MINUTES_NOTE_THRESHOLD = 120;
+
+/**
+ * S18-04 (E9): the one pace warning every way of adding work shares (the single form, Add several, CSV import): the unit pace note when it
+ * looks like a typo ("That's about 300 pages a day. Is that right?"), else, when the estimate is above two hours a day, the same sentence in
+ * minutes ("That's about 165 min a day. Is that right?"). null when neither applies.
+ */
+export function paceWarning(perDay: number | null, unitType: UnitType, minutesADay: number | null): string | null {
+  if (perDay !== null && paceLooksHigh(perDay, unitType)) return paceNoteText(perDay, unitType);
+  if (minutesADay !== null && minutesADay > MINUTES_NOTE_THRESHOLD) return `That's about ${roundedMinutes(minutesADay)} min a day. Is that right?`;
+  return null;
+}
+
 /** S10-06: units a day for the edit sheet's pace line, rounded: whole from 1 up, else to one decimal (never shown as 0). */
 export function roundedUnits(perDay: number): number {
   return perDay >= 1 ? Math.round(perDay) : Math.max(0.1, Math.round(perDay * 10) / 10);

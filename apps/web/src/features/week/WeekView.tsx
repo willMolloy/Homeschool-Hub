@@ -91,7 +91,7 @@ function Week({ headSlot, titleSlot }: { headSlot: HTMLElement | null; titleSlot
 }
 
 function PlannedWeek({ weekStart, currentWeekStart, choice, look, readOnly, layout }: { weekStart: string; currentWeekStart: string; choice: string | null; look: ReturnType<typeof useWeekLookups>; readOnly: boolean; layout: WeekLayout }) {
-  const { plans, failed, retry } = useWeekPlansState(weekStart);
+  const { plans, failed, retry } = useWeekPlansState(weekStart, true);
   const events = useApi<ScheduleEvent[]>("/api/events");
   const [adjusting, setAdjusting] = useState<{ childId: string; childName: string } | null>(null);
   const [statusFor, setStatusFor] = useState<{ childId: string; assignmentId: string; title: string } | null>(null);

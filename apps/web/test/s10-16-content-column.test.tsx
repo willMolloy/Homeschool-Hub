@@ -104,7 +104,7 @@ describe("S10-16: forms are one column, labels above; only start / end dates sit
 });
 
 describe("S10-16 (L5): the Year Add sheet", () => {
-  it("opens on the first subject and picks the unit with chips, not a native select; it saves the chosen unit", async () => {
+  it("opens with no subject and no unit (S18-04, E8) and picks the unit with chips, not a native select; it saves the chosen unit", async () => {
     stub();
     const user = userEvent.setup();
     renderAt("/timeline");
@@ -112,11 +112,14 @@ describe("S10-16 (L5): the Year Add sheet", () => {
     await user.click(screen.getByRole("button", { name: "Add assignment" }));
     const sheet = await screen.findByRole("dialog", { name: "Add assignment" });
     const first = SAMPLE_SUBJECTS.find((s) => !s.archived)!;
+    expect(within(sheet).getByRole("button", { name: /^Subject/ })).toHaveTextContent("Choose a subject…");
+    await user.click(within(sheet).getByRole("button", { name: /^Subject/ }));
+    await user.click(within(await screen.findByRole("dialog", { name: "Subject" })).getByRole("button", { name: first.name }));
     expect(within(sheet).getByRole("button", { name: `Subject: ${first.name}` })).toBeInTheDocument();
     expect(sheet.querySelector("select")).toBeNull();
     const units = within(sheet).getByRole("radiogroup", { name: "Unit" });
     expect(within(units).getAllByRole("radio").map((r) => r.closest("label")?.textContent)).toEqual(["Pages", "Chapters", "Lessons", "Minutes"]);
-    expect(within(units).getByRole("radio", { name: "Lessons" })).toBeChecked();
+    for (const r of within(units).getAllByRole("radio")) expect(r).not.toBeChecked();
     await user.click(within(units).getByRole("radio", { name: "Pages" }));
     expect(within(units).getByRole("radio", { name: "Pages" })).toBeChecked();
     expect(within(units).getByRole("radio", { name: "Pages" }).closest("label")).toHaveClass("is-on");

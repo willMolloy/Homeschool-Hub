@@ -10,8 +10,8 @@ import { renderAt } from "./render";
 
 describe("a week's or status line's words (S16-08, S16-11)", () => {
   it("name the whole units it finishes, else part-way through one: start, or in progress", () => {
-    expect(rangeWords("chapters", 16, 16.4, 19, true)).toBe("Chapter 17 · start");
-    expect(rangeWords("chapters", 16.4, 16.7, 19, true)).toBe("Chapter 17 · in progress");
+    expect(rangeWords("chapters", 16, 16.4, 19, true)).toBe("chapter 17 · start");
+    expect(rangeWords("chapters", 16.4, 16.7, 19, true)).toBe("chapter 17 · in progress");
     expect(rangeWords("chapters", 16.7, 17, 19, true)).toBe("chapter 17");
     expect(rangeWords("chapters", 16.2, 18.7, 19, true)).toBe("chapters 17–18");
     expect(rangeWords("chapters", 16.2, 19, 19, true)).toBe("chapters 17–19");
@@ -65,7 +65,7 @@ describe("Days, bars and sheets agree on a real plan (S16-08)", () => {
       const sheet = buildSheet(KIDS[0]!, plans(), "2026-11-02", "2026-11-08", look(), BLOCKED_ROWS, [1, 2, 3, 4, 5]).subjects[0]!.assignments[0]!.rows;
       expect(within(mon).getByText(sheet[0]!.range!)).toBeInTheDocument();
       expect(within(wed).getByText(sheet[1]!.range!)).toBeInTheDocument();
-      expect(sheet.map((r) => r.range).join(" ")).toMatch(/Chapter \d+ · (start|finish|day)/);
+      expect(sheet.map((r) => r.range).join(" ")).toMatch(/chapter \d+ · (start|finish|day)/);
       expect(document.body.textContent).not.toMatch(/Keep going/);
     });
     it("the Week bar says where in the chapter the week is, not Keep going", async () => {

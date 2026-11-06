@@ -4,7 +4,7 @@
  * printed weekly sheet uses (S13-02), so the screen and the paper cannot disagree (S15-06's whole-unit ranges included). Pure.
  */
 import { addDays, EPS, type ChildPlan, type LocalDate } from "@hh/engine";
-import type { BlockedRange, Child } from "../../api/types";
+import type { BlockedRange, Child, ScheduleEvent } from "../../api/types";
 import { formatShort } from "../../lib/dates";
 import { dayOffTitle } from "../../lib/kindNames";
 import { buildSheet, dayAbbr, type SheetLookups } from "../print/sheetModel";
@@ -46,6 +46,18 @@ export interface DayColumn {
 }
 
 const weekdayOf = (d: LocalDate): number => new Date(Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)))).getUTCDay();
+
+/**
+ * S18-04 (E10): one quiet line for the events on a day ("Fri · Co-op Friday (fall)"), or null: the events that meet that weekday, are
+ * live on that date (not archived, inside their dates) and are for one of the children shown (or for no child in particular).
+ */
+export function eventLineOn(events: readonly ScheduleEvent[], date: LocalDate, kidIds: ReadonlySet<string>): string | null {
+  const names = events
+    .filter((e) => !e.archived && e.weekdays.includes(weekdayOf(date)) && (!e.startDate || e.startDate <= date) && (!e.endDate || e.endDate >= date)
+      && (e.childIds.length === 0 || e.childIds.some((id) => kidIds.has(id))))
+    .map((e) => e.name);
+  return names.length > 0 ? `${dayAbbr(date)} · ${names.join(", ")}` : null;
+}
 
 /** The name of the break or day off that covers `date` for this child, or null. A missed day carries its work forward and is not a day off. */
 export function dayOffName(blocked: readonly BlockedRange[], childId: string, date: LocalDate): string | null {

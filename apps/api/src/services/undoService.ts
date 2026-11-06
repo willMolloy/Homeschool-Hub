@@ -24,10 +24,18 @@ export interface WeekOverrideState {
   assignmentId: string; childId: string | null; weekStart: string; plannedUnits: number; mode: string; createdAt: string; updatedAt: string;
 }
 
+/** S18-01: a week's stored check-ins and its review status (null = no review row); what an Update status undo puts back. */
+export interface WeekCheckInsState {
+  status: "reviewed" | "skipped" | null;
+  items: { assignmentId: string; childId: string; position: number; mode: "keepEndDate" | "pushEndDate" | null }[];
+}
+
 export type UndoStep =
   | { op: "assignment"; id: string; set: AssignmentState }
   | { op: "blockedRange"; id: string; set: BlockedRangeState | null }
   | { op: "weekOverride"; id: string; set: WeekOverrideState | null }
+  /** S18-01: Update status wrote this week's check-ins; `set` is every row the week had before (and its review status). */
+  | { op: "weekCheckIns"; weekStart: string; set: WeekCheckInsState }
   /** S9-07: a log entry; `set` is what to put back, or null for "this entry should not exist". Never touches the plan. */
   | { op: "logEntry"; id: string; set: RecordEntryState | null }
   /** S7b-11 / S14-05: assignments a copy, Add several or CSV import created; undone by deleting exactly these (refused once any has a check-in, a completion answer or a log entry). */
@@ -122,6 +130,20 @@ async function applyStep(tx: Tx, familyId: string, step: UndoStep): Promise<void
          ON CONFLICT (id) DO UPDATE SET planned_units = EXCLUDED.planned_units, mode = EXCLUDED.mode, updated_at = EXCLUDED.updated_at
            WHERE week_override.family_id = EXCLUDED.family_id`,
         [step.id, familyId, s.assignmentId, s.childId, s.weekStart, s.plannedUnits, s.mode, s.createdAt, s.updatedAt]);
+      return;
+    }
+    case "weekCheckIns": {
+      await tx.query("DELETE FROM progress_checkin WHERE family_id = $1 AND week_start = $2", [familyId, step.weekStart]);
+      for (const i of step.set.items) {
+        await tx.query(
+          `INSERT INTO progress_checkin (family_id, assignment_id, child_id, week_start, position, mode) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [familyId, i.assignmentId, i.childId, step.weekStart, i.position, i.mode]);
+      }
+      if (step.set.status === null) await tx.query("DELETE FROM week_review WHERE family_id = $1 AND week_start = $2", [familyId, step.weekStart]);
+      else await tx.query(
+        `INSERT INTO week_review (family_id, week_start, status) VALUES ($1, $2, $3)
+         ON CONFLICT (family_id, week_start) DO UPDATE SET status = EXCLUDED.status, updated_at = now()`,
+        [familyId, step.weekStart, step.set.status]);
       return;
     }
     case "logEntry": {

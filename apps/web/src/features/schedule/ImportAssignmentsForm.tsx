@@ -8,6 +8,8 @@ import { assignmentsCsvTemplate, errorText, MAX_IMPORT_BYTES, MAX_IMPORT_ROWS, p
 import { bulkFailureText, saveInChunks } from "./copyPlan";
 import { dateRange } from "./formBits";
 import type { Lookups } from "./lookups";
+import { useApi } from "../../api/useApi";
+import { DuplicateNote, duplicateNote, repeatsOfEarlier, RowPaceNote } from "./RowChecks";
 
 interface Props {
   l: Lookups;
@@ -30,8 +32,11 @@ export function ImportAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) 
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const ids = { file: useId(), paste: useId() };
+  const existing = useApi<Assignment[]>("/api/assignments");
   const result = useMemo(() => (text.trim() ? parseAssignmentsCsv(text, l) : null), [text, l]);
   const template = useMemo(() => `data:text/csv;charset=utf-8,${encodeURIComponent(assignmentsCsvTemplate(l))}`, [l]);
+  /** S18-04 (E9): rows that repeat something the family has, or an earlier row of this file, are flagged (never blocked). */
+  const earlier = useMemo(() => repeatsOfEarlier(result?.rows ?? []), [result]);
   const ready = result !== null && result.errors.length === 0 && result.rows.length > 0;
 
   async function choose(e: ChangeEvent<HTMLInputElement>) {
@@ -89,12 +94,18 @@ export function ImportAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) 
       ) : result ? (
         <>
           <p>{result.rows.length} {result.rows.length === 1 ? "assignment" : "assignments"}</p>
+          {(() => {
+            const dups = result.rows.filter((r, i) => duplicateNote(l, existing.data ?? [], r, earlier[i]!, (n) => `row ${n}`)).length;
+            return dups > 0 ? <p className="hint dup-note" role="note">{dups} of these {dups === 1 ? "looks" : "look"} like {dups === 1 ? "one" : "ones"} you already have or repeat{dups === 1 ? "s" : ""} another row. They are marked below; importing adds them as they are.</p> : null;
+          })()}
           <ul className="import-list" aria-label="To import">
             {result.rows.map((r, i) => (
               <li key={i}>
                 <strong>{r.title}</strong>
                 <br />
                 {l.subjectName(r.subjectId)} · {r.childIds.map(l.childName).join(", ")} · {dateRange(r.startDate, r.endDate)}
+                <DuplicateNote text={duplicateNote(l, existing.data ?? [], r, earlier[i]!, (n) => `row ${n}`)} />
+                <RowPaceNote l={l} row={r} weekdays={null} />
               </li>
             ))}
           </ul>

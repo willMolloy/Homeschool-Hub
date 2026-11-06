@@ -116,7 +116,8 @@ describe.skipIf(!hasDb)("the seed (integration, on its own scratch _dev database
         WHERE a.family_id = $1 GROUP BY a.id, s.name`, [first.hartleyFamilyId]);
     const types = new Set(rows.map((r) => r.unit_type));
     expect([...types].sort()).toEqual(["chapters", "lessons", "minutes", "pages"]);
-    for (const r of rows.filter((x) => x.kids.length === 1 && x.kids[0] === "Wren")) expect(r.weekdays, r.title).toSatisfy((d: number[]) => d.length > 0 && d.every((x) => [2, 3, 4, 5].includes(x)));
+    // S18-04 (E11): the days belong to an assignment, so every assignment Wren has, her own or shared, runs only on her Tuesday to Friday.
+    for (const r of rows.filter((x) => x.kids.includes("Wren"))) expect(r.weekdays, r.title).toSatisfy((d: number[] | null) => d !== null && d.length > 0 && d.every((x) => [2, 3, 4, 5].includes(x)));
     expect(rows.filter((x) => x.kids.length === 1 && x.kids[0] === "Wren" && x.subject === "Math").every((x) => x.weekdays?.join() === "2,3,4,5")).toBe(true);
     for (const subject of ["Picture study", "Composer study"]) for (const r of rows.filter((x) => x.subject === subject)) expect(r.weekdays, r.title).toHaveLength(1);
     expect(rows.filter((r) => r.unit_type === "minutes").map((r) => r.subject)).toEqual(expect.arrayContaining(["Nature study"]));

@@ -8,8 +8,8 @@
 .print-sheets { display: flex; flex-direction: column; gap: 24px; align-items: center; }
 /* On screen each page is a sheet of paper; its width is Letter's inner width, never wider than the screen. */
 .sheet { width: 100%; max-width: 7.5in; box-sizing: border-box; padding: 20px 18px 24px; background: #fff; color: #1f1b16; border: 1px solid #d9d2c6; border-radius: 6px; }
-.sheet-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--sheet-rule, #1f1b16); margin-bottom: 14px; }
-.sheet-head h1 { margin: 0; font-family: var(--tl-font-display); font-weight: 600; font-size: 24pt; line-height: 1.1; overflow-wrap: break-word; min-width: 0; }
+.print-sheet-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--sheet-rule, #1f1b16); margin-bottom: 14px; }
+.print-sheet-head h1 { margin: 0; font-family: var(--tl-font-display); font-weight: 600; font-size: 24pt; line-height: 1.1; overflow-wrap: break-word; min-width: 0; }
 .sheet-when { margin: 2px 0 0; font-size: 13pt; color: #4a4339; }
 .sheet-break, .sheet-empty { margin: 0 0 10px; font-size: 11pt; color: #4a4339; }
 .sheet-break { font-style: italic; }
