@@ -5,7 +5,7 @@ For anyone picking up Homeschool Hub: Will, DeeDee, Grok, or a new Claude sessio
 ## 1. Where things stand
 
 - **Everything through Sprint 17 is merged to `main`** (last: PR #15, `3d08e96`). Every sprint had a tester pass (reports in `docs/reviews/`). The core is built: year timeline with effort bars, steering (week adjust, Update status, undo), the completion question and needs-you dot, Records (configurable logging, totals, CSV, print, term in review), first-run setup, printable weekly/daily sheets, the Days view, parent logins and invites, view-only accounts and co-ops, light and dark Soft Paper design.
-- **In progress:** the second **end-to-end run** (`docs/e2e/cm-term-run-2.md`, Hartley family from `npm run e2e:seed`) on branch `claude/e2e-run-2`. Its report goes in `docs/reviews/cm-term-run-2.md`. If that file isn't on `main` yet, check the branch; if the run never finished, re-run it (§3, step 1).
+- **Second end-to-end run done** (`docs/reviews/cm-term-run-2.md`, 2026-11-06): "Nearly — fix E1 to E3 and it's a clear yes." **Next: Sprint 18** (`docs/tickets/sprint-18-e2e-fixes/`).
 - **On hold (Will, 2026-11-05):** hosting and the hosting fixes in code. The full plan is ready: [HOSTING_PLAN.md](../HOSTING_PLAN.md).
 - **Open Low backlog:** none (ROADMAP "Open backlog (Low)").
 
@@ -17,7 +17,7 @@ ROADMAP phases: (1) build the core ✔ nearly → (2) private hosting for DeeDee
 
 ## 3. Next steps, in order
 
-1. **End-to-end run results.** Read `docs/reviews/cm-term-run-2.md`. Turn every High/Medium finding into a small fix sprint (`docs/tickets/sprint-18-e2e-fixes/`), build, tester pass, merge. Lows can wait.
+1. **End-to-end run results.** Read `docs/reviews/cm-term-run-2.md`. **Done 2026-11-06:** 38 Works, 4 Confusing, 1 Broken of 43; verdict "Nearly". The fix sprint is written and ready to build: `docs/tickets/sprint-18-e2e-fixes/` (E1–E3 Medium first: Update status undo and pick-your-own end date, Bars agreeing with Days; then the Lows).
 2. **Hosting fixes in code sprint** (HOSTING_PLAN §4): health live/ready, graceful shutdown, migration advisory lock, proxy-aware throttle, production build + Dockerfile (`HOST=0.0.0.0`), security headers. No AWS needed. Tester pass. *Only when Will says hosting is a go.*
 3. **Decisions with DeeDee** (HOSTING_PLAN §10): H1 host (recommended AWS App Runner + RDS + S3/CloudFront), H2 sessions (keep server-side Postgres sessions), H3 time-zone fallback (keep America/Chicago), domain, region.
 4. **Terraform** in `infra/` (HOSTING_PLAN §3, §5): `terraform plan` only, reviewed by Will.
