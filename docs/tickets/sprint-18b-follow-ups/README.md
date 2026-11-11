@@ -6,5 +6,5 @@ This is a record of her decisions and of one usability follow-up. Build this fol
 
 | # | Ticket | State | Size |
 |---|--------|-------|------|
-| 1 | [S18b-01 — A past Pick a date asks before it saves](S18b-01-confirm-a-past-end-date.md) | Decided. Past dates stay allowed and need an explicit confirmation. Not built. | S, when built |
+| 1 | [S18b-01 — A past Pick a date asks before it saves](S18b-01-confirm-a-past-end-date.md) | Built on `hh2/sprint-18b`, not merged. Past dates stay allowed and ask before they save. | S |
 | 2 | [S18b-02 — A shared book keeps one set of school days](S18b-02-shared-book-school-days.md) | Decided. One schedule for everyone on the assignment; a different schedule is a separate workbook. Usability follow-up for copies is specified and not built. | S, for the usability follow-up |
