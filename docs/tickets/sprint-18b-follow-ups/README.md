@@ -2,7 +2,7 @@
 
 > **Status: decided, not built.** PR #17 merged to `main` as `75086dd` on 2026-11-06 after DeeDee chose to merge first. The independent tester found 0 High / 2 Medium / 3 Low (`docs/reviews/sprint-18-verification.md`; the same report is in `docs/reviews/pr17-verification.md`). This folder holds the two Mediums. DeeDee decided both on 2026-11-06. Nothing here is implemented. The three Lows (L1 to L3) stay in the report and have no tickets.
 
-This is a record of her decisions and of one usability follow-up. A later sprint may build S18b-01 and the usability follow-up inside S18b-02. It does not add per-child school days to the planner.
+This is a record of her decisions and of one usability follow-up. Build this folder on its own, before Sprints 19, 20 and 21. Do not fold these tickets into those sprints. It does not add per-child school days to the planner.
 
 | # | Ticket | State | Size |
 |---|--------|-------|------|

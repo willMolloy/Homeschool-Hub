@@ -1,6 +1,6 @@
 # Tickets
 
-New here? Read [APP_OVERVIEW.md](../APP_OVERVIEW.md), [ROADMAP.md](../ROADMAP.md) and [HOW_WE_WORK.md](../HOW_WE_WORK.md) first.
+New here? Read [APP_OVERVIEW.md](../APP_OVERVIEW.md), [ROADMAP.md](../ROADMAP.md) and [HOW_WE_WORK.md](../HOW_WE_WORK.md) first. Where things stand, and the build order, is [progress/HANDOFF.md](../progress/HANDOFF.md): Sprint 18b, then Sprints 19, 20 and 21. Those four are written and not built. Sprints 9 through 18 are merged; their folders run from `sprint-9-schedule-and-records` through `sprint-18-e2e-fixes`.
 
 How to use these: pick the lowest-numbered ticket whose dependencies are all done. Each ticket is one task, sized to fit in one sitting.
 Format: Goal (one sentence) / Context / Steps / Done when / Tests / Out of scope. If a title would need "and", it's split into two tickets.
@@ -202,4 +202,16 @@ See [sprint-8-soft-paper/README.md](sprint-8-soft-paper/README.md) (S8-01 to S8-
 
 ## Sprint 18b: follow-ups after the Sprint 18 merge
 
-See [sprint-18b-follow-ups/README.md](sprint-18b-follow-ups/README.md) (S18b-01, S18b-02). Both decided by DeeDee on 2026-11-06 and not built. S18b-01 is the past-date confirmation. S18b-02 is one set of school days per assignment, plus a usability follow-up for copying a book and updating the other copies. The three Lows from `reviews/sprint-18-verification.md` have no tickets.
+See [sprint-18b-follow-ups/README.md](sprint-18b-follow-ups/README.md) (S18b-01, S18b-02). Both decided by DeeDee on 2026-11-06 and not built. Build this folder on its own before Sprints 19–21. S18b-01 is the past-date confirmation. S18b-02 is one set of school days per assignment, plus a usability follow-up for copying a book and updating the other copies. The three Lows from `reviews/sprint-18-verification.md` have no tickets.
+
+## Sprint 19: visual and print polish
+
+See [sprint-19-visual-print/README.md](sprint-19-visual-print/README.md) (S19-01 to S19-07). Decided by DeeDee on 2026-11-11 and not built. Date picker, Home card heights, the Log button, bar thickness, the weekly print by day, and the year view leaving regular weekly days off undrawn. A break of a week or longer still shows its name.
+
+## Sprint 20: minutes, check-in, and logging
+
+See [sprint-20-minutes-check-in/README.md](sprint-20-minutes-check-in/README.md) (S20-01 to S20-07). Decided by DeeDee on 2026-11-11 and not built. Minutes a day, the got-through number, a visible check-in, logging styles, books read removed, and a one-day log.
+
+## Sprint 21: a break that overlaps assignments
+
+See [sprint-21-break-overlap/README.md](sprint-21-break-overlap/README.md) (S21-01 to S21-05). Decided by DeeDee on 2026-11-11 and not built. Ask before a break changes open work: keep the end date, push it back, or pick a day.

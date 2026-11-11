@@ -1,6 +1,6 @@
 # Hosting plan
 
-> **Status: proposal for Will and DeeDee (2026-11-06). Nothing here is built or deployed yet.** Hosting is on hold until Will says go (Will, 2026-11-05). It is phase 2 of [ROADMAP.md](ROADMAP.md): private hosting for DeeDee first, nobody else until the friends beta. HOW_WE_WORK's rule stands: no public hosting or tunnels without DeeDee's approval, and agents never deploy on their own.
+> **Status: proposal for Will and DeeDee (2026-11-06). Nothing here is built or deployed yet.** Hosting is on hold until Will says go (Will, 2026-11-05). Product work comes first: Sprint 18b, then Sprints 19, 20 and 21 (`progress/HANDOFF.md`, updated 2026-11-11). Those sprints do not block hosting if Will says go sooner. It is phase 2 of [ROADMAP.md](ROADMAP.md): private hosting for DeeDee first, nobody else until the friends beta. HOW_WE_WORK's rule stands: no public hosting or tunnels without DeeDee's approval, and agents never deploy on their own.
 
 ## 1. Summary
 

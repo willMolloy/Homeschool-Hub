@@ -8,6 +8,8 @@ Homeschool Hub is a **steering tool for the homeschool year**: a parent sees the
 
 The planned business model is freemium: Free covers one child, and the Family plan ($5.99/mo or $49/yr) adds unlimited children (`spec/SPEC.md`, "Free vs premium"). Billing is not built and waits until after the friends beta; friends get every Family feature free.
 
+**Decided and not built (2026-11-11).** DeeDee used the app on current main and settled the next product work. The paragraphs below describe what is on `main` today. The queue, in order, is Sprint 18b, then Sprints 19, 20 and 21: see [progress/HANDOFF.md](progress/HANDOFF.md) and [progress/decisions-2026-11-11.md](progress/decisions-2026-11-11.md). The work, still to build: a past end date asks before it saves, and a shared book keeps one schedule (18b); the year view and the weekly print get a visual pass (19); minutes are a daily time, check-in is easier to find, and books read leave the log (20); a break that overlaps open work asks what to do (21).
+
 **The core is the year timeline** (`/timeline`):
 - One lane per subject, with sub-lanes per child and sub-rows so bars never overlap.
 - Semi-transparent bars. A bar's thickness shows daily effort: units per day × the assignment's effort weight per unit (1 point ≈ 2 minutes). How parents enter effort is being reworked (ROADMAP.md, "Effort").

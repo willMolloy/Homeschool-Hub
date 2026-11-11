@@ -2,7 +2,7 @@
 
 Branch: `claude/sprint-18-e2e-fixes`, cut from `main` on 2026-11-06 with Will's permission for per-sprint branches. Tickets: `docs/tickets/sprint-18-e2e-fixes/` (findings E1 to E13 in `docs/reviews/cm-term-run-2.md`). S18-05 (the tester pass) is not part of this build.
 
-**Merged:** PR #17, `75086dd`, 2026-11-06. DeeDee chose merge first. The independent tester reported 0 High / 2 Medium / 3 Low (`docs/reviews/sprint-18-verification.md`, same text in `docs/reviews/pr17-verification.md`). She decided both Mediums the same day; the tickets are `docs/tickets/sprint-18b-follow-ups/` and are not built. See "Later decisions" below.
+**Merged:** PR #17, `75086dd`, 2026-11-06. DeeDee chose merge first. The independent tester reported 0 High / 2 Medium / 3 Low (`docs/reviews/sprint-18-verification.md`, same text in `docs/reviews/pr17-verification.md`). She decided both Mediums the same day; the tickets are `docs/tickets/sprint-18b-follow-ups/` and are not built. See "Later decisions" below. The queue after that folder is in `docs/progress/HANDOFF.md` (updated 2026-11-11): Sprint 18b on its own, then Sprints 19, 20 and 21. Hosting stays on hold.
 
 | Ticket | Commit | Notes |
 |---|---|---|

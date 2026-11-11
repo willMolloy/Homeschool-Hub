@@ -2,6 +2,8 @@
 
 Mockup: `mockups/term-review.html`. Add `#card=full|sparse|dark|long` to the URL to see one card at full size. There is a PNG of each beside it.
 
+Sprint 20 (decided 2026-11-11, not built) takes books read off the log. The card should show finished books from the schedule instead. These notes describe the card as it was built.
+
 ## Layout
 
 The card is drawn at its saved size, **1080 × 1350 px** (4:5), and scaled for screen with `transform: scale()`. It is one component.
