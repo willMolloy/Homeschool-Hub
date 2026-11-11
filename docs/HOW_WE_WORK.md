@@ -88,5 +88,5 @@ A second parent is invited by the family itself, from Family settings, Parents, 
 1. Read [APP_OVERVIEW.md](APP_OVERVIEW.md).
 2. Read [ROADMAP.md](ROADMAP.md).
 3. Read this guide.
-4. Read the latest progress doc (now [progress/sprint-9.md](progress/sprint-9.md)), including its Decisions sections, and [progress/HANDOFF.md](progress/HANDOFF.md) for where things stand.
+4. Read [progress/HANDOFF.md](progress/HANDOFF.md) for where things stand, then the latest merged progress doc ([progress/sprint-18.md](progress/sprint-18.md)), including its Decisions. The next build is Sprint 18b, then Sprints 19, 20 and 21. Those tickets are written and not built.
 5. Check out the current sprint's branch (see Branches). Run `git log --oneline -20` and `git status`. Then `git pull --rebase` and run `bash scripts/check.sh` before changing anything.

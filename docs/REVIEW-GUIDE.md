@@ -6,7 +6,7 @@ A short guide for reviewing Homeschool Hub on your own machine. It's written for
 
 - **What exists today:** Sprint 1 and Sprint 2a are done, and Sprint 2b's weights are in. You can sign in, manage kids and subjects (with optional default weights), enter schedule data (settings, assignments with a thickness picker, days off, events), and see the engine's plan in a temporary debug table.
 - **What doesn't exist yet:** the real timeline, logging, and the week-overrides API.
-- **Status and open decisions:** see the [Morning summary](progress/overnight.md#morning-summary).
+- **Status and open decisions:** [progress/HANDOFF.md](progress/HANDOFF.md) and [ROADMAP.md](ROADMAP.md). The morning summary in [progress/overnight.md](progress/overnight.md) is from the first nights of the build.
 
 ## 1. Run it (about 5 minutes)
 

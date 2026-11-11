@@ -2,6 +2,8 @@
 
 > **Order of work (2026-11-05):** Sprint 11 first run (setup flow + one-time Schedule hints), Sprint 12 completion question + needs-you dot, Sprint 13 printable sheets + term in review, Sprint 14 accounts and hosting fixes (discuss with Will first; Will moved it after the features on 2026-11-05), then the end-to-end run and hosting; the calendar feed after hosting. Details: ROADMAP.md, "Order of work after Sprint 10".
 >
+> **Later queue (2026-11-11):** that hosting step is no longer next. After Sprint 18, the order is Sprint 18b, then Sprints 19, 20 and 21, all decided and not built. See [HANDOFF.md](HANDOFF.md) and [decisions-2026-11-11.md](decisions-2026-11-11.md). Hosting still waits until Will says go. This file stays the record of the 2026-11-04 and 2026-11-05 decisions.
+>
 > **First run (2026-11-05):** a six-step setup flow on a new family's first login (family, children (required), school days, school year and terms, breaks with Add / I'll get back to you / Skip, subjects). No first-assignment step or prompt. Logging setup stays in Records. Three one-time hints on Schedule instead of a tour.
 
 For every agent picking up work: read this with `HANDOFF.md`. Full detail is in [../ROADMAP.md](../ROADMAP.md), sections "Order of work after Sprint 10", "Optional modules → Later" and "Not planned now". Sprint 10 is done; this is the queue after it. Dates are in Will's time zone (US Central).
