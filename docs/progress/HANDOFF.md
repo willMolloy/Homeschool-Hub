@@ -13,7 +13,7 @@ For anyone picking up Homeschool Hub: Will, DeeDee, Grok, or a new Claude sessio
   - **Sprint 20, minutes, check-in, and logging.** A minutes assignment asks only for minutes a day and the dates. "Got through" opens on the last unit the week already shows, and ahead or behind does not change that number. A pending last-week check-in is obvious on Home and stays optional. Logging styles explain themselves with a live sample. Books read leaves the log; term in review borrows finished books from the schedule. A log entry starts as one day.
   - **Sprint 21, a break that overlaps work.** Adding a break over open assignments asks, for each one, whether to keep the end date, push it back by the break, or push it to a day she picks. Partial overlap counts, finished work stays put, and one undo reverses the break and the moves. This is not a silent reschedule.
 - **On hold (Will, 2026-11-05):** hosting and the hosting fixes in code. The full plan is ready: [HOSTING_PLAN.md](../HOSTING_PLAN.md). Sprint 18b and Sprints 19–21 do not block it, and the recommended order is to build them first. Hosting still waits until Will says go.
-- **Open Low backlog:** none ticketed (ROADMAP "Open backlog (Low)"). Sprint 18's three Lows stay in the verification report and were not opened as tickets.
+- **Open Low backlog:** none open (ROADMAP "Open backlog (Low)"). Sprint 18's three Lows stay in the verification report and were not opened as tickets.
 
 ## 2. The finish line
 

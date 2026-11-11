@@ -205,7 +205,7 @@ Each follows the module rules above. In order:
 
 ## Open backlog (Low)
 
-None ticketed. Sprint 17 (S17-01) closed the last ones: the Week filter and the briefing, the Home checklist control, Rose and Lilac, day-off wording, the throttled-invite message, Term in review on short desktops and the Sprint 15 Lows. (Earlier: N8, N7 and N9 in S12-09; the `timeline-add` flake in Sprint 15.) Sprint 18's tester left three Lows (L1 to L3) in `reviews/sprint-18-verification.md`. They were not opened as tickets.
+None open. Sprint 17 (S17-01) closed the last ones: the Week filter and the briefing, the Home checklist control, Rose and Lilac, day-off wording, the throttled-invite message, Term in review on short desktops and the Sprint 15 Lows. (Earlier: N8, N7 and N9 in S12-09; the `timeline-add` flake in Sprint 15.) Sprint 18's tester left three Lows (L1 to L3) in `reviews/sprint-18-verification.md`. They were not opened as tickets.
 
 ## Done
 
