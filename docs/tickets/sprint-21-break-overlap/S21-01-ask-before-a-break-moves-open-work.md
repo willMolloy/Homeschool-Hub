@@ -39,4 +39,4 @@ This ticket is the question and the list. S21-02 and S21-03 make the three answe
 - Applying "keep the end date" beyond today's reflow (S21-02 owns the confirmed wording and the test that the end did not move).
 - Applying either push (S21-03).
 - Undo of the combined change (S21-04).
-- A repeating-weekday tool (Sprint 19 only labels a one-weekday off).
+- A repeating-weekday tool. Sprint 19 leaves the school's regular weekly days off unlabeled and off the year view. It does not add a way to repeat a weekday.

@@ -13,7 +13,7 @@ Same bar as the other sprints: Playwright's Chromium, light and dark, the phone 
 ## Steps
 
 1. Walk S19-01 to S19-06 against each ticket's Done when, at 320, 360, 390 and 1280 px, light and dark.
-2. Include the right-hand assignment panel, Home's two cards, Records' Log button, a light bar beside a heavy bar, the weekly print preview, and a named long break beside an unnamed Wednesday.
+2. Include the right-hand assignment panel, Home's two cards, Records' Log button, a light bar beside a heavy bar, the weekly print preview, a named long break on the year view, and a school week that skips Wednesday: that Wednesday is absent from the year view and unlabeled at This month.
 3. Confirm the on-screen Bars / Days toggle still switches, and that adding a minutes assignment still asks what it asks today.
 4. Run axe, the tap-target script, the print smoke if one covers the weekly sheet, and `bash scripts/check.sh`.
 5. Write `docs/reviews/sprint-19-verification.md` (verdict, pass or fail per ticket, findings with severity).

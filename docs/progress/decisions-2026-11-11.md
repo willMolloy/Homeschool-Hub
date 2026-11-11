@@ -13,7 +13,7 @@ Full tickets: `docs/tickets/sprint-19-visual-print/`, `docs/tickets/sprint-20-mi
 - Log should look like a button she presses, not like a tab she is already on.
 - Bar thickness should show the difference between a light day (about 40 minutes) and a heavy day (about 150 minutes). Bars should be a little more opaque, not solid. Look again at the year view's 95th-percentile clamp if that is why they match. Do not change how minutes are stored in this sprint.
 - The weekly print should be grouped by day. The on-screen Bars / Days toggle stays as it is.
-- Breaks on the year view need a visible title. A single weekday off, such as Wednesdays, does not need a name; if she leaves it blank, show something like "Wednesdays off". A break of a week or longer needs a name, and that name is shown.
+- The school's regular weekly days off do not need a label. If Sunday and Wednesday are off because that is the configured week, those days do not appear on the year view. They show only at a month zoom or closer, still with no label. She decided this after reading the first draft: do not auto-label them "Wednesdays off". A break of a week or longer still needs a name, and that title is shown on the year view.
 
 ## Sprint 20 — minutes, check-in, and logging
 

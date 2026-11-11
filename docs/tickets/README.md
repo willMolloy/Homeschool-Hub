@@ -206,7 +206,7 @@ See [sprint-18b-follow-ups/README.md](sprint-18b-follow-ups/README.md) (S18b-01,
 
 ## Sprint 19: visual and print polish
 
-See [sprint-19-visual-print/README.md](sprint-19-visual-print/README.md) (S19-01 to S19-07). Decided by DeeDee on 2026-11-11 and not built. Date picker, Home card heights, the Log button, bar thickness, the weekly print by day, and titles on breaks.
+See [sprint-19-visual-print/README.md](sprint-19-visual-print/README.md) (S19-01 to S19-07). Decided by DeeDee on 2026-11-11 and not built. Date picker, Home card heights, the Log button, bar thickness, the weekly print by day, and the year view leaving regular weekly days off undrawn. A break of a week or longer still shows its name.
 
 ## Sprint 20: minutes, check-in, and logging
 

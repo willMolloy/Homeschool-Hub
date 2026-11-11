@@ -13,7 +13,7 @@ She looked at the app and wanted these fixed. They are display and print, not a 
 - The Log button looks highlighted, as if she were already on a Log tab. It should look like a button she presses, not a tab she is on.
 - Bar thickness is not showing the load. A day of about 40 minutes and a day of about 150 minutes looked almost the same width. Thickness should make that difference obvious. The bars should also be a little more opaque, still not a solid block of colour. Year bars have used a roughly 95th-percentile clamp; look at that again if it is why heavy and light bars match. Do not change how minutes are stored. That is Sprint 20.
 - The weekly print is organized by assignment. She wants it by day: Monday and everything on Monday, then Tuesday, and so on. That is the printed sheet only. The on-screen Week Bars / Days toggle stays as it is.
-- Breaks on the year view look almost glitchy when they have no visible title. A recurring single weekday off, such as no school on Wednesdays, must not require a name. If she leaves it unnamed, show a simple automatic label such as "Wednesdays off" so the block is not empty. A break of a week or longer should have a name, and that title should be shown, because there is room and the break matters.
+- The school's regular weekly days off, such as Sunday and Wednesday when that is the configured week, do not need a label. They do not appear on the year view at all. They show only at a month zoom or closer, still with no label. That is how the empty wash stops looking like a glitch. A break of a week or longer still needs a name, and that title is shown on the year view. There is no automatic "Wednesdays off" label. She decided this after reading the first draft of the ticket.
 
 A few tiny display details were not pinned down. Each ticket states a default and says it is a default, not an open question.
 
@@ -24,5 +24,5 @@ A few tiny display details were not pinned down. Each ticket states a default an
 | 3 | [S19-03 — Make Log an action](S19-03-make-log-an-action.md) | — | XS |
 | 4 | [S19-04 — Let bar thickness show the load](S19-04-let-bar-thickness-show-the-load.md) | — | M |
 | 5 | [S19-05 — Group the weekly sheet by day](S19-05-group-the-weekly-sheet-by-day.md) | — | S |
-| 6 | [S19-06 — Show a title on each break](S19-06-show-a-title-on-each-break.md) | — | S |
+| 6 | [S19-06 — Leave the usual days off off the year view](S19-06-show-a-title-on-each-break.md) | — | S |
 | 7 | [S19-07 — Tester pass](S19-07-tester-pass.md) | S19-01 to S19-06 | S |
