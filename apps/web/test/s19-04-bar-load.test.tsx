@@ -1,10 +1,12 @@
 /** S19-04: a steady 40-minute day is plainly thinner than a steady 150-minute day, and the fill is a little stronger. */
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { forChild } from "../src/features/timeline/childView";
 import { buildDayGrid } from "../src/features/timeline/grid";
 import { BAR_H_MIN, effortHeight, layoutTimeline } from "../src/features/timeline/layout";
 import type { TimelineAssignment, TimelineModel } from "../src/features/timeline/model";
-import { BAR_STRONG_MIX } from "../src/features/timeline/Timeline";
+import { BAR_STRONG_MIX, bandFill } from "../src/features/timeline/Timeline";
+import type { ChildStep } from "../src/features/timeline/model";
 import { CHROME, composite, contrast, mix, swatches, THEME_NAMES } from "../scripts/palette";
 
 const ys = (d: string) => [...d.matchAll(/,(-?[\d.]+)|V(-?[\d.]+)/g)].map((m) => Number(m[1] ?? m[2]));
@@ -72,6 +74,66 @@ describe("bar thickness (S19-04)", () => {
     const light = effortHeight(LIGHT, HEAVY, 8, max, 0);
     const heavy = effortHeight(HEAVY, HEAVY, 8, max, 0);
     expect(heavy).toBeGreaterThanOrEqual(light * 1.5);
+  });
+
+  it("a seed-like year, where 150 minutes does not set the cap, still keeps 40 at least 1.5 times thinner (M1)", () => {
+    // Twenty books near 56 minutes, one at 40, one at 150. The 150 is under 5% of the samples, so the 95th percentile stays near 56.
+    const grid = buildDayGrid("2026-08-17", "2027-05-28", [1, 2, 3, 4, 5]);
+    const n = grid.dates.length;
+    const school = grid.dates.map((_, i) => (grid.schoolDay[i] ? 1 : 0));
+    const steady = (v: number) => school.map((on) => on * v);
+    const k = "c1";
+    const assignment = (id: string, daily: number[]): TimelineAssignment => ({
+      assignmentId: id, childId: k, title: id, daily, weekly: daily, first: 0, last: n - 1,
+      end: "2027-05-28", plannedEnd: "2027-05-28", estimated: false, complete: false, warnings: [],
+    });
+    const model: TimelineModel = {
+      ...grid, weekStart: "mon", today: "2026-11-05", todayIndex: grid.dates.indexOf("2026-11-05"), breaks: [], events: [],
+      children: [{ childId: k, name: "Elias" }],
+      lanes: [{
+        subjectId: "sub", name: "Math", paletteSlot: 1, children: [{
+          key: `sub:${k}`, subjectId: "sub", childId: k, childName: "Elias", step: "base",
+          assignments: [
+            ...Array.from({ length: 20 }, (_, i) => assignment(`usual-${i}`, steady(28))),
+            assignment("light", steady(20)),
+            assignment("heavy", steady(75)),
+          ],
+          daily: [], weekly: [],
+        }],
+      }],
+      totals: { daily: [], weekly: [] },
+    };
+    for (const zoom of ["year", "fall"] as const) {
+      for (const width of [390, 1280]) {
+        const l = layoutTimeline(model, { zoom, width });
+        expect(l.viewMax).toBeLessThan(75);
+        const light = l.bands.find((b) => b.assignmentId === "light")!;
+        const heavy = l.bands.find((b) => b.assignmentId === "heavy")!;
+        const lh = peakOf(light.d, light.cy);
+        const hh = peakOf(heavy.d, heavy.cy);
+        expect(hh).toBeGreaterThanOrEqual(lh * 1.5);
+      }
+    }
+  });
+
+  it("every colour variable an ended bar's fill names is defined for every subject step (H1)", () => {
+    const css = readFileSync("src/styles/tokens.css", "utf8");
+    const light = css.slice(css.indexOf(":root {"), css.indexOf('[data-theme="dark"]'));
+    const dark = css.slice(css.indexOf('[data-theme="dark"]'));
+    const steps: ChildStep[] = ["base", "light", "dark"];
+    const missing: string[] = [];
+    for (let slot = 1; slot <= 12; slot++) {
+      for (const step of steps) {
+        const fill = bandFill(slot, step);
+        expect(fill).not.toMatch(/-light-strong|-dark-strong/);
+        for (const name of fill.matchAll(/var\((--[\w-]+)\)/g)) {
+          const token = `${name[1]}:`;
+          if (!light.includes(token)) missing.push(`light ${token} via ${step}`);
+          if (!dark.includes(token)) missing.push(`dark ${token} via ${step}`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
   });
 
   it.each(THEME_NAMES)("inside names keep AA on the stronger fill, including a dimmed bar (%s)", (theme) => {

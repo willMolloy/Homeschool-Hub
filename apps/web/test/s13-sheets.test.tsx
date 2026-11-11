@@ -7,7 +7,7 @@ import { ENGINE_VERSION, planAll, type Assignment as EngineAssignment, type Bloc
 import type { Assignment, BlockedRange, Child, Subject } from "../src/api/types";
 import { defaultDay } from "../src/features/print/PrintSheets";
 import { parsePrintParams, printUrl } from "../src/features/print/printUrl";
-import { buildSheet, breakNames, type SheetLookups } from "../src/features/print/sheetModel";
+import { buildSheet, breakNames, weeklyLetterPages, type SheetLookups } from "../src/features/print/sheetModel";
 import { plannedRange, plannedRangeBetween } from "../src/features/week/weekBars";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
@@ -197,6 +197,15 @@ describe("the weekly sheet (S13-02)", () => {
     expect(off.days.find((d) => d.name === "Thursday")!.lines).toEqual([]);
     const one = buildSheet(KIDS[0]!, plans(), "2026-11-03", "2026-11-03", lookups(), BLOCKED_ROWS, [1, 2, 3, 4, 5]);
     expect(one.days).toEqual([]);
+    // Tester M2: a heavy week (about a seeded child, and a fuller one) stays on two Letter pages.
+    const heavy = Array.from({ length: 5 }, (_, i) => ({
+      lines: Array.from({ length: 12 }, () => ({})),
+      off: i === 2 ? "Wednesday · Thanksgiving break" : null,
+    }));
+    expect(weeklyLetterPages(frank.days)).toBeLessThanOrEqual(2);
+    expect(weeklyLetterPages(heavy)).toBeLessThanOrEqual(2);
+    const printCss = readFileSync("src/features/print/print.css", "utf8");
+    expect(printCss).toMatch(/@media print[\s\S]*\.sheet-assignment-day \{[^}]*min-height: 0/);
     expect(one.subjects.find((s) => s.name === "Literature")!.assignments[0]!.rows).toHaveLength(1);
   });
   it("subjects come in the family's order, assignments by title", () => {

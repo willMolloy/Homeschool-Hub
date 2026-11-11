@@ -67,12 +67,12 @@ describe("DateField", () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole("button", { name: "Choose a date" }));
-    const cal = screen.getByRole("group", { name: "Calendar" });
+    const cal = screen.getByRole("dialog", { name: "Calendar" });
     expect(within(cal).getByText("November 2026")).toBeInTheDocument();
     expect(within(cal).getByRole("button", { name: "Nov 1, 2026" })).toHaveAttribute("aria-pressed", "true");
     await user.click(within(cal).getByRole("button", { name: "Next month" }));
     await user.click(within(cal).getByRole("button", { name: "Dec 18, 2026" }));
-    expect(screen.queryByRole("group", { name: "Calendar" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Calendar" })).toBeNull();
     expect(screen.getByLabelText("Start")).toHaveValue("Dec 18, 2026");
     expect(screen.getByTestId("out")).toHaveTextContent("2026-12-18");
   });
@@ -82,7 +82,7 @@ describe("DateField", () => {
     render(<Harness clearable />);
     await user.click(screen.getByRole("button", { name: "Choose a date" }));
     await user.keyboard("{Escape}");
-    expect(screen.queryByRole("group", { name: "Calendar" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Calendar" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Choose a date" }));
     await user.click(screen.getByRole("button", { name: "Clear" }));
     expect(screen.getByLabelText("Start")).toHaveValue("");

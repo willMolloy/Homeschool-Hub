@@ -66,17 +66,74 @@ describe("regular weekly days off (S19-06)", () => {
       { id: "xmas", label: "Christmas break", kind: "vacation", first, last, childIds: [] },
       { id: "sick", label: null, kind: "sick", first: sick, last: sick, childIds: [] },
     ]);
-    for (const width of [390, 1280]) {
+    for (const width of [360, 440, 1280]) {
       const layout = layoutTimeline(m, { zoom: "year", width });
       const named = layout.breaks.filter((b) => b.breakId === "xmas");
       expect(named.length).toBeGreaterThan(0);
-      expect(named.every((b) => b.title?.text === "Christmas break")).toBe(true);
+      expect(named.every((b) => b.title?.text === "Christmas break" || b.title?.text.endsWith("…"))).toBe(true);
+      for (const b of named) {
+        const title = b.title!;
+        expect(title.y).toBeGreaterThanOrEqual(layout.metrics.axis);
+        expect(title.x).toBeGreaterThanOrEqual(0);
+        expect(title.x + title.width).toBeLessThanOrEqual(layout.width + 0.5);
+      }
       expect(layout.breaks.filter((b) => b.breakId === "sick").every((b) => b.title === null)).toBe(true);
       const view = render(<Timeline layout={layout} label="Year" />);
-      expect(screen.getAllByText("Christmas break").length).toBeGreaterThan(0);
+      expect(screen.getAllByText(named[0]!.title!.text).length).toBeGreaterThan(0);
       expect(document.body.textContent).not.toMatch(/Wednesdays off/);
       view.unmount();
     }
     document.documentElement.removeAttribute("data-theme");
+  });
+
+  it("a family title sits below the sticky header, and a one-child title stays inside 360 and 440", () => {
+    const grid = buildDayGrid("2026-08-17", "2027-05-28", SCHOOL);
+    const n = grid.dates.length;
+    const daily = grid.schoolDay.map((on) => (on ? 20 : 0));
+    const book = (childId: string): TimelineModel["lanes"][number]["children"][number]["assignments"][number] => ({
+      assignmentId: "shared", childId, title: "Treasure Island", daily, weekly: daily, first: 0, last: n - 1,
+      end: "2027-05-28", plannedEnd: "2027-05-28", estimated: false, complete: false, warnings: [],
+    });
+    const lane = (children: TimelineModel["lanes"][number]["children"]): TimelineModel["lanes"][number] => ({
+      subjectId: "lit", name: "Literature", paletteSlot: 1, children,
+    });
+    const child = (childId: string, name: string) => ({
+      key: `lit:${childId}`, subjectId: "lit", childId, childName: name, step: "base" as const,
+      assignments: [book(childId)], daily, weekly: daily,
+    });
+    const base = model("2026-08-17", "2027-05-28");
+    const family = {
+      ...base,
+      children: [{ childId: "c1", name: "Elias" }, { childId: "c2", name: "Clara" }],
+      lanes: [lane([child("c1", "Elias"), child("c2", "Clara")])],
+      breaks: [{ id: "xmas", label: "Christmas break", kind: "vacation" as const, first: grid.dates.indexOf("2026-12-14"), last: grid.dates.indexOf("2026-12-27"), childIds: [] }],
+    };
+    const solo = {
+      ...base,
+      lanes: [lane([child("c1", "Elias")])],
+      breaks: [{
+        id: "spring", label: "Spring holiday with both sets of grandparents, the cousins, and a week at the lake", kind: "vacation" as const,
+        first: grid.dates.indexOf("2027-05-17"), last: grid.dates.indexOf("2027-05-28"), childIds: ["c1"],
+      }],
+    };
+    for (const width of [360, 440, 1280]) {
+      const familyLayout = layoutTimeline(family, { zoom: "year", width });
+      const together = familyLayout.groups.find((g) => g.kind === "together");
+      expect(together).toBeTruthy();
+      const familyTitle = familyLayout.breaks.find((b) => b.breakId === "xmas")!.title!;
+      expect(familyTitle.y).toBeGreaterThanOrEqual(together!.header.y + together!.header.height);
+      expect(familyTitle.y).toBeGreaterThanOrEqual(familyLayout.metrics.axis);
+      const one = layoutTimeline(solo, { zoom: "year", width });
+      const group = one.groups.find((g) => g.childId === "c1")!;
+      const title = one.breaks.find((b) => b.breakId === "spring")!.title!;
+      expect(title.y).toBeGreaterThanOrEqual(group.header.y + group.header.height);
+      expect(title.x).toBeGreaterThanOrEqual(one.plot.x);
+      expect(title.x + title.width).toBeLessThanOrEqual(one.plot.x + one.plot.width + 0.5);
+      if (width <= 440) {
+        expect(title.text.endsWith("…")).toBe(true);
+        expect(title.text.length).toBeLessThan("Spring holiday with both sets of grandparents, the cousins, and a week at the lake".length);
+      }
+      expect(one.breaks.find((b) => b.breakId === "spring")!.width).toBeGreaterThan(0);
+    }
   });
 });

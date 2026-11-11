@@ -15,7 +15,7 @@ import { isLongBreak, weekdayOf } from "@hh/engine";
 import { dayOffTitle } from "../../lib/kindNames";
 import type { BuiltInZoomOverrides, CustomZoomView } from "../../api/types";
 import type { ChildStep, SubjectLane, TimelineAssignment, TimelineModel } from "./model";
-import { ABOVE_NAME_PX, barTitle, estimateTextWidth, OUTSIDE_CLEAR_PX, placeNameAbove, placePieceNames, type MeasureText } from "./names";
+import { ABOVE_NAME_PX, barTitle, estimateTextWidth, fitName, OUTSIDE_CLEAR_PX, placeNameAbove, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows, soloRows } from "./rows";
@@ -71,6 +71,21 @@ export const RIBBON_H_MIN = { phone: 4, desktop: 5 } as const;
 export const RIBBON_H_MAX = { phone: 12, desktop: 14 } as const;
 /** The view's maximum is this percentile of its bar loads, so one unusually heavy week doesn't flatten the rest. */
 export const VIEW_MAX_PERCENTILE = 0.95;
+/**
+ * S19-04 (tester M1): the cap may rise above the 95th percentile, up to this multiple of it, so a steady
+ * 150-minute day stays at least 1.5 times a steady 40-minute day when most of the year is nearer 60 minutes.
+ * It never follows a single spike all the way up.
+ */
+export const VIEW_MAX_SPREAD = 2;
+
+/** The bar scale for these positive loads: the 95th percentile, raised toward the peak but not past `VIEW_MAX_SPREAD` times that percentile. */
+export function scaledViewMax(loads: readonly number[]): number {
+  const cap = percentile(loads, VIEW_MAX_PERCENTILE);
+  let peak = 0;
+  for (const v of loads) if (v > peak) peak = v;
+  if (!(peak > 0)) return 0;
+  return Math.max(cap, Math.min(peak, cap * VIEW_MAX_SPREAD));
+}
 /** The space between the tallest bar and the lane's edges: the pitch is BAR_H_MAX plus this. */
 export const LANE_PITCH_GAP_PX = 8;
 /** Zoom smoothing (mockup): about 3 school weeks at Year, 1 at a term, none at month (daily detail). */
@@ -289,8 +304,8 @@ export interface BreakRect {
   y: number;
   width: number;
   height: number;
-  /** S19-06: a week-long break's name, drawn in the band or just above it when the band is too narrow. */
-  title: { text: string; x: number; y: number; above: boolean } | null;
+  /** S19-06: a week-long break's name, below the sticky headers and inside the plot. */
+  title: { text: string; x: number; y: number; width: number } | null;
 }
 
 export interface EventStrip {
@@ -572,7 +587,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   // (smoothed) load on each school day where it is above 0, over the whole school year so scrolling never rescales.
   // One child: that child's bars; All children: every child's, with Together bars counted once (as drawn).
   const positives = (series: readonly number[]) => schoolColumns.map((i) => series[i] ?? 0).filter((v) => v > 0);
-  const viewMax = percentile(sources.flatMap((g) => g.lanes.flatMap((l) => l.assignments.flatMap((a) => positives(seriesFor(a))))), VIEW_MAX_PERCENTILE);
+  const viewMax = scaledViewMax(sources.flatMap((g) => g.lanes.flatMap((l) => l.assignments.flatMap((a) => positives(seriesFor(a))))));
   const barHeightOf = (rowMax: number): HeightOf => (load) => effortHeight(load, viewMax, Math.min(m.barMin, rowMax), rowMax, m.curve);
 
   // The ribbons: each child's whole load (shared work included), all on one scale: the child's total for the day
@@ -695,14 +710,19 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   // Breaks: family-wide ones span every group; per-child ones only that child's group (its header included).
   // S19-06: a break of a week or longer shows its name. A shorter one keeps its wash and its kind name in the list, not a year-view title.
   const breaks: BreakRect[] = [];
-  const placeTitle = (b: (typeof model.breaks)[number], x: number, y: number, w: number): BreakRect["title"] => {
+  // Below the sticky month axis, and below a group's sticky header, so the name is not hidden under either.
+  const placeTitle = (b: (typeof model.breaks)[number], bandX: number, clearBelow: number): BreakRect["title"] => {
     const start = model.dates[b.first];
     const end = model.dates[b.last];
     if (!start || !end || !isLongBreak(start, end)) return null;
-    const text = dayOffTitle(b);
-    const wide = measure(text) + 8;
-    const above = w < wide;
-    return { text, x: above ? x : x + 4, y: above ? Math.max(12, y - 8) : y + 14, above };
+    const room = Math.max(24, plotRight - plotX - 4);
+    const text = fitName(dayOffTitle(b), room, measure) ?? dayOffTitle(b);
+    const width = measure(text);
+    let x = bandX + 4;
+    if (x + width > plotRight - 2) x = plotRight - 2 - width;
+    if (x < plotX) x = plotX;
+    const y = Math.max(m.axis + 10, clearBelow + 10);
+    return { text, x, y, width };
   };
   for (const b of model.breaks) {
     const from = Math.max(b.first, first);
@@ -712,11 +732,16 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     const w = xs.end(to) - x;
     if (w <= 0) continue;
     if (b.childIds.length === 0 || groups.length === 0) {
-      breaks.push({ breakId: b.id, label: b.label, x, y: lanesTop, width: w, height: lanesBottom - lanesTop, title: placeTitle(b, x, lanesTop, w) });
+      const head = groups[0]?.header;
+      const clearBelow = head ? head.y + head.height : m.axis;
+      breaks.push({ breakId: b.id, label: b.label, x, y: lanesTop, width: w, height: lanesBottom - lanesTop, title: placeTitle(b, x, clearBelow) });
     } else {
       for (const g of groups) {
         if (g.childId !== null && b.childIds.includes(g.childId)) {
-          breaks.push({ breakId: b.id, label: b.label, x, y: g.top, width: w, height: g.bottom - g.top, title: placeTitle(b, x, g.top, w) });
+          breaks.push({
+            breakId: b.id, label: b.label, x, y: g.top, width: w, height: g.bottom - g.top,
+            title: placeTitle(b, x, g.header.y + g.header.height),
+          });
         }
       }
     }

@@ -101,3 +101,21 @@ export function buildSheet(child: Child, plans: readonly ChildPlan[], from: Loca
 
 /** True when nothing is scheduled. */
 export const isEmpty = (s: ChildSheet): boolean => s.subjects.length === 0;
+
+/** Letter content height after the printed 14 mm margin, in pt. Two of these is the weekly sheet's limit (tester M2). */
+export const LETTER_CONTENT_PT = 11 * 72 - 2 * (14 / 25.4) * 72;
+const WEEK_HEADER_PT = 48;
+const WEEK_DAY_HEAD_PT = 16;
+const WEEK_LINE_PT = 16;
+const WEEK_NOTES_PT = 14 + 6 * 16;
+
+/** How many Letter pages the compact weekly print uses. A seeded week stays within 2. */
+export function weeklyLetterPages(days: readonly { lines: readonly unknown[]; off: string | null }[]): number {
+  let lines = 0;
+  for (const d of days) {
+    lines += d.lines.length;
+    if (d.off || d.lines.length === 0) lines += 1;
+  }
+  const pt = WEEK_HEADER_PT + days.length * WEEK_DAY_HEAD_PT + lines * WEEK_LINE_PT + WEEK_NOTES_PT;
+  return Math.max(1, Math.ceil(pt / LETTER_CONTENT_PT - 1e-6));
+}

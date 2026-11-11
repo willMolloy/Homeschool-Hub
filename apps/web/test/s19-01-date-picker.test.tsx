@@ -1,6 +1,6 @@
 /** S19-01: the date calendar stays fully on screen, including beside the right-hand panel and on a phone. */
 import { useState } from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { DateField, placeCalendar } from "../src/ui/DateField";
@@ -63,12 +63,32 @@ describe("the calendar on the page (S19-01)", () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole("button", { name: "Choose a date" }));
-    const cal = screen.getByRole("group", { name: "Calendar" });
+    const cal = screen.getByRole("dialog", { name: "Calendar" });
     expect(cal.parentElement).toBe(document.body);
     expect(cal).toHaveClass("date-cal-fixed");
     await user.click(within(cal).getByRole("button", { name: "Next month" }));
     await user.click(within(cal).getByRole("button", { name: "Dec 18, 2026" }));
-    expect(screen.queryByRole("group", { name: "Calendar" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Calendar" })).toBeNull();
     expect(screen.getByTestId("out")).toHaveTextContent("2026-12-18");
+  });
+
+  it("moves focus into the calendar when it opens (L2)", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole("button", { name: "Choose a date" }));
+    const cal = screen.getByRole("dialog", { name: "Calendar" });
+    expect(cal.getAttribute("aria-modal")).toBe("false");
+    expect(cal.contains(document.activeElement)).toBe(true);
+  });
+
+  it("closes when its field scrolls off the screen (L3)", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole("button", { name: "Choose a date" }));
+    expect(screen.getByRole("dialog", { name: "Calendar" })).toBeInTheDocument();
+    const field = document.querySelector(".date-field") as HTMLElement;
+    field.getBoundingClientRect = () => ({ top: 900, bottom: 944, left: 8, right: 200, width: 192, height: 44, x: 8, y: 900, toJSON: () => ({}) });
+    document.dispatchEvent(new Event("scroll"));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Calendar" })).toBeNull());
   });
 });

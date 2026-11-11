@@ -26,7 +26,7 @@ describe("N9: a 320 px phone", () => {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 320 });
     render(<Field />);
     await userEvent.setup().click(screen.getByRole("button", { name: "Choose a date" }));
-    const cal = screen.getByRole("group", { name: "Calendar" });
+    const cal = screen.getByRole("dialog", { name: "Calendar" });
     // jsdom puts the field at x = 0, so the calendar starts EDGE px to its right.
     expect(cal.style.left).toBe(`${EDGE}px`);
     const narrow = css("src/ui/date-field.css").slice(css("src/ui/date-field.css").indexOf(`@media (max-width: ${NARROW - 1}px)`));
@@ -40,7 +40,7 @@ describe("N9: a 320 px phone", () => {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
     render(<Field />);
     await userEvent.setup().click(screen.getByRole("button", { name: "Choose a date" }));
-    const cal = screen.getByRole("group", { name: "Calendar" });
+    const cal = screen.getByRole("dialog", { name: "Calendar" });
     expect(cal).toHaveClass("date-cal-fixed");
     expect(parseFloat(cal.style.left)).toBeGreaterThanOrEqual(0);
     expect(parseFloat(cal.style.left)).toBeLessThan(1024);
