@@ -9,7 +9,7 @@
  * narrowed beside it. It stays open while other bars are picked; opening it moves focus to its heading (the page returns
  * focus when it closes). The phone and tablet bottom bar is unchanged.
  */
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState, type ReactNode } from "react";
 import { Clock } from "@phosphor-icons/react";
 import { datesError, type DateSpan, type Selection } from "./select";
 import { DateField } from "../../ui/DateField";
@@ -40,6 +40,8 @@ export interface EditBarProps {
   onChangeEnding?: () => void;
   /** S11-06: the one-time hint for the first bar opened, in the sheet above the dates. */
   tip?: { text: string; onGotIt: () => void } | null;
+  /** S18b-02: the other workbooks of this book. */
+  copies?: ReactNode;
 }
 
 /** S10-18: the width from which the edit sheet is a side panel (DeeDee, 2026-11-03). */
@@ -47,7 +49,7 @@ export const EDIT_PANEL_QUERY = "(min-width: 840px)";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose, pace = null, panel = false, ended = null, onChangeEnding, tip = null }, ref) {
+export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ selection: s, busy, error, onSave, onCopy, onUpdateEstimate, onUpdateStatus, onReset, onClose, pace = null, panel = false, ended = null, onChangeEnding, tip = null, copies = null }, ref) {
   const [invalid, setInvalid] = useState<string | null>(null);
   const [more, setMore] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -116,6 +118,7 @@ export const EditBar = forwardRef<HTMLElement, EditBarProps>(function EditBar({ 
             {onChangeEnding ? <button type="button" className="btn btn-secondary" disabled={busy} aria-label={`Change how ${s.title} ended`} onClick={onChangeEnding}>Change</button> : null}
           </div>
         ) : null}
+        {copies}
         <div className="tl-edit-ends">
           <button type="button" className="btn btn-secondary tl-copy-btn" disabled={busy} onClick={onCopy}>Copy</button>
           <div className="tl-more" ref={moreRef}>

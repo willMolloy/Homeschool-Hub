@@ -6,7 +6,7 @@
  * the end date to the board, which sends the week once. S18b-01: a picked date before today stays allowed, and Save asks
  * "That's before today; this ends the book now. Continue?" and waits. No, Cancel, or leaving it unanswered does not save.
  */
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import type { OverrideMode } from "@hh/engine";
 import type { CheckInItem } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
@@ -46,6 +46,8 @@ export interface UpdateStatusProps {
   /** While the save is on its way, and what went wrong (the sheet stays open to try again). */
   busy?: boolean;
   error?: string | null;
+  /** S18b-02: the other workbooks of this book, when the screen has them. */
+  copies?: ReactNode;
 }
 
 type Way = "asPlanned" | "ahead" | "behind";
@@ -65,7 +67,7 @@ const wayOf = (item: CheckInItem, position: number): Way => {
 
 type EndWay = "keep" | "suggest" | "pick";
 
-export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart, afterDay, whenText, onSave, onClose, busy = false, error = null }: UpdateStatusProps) {
+export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart, afterDay, whenText, onSave, onClose, busy = false, error = null, copies = null }: UpdateStatusProps) {
   const me = useMe();
   const [pos, setPosition] = useState(position);
   /** The number box's own text, so a half-typed number is not rewritten under the finger. */
@@ -156,6 +158,7 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
             </div>
           </>
         ) : null}
+        {copies}
         {error ? <p className="checkin-error" role="alert">{error}</p> : null}
         {askPast ? <p className="status-confirm" role="alert">That&apos;s before today; this ends the book now. Continue?</p> : null}
         <div className="btn-row status-actions">

@@ -14,6 +14,7 @@ import { UNIT_LABELS, unitNumber } from "../../components/unitLabels";
 import { DEFAULT_MODE } from "../checkin/absorb";
 import "../checkin/checkin.css";
 import { usePlanRefresh } from "./planRefresh";
+import { copyRows, type CopyRow, OtherCopies } from "../schedule/OtherCopies";
 import { adjustRows, changesFor, END_DATE_CHOICES, stepAmount, type AdjustRow, type StoredOverride } from "./weekAdjust";
 
 const amountText = (r: AdjustRow, n: number) => `${unitNumber(n)} ${UNIT_LABELS[r.unitType][n === 1 ? "one" : "many"]}`;
@@ -28,9 +29,13 @@ export interface WeekAdjustmentProps {
   onSaved: () => void;
   /** S9-02: a row's Update status. Without it the rows have no such button. */
   onUpdateStatus?: (target: { assignmentId: string; title: string }) => void;
+  /** S18b-02: open this week's amount for a child on another workbook of the same book. */
+  onOpenAmount?: (childId: string) => void;
+  nameOf?: (id: string) => string;
+  daysOf?: (a: Assignment) => number[];
 }
 
-export function WeekAdjustment({ childId, weekStart, weekEnd, current, onSaved, onUpdateStatus }: WeekAdjustmentProps) {
+export function WeekAdjustment({ childId, weekStart, weekEnd, current, onSaved, onUpdateStatus, onOpenAmount, nameOf, daysOf }: WeekAdjustmentProps) {
   const plan = useApi<PlanResponse>(`/api/plan?from=${weekStart}&to=${weekEnd}`);
   const stored = useApi<{ overrides: StoredOverride[] }>(`/api/week-overrides?weekStart=${weekStart}`);
   const assignments = useApi<Assignment[]>("/api/assignments");
@@ -44,6 +49,11 @@ export function WeekAdjustment({ childId, weekStart, weekEnd, current, onSaved, 
   if (plan.error || stored.error) return <p className="checkin-error" role="alert">Couldn't load this week. Please try again.</p>;
   if (!plan.data || !stored.data) return <p aria-busy="true">Loading…</p>;
   const titleOf = (id: string) => assignments.data?.find((a) => a.id === id)?.title ?? "Assignment";
+  const copiesOf = (assignmentId: string): CopyRow[] => {
+    if (!onOpenAmount || !nameOf || !daysOf || !assignments.data) return [];
+    const a = assignments.data.find((x) => x.id === assignmentId);
+    return a ? copyRows(a, assignments.data, nameOf, daysOf) : [];
+  };
   const rows = adjustRows(plan.data.plans, childId, weekStart, weekEnd, stored.data.overrides, titleOf);
   if (rows.length === 0) return <p className="checkin-note">Nothing is planned for this child this week.</p>;
 
@@ -107,6 +117,9 @@ export function WeekAdjustment({ childId, weekStart, weekEnd, current, onSaved, 
                     Update status
                   </button>
                 )}
+                {copiesOf(r.assignmentId).length > 0 ? (
+                  <OtherCopies rows={copiesOf(r.assignmentId)} kinds={["amount"]} busy={busy} onAmount={(_row, id) => onOpenAmount?.(id)} />
+                ) : null}
                 {r.overrideId && (
                   <button type="button" className="checkin-undo" disabled={busy} onClick={() => toggleTaken(r)}
                     aria-label={`${isTaken ? "Keep the adjustment for" : "Back to plan for"} ${r.title}`}>

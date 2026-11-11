@@ -7,8 +7,10 @@
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { diffDays, isValidLocalDate } from "@hh/engine";
 import type { Assignment } from "../../api/types";
+import { useMe } from "../../auth/AuthProvider";
+import { startingCopyDays } from "./bookCopies";
 import { alreadyCopied, childAlreadyHas, chunkFailureText, copyCandidates, saveInChunks, shiftedCopy, yearName, type CopyBody } from "./copyPlan";
-import { dateRange } from "./formBits";
+import { dateRange, offeredDays, WeekdayPicker } from "./formBits";
 import type { Lookups } from "./lookups";
 import { DateField } from "../../ui/DateField";
 
@@ -167,6 +169,9 @@ export function CopyToChildPanel(p: CopyPanelProps) {
   const [subjectId, setSubjectId] = useState("");
   const [targetId, setTargetId] = useState("");
   const [newStart, setNewStart] = useState("");
+  /** S18b-02: null keeps each book's days. A list is the days every copy is given. */
+  const [copyDays, setCopyDays] = useState<number[] | null>(null);
+  const { schoolDays } = useMe();
   const ids = { source: useId(), subject: useId(), target: useId(), start: useId() };
   const { unticked, toggle, setUnticked } = useTicks();
   const activeChildren = l.children.filter((c) => !c.archived);
@@ -182,7 +187,7 @@ export function CopyToChildPanel(p: CopyPanelProps) {
   // The first ticked assignment keeps its place only when no new start is given; the others keep their offset from it.
   const first = picked.length ? picked.reduce((m, a) => (a.startDate < m ? a.startDate : m), picked[0]!.startDate) : null;
   const shift = first && isValidLocalDate(newStart) ? diffDays(first, newStart) : 0;
-  const everything: Row[] = listed.map((a) => ({ a, copy: shiftedCopy(a, shift, l, targetId ? [targetId] : [sourceId]) }));
+  const everything: Row[] = listed.map((a) => ({ a, copy: shiftedCopy(a, shift, l, targetId ? [targetId] : [sourceId], copyDays ?? undefined) }));
   // S7b-12: what the target child already has (on it, or an identical copy) is left out.
   const had = targetId ? everything.filter((r) => childAlreadyHas(r.a, r.copy, targetId, existing)) : [];
   const rows = everything.filter((r) => !had.includes(r));
@@ -198,7 +203,7 @@ export function CopyToChildPanel(p: CopyPanelProps) {
       {message ? <p className="form-error" role="alert">{message}</p> : null}
       <div className="field">
         <label htmlFor={ids.source}>Copy from</label>
-        <select id={ids.source} value={sourceId} onChange={(e) => { setSourceId(e.target.value); setSubjectId(""); setUnticked(new Set()); if (e.target.value === targetId) setTargetId(""); }}>
+        <select id={ids.source} value={sourceId} onChange={(e) => { setSourceId(e.target.value); setSubjectId(""); setUnticked(new Set()); setCopyDays(null); if (e.target.value === targetId) setTargetId(""); }}>
           <option value="">Choose a child…</option>
           {activeChildren.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
@@ -206,7 +211,7 @@ export function CopyToChildPanel(p: CopyPanelProps) {
       {sourceId ? (
         <div className="field">
           <label htmlFor={ids.subject}>Subject</label>
-          <select id={ids.subject} value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setUnticked(new Set()); }}>
+          <select id={ids.subject} value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setUnticked(new Set()); setCopyDays(null); }}>
             <option value="">All subjects</option>
             {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -232,6 +237,21 @@ export function CopyToChildPanel(p: CopyPanelProps) {
                 <DateField clearable id={ids.start} value={newStart} onChange={setNewStart} />
                 <p className="hint">The earliest one starts then; the rest keep their gaps.</p>
               </div>
+              {copyDays ? (
+                <>
+                  <WeekdayPicker legend="School days for the copies" offer={offeredDays(schoolDays, listed.flatMap((a) => a.weekdays ?? []))} value={copyDays}
+                    onChange={(days) => { if (days.length > 0) setCopyDays([...days].sort((x, y) => x - y)); }} />
+                  <p className="hint">Every copy uses these days. The books you copied from keep theirs.</p>
+                  <div className="field">
+                    <button className="btn btn-secondary" type="button" onClick={() => setCopyDays(null)}>Same days as each book</button>
+                  </div>
+                </>
+              ) : (
+                <div className="field">
+                  <button className="btn btn-secondary" type="button" onClick={() => setCopyDays(startingCopyDays((chosen.length ? chosen : shown).map((r) => r.a), schoolDays))}>Set the copies&apos; school days</button>
+                  <p className="hint">Each copy keeps that book&apos;s days until you set different ones. A copy is its own workbook.</p>
+                </div>
+              )}
               {tried && problem ? <p className="field-error" role="alert">{problem}</p> : null}
               <Buttons n={chosen.length} saving={saving} label="Copy" onCancel={onCancel} allTicked={unticked.size === 0}
                 onToggleAll={() => setUnticked(unticked.size === 0 ? new Set(shown.map((r) => r.a.id)) : new Set())} />

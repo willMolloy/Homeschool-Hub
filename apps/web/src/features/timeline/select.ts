@@ -30,14 +30,17 @@ export function selectionFor(model: TimelineModel, assignments: Assignment[], id
   const raw = assignments.find((a) => a.id === id);
   if (!raw) return null;
   let subject: string | null = null;
+  let daysLabel: string | undefined;
   const children: string[] = [];
   for (const s of model.lanes) {
     for (const c of s.children) {
-      if (!c.assignments.some((a) => a.assignmentId === id)) continue;
+      const hit = c.assignments.find((a) => a.assignmentId === id);
+      if (!hit) continue;
       subject ??= s.name;
+      daysLabel ??= hit.daysLabel;
       if (!children.includes(c.childName)) children.push(c.childName);
     }
   }
   if (subject === null) return null;
-  return { assignmentId: id, title: raw.title, subtitle: `${subject} · ${children.join(", ")}`, startDate: raw.startDate, endDate: raw.endDate };
+  return { assignmentId: id, title: raw.title, subtitle: `${subject} · ${children.join(", ")}${daysLabel ? ` · ${daysLabel}` : ""}`, startDate: raw.startDate, endDate: raw.endDate };
 }
