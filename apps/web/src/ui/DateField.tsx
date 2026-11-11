@@ -3,7 +3,8 @@
  * ("11/1/2026", "Nov 1, 2026" or "2026-11-01"), and the calendar button opens a small month grid below the field.
  * The value is always `YYYY-MM-DD`, or "" for no date. Use it inside a `<label>` or give it an `id` for a `<label htmlFor>`.
  */
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { CalendarBlank, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { isValidLocalDate } from "@hh/engine";
 import { deviceToday } from "../features/plan/useShownWeek";
@@ -28,6 +29,33 @@ export interface DateFieldProps {
 /** S9b-05 (N9): below this width the calendar is full width, EDGE px from each side of the screen (date-field.css). */
 export const NARROW = 360;
 export const EDGE = 4;
+/** S19-01: keep this much of the screen clear around a calendar that has been shifted to fit. */
+export const CAL_MARGIN = 8;
+
+export interface Box { left: number; right: number; top: number; bottom: number }
+
+/**
+ * S19-01: where the month grid sits so the whole of it, including Today, is on the screen.
+ * Shift it sideways until it fits. Open it upward when there is no room below the field.
+ * The result is viewport coordinates; the calendar is portaled so a panel cannot clip it.
+ */
+export function placeCalendar(field: Box, size: { width: number; height: number }, viewport: { width: number; height: number }, preferUp = false): { left: number; top: number; up: boolean } {
+  const { width, height } = size;
+  let left = viewport.width < NARROW ? EDGE : field.left;
+  const maxLeft = Math.max(0, viewport.width - width - (viewport.width < NARROW ? EDGE : CAL_MARGIN));
+  if (left > maxLeft) left = maxLeft;
+  if (left < (viewport.width < NARROW ? EDGE : 0)) left = viewport.width < NARROW ? EDGE : 0;
+
+  const gap = 6;
+  const below = viewport.height - field.bottom - gap;
+  const above = field.top - gap;
+  const up = preferUp || (below < height && above > below);
+  let top = up ? field.top - gap - height : field.bottom + gap;
+  const maxTop = Math.max(0, viewport.height - height - CAL_MARGIN);
+  if (top < CAL_MARGIN) top = Math.min(CAL_MARGIN, maxTop);
+  if (top > maxTop) top = maxTop;
+  return { left, top, up };
+}
 
 const WEEKDAY_HEADS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const shown = (v: string) => (isValidLocalDate(v) ? formatDate(v) : "");
@@ -38,24 +66,49 @@ export function DateField({ value, onChange, id, disabled, clearable, opens = "d
   const start = isValidLocalDate(value) ? value : deviceToday();
   const [view, setView] = useState({ year: Number(start.slice(0, 4)), month: Number(start.slice(5, 7)) });
   const root = useRef<HTMLSpanElement>(null);
+  const openBtn = useRef<HTMLButtonElement>(null);
+  const gaveFocus = useRef(false);
   const calId = useId();
   const panel = useRef<HTMLDivElement>(null);
-  const [align, setAlign] = useState<"start" | "end">("start");
-  /** S9b-05 (N9): under 360 px the calendar spans the screen (4 px a side); this is its left, from the field's left edge. */
-  const [shift, setShift] = useState<number | null>(null);
+  const [placed, setPlaced] = useState<{ left: number; top: number; up: boolean } | null>(null);
 
-  // The calendar is as wide as a phone allows (up to 21rem) and hangs from the field's left edge, or its right edge when
-  // that would pass the screen or the sheet it is in (the End field in a two-column row).
-  useLayoutEffect(() => {
-    if (!open || !root.current) return;
+  // S19-01: measure the grid, then pin it to the viewport so the right-hand panel and a phone sheet cannot clip a day.
+  const position = useCallback(() => {
+    if (!root.current || !panel.current) return;
     const field = root.current.getBoundingClientRect();
-    const box = (root.current.closest("[data-sheet]") ?? document.documentElement).getBoundingClientRect();
-    const right = Math.min(box.right, window.innerWidth) - 16;
-    const width = Math.min(336, window.innerWidth - 32);
-    setAlign(field.left + width > right ? "end" : "start");
-    setShift(window.innerWidth < NARROW ? EDGE - field.left : null);
-    panel.current?.scrollIntoView?.({ block: "nearest" });
-  }, [open]);
+    if (field.bottom < 0 || field.top > window.innerHeight) {
+      setOpen(false);
+      return;
+    }
+    const size = panel.current.getBoundingClientRect();
+    setPlaced(placeCalendar(field, { width: size.width, height: size.height }, { width: window.innerWidth, height: window.innerHeight }, opens === "up"));
+  }, [opens]);
+  useLayoutEffect(() => {
+    if (!open) return;
+    position();
+  }, [open, position, view.year, view.month]);
+  // L3: a phone sheet scrolls under the fixed calendar. Follow the field, or close when it has left the screen.
+  useEffect(() => {
+    if (!open) return;
+    document.addEventListener("scroll", position, true);
+    window.addEventListener("resize", position);
+    return () => {
+      document.removeEventListener("scroll", position, true);
+      window.removeEventListener("resize", position);
+    };
+  }, [open, position]);
+  // L2: the calendar is portaled after the form, so tab would reach it only after every later control.
+  // Focus once it is on screen. A hidden grid cannot take focus, and a later scroll must not pull it back.
+  useEffect(() => {
+    if (!open) {
+      gaveFocus.current = false;
+      return;
+    }
+    if (!placed || !panel.current || gaveFocus.current) return;
+    const day = panel.current.querySelector<HTMLElement>("[aria-pressed='true']") ?? panel.current.querySelector<HTMLElement>(".date-cal-foot button");
+    day?.focus();
+    if (panel.current.contains(document.activeElement)) gaveFocus.current = true;
+  }, [open, placed, view.year, view.month]);
 
   // A value changed from outside (a reset, a calendar pick) replaces the text, but never while the typed text already means it.
   useEffect(() => {
@@ -64,10 +117,15 @@ export function DateField({ value, onChange, id, disabled, clearable, opens = "d
 
   useEffect(() => {
     if (!open) return;
-    const away = (e: Event) => { if (root.current && !root.current.contains(e.target as Node)) setOpen(false); };
+    const away = (e: Event) => {
+      const t = e.target as Node;
+      if (root.current?.contains(t) || panel.current?.contains(t)) return;
+      setOpen(false);
+    };
     document.addEventListener("pointerdown", away);
     return () => document.removeEventListener("pointerdown", away);
   }, [open]);
+  useEffect(() => { if (!open) setPlaced(null); }, [open]);
 
   const type = (text: string, focused: boolean) => {
     // Typed text is kept as typed while the field has focus; pasted or filled-in text is tidied at once.
@@ -78,12 +136,14 @@ export function DateField({ value, onChange, id, disabled, clearable, opens = "d
   };
   /** Leaving the field tidies a good date to "Nov 1, 2026" and puts back the last good one when the text means nothing. */
   const settle = () => setDraft(shown(value));
-  const pick = (d: string) => { onChange(d); setDraft(formatDate(d)); setOpen(false); };
+  const pick = (d: string) => { onChange(d); setDraft(formatDate(d)); setOpen(false); openBtn.current?.focus(); };
   const toggle = () => {
     if (!open) setView({ year: Number(start.slice(0, 4)), month: Number(start.slice(5, 7)) });
     setOpen(!open);
   };
-  const keys = (e: KeyboardEvent) => { if (e.key === "Escape" && open) { e.stopPropagation(); setOpen(false); } };
+  const keys = (e: KeyboardEvent) => {
+    if (e.key === "Escape" && open) { e.stopPropagation(); setOpen(false); openBtn.current?.focus(); }
+  };
   const today = deviceToday();
 
   return (
@@ -91,13 +151,15 @@ export function DateField({ value, onChange, id, disabled, clearable, opens = "d
       <span className="date-field-box">
         <input id={id} type="text" inputMode="text" autoComplete="off" placeholder="Choose a date" value={draft} disabled={disabled}
           onChange={(e) => type(e.target.value, document.activeElement === e.target)} onBlur={settle} {...aria} />
-        <button type="button" className="date-field-open" aria-label="Choose a date" aria-expanded={open} aria-controls={open ? calId : undefined} disabled={disabled} onClick={toggle}>
+        <button ref={openBtn} type="button" className="date-field-open" aria-label="Choose a date" aria-expanded={open} aria-controls={open ? calId : undefined} disabled={disabled} onClick={toggle}>
           <CalendarBlank size={22} weight="light" aria-hidden="true" />
         </button>
       </span>
-      {open ? (
-        <div id={calId} ref={panel} className={["date-cal", opens === "up" ? "date-cal-up" : "", align === "end" ? "date-cal-end" : ""].filter(Boolean).join(" ")}
-          style={shift === null ? undefined : { left: shift, right: "auto" }} role="group" aria-label="Calendar">
+      {open ? createPortal(
+        <div id={calId} ref={panel} data-date-calendar="" className="date-cal date-cal-fixed" role="dialog" aria-modal="false" aria-label="Calendar"
+          style={{ left: placed?.left ?? 0, top: placed?.top ?? 0, visibility: placed ? "visible" : "hidden" }}
+          data-opens={placed?.up ? "up" : "down"}
+          onKeyDown={keys}>
           <div className="date-cal-head">
             <button type="button" className="date-cal-nav" aria-label="Previous month" onClick={() => setView(shiftMonth(view.year, view.month, -1))}><CaretLeft size={20} weight="light" aria-hidden="true" /></button>
             <span className="date-cal-title" aria-live="polite">{MONTH_NAMES[view.month - 1]} {view.year}</span>
@@ -115,7 +177,8 @@ export function DateField({ value, onChange, id, disabled, clearable, opens = "d
             <button type="button" className="btn btn-quiet" onClick={() => pick(today)}>Today</button>
             {clearable && value ? <button type="button" className="btn btn-quiet" onClick={() => { onChange(""); setDraft(""); setOpen(false); }}>Clear</button> : null}
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </span>
   );

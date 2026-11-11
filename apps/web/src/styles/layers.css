@@ -9,5 +9,7 @@
   --z-toast: 30;
   --z-sheet: 50;
   --z-dialog: 60;
+  /* S19-01: the date calendar is portaled onto the page so a sheet cannot clip it. It sits over that sheet. */
+  --z-overlay: 70;
   --z-skip: 100;
 }

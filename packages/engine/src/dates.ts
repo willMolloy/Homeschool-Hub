@@ -80,6 +80,14 @@ export function diffDays(a: LocalDate, b: LocalDate): number {
   return toDayNumber(b) - toDayNumber(a);
 }
 
+/** S19-06: a break of a week or longer is this many calendar days, counting the first and the last. */
+export const LONG_BREAK_DAYS = 7;
+
+/** True when the first day through the last day is a week or longer. */
+export function isLongBreak(start: LocalDate, end: LocalDate): boolean {
+  return diffDays(start, end) + 1 >= LONG_BREAK_DAYS;
+}
+
 /** 0 = Sunday ... 6 = Saturday (same convention as Date#getDay and Postgres EXTRACT(DOW)). */
 export function weekdayOfDayNumber(n: number): Weekday {
   return ((((n + 4) % 7) + 7) % 7) as Weekday; // 1970-01-01 was a Thursday

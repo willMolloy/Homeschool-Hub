@@ -4,7 +4,7 @@ import { BLOCKED_KINDS, humanList } from "@hh/engine";
 import { z } from "zod";
 import { HttpError } from "../http/errors";
 import { withTransaction, type Tx } from "../db";
-import { checkDateOrder, IdList, LocalDate, MAX_BLOCKED_DAYS } from "../http/scheduleLimits";
+import { checkDateOrder, IdList, LocalDate, MAX_BLOCKED_DAYS, requireBreakName } from "../http/scheduleLimits";
 import { parseBody, UUID_RE } from "../http/validate";
 import {
   createBlockedRange, deleteBlockedRange, getBlockedRange, listBlockedRanges, lockBlockedRange, toBlockedRangeJson, updateBlockedRange, type BlockedRangeRow,
@@ -68,6 +68,7 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
   app.post("/api/blocked-ranges", async (req, reply) => {
     const b = parseBody(CreateBody, req.body);
     checkDateOrder(b.startDate, b.endDate, MAX_BLOCKED_DAYS);
+    requireBreakName(b.startDate, b.endDate, b.label);
     const row = await withTransaction(app.db, async (c) => {
       const created = await createOne(c, req.familyId, b);
       await recordUndo(c, req.familyId, "Added a day off", [{ op: "blockedRange", id: created.id, set: null }]);
@@ -84,6 +85,7 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
       items.push(await atPosition(i + 1, () => {
         const b = parseBody(CreateBody, raw);
         checkDateOrder(b.startDate, b.endDate, MAX_BLOCKED_DAYS);
+        requireBreakName(b.startDate, b.endDate, b.label);
         return b;
       }));
     }
@@ -103,7 +105,10 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
     const row = await withTransaction(app.db, async (c) => {
       const cur = await lockBlockedRange(c, req.familyId, req.params.id);
       if (!cur) throw notFound();
-      checkDateOrder(p.startDate ?? cur.start_date, p.endDate ?? cur.end_date, MAX_BLOCKED_DAYS);
+      const startDate = p.startDate ?? cur.start_date;
+      const endDate = p.endDate ?? cur.end_date;
+      checkDateOrder(startDate, endDate, MAX_BLOCKED_DAYS);
+      requireBreakName(startDate, endDate, p.label !== undefined ? p.label : cur.label);
       // Children already linked may stay even if archived since (the forms keep them ticked); new ones must be active.
       await checkRefs(c, req.familyId, { childIds: (p.childIds ?? []).filter((id) => !cur.child_ids.includes(id)) });
       await updateBlockedRange(c, req.familyId, cur.id, p);

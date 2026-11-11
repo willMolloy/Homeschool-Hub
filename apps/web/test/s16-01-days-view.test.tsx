@@ -105,10 +105,11 @@ describe("the Days view (S16-01)", () => {
     const onPaper = new Set<string>();
     for (const sheet of sheets) {
       const child = within(sheet).getByRole("heading", { level: 1 }).textContent!;
-      for (const a of sheet.querySelectorAll(".sheet-assignment")) {
-        const title = a.querySelector("h3")!.textContent!;
-        for (const li of a.querySelectorAll("li")) {
-          const [day, range] = [li.querySelector(".sheet-day")!.textContent!, li.querySelector(".sheet-range")?.textContent?.replace(/^ · /, "") ?? "-"];
+      for (const block of sheet.querySelectorAll(".sheet-day-block")) {
+        const day = block.querySelector("h2")!.textContent!.slice(0, 3);
+        for (const a of block.querySelectorAll(".sheet-assignment")) {
+          const title = a.querySelector("h3")!.textContent!;
+          const range = a.querySelector(".sheet-range")?.textContent?.replace(/^·\s*/, "") ?? "-";
           onPaper.add(`${child}|${day}|${title}|${range}`);
         }
       }

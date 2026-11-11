@@ -247,7 +247,7 @@ describe("the undo bar after other changes", () => {
     await user.click(await screen.findByRole("button", { name: "Add days off" }));
     const form = screen.getByRole("form", { name: "Add days off" });
     fireEvent.change(within(form).getByLabelText("First day"), { target: { value: "2026-12-21" } });
-    fireEvent.change(within(form).getByLabelText("Last day"), { target: { value: "2027-01-01" } });
+    fireEvent.change(within(form).getByLabelText("Last day"), { target: { value: "2026-12-23" } });
     offer("Added a day off");
     await user.click(within(form).getByRole("button", { name: "Add" }));
     expect(await screen.findByText("Added a day off.")).toBeInTheDocument();

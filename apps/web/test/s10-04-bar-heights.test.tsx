@@ -39,7 +39,7 @@ describe("the height formula", () => {
   it("is named and tunable in one place", () => {
     expect(BAR_H_MIN).toEqual({ phone: 8, desktop: 8 });
     expect(BAR_H_MAX).toEqual({ phone: 28, desktop: 32 });
-    expect(BAR_CURVE).toBe(1.5);
+    expect(BAR_CURVE).toBe(0.45);
     expect(VIEW_MAX_PERCENTILE).toBe(0.95);
     expect([PHONE_METRICS.barMin, PHONE_METRICS.barMax, DESKTOP_METRICS.barMin, DESKTOP_METRICS.barMax]).toEqual([8, 28, 8, 32]);
     expect([PHONE_METRICS.ribbonMin, PHONE_METRICS.ribbonMax, DESKTOP_METRICS.ribbonMin, DESKTOP_METRICS.ribbonMax]).toEqual([RIBBON_H_MIN.phone, RIBBON_H_MAX.phone, RIBBON_H_MIN.desktop, RIBBON_H_MAX.desktop]);

@@ -78,7 +78,7 @@ describe("the Year timeline page", () => {
     const paths = svg.querySelectorAll("path.tl-band");
     expect(paths.length).toBe(expected.bands.filter((b) => b.d).length);
     expect(paths.length).toBeGreaterThan(10);
-    for (const p of paths) expect((p as SVGPathElement).style.fill).toMatch(/^var\(--tl-subject-\d+(-light|-dark)?\)$/);
+    for (const p of paths) expect((p as SVGPathElement).style.fill).toMatch(/^color-mix\(in srgb, var\(--tl-subject-\d+(-light|-dark)?-strong\) \d+%, var\(--tl-subject-\d+(-light|-dark)?\)\)$/);
     // S8-07: no names on the picture: each lane has a badge in the gutter, named for its subject (and child).
     expect(svg.querySelectorAll("text.tl-lane-label")).toHaveLength(0);
     const badges = [...svg.closest(".tl-wrap")!.querySelectorAll("button.tl-badge")].map((b) => b.getAttribute("aria-label"));

@@ -26,7 +26,7 @@ describe.skipIf(!hasDb)("/api/blocked-ranges (integration)", () => {
     await req("PATCH", `/api/children/${kids[2]}`, { archived: true });
     const f = await rosterFor(app, b.cookies, ["Theirs"], []);
     foreignKid = f.childIds[0]!;
-    foreignRange = (await inject(app, b.cookies)("POST", "/api/blocked-ranges", { startDate: "2026-12-21", endDate: "2027-01-01" })).json().id;
+    foreignRange = (await inject(app, b.cookies)("POST", "/api/blocked-ranges", { startDate: "2026-12-21", endDate: "2026-12-23" })).json().id;
   });
   afterAll(async () => {
     await app.close();
@@ -109,7 +109,7 @@ describe.skipIf(!hasDb)("/api/blocked-ranges (integration)", () => {
   });
 
   it("366 days is allowed (counting both ends)", async () => {
-    const res = await req("POST", "/api/blocked-ranges", { startDate: "2028-01-01", endDate: "2028-12-31" });
+    const res = await req("POST", "/api/blocked-ranges", { label: "A long break", startDate: "2028-01-01", endDate: "2028-12-31" });
     expect(res.statusCode).toBe(201);
     await req("DELETE", `/api/blocked-ranges/${res.json().id}`);
   });

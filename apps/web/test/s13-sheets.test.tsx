@@ -7,7 +7,7 @@ import { ENGINE_VERSION, planAll, type Assignment as EngineAssignment, type Bloc
 import type { Assignment, BlockedRange, Child, Subject } from "../src/api/types";
 import { defaultDay } from "../src/features/print/PrintSheets";
 import { parsePrintParams, printUrl } from "../src/features/print/printUrl";
-import { buildSheet, breakNames, type SheetLookups } from "../src/features/print/sheetModel";
+import { buildSheet, breakNames, weeklyLetterPages, type SheetLookups } from "../src/features/print/sheetModel";
 import { plannedRange, plannedRangeBetween } from "../src/features/week/weekBars";
 import { fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
@@ -182,6 +182,32 @@ describe("the weekly sheet (S13-02)", () => {
     expect(piano.rows).toHaveLength(5);
     expect(piano.rows.every((r) => r.range === null)).toBe(true);
   });
+  it("a week is grouped by school day, and a single day is not (S19-05)", () => {
+    const frank = buildSheet(KIDS[0]!, plans(), "2026-11-02", "2026-11-08", lookups(), BLOCKED_ROWS, [1, 2, 3, 4, 5]);
+    expect(frank.days.map((d) => d.name)).toEqual(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
+    const ti = frank.subjects.find((s) => s.name === "Literature")!.assignments[0]!;
+    expect(frank.days[0]!.lines.find((l) => l.title === "Treasure Island")!.range).toBe(ti.rows[0]!.range);
+    expect(frank.days[1]!.lines.find((l) => l.title === "Treasure Island")!.range).toBe(ti.rows[1]!.range);
+    expect(frank.days[0]!.lines.map((l) => l.subject)).toEqual(["Literature", "Music"]);
+    expect(frank.days[0]!.lines.find((l) => l.title === "Piano practice")!.range).toBeNull();
+    expect(JSON.stringify(frank.days)).not.toMatch(/minute/i);
+    const off = buildSheet(KIDS[0]!, plans(), "2026-11-23", "2026-11-29", lookups(), BLOCKED_ROWS, [1, 2, 3, 4, 5]);
+    expect(off.days.find((d) => d.name === "Thursday")!.off).toBe("Thursday · Thanksgiving break");
+    expect(off.days.find((d) => d.name === "Monday")!.off).toBeNull();
+    expect(off.days.find((d) => d.name === "Thursday")!.lines).toEqual([]);
+    const one = buildSheet(KIDS[0]!, plans(), "2026-11-03", "2026-11-03", lookups(), BLOCKED_ROWS, [1, 2, 3, 4, 5]);
+    expect(one.days).toEqual([]);
+    // Tester M2: a heavy week (about a seeded child, and a fuller one) stays on two Letter pages.
+    const heavy = Array.from({ length: 5 }, (_, i) => ({
+      lines: Array.from({ length: 12 }, () => ({})),
+      off: i === 2 ? "Wednesday · Thanksgiving break" : null,
+    }));
+    expect(weeklyLetterPages(frank.days)).toBeLessThanOrEqual(2);
+    expect(weeklyLetterPages(heavy)).toBeLessThanOrEqual(2);
+    const printCss = readFileSync("src/features/print/print.css", "utf8");
+    expect(printCss).toMatch(/@media print[\s\S]*\.sheet-assignment-day \{[^}]*min-height: 0/);
+    expect(one.subjects.find((s) => s.name === "Literature")!.assignments[0]!.rows).toHaveLength(1);
+  });
   it("subjects come in the family's order, assignments by title", () => {
     const frank = buildSheet(KIDS[0]!, plans(), "2026-11-02", "2026-11-08", lookups(), BLOCKED_ROWS, [1, 2, 3, 4, 5]);
     expect(frank.subjects.map((s) => s.name)).toEqual(["Literature", "Music"]);
@@ -201,12 +227,14 @@ describe("the print pages (S13-01, S13-02, S13-03)", () => {
     const text = document.body.textContent ?? "";
     expect(text).not.toMatch(/minute|\bmin\b|effort|heavy|light/i);
     const frank = within(sheets[0]!);
-    expect(frank.getByText("Treasure Island")).toBeInTheDocument();
+    expect(frank.getAllByText("Treasure Island")).toHaveLength(5);
     expect(frank.getAllByText(/pages 2\d\d–2\d\d/)).toHaveLength(5);
+    expect(frank.getByRole("heading", { name: "Monday" })).toBeInTheDocument();
+    expect(frank.getByRole("heading", { name: "Friday" })).toBeInTheDocument();
     // S15-00 (N2): the notes block is a heading in the sheet, not a second landmark.
     expect(frank.getByRole("heading", { name: "Notes" })).toBeInTheDocument();
     expect(screen.getAllByRole("region")).toHaveLength(2); // one landmark per child sheet, none for the notes
-    expect(within(sheets[1]!).getByText("Math 5")).toBeInTheDocument();
+    expect(within(sheets[1]!).getAllByText("Math 5")).toHaveLength(3);
     expect(within(sheets[1]!).queryByText("Treasure Island")).not.toBeInTheDocument();
   });
   it("a chosen child only; a date inside the week is that week", async () => {
@@ -218,9 +246,9 @@ describe("the print pages (S13-01, S13-02, S13-03)", () => {
   it("a break week says the break once, and drops the days off", async () => {
     renderAt("/print/week?week=2026-11-23&children=c1");
     const sheet = (await screen.findAllByRole("region", { name: /week of Nov 23, 2026/i }))[0]!;
-    expect(within(sheet).getAllByText("Thanksgiving break")).toHaveLength(1);
-    const text = sheet.textContent ?? "";
-    expect(text).not.toMatch(/Thu|Fri/);
+    expect(within(sheet).getByText("Thursday · Thanksgiving break")).toBeInTheDocument();
+    expect(within(sheet).getByText("Friday · Thanksgiving break")).toBeInTheDocument();
+    expect(within(sheet).getAllByText(/pages/)).toHaveLength(3);
   });
   it("the daily sheet: only that weekday's work, each with its range", async () => {
     renderAt("/print/day?date=2026-11-03&children=all");

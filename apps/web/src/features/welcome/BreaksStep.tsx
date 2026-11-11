@@ -13,7 +13,7 @@ import { useMe } from "../../auth/AuthProvider";
 import { Button } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
 import { dateRangeError, saveError } from "../schedule/formBits";
-import { breakDates, leaveOutExisting, type PlannedBreak } from "../schedule/templates";
+import { breakDates, breakSaveBody, leaveOutExisting, type PlannedBreak } from "../schedule/templates";
 import { StepHeading, useStep } from "./stepContext";
 import { currentSchoolYear } from "./yearShapes";
 import "../schedule/schedule.css";
@@ -51,7 +51,7 @@ function BreaksForm({ saved }: { saved: { start: string; end: string } | null })
       // A break that is already a day off for the whole family is not added twice.
       const { add } = leaveOutExisting(planned, await apiGet<BlockedRange[]>("/api/blocked-ranges"));
       if (add.length > 0) {
-        await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges: add.map((b) => ({ label: b.label, kind: b.kind, startDate: b.start, endDate: b.end, childIds: [] })) });
+        await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges: add.map(breakSaveBody) });
       }
       await next({ setupDeferred: rest(null) });
     } catch (err) {

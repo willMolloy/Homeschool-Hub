@@ -13,25 +13,29 @@ export function ChildSheetView({ sheet, kind, heading, dayWord, child }: { sheet
         <h1>{sheet.childName}</h1>
         <p className="sheet-when">{heading}</p>
       </header>
-      {sheet.breaks.map((b) => <p key={b} className="sheet-break">{b}</p>)}
-      {isEmpty(sheet) ? (
-        <p className="sheet-empty">{kind === "week" ? "Nothing planned this week." : `Nothing planned for ${dayWord}`}</p>
+      {kind === "week" ? null : sheet.breaks.map((b) => <p key={b} className="sheet-break">{b}</p>)}
+      {kind === "week" ? (
+        sheet.days.map((day) => (
+          <section key={day.date} className="sheet-day-block">
+            <h2>{day.name}</h2>
+            {day.off ? <p className="sheet-break">{day.off}</p> : null}
+            {day.lines.length === 0 && !day.off ? <p className="sheet-empty">Nothing planned.</p> : null}
+            {day.lines.map((line, i) => (
+              <div key={`${line.subject}-${line.title}-${i}`} className="sheet-assignment sheet-assignment-day">
+                <span className="sheet-box" aria-hidden="true" />
+                <span className="sheet-subject-name">{line.subject}</span>
+                <h3>{line.title}</h3>
+                {line.range ? <span className="sheet-range">· {line.range}</span> : null}
+              </div>
+            ))}
+          </section>
+        ))
+      ) : isEmpty(sheet) ? (
+        <p className="sheet-empty">{`Nothing planned for ${dayWord}`}</p>
       ) : sheet.subjects.map((s) => (
         <section key={s.subjectId ?? "other"} className="sheet-subject" style={{ "--sheet-subject": `var(--tl-subject-${s.slot}-strong)` } as React.CSSProperties}>
           <h2>{s.name}</h2>
-          {s.assignments.map((a) => kind === "week" ? (
-            <div key={a.assignmentId} className="sheet-assignment">
-              <h3>{a.title}</h3>
-              <ul>
-                {a.rows.map((r) => (
-                  <li key={r.date}>
-                    <span className="sheet-box" aria-hidden="true" />
-                    <span><span className="sheet-day">{r.day}</span>{r.range ? <span className="sheet-range"> · {r.range}</span> : null}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
+          {s.assignments.map((a) => (
             <div key={a.assignmentId} className="sheet-assignment sheet-assignment-day">
               <span className="sheet-box" aria-hidden="true" />
               <h3>{a.title}</h3>

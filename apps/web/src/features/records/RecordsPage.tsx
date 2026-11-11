@@ -103,10 +103,10 @@ export function RecordsPage() {
       {kids.length === 0 ? (
         <EmptyState text={readOnly ? "No children yet." : "Add a child first: each entry in your log is for a child."} action={readOnly ? undefined : <Link className="btn" to="/setup/children">Add a child</Link>} />
       ) : entries.data.length === 0 ? (
-        <EmptyState text="Nothing logged yet." action={readOnly ? undefined : <Button onClick={() => setLogging("new")}>Log</Button>} />
+        <EmptyState text="Nothing logged yet." action={readOnly ? undefined : <Button variant="secondary" onClick={() => setLogging("new")}>Log</Button>} />
       ) : (
         <>
-          <div className="records-actions">{readOnly ? null : <Button onClick={() => setLogging("new")}>Log</Button>}<Button variant="secondary" onClick={() => setExporting(true)}>Export</Button>
+          <div className="records-actions">{readOnly ? null : <Button variant="secondary" onClick={() => setLogging("new")}>Log</Button>}<Button variant="secondary" onClick={() => setExporting(true)}>Export</Button>
             <Link className="btn btn-secondary" to={`/records/review?${new URLSearchParams({ ...(rangeKey !== "dates" && rangeKey !== "week" ? { range: rangeKey } : {}), ...(choice ? { child: choice } : {}) }).toString()}`}>Term in review</Link></div>
           <ChildSwitch kids={kids} value={choice} onChange={setChoice} />
           <div className="range-chips" role="group" aria-label="Range">

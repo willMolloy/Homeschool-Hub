@@ -96,7 +96,7 @@ describe("the look", () => {
     stub();
     const { svg } = await openYear();
     const band = svg.querySelector("path.tl-band") as SVGPathElement;
-    expect(band.style.fill).toMatch(/^var\(--tl-subject-\d+(-light|-dark)?\)$/);
+    expect(band.style.fill).toMatch(/^color-mix\(in srgb, var\(--tl-subject-\d+(-light|-dark)?-strong\) \d+%, var\(--tl-subject-\d+(-light|-dark)?\)\)$/);
     expect(band.style.stroke).toMatch(/^var\(--tl-subject-\d+-strong\)$/);
     expect(rule(".tl-band")).toMatch(/stroke-width: 1;/);
     expect(rule(".tl-band")).toMatch(/stroke-opacity: 0\.4;/);

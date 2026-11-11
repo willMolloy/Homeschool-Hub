@@ -3,7 +3,7 @@
  * numeric columns (numeric(10,2), numeric(6,2), numeric(4,3)), so bad input is a 400, never a 500.
  * See tester finding T-ENG-2 (Infinity from absurd units).
  */
-import { humanList, isValidLocalDate, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, toDayNumber, UNIT_TYPES, WEIGHT_DECIMALS } from "@hh/engine";
+import { humanList, isLongBreak, isValidLocalDate, MAX_WEIGHT_PER_UNIT, MIN_WEIGHT_PER_UNIT, toDayNumber, UNIT_TYPES, WEIGHT_DECIMALS } from "@hh/engine";
 import { z } from "zod";
 import { HttpError } from "./errors";
 import { UUID_RE } from "./validate";
@@ -86,6 +86,13 @@ export function checkDateOrder(start: string, end: string, maxDays: number): voi
   const span = toDayNumber(end) - toDayNumber(start) + 1;
   if (span < 1) throw new HttpError(400, "invalid_range", "The end date must be on or after the start date.");
   if (span > maxDays) throw new HttpError(400, "invalid_range", `That range is ${span} days; the most allowed is ${maxDays}.`);
+}
+
+/** S19-06: a break of a week or longer will not save without a name. A shorter one may stay unnamed. */
+export function requireBreakName(start: string, end: string, label: string | null | undefined): void {
+  if (isLongBreak(start, end) && (label == null || label.trim() === "")) {
+    throw new HttpError(400, "invalid_body", "A break of a week or longer needs a name.");
+  }
 }
 
 /** S2b-24: a check-in position, cumulative units (≤ the total is checked against the assignment). */

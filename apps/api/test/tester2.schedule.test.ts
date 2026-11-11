@@ -164,8 +164,8 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       expect(r.statusCode).toBe(400);
       expect(r.json().error).toBe("invalid_range");
       expect((await post({ startDate: "2026-11-02", endDate: "2026-11-02" })).statusCode).toBe(201);
-      expect((await F.req("POST", "/api/blocked-ranges", { startDate: "2028-01-01", endDate: "2028-12-31" })).statusCode).toBe(201); // leap year: 366
-      expect((await F.req("POST", "/api/blocked-ranges", { startDate: "2027-01-01", endDate: "2028-01-01" })).statusCode).toBe(201); // 366
+      expect((await F.req("POST", "/api/blocked-ranges", { label: "A long break", startDate: "2028-01-01", endDate: "2028-12-31" })).statusCode).toBe(201); // leap year: 366
+      expect((await F.req("POST", "/api/blocked-ranges", { label: "A long break", startDate: "2027-01-01", endDate: "2028-01-01" })).statusCode).toBe(201); // 366
       expect((await F.req("POST", "/api/blocked-ranges", { startDate: "2027-01-01", endDate: "2028-01-02" })).statusCode).toBe(400);
     });
 
@@ -270,8 +270,9 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
     });
 
     it("blocked-range labels: blank → null, null clears, 60 ok, 61 no, NUL no", async () => {
-      const b = (await F.req("POST", "/api/blocked-ranges", { label: "   ", startDate: "2026-12-21", endDate: "2026-12-31", kind: "holiday" })).json();
+      const b = (await F.req("POST", "/api/blocked-ranges", { label: "   ", startDate: "2026-12-21", endDate: "2026-12-23", kind: "holiday" })).json();
       expect(b.label).toBeNull();
+      expect((await F.req("POST", "/api/blocked-ranges", { label: "  ", startDate: "2026-12-21", endDate: "2026-12-27", kind: "holiday" })).statusCode).toBe(400);
       expect((await F.req("PATCH", `/api/blocked-ranges/${b.id}`, { label: "x".repeat(60) })).json().label).toHaveLength(60);
       expect((await F.req("PATCH", `/api/blocked-ranges/${b.id}`, { label: null })).json().label).toBeNull();
       expect((await F.req("PATCH", `/api/blocked-ranges/${b.id}`, { label: "x".repeat(61) })).statusCode).toBe(400);
@@ -443,7 +444,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
         capacityFraction: j.capacityFraction, subjectRules: { ...j.subjectRules }, defaultRule: j.defaultRule });
       return j.id as string;
     };
-    const addBlocked = async (body: { startDate: string; endDate: string; childIds?: string[] }) => {
+    const addBlocked = async (body: { startDate: string; endDate: string; childIds?: string[]; label?: string }) => {
       const res = await F.req("POST", "/api/blocked-ranges", body);
       expect(res.statusCode).toBe(201);
       const j = res.json();
@@ -470,7 +471,7 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
       await addEvent({ name: "Until mid", weekdays: [1, 2, 3, 4, 5], startDate: null, endDate: "2026-11-13", defaultRule: "skip", subjectRules: { [math]: "normal" }, childIds: [cy] });
       // overlapping days off: whole-family week, a Ben-only range overlapping it, a duplicate of the first, and one on a weekend
       await addBlocked({ startDate: "2026-11-23", endDate: "2026-11-27" });
-      await addBlocked({ startDate: "2026-11-25", endDate: "2026-12-02", childIds: [ben] });
+      await addBlocked({ startDate: "2026-11-25", endDate: "2026-12-02", childIds: [ben], label: "Ben's week" });
       await addBlocked({ startDate: "2026-11-23", endDate: "2026-11-27" });
       await addBlocked({ startDate: "2026-11-14", endDate: "2026-11-15", childIds: [cy, ava] });
     });

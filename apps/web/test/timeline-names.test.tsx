@@ -175,7 +175,8 @@ describe("names in the layout", () => {
     expect(split.length).toBeGreaterThan(0);
     for (const b of split) {
       const named = l.names.filter((n) => n.rowKey === b.rowKey && n.assignmentId === b.assignmentId).map((n) => n.piece);
-      expect(named).toContain(1);
+      // S19-06: weekends are columns at This month, so the piece after a break is not always index 1. A later piece is still named.
+      expect(named.some((i) => i > 0)).toBe(true);
     }
   });
 

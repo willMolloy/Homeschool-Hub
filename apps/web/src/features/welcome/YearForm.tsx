@@ -13,7 +13,7 @@ import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { formatDate } from "../../lib/dates";
 import { DateField } from "../../ui/DateField";
 import { dateRangeError, saveError } from "../schedule/formBits";
-import { MAX_YEAR_DAYS, leaveOutExisting } from "../schedule/templates";
+import { MAX_YEAR_DAYS, breakSaveBody, leaveOutExisting } from "../schedule/templates";
 import { SHAPES, planYear, previewLine, zoomViewsFor, type ShapeId } from "./yearShapes";
 
 export interface YearFormProps {
@@ -70,7 +70,7 @@ export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onS
       // Breaks first: if the save after them fails, trying again leaves out the days off that are already there.
       const { add } = leaveOutExisting(plan.breaks, (await apiGet<BlockedRange[]>("/api/blocked-ranges")));
       if (add.length > 0) {
-        await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges: add.map((b) => ({ label: b.label, kind: b.kind, startDate: b.start, endDate: b.end, childIds: [] })) });
+        await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges: add.map(breakSaveBody) });
       }
       const zoom = zoomViewsFor(plan, (await apiGet<FamilySettings>("/api/family")).zoomViews, saved?.shape ?? null);
       await onSave({ schoolYear: { start, end, shape }, ...(zoom ? { zoomViews: zoom } : {}), setupDeferred: rest });

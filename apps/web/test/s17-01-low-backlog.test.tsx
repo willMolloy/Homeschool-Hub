@@ -216,11 +216,13 @@ describe("7. N2: a thin row's name sits just above it at This month", () => {
     expect(poetry[0]!.textX).toBeGreaterThanOrEqual(first.x0 - 0.5);
     expect(poetry[0]!.textX).toBeLessThanOrEqual(first.x0 + 1);
     expect(row.labelLane).toBeGreaterThan(0);
+    // S19-06: This month draws the regular days off, so each school day is its own narrow piece and the name sits above it.
     const math = layout.names.filter((n) => n.assignmentId === "math");
     expect(math.length).toBeGreaterThan(0);
-    expect(math.every((n) => !n.outside)).toBe(true);
+    expect(math.every((n) => n.outside)).toBe(true);
     const mathRow = layout.rows.find((r) => r.key === layout.bands.find((b) => b.assignmentId === "math")!.rowKey)!;
-    expect(mathRow.labelLane).toBe(0);
+    expect(mathRow.labelLane).toBe(ABOVE_NAME_PX);
+    expect(math[0]!.textY).toBeLessThan(mathRow.y);
   });
 
   it("costs ABOVE_NAME_PX (14), only on the row that needs it, and the rows below move down by it", () => {
@@ -228,20 +230,21 @@ describe("7. N2: a thin row's name sits just above it at This month", () => {
     const g = layout.groups[0]!;
     const lane = layout.rows.length;
     expect(lane).toBe(2);
-    expect(g.bottom - (g.top + m.header + m.pitch + (lane - 1) * m.sub)).toBe(ABOVE_NAME_PX);
+    expect(g.bottom - (g.top + m.header + m.pitch + (lane - 1) * m.sub)).toBe(ABOVE_NAME_PX * 2);
     expect(ABOVE_NAME_PX).toBe(14);
-    expect(layout.rows.filter((r) => r.labelLane > 0)).toHaveLength(1);
+    expect(layout.rows.filter((r) => r.labelLane > 0)).toHaveLength(2);
     // the badge stays on the centre of the lane's first row
     expect(layout.badges[0]!.cy).toBeCloseTo(layout.rows[0]!.cy, 5);
   });
 
-  it("a row wide enough to hold the name inside gains nothing (Math alone at the same width)", () => {
+  it("at this phone width a single day's column cannot hold the name, so it sits above (S19-06)", () => {
     const alone = layoutTimeline(buildTimelineModel({
       from: "2026-11-02", to: "2026-12-18", today: "2026-11-05", weekStart: "mon", schoolDays: [1, 2, 3, 4, 5],
       plans: planAll([me], { calendar: CAL, asOf: "2026-11-05" }), assignments: [ma], children: [frank], subjects, blocked: [], events: [],
     }), { zoom: "month", width: 390, month: "2026-11" });
-    expect(alone.rows.every((r) => r.labelLane === 0)).toBe(true);
-    expect(alone.names.every((n) => !n.outside)).toBe(true);
+    expect(alone.rows.every((r) => r.labelLane === ABOVE_NAME_PX)).toBe(true);
+    expect(alone.names.every((n) => n.outside)).toBe(true);
+    expect(alone.names[0]!.textY).toBeLessThan(alone.rows[0]!.y);
   });
 
   it("rows are not pushed down by a Year or Fall layout (the line is only for daily detail)", () => {

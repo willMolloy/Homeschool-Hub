@@ -45,6 +45,7 @@
 .tl-svg { display: block; touch-action: pan-x pan-y; font-family: inherit; }
 /* S10-05 (mockup): a break is a soft band behind the grid and the same band washed over the bars (72 % light, 50 % dark). */
 .tl-break { fill: var(--tl-muted); }
+.tl-break-label { font-size: 11px; font-weight: 700; fill: var(--tl-muted-foreground); }
 .tl-wash rect { fill: var(--tl-muted); fill-opacity: var(--tl-wash); }
 .tl-tick-month { stroke: var(--tl-grid); stroke-width: 1; }
 .tl-tick-week { stroke: var(--tl-grid); stroke-width: 1; stroke-opacity: 0.5; }
