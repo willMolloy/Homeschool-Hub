@@ -88,5 +88,5 @@ A second parent is invited by the family itself, from Family settings, Parents, 
 1. Read [APP_OVERVIEW.md](APP_OVERVIEW.md).
 2. Read [ROADMAP.md](ROADMAP.md).
 3. Read this guide.
-4. Read [progress/HANDOFF.md](progress/HANDOFF.md) for where things stand, then the latest progress doc ([progress/sprint-18b.md](progress/sprint-18b.md), and [progress/sprint-18.md](progress/sprint-18.md) for the merged sprint). Sprint 18b is built on `hh2/sprint-18b` and is not merged. Sprints 19, 20 and 21 are written and not built.
+4. Read [progress/HANDOFF.md](progress/HANDOFF.md) for where things stand, then the latest progress doc ([progress/sprint-19.md](progress/sprint-19.md); [progress/sprint-18b.md](progress/sprint-18b.md) for the merged sprint). Sprint 18b is merged (PR #20). Sprint 19 is in progress on `hh2/sprint-19`. Sprints 20 and 21 are written and not built. The Sprint 18b tester follow-ups are ticketed after Sprint 21 and are not part of Sprint 19.
 5. Check out the current sprint's branch (see Branches). Run `git log --oneline -20` and `git status`. Then `git pull --rebase` and run `bash scripts/check.sh` before changing anything.

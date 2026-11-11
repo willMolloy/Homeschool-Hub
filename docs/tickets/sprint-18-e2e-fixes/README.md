@@ -1,6 +1,6 @@
 # Sprint 18 — Fixes from the second end-to-end run
 
-> **Status: merged** in PR #17 (`75086dd`, 2026-11-06) after DeeDee chose merge first. Tester: 0 High / 2 Medium / 3 Low (`docs/reviews/sprint-18-verification.md`; the same report is `docs/reviews/pr17-verification.md`). Written from `docs/reviews/cm-term-run-2.md` (38 Works, 4 Confusing, 1 Broken of 43 steps; verdict "Nearly… Fix E1 to E3 and it's a clear yes"). The two Medium follow-ups are decided and not built: `docs/tickets/sprint-18b-follow-ups/`. The three Lows were not opened as tickets.
+> **Status: merged** in PR #17 (`75086dd`, 2026-11-06) after DeeDee chose merge first. Tester: 0 High / 2 Medium / 3 Low (`docs/reviews/sprint-18-verification.md`; the same report is `docs/reviews/pr17-verification.md`). Written from `docs/reviews/cm-term-run-2.md` (38 Works, 4 Confusing, 1 Broken of 43 steps; verdict "Nearly… Fix E1 to E3 and it's a clear yes"). The two Medium follow-ups were built in Sprint 18b and merged in PR #20. The three Lows were not opened as tickets.
 
 | # | Ticket | Findings | Size |
 |---|--------|----------|------|

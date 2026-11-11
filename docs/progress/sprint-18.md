@@ -2,7 +2,7 @@
 
 Branch: `claude/sprint-18-e2e-fixes`, cut from `main` on 2026-11-06 with Will's permission for per-sprint branches. Tickets: `docs/tickets/sprint-18-e2e-fixes/` (findings E1 to E13 in `docs/reviews/cm-term-run-2.md`). S18-05 (the tester pass) is not part of this build.
 
-**Merged:** PR #17, `75086dd`, 2026-11-06. DeeDee chose merge first. The independent tester reported 0 High / 2 Medium / 3 Low (`docs/reviews/sprint-18-verification.md`, same text in `docs/reviews/pr17-verification.md`). She decided both Mediums the same day; the tickets are `docs/tickets/sprint-18b-follow-ups/` and are not built. See "Later decisions" below. The queue after that folder is in `docs/progress/HANDOFF.md` (updated 2026-11-11): Sprint 18b on its own, then Sprints 19, 20 and 21. Hosting stays on hold.
+**Merged:** PR #17, `75086dd`, 2026-11-06. DeeDee chose merge first. The independent tester reported 0 High / 2 Medium / 3 Low (`docs/reviews/sprint-18-verification.md`, same text in `docs/reviews/pr17-verification.md`). She decided both Mediums the same day; the tickets are `docs/tickets/sprint-18b-follow-ups/` and were built in Sprint 18b (merged later, PR #20). See "Later decisions" below. The queue is in `docs/progress/HANDOFF.md`: Sprint 19 in progress, then Sprints 20 and 21, then the Sprint 18b tester follow-ups. Hosting stays on hold.
 
 | Ticket | Commit | Notes |
 |---|---|---|
@@ -44,7 +44,7 @@ Branch: `claude/sprint-18-e2e-fixes`, cut from `main` on 2026-11-06 with Will's 
 
 ## Later decisions (DeeDee, 2026-11-06)
 
-Recorded after the merge, in `docs/tickets/sprint-18b-follow-ups/`. Not built in that docs pass.
+Recorded after the Sprint 18 merge, in `docs/tickets/sprint-18b-follow-ups/`. Not built in that docs pass. Both were later built and merged in Sprint 18b (PR #20).
 
 - **S18-02 past dates (S18b-01).** A picked date before today stays allowed. Saving it asks "That's before today; this ends the book now. Continue?" The lower limit in the S18-02 decision above (after the end of the week being updated) stays. A minimum of today is not the decision.
-- **S18-04 E11 (S18b-02).** An assignment keeps one set of school days for every child on it. A child with different days gets their own assignment, a separate workbook with its own schedule. Readings on the copies need not stay aligned day to day. The per-child planner named in the E11 decision above is not a ticket. A usability follow-up, also not built, covers making those copies and updating them.
+- **S18-04 E11 (S18b-02).** An assignment keeps one set of school days for every child on it. A child with different days gets their own assignment, a separate workbook with its own schedule. Readings on the copies need not stay aligned day to day. The per-child planner named in the E11 decision above is not a ticket. The copy follow-up was built with S18b-02.

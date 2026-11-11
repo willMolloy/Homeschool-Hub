@@ -1,8 +1,8 @@
 # Decisions, 2026-11-11 (DeeDee)
 
-She ran the app locally on current `main` (Sprint 18 already merged) and settled the notes below. Nothing in this file is built. The build order is Sprint 18b, then Sprint 19, then Sprint 20, then Sprint 21. Hosting stays on hold until Will says go.
+She ran the app locally on current `main` (Sprint 18 already merged) and settled the notes below. Sprint 18b has since merged (PR #20). Sprint 19 is in progress. Sprints 20 and 21 are not built. Hosting stays on hold until Will says go.
 
-Sprint 18b is unchanged and stays its own sprint: `docs/tickets/sprint-18b-follow-ups/`. Do not rewrite those tickets or fold them into 19–21.
+Sprint 18b stays its own merged sprint: `docs/tickets/sprint-18b-follow-ups/`. Do not rewrite those tickets or fold them into 19–21. The tester follow-ups from that merge are `docs/tickets/sprint-18b-tester-follow-ups/` and come after Sprint 21.
 
 Full tickets: `docs/tickets/sprint-19-visual-print/`, `docs/tickets/sprint-20-minutes-check-in/`, `docs/tickets/sprint-21-break-overlap/`. Where a tiny label was not chosen, the ticket states a default. Those defaults are not open questions.
 

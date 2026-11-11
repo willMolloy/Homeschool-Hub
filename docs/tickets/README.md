@@ -1,6 +1,6 @@
 # Tickets
 
-New here? Read [APP_OVERVIEW.md](../APP_OVERVIEW.md), [ROADMAP.md](../ROADMAP.md) and [HOW_WE_WORK.md](../HOW_WE_WORK.md) first. Where things stand, and the build order, is [progress/HANDOFF.md](../progress/HANDOFF.md): Sprint 18b, then Sprints 19, 20 and 21. Those four are written and not built. Sprints 9 through 18 are merged; their folders run from `sprint-9-schedule-and-records` through `sprint-18-e2e-fixes`.
+New here? Read [APP_OVERVIEW.md](../APP_OVERVIEW.md), [ROADMAP.md](../ROADMAP.md) and [HOW_WE_WORK.md](../HOW_WE_WORK.md) first. Where things stand, and the build order, is [progress/HANDOFF.md](../progress/HANDOFF.md): Sprint 18b is merged (PR #20, tester READY). Sprint 19 is in progress. Sprints 20 and 21 are written and not built. The Sprint 18b tester follow-ups are written and not built, and they come after Sprint 21. Sprints 9 through 18b are merged; their folders run from `sprint-9-schedule-and-records` through `sprint-18b-follow-ups`.
 
 How to use these: pick the lowest-numbered ticket whose dependencies are all done. Each ticket is one task, sized to fit in one sitting.
 Format: Goal (one sentence) / Context / Steps / Done when / Tests / Out of scope. If a title would need "and", it's split into two tickets.
@@ -202,11 +202,11 @@ See [sprint-8-soft-paper/README.md](sprint-8-soft-paper/README.md) (S8-01 to S8-
 
 ## Sprint 18b: follow-ups after the Sprint 18 merge
 
-See [sprint-18b-follow-ups/README.md](sprint-18b-follow-ups/README.md) (S18b-01, S18b-02). Both decided by DeeDee on 2026-11-06 and not built. Build this folder on its own before Sprints 19–21. S18b-01 is the past-date confirmation. S18b-02 is one set of school days per assignment, plus a usability follow-up for copying a book and updating the other copies. The three Lows from `reviews/sprint-18-verification.md` have no tickets.
+See [sprint-18b-follow-ups/README.md](sprint-18b-follow-ups/README.md) (S18b-01, S18b-02). Both decided by DeeDee on 2026-11-06. Merged in PR #20 (`a9fcf0d`, tested head `d565cf2`). Tester READY: 0 High / 1 Medium / 4 Low. S18b-01 is the past-date confirmation. S18b-02 is one set of school days per assignment, plus the copy follow-up that was built with it. The three Lows from `reviews/sprint-18-verification.md` have no tickets.
 
 ## Sprint 19: visual and print polish
 
-See [sprint-19-visual-print/README.md](sprint-19-visual-print/README.md) (S19-01 to S19-07). Decided by DeeDee on 2026-11-11 and not built. Date picker, Home card heights, the Log button, bar thickness, the weekly print by day, and the year view leaving regular weekly days off undrawn. A break of a week or longer still shows its name.
+See [sprint-19-visual-print/README.md](sprint-19-visual-print/README.md) (S19-01 to S19-07). Decided by DeeDee on 2026-11-11. In progress on `hh2/sprint-19`. Date picker, Home card heights, the Log button, bar thickness, the weekly print by day, and the year view leaving regular weekly days off undrawn. A break of a week or longer still shows its name. The Sprint 18b tester follow-ups are not in this build list.
 
 ## Sprint 20: minutes, check-in, and logging
 
@@ -215,3 +215,7 @@ See [sprint-20-minutes-check-in/README.md](sprint-20-minutes-check-in/README.md)
 ## Sprint 21: a break that overlaps assignments
 
 See [sprint-21-break-overlap/README.md](sprint-21-break-overlap/README.md) (S21-01 to S21-05). Decided by DeeDee on 2026-11-11 and not built. Ask before a break changes open work: keep the end date, push it back, or pick a day.
+
+## After Sprint 21: follow-ups from the Sprint 18b tester
+
+See [sprint-18b-tester-follow-ups/README.md](sprint-18b-tester-follow-ups/README.md) (S18c-01 to S18c-04). Ticketed from the READY pass on PR #20 and not built. Build this folder after Sprint 21, not inside Sprint 19. S18c-01 is the Medium: Other copies counts only workbooks whose dates overlap, and adds the dates when the child and the days are the same. S18c-02, S18c-03, and S18c-04 are L1, L3, and L4. L2 is not a ticket. A per-child end date on a shared assignment is not a ticket.
