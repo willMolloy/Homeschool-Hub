@@ -40,7 +40,10 @@ describe("N9: a 320 px phone", () => {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
     render(<Field />);
     await userEvent.setup().click(screen.getByRole("button", { name: "Choose a date" }));
-    expect(screen.getByRole("group", { name: "Calendar" }).style.left).toBe("");
+    const cal = screen.getByRole("group", { name: "Calendar" });
+    expect(cal).toHaveClass("date-cal-fixed");
+    expect(parseFloat(cal.style.left)).toBeGreaterThanOrEqual(0);
+    expect(parseFloat(cal.style.left)).toBeLessThan(1024);
   });
 
   it("the placeholder ends in an ellipsis before the icon", () => {

@@ -21,11 +21,28 @@ export interface ResponsiveSheetProps {
   wide?: "dialog" | "side";
 }
 
+/**
+ * S19-01: the date calendar is portaled onto the page, outside the sheet, so the sheet cannot clip it.
+ * A press on that calendar is not "outside" the sheet: closing would throw away the date she is picking.
+ */
+function onSheetOpenChange(onOpenChange: (open: boolean) => void) {
+  return (next: boolean, details?: { event?: { target?: EventTarget | null }; cancel?: () => void }) => {
+    const target = details?.event?.target;
+    const el = target instanceof Element ? target : null;
+    if (!next && el?.closest("[data-date-calendar]")) {
+      details?.cancel?.();
+      return;
+    }
+    onOpenChange(next);
+  };
+}
+
 export function ResponsiveSheet({ open, onOpenChange, title, children, wide = "dialog" }: ResponsiveSheetProps) {
   const phone = useMediaQuery(PHONE_QUERY);
+  const change = onSheetOpenChange(onOpenChange);
   if (phone) {
     return (
-      <Drawer.Root open={open} onOpenChange={onOpenChange} swipeDirection="down">
+      <Drawer.Root open={open} onOpenChange={change} swipeDirection="down">
         <Drawer.Portal>
           <Drawer.Backdrop className="sheet-backdrop" />
           <Drawer.Viewport className="sheet-viewport sheet-viewport-drawer">
@@ -45,7 +62,7 @@ export function ResponsiveSheet({ open, onOpenChange, title, children, wide = "d
     );
   }
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={change}>
       <Dialog.Portal>
         <Dialog.Backdrop className="sheet-backdrop" />
         <Dialog.Popup className={`sheet-popup ${wide === "side" ? "sheet-side" : "sheet-dialog"}`} data-sheet={wide}>

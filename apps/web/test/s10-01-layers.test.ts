@@ -20,7 +20,7 @@ const zOf = (file: string, selector: string) => {
 
 describe("S10-01 layers", () => {
   it("orders the layers: nav < edit sheet < undo bar < sheets < dialogs < skip link", () => {
-    const order = ["raised", "popover", "nav", "edit", "toast", "sheet", "dialog", "skip"].map(token);
+    const order = ["raised", "popover", "nav", "edit", "toast", "sheet", "dialog", "overlay", "skip"].map(token);
     expect(order.every((v) => Number.isFinite(v))).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });

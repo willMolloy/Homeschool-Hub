@@ -28,6 +28,8 @@
 .date-field-open:focus-visible, .date-cal-nav:focus-visible, .date-cal-day:focus-visible, .date-field-box input:focus-visible { outline: 3px solid var(--tl-ring); outline-offset: 2px; }
 .date-cal-end { left: auto; right: 0; }
 .date-cal-up { top: auto; bottom: 100%; margin: 0 0 6px; }
+/* S19-01: portaled onto the page, over the sheet, so the month is never clipped by the panel. */
+.date-cal-fixed { position: fixed; top: 0; left: 0; margin: 0; z-index: var(--z-overlay); }
 /* S9b-05 (N9): placeholder text ends in "…" before the icon instead of running into it. */
 .date-field-box input[type="text"]::placeholder { text-overflow: ellipsis; }
 /* S9b-05 (N9): on a phone under 360 px the calendar is the screen's width less 4 px a side (DateField sets its left), with no

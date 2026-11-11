@@ -62,7 +62,9 @@ describe("the Year edit sheet as a side panel (S10-18)", () => {
     expect(document.querySelector(".tl-edit-room")).toBeNull();
     // The calendars open downward from the top of the panel.
     fireEvent.click(within(panel).getAllByRole("button", { name: "Choose a date" })[0]!);
-    expect(panel.querySelector(".date-cal")).not.toHaveClass("date-cal-up");
+    const cal = document.querySelector("[data-date-calendar]");
+    expect(cal).not.toBeNull();
+    expect(cal).toHaveAttribute("data-opens", "down");
     fireEvent.keyDown(document, { key: "Escape" });
 
     clickBand(distinct[1]!);
@@ -121,7 +123,7 @@ describe("the Year edit sheet as a side panel (S10-18)", () => {
     expect(document.querySelector(".tl-edit-room")).not.toBeNull();
     expect(within(panelEl()!).getByRole("heading", { level: 2 })).not.toHaveFocus();
     fireEvent.click(within(panelEl()!).getAllByRole("button", { name: "Choose a date" })[0]!);
-    expect(panelEl()!.querySelector(".date-cal")).toHaveClass("date-cal-up");
+    expect(document.querySelector("[data-date-calendar]")).toHaveAttribute("data-opens", "up");
   });
 
   it("the panel is 360 px on the right, full height, and the page narrows beside it", () => {
