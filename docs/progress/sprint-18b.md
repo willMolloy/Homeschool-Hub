@@ -2,7 +2,7 @@
 
 Branch: `hh2/sprint-18b`, cut from `main` (`93c183a`). Tickets: `docs/tickets/sprint-18b-follow-ups/`.
 
-**Merged:** PR #20, `a9fcf0d`, 2026-11-11. Tested head `d565cf2`. The independent tester reported READY: 0 High / 1 Medium / 4 Low. The Medium and L1, L3, and L4 are ticketed in `docs/tickets/sprint-18b-tester-follow-ups/` and are not built. They follow Sprint 21. L2 is the behaviour recorded below ("This week's amount opens that child's current week") and is not a ticket. A per-child end date on a shared assignment was only discussed and is not a ticket. Sprint 19 is in progress on `hh2/sprint-19`. Sprints 20 and 21 stay ticketed and unbuilt. Hosting stays on hold.
+**Merged:** PR #20, `a9fcf0d`, 2026-11-11. Tested head `d565cf2`. The independent tester reported READY: 0 High / 1 Medium / 4 Low. The Medium and L1, L3, and L4 are ticketed in `docs/tickets/sprint-18b-tester-follow-ups/` and are not built. They follow Sprint 21. L2 is the behaviour recorded below ("This week's amount opens that child's current week") and is not a ticket. A per-child end date on a shared assignment was only discussed and is not a ticket. Sprint 19 is built on `hh2/sprint-19` and is not merged. Sprints 20 and 21 stay ticketed and unbuilt. Hosting stays on hold.
 
 | Ticket | Commit | Notes |
 |---|---|---|

@@ -1,8 +1,8 @@
 # Sprint 19 — Visual and print polish
 
-> **Status: in progress** on `hh2/sprint-19`, cut from `main` at the Sprint 18b merge (`a9fcf0d`). DeeDee used the app and settled this on 2026-11-11. Sprint 18b is already merged. Do not fold the Sprint 18b tester follow-ups (`docs/tickets/sprint-18b-tester-follow-ups/`) into this sprint. Those wait until after Sprint 21.
+> **Status: built on `hh2/sprint-19`, not merged.** DeeDee settled this on 2026-11-11. S19-01 through S19-06 are built. S19-07 is the independent tester's pass and is not part of this build. Do not fold the Sprint 18b tester follow-ups (`docs/tickets/sprint-18b-tester-follow-ups/`) into this sprint. Those wait until after Sprint 21.
 
-One branch for the sprint. One commit per ticket, `bash scripts/check.sh` ALL GREEN before each commit. Progress in `docs/progress/sprint-19.md`. A draft PR while building; mark it ready only after the tester passes. Do not merge from this sprint.
+One branch for the sprint. Progress in `docs/progress/sprint-19.md`. The pull request stays a draft until the tester passes. Do not merge from this sprint.
 
 ## Decisions (DeeDee, 2026-11-11)
 

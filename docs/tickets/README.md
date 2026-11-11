@@ -1,6 +1,6 @@
 # Tickets
 
-New here? Read [APP_OVERVIEW.md](../APP_OVERVIEW.md), [ROADMAP.md](../ROADMAP.md) and [HOW_WE_WORK.md](../HOW_WE_WORK.md) first. Where things stand, and the build order, is [progress/HANDOFF.md](../progress/HANDOFF.md): Sprint 18b is merged (PR #20, tester READY). Sprint 19 is in progress. Sprints 20 and 21 are written and not built. The Sprint 18b tester follow-ups are written and not built, and they come after Sprint 21. Sprints 9 through 18b are merged; their folders run from `sprint-9-schedule-and-records` through `sprint-18b-follow-ups`.
+New here? Read [APP_OVERVIEW.md](../APP_OVERVIEW.md), [ROADMAP.md](../ROADMAP.md) and [HOW_WE_WORK.md](../HOW_WE_WORK.md) first. Where things stand, and the build order, is [progress/HANDOFF.md](../progress/HANDOFF.md): Sprint 18b is merged (PR #20, tester READY). Sprint 19 is built on `hh2/sprint-19` and is not merged. Sprints 20 and 21 are written and not built. The Sprint 18b tester follow-ups are written and not built, and they come after Sprint 21. Sprints 9 through 18b are merged; their folders run from `sprint-9-schedule-and-records` through `sprint-18b-follow-ups`.
 
 How to use these: pick the lowest-numbered ticket whose dependencies are all done. Each ticket is one task, sized to fit in one sitting.
 Format: Goal (one sentence) / Context / Steps / Done when / Tests / Out of scope. If a title would need "and", it's split into two tickets.
@@ -206,7 +206,7 @@ See [sprint-18b-follow-ups/README.md](sprint-18b-follow-ups/README.md) (S18b-01,
 
 ## Sprint 19: visual and print polish
 
-See [sprint-19-visual-print/README.md](sprint-19-visual-print/README.md) (S19-01 to S19-07). Decided by DeeDee on 2026-11-11. In progress on `hh2/sprint-19`. Date picker, Home card heights, the Log button, bar thickness, the weekly print by day, and the year view leaving regular weekly days off undrawn. A break of a week or longer still shows its name. The Sprint 18b tester follow-ups are not in this build list.
+See [sprint-19-visual-print/README.md](sprint-19-visual-print/README.md) (S19-01 to S19-07). Decided by DeeDee on 2026-11-11. Built on `hh2/sprint-19`, not merged. S19-07 is the tester pass. Date picker, Home card heights, the Log button, bar thickness, the weekly print by day, and the year view leaving regular weekly days off undrawn. A break of a week or longer still shows its name. The Sprint 18b tester follow-ups are not in this build list.
 
 ## Sprint 20: minutes, check-in, and logging
 
