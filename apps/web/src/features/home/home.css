@@ -61,4 +61,11 @@
 .home-panes { display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, calc(100% - 504px), 360px); gap: 24px; align-items: start; }
 .home-pane { min-width: 0; }
 .home-pane > :last-child { margin-bottom: 0; }
+/* S19-02: from 840 px the two cards share one row, so Records is as tall as Schedule. The checklist stays under Records.
+   Under 840 px the cards stack and each is only as tall as its own content. */
+@media (min-width: 840px) {
+  .home-panes { grid-template-rows: auto auto; align-items: stretch; row-gap: 14px; }
+  .home-pane { display: grid; grid-template-rows: subgrid; grid-row: span 2; align-items: stretch; }
+  .home-pane > .home-card { margin-bottom: 0; align-self: stretch; }
+}
 .home-signed-in { margin: 0 0 8px; color: var(--tl-muted-foreground); overflow-wrap: anywhere; }
