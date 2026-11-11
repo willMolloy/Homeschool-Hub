@@ -7,6 +7,7 @@
  */
 import { aggregate, type ChildPlan, type LocalDate, type PlanWarning, type WeekStart } from "@hh/engine";
 import type { Assignment, BlockedRange, Child, ScheduleEvent, Subject } from "../../api/types";
+import { copyBarTitle, daysPhrase, resolvedWeekdays, twinIds } from "../schedule/bookCopies";
 import { slotOfColor } from "../roster/palette";
 import { buildDayGrid, gridIndex, sumSeries, zeros, type DayGrid } from "./grid";
 import { breaksOnGrid, eventsOnGrid, idleDays, type TimelineBreak, type TimelineEvent } from "./marks";
@@ -36,6 +37,8 @@ export interface TimelineAssignment {
   warnings: PlanWarning[];
   /** S12-04: how the parent said it ended ("finished" is drawn calmer with a check, "stopped" muted and cut at the day it stopped). */
   endedAs?: "finished" | "stopped";
+  /** S18b-02: "Tue–Fri" when another workbook has the same book, so the bar is not told apart only by whose lane it is in. */
+  daysLabel?: string;
   /** S10-05 fix: per grid day, a school day this assignment can't be given work on (its weekdays, events that skip it). */
   idle?: boolean[];
 }
@@ -147,7 +150,7 @@ function extent(series: readonly number[]): [number, number] {
   return [first, last];
 }
 
-function toAssignment(grid: DayGrid, plan: ChildPlan, title: string, weekStart: WeekStart, events: readonly ScheduleEvent[]): TimelineAssignment {
+function toAssignment(grid: DayGrid, plan: ChildPlan, title: string, weekStart: WeekStart, events: readonly ScheduleEvent[], daysLabel?: string): TimelineAssignment {
   const daily = onGrid(grid, plan.days.map((d) => ({ date: d.date, value: d.thickness })));
   const weekly = onGrid(grid, aggregate(plan.days, "weekly", weekStart));
   const [first, last] = extent(daily);
@@ -165,6 +168,7 @@ function toAssignment(grid: DayGrid, plan: ChildPlan, title: string, weekStart: 
     complete: plan.complete,
     warnings: [...plan.warnings],
     ...(plan.endedAs ? { endedAs: plan.endedAs } : {}),
+    ...(daysLabel ? { daysLabel } : {}),
     idle: idleDays(grid, plan, events),
   };
 }
@@ -174,6 +178,16 @@ export function buildTimelineModel(input: TimelineInput): TimelineModel {
   const subjects = ranked(input.subjects);
   const children = ranked(input.children);
   const titles = new Map(input.assignments.map((a) => [a.id, a.title]));
+  // S18b-02: a second workbook of the same book is named with its days, on the bar and in the edit sheet.
+  const twins = twinIds(input.assignments);
+  const byAssignment = new Map(input.assignments.map((a) => [a.id, a]));
+  const subjectDays = new Map(input.subjects.map((s) => [s.id, s.defaultWeekdays]));
+  const daysFor = (id: string): number[] | null => {
+    if (!twins.has(id)) return null;
+    const a = byAssignment.get(id);
+    if (!a) return null;
+    return resolvedWeekdays(a, subjectDays.get(a.subjectId) ?? null, input.schoolDays);
+  };
   const length = grid.dates.length;
 
   // subject → child → plans
@@ -194,7 +208,11 @@ export function buildTimelineModel(input: TimelineInput): TimelineModel {
         .sort(([a], [b]) => children.rank(a) - children.rank(b))
         .map(([childId, plans]): ChildLane => {
           const assignments = plans
-            .map((p) => toAssignment(grid, p, titles.get(p.assignmentId) ?? "Assignment", input.weekStart, input.events ?? []))
+            .map((p) => {
+              const days = daysFor(p.assignmentId);
+              const raw = titles.get(p.assignmentId) ?? "Assignment";
+              return toAssignment(grid, p, days ? copyBarTitle(raw, days) : raw, input.weekStart, input.events ?? [], days ? daysPhrase(days) : undefined);
+            })
             .sort((a, b) => (a.first < 0 ? Infinity : a.first) - (b.first < 0 ? Infinity : b.first) || a.title.localeCompare(b.title));
           return {
             key: `${subjectId}:${childId}`,

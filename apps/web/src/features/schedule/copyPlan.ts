@@ -31,8 +31,11 @@ export function copyCandidates(list: readonly Assignment[], l: Lookups): Assignm
   return list.filter((a) => !a.archived && activeSubject(a.subjectId) && a.childIds.some(activeChild));
 }
 
-/** The copy of `a` with both dates moved by `days`; `childIds` replaces the children when given (else archived ones are dropped). */
-export function shiftedCopy(a: Assignment, days: number, l: Lookups, childIds?: string[]): CopyBody {
+/**
+ * The copy of `a` with both dates moved by `days`; `childIds` replaces the children when given (else archived ones are dropped).
+ * S18b-02: `weekdays`, when given, is the copies' own days. Left out, each copy keeps that book's days.
+ */
+export function shiftedCopy(a: Assignment, days: number, l: Lookups, childIds?: string[], weekdays?: number[] | null): CopyBody {
   const keep = childIds ?? a.childIds.filter((id) => l.children.some((c) => c.id === id && !c.archived));
   return {
     subjectId: a.subjectId,
@@ -43,7 +46,7 @@ export function shiftedCopy(a: Assignment, days: number, l: Lookups, childIds?: 
     startDate: addDays(a.startDate, days),
     endDate: addDays(a.endDate, days),
     childIds: keep,
-    weekdays: a.weekdays,
+    weekdays: weekdays === undefined ? a.weekdays : weekdays,
   };
 }
 

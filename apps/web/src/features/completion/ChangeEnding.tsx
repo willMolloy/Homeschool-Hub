@@ -4,7 +4,7 @@
  * We stopped) plus Not ended, which opens it again (it waits for an answer again if its end has passed). Each choice but Not
  * ended asks for its day first, as the question does.
  */
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ApiError } from "../../api/client";
 import type { Assignment } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
@@ -24,7 +24,7 @@ const CHOICES: readonly { answer: Answer; label: string }[] = [
 ];
 
 /** The sheet itself: open while `assignment` is set. `onChanged` gets the saved assignment. */
-export function ChangeEndingSheet({ assignment, names = [], onClose, onChanged }: { assignment: Assignment | null; names?: readonly string[]; onClose: () => void; onChanged: (saved: Assignment) => void }) {
+export function ChangeEndingSheet({ assignment, names = [], onClose, onChanged, copies = null }: { assignment: Assignment | null; names?: readonly string[]; onClose: () => void; onChanged: (saved: Assignment) => void; copies?: ReactNode }) {
   const me = useMe();
   const today = todayOf(me);
   const [answer, setAnswer] = useState<Answer | null>(null);
@@ -32,6 +32,7 @@ export function ChangeEndingSheet({ assignment, names = [], onClose, onChanged }
   const [error, setError] = useState<string | null>(null);
   const close = () => { setAnswer(null); setError(null); onClose(); };
   const a = assignment;
+  useEffect(() => { setAnswer(null); setError(null); }, [a?.id]);
   const question = a ? { assignment: a, text: `Did ${names.length ? joinNames(names) : "they"} finish ${a.title}?` } : null;
   const notEnded = async () => {
     if (!a) return;
@@ -51,7 +52,9 @@ export function ChangeEndingSheet({ assignment, names = [], onClose, onChanged }
     <ResponsiveSheet open={a !== null} onOpenChange={(o) => { if (!o) close(); }} title={a && answer ? sheetTitle(answer, a.title) : a ? `Change ${a.title}` : ""}>
       {a && question && answer === null ? (
         <div className="answer-form">
+          <p className="answer-question">{question.text}</p>
           <p className="answer-question">{a.endedAs ? endedWords(a.endedAs, a.endedOn ?? a.endDate) : "Not ended"}. How did it go?</p>
+          {copies}
           <div className="change-choices">
             {CHOICES.map((c) => <Button key={c.answer} variant={c.answer === "finished" ? "primary" : "secondary"} disabled={busy} onClick={() => setAnswer(c.answer)}>{c.label}</Button>)}
             <Button variant="secondary" disabled={busy} onClick={() => void notEnded()}>Not ended</Button>

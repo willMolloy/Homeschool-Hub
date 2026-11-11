@@ -75,6 +75,22 @@ describe.skipIf(!hasDb)("Update status undo (S18-01, S18-02, integration)", () =
     expect(await review()).toBeNull();
   });
 
+  it("S18b-01: a past end date is still saved, and one Undo restores the week and the end with no differences", async () => {
+    const originalEnd = await endOf();
+    expect(originalEnd).toBe("2026-11-06");
+    const before = { end: originalEnd, rows: await rows(), review: await review() };
+    const res = await call("PUT", `/api/check-ins/${W}`, { status: "reviewed", items: [item(75, "keepEndDate")], endDate: { assignmentId: ti, endDate: "2026-10-27" } });
+    expect(res.statusCode, res.body).toBe(200);
+    expect(await endOf()).toBe("2026-10-27");
+    expect(await rows()).toEqual([{ position: 75, mode: "keepEndDate" }]);
+    expect((await undoEntry()).label).toBe("Updated Treasure Island, end moved to Oct 27");
+    expect((await call("POST", "/api/undo")).statusCode).toBe(200);
+    expect(await endOf()).toBe(before.end);
+    expect(await rows()).toEqual(before.rows);
+    expect(await review()).toBe(before.review);
+    expect(await undoEntry()).toBeNull();
+  });
+
   it("S18-02: an end date that is refused (before the saved check-in week) changes nothing at all", async () => {
     const original = await endOf();
     await pool.query("UPDATE assignment SET start_date = '2026-09-01' WHERE id = $1", [ti]); // so Oct 12 is a valid range, just before the week

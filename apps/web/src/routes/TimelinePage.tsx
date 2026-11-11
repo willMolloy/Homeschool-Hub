@@ -19,6 +19,7 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import type { Assignment, ZoomViews } from "../api/types";
 import { AddAssignmentButton, AddAssignmentSheet } from "../features/timeline/AddAssignment";
 import { copyOfAssignment } from "../features/schedule/copyAssignment";
+import { copyRows, daysOfAssignment, OtherCopies } from "../features/schedule/OtherCopies";
 import { makeLookups } from "../features/schedule/lookups";
 import type { Draft } from "../features/schedule/ScheduleList";
 import { afterAdd } from "../features/timeline/afterAdd";
@@ -48,6 +49,7 @@ import { useZoomFade } from "../features/timeline/useZoomFade";
 import { availableZooms, defaultMonth, gridMonths, viewWithoutPlan, visibleZooms, zoomLabel, type DrawnDetail, type Zoom } from "../features/timeline/zoom";
 import { MonthNav, monthName } from "../features/timeline/MonthNav";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import { ZoomPresets } from "../features/timeline/ZoomPresets";
 import { UpdateStatusFlow } from "../features/status/UpdateStatusFlow";
@@ -77,6 +79,7 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
   const { model: family, loading, failed, reload, assignments, applyAssignment, addAssignment, applySubject, children, subjects, zoomViews, setZoomViews } = useTimelineData();
   // S15-03: a viewer looks at the same picture (zoom, month, child), but nothing is editable: no "+", no pencil, no edit bar, and a bar opens a read-only detail.
   const { schoolDays, role } = useMe();
+  const navigate = useNavigate();
   const readOnly = role === "viewer";
   const childList = useMemo(() => filterChildren(children, family), [children, family]);
   // S8b-07: the same child switch as Week and Track work (one child, or All children), remembered on this device.
@@ -120,8 +123,8 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
   // T-07: the selection lives beside the zoom, so it survives zoom changes and month flips.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const edit = useAssignmentEdit(applyAssignment);
-  // S12-06: changing how the selected assignment ended.
-  const [changingEnd, setChangingEnd] = useState(false);
+  // S12-06: changing how an assignment ended. S18b-02: also a different workbook of the same book.
+  const [endingId, setEndingId] = useState<string | null>(null);
   const picked = model && selectedId ? selectionFor(model, assignments, selectedId) : null;
   const selection = picked && preview?.assignmentId === picked.assignmentId ? { ...picked, ...preview.span } : picked;
   // S10-18: from 840 px the edit sheet is a side panel. Where focus was when it opened decides where it goes back to.
@@ -179,6 +182,9 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
     : estimatedReal ? unitsPerCapacityDay(estimated.totalUnits, estimatedReal.capacityDays) : unitsPerDay(estimated.totalUnits, estimated.startDate, estimated.endDate, estimatedDays);
   // S10-06: the edit sheet's pace line, at the selection's dates (a drag updates it), over the days the plan really has.
   const selected = selection ? assignments.find((a) => a.id === selection.assignmentId) : undefined;
+  const nameOf = (id: string) => children.find((c) => c.id === id)?.name ?? "";
+  const dayList = (a: Assignment) => daysOfAssignment(a, subjects.find((s) => s.id === a.subjectId)?.defaultWeekdays ?? null, schoolDays);
+  const ending = assignments.find((a) => a.id === endingId) ?? null;
   const selectedSubject = selected ? subjects.find((s) => s.id === selected.subjectId) : undefined;
   const selectedDays = selected ? selected.weekdays ?? selectedSubject?.defaultWeekdays ?? schoolDays : null;
   const selectedDraft = !readOnly && selected && selection && selectedDays
@@ -293,7 +299,8 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
             {selection && !readOnly && (
               <>
                 {panel ? null : <div className="tl-edit-room" style={{ height: keep.height }} aria-hidden="true" />}
-                <EditBar ref={keep.ref} selection={selection} pace={selectedPace} panel={panel} ended={selected?.endedAs && selected.endedOn ? { endedAs: selected.endedAs, endedOn: selected.endedOn } : null} onChangeEnding={() => setChangingEnd(true)}
+                <EditBar ref={keep.ref} selection={selection} pace={selectedPace} panel={panel} ended={selected?.endedAs && selected.endedOn ? { endedAs: selected.endedAs, endedOn: selected.endedOn } : null} onChangeEnding={() => setEndingId(selection.assignmentId)}
+                  copies={selected ? <OtherCopies rows={copyRows(selected, assignments, nameOf, dayList)} kinds={["amount", "status", "finish"]} busy={edit.busy} onAmount={(_row, id) => navigate(`/schedule?view=week&adjust=${id}`)} onStatus={(row) => setStatusing(row.id)} onFinish={(row) => setEndingId(row.id)} /> : null}
                   tip={tip === "edit" ? { text: TIP_TEXT.edit, onGotIt: () => void markSeen("edit") } : null}
                   busy={edit.busy} error={edit.error} onSave={(d) => void edit.save(selection.assignmentId, selection, d)} onCopy={copySelected} onUpdateEstimate={() => setEstimating(selection.assignmentId)} onUpdateStatus={() => setStatusing(selection.assignmentId)}
                   onReset={() => { setResetError(null); setResetting({ id: selection.assignmentId, title: selection.title }); }} onClose={closeEdit} />
@@ -312,10 +319,12 @@ export function TimelinePage({ embedded = false, titleSlot = null }: { embedded?
       )}
       {statusAssignment && (
         <UpdateStatusFlow assignmentId={statusAssignment.id} title={statusAssignment.title} onClose={() => setStatusing(null)} onSaved={reload}
+          siblings={{ assignments, nameOf, daysOf: dayList }}
           childId={childId && statusAssignment.childIds.includes(childId) ? childId : statusAssignment.childIds.length === 1 ? statusAssignment.childIds[0]! : null} />
       )}
-      <ChangeEndingSheet assignment={changingEnd && selected ? selected : null} names={selected ? selected.childIds.map((id) => children.find((c) => c.id === id)?.name ?? "").filter(Boolean) : []}
-        onClose={() => setChangingEnd(false)} onChanged={(saved) => { setChangingEnd(false); applyAssignment(saved); }} />
+      <ChangeEndingSheet assignment={ending} names={ending ? ending.childIds.map(nameOf).filter(Boolean) : []}
+        copies={ending ? <OtherCopies rows={copyRows(ending, assignments, nameOf, dayList)} kinds={["finish"]} onFinish={(row) => setEndingId(row.id)} /> : null}
+        onClose={() => setEndingId(null)} onChanged={(saved) => { setEndingId(null); applyAssignment(saved); }} />
       <UpdateEstimateSheet assignment={estimated} subject={estimatedSubject} pace={estimatedPace}
         childNames={estimated ? estimated.childIds.map((id) => children.find((c) => c.id === id)?.name ?? "").filter(Boolean) : []}
         onSaved={(saved) => { applyAssignment(saved); setEstimating(null); }} onClose={() => setEstimating(null)} />

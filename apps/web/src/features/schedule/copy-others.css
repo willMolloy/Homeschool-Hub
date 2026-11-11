@@ -1,0 +1,7 @@
+/* S18b-02: the other workbooks of the book on screen, and the way onto the same kind of update. */
+.copy-others { margin-top: 16px; }
+.copy-others h3 { font-family: var(--tl-font, inherit); font-size: 0.95rem; font-weight: 700; margin: 0 0 6px; }
+.copy-others .hint { margin: 0 0 10px; color: var(--tl-muted-foreground, var(--muted)); font-size: 0.875rem; }
+.copy-others ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.copy-others li p { margin: 0 0 6px; font-weight: 600; }
+.copy-others .btn { min-height: 44px; }

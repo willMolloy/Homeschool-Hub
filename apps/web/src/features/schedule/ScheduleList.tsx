@@ -33,6 +33,8 @@ export interface FormSlotProps<T> {
   extra: ReactNode;
   /** An archive/delete failure to show in the form. */
   externalError: string | null;
+  /** The list as loaded, so a form can see the other rows (S18b-02). */
+  items?: readonly T[];
 }
 
 interface Props<T extends ListItem> {
@@ -45,7 +47,7 @@ interface Props<T extends ListItem> {
   /** Shown in confirm dialogs. */
   labelOf: (item: T) => string;
   sort?: (a: T, b: T) => number;
-  renderCard: (item: T) => ReactNode;
+  renderCard: (item: T, items: readonly T[]) => ReactNode;
   renderForm: (p: FormSlotProps<T>) => ReactNode;
   /** Under the archive/delete confirm title. */
   confirmText: string;
@@ -229,6 +231,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
               onCancel: closeAdd,
               extra: null,
               externalError: null,
+              items,
             })
           ) : canAdd ? (
             <div className="schedule-actions">
@@ -265,6 +268,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
                       onCancel: () => closeEdit(item.id),
                       extra: extraFor(item),
                       externalError: confirming ? null : actionError,
+                      items,
                     })
                   ) : (
                     <button
@@ -278,7 +282,7 @@ export function ScheduleList<T extends ListItem>(props: Props<T>) {
                         setEditingId(item.id);
                       }}
                     >
-                      {renderCard(item)}
+                      {renderCard(item, items)}
                       {item.archived ? <span className="tag">Archived</span> : null}
                       <CaretRight className="row-chevron" size={20} weight="light" aria-hidden="true" />
                     </button>

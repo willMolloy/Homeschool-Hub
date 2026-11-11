@@ -1,11 +1,12 @@
 /**
  * S8-06 / S9-02: "Update status" for one bar (from Schedule · Week, or the Year edit bar's More), against the last finished week (or the week being looked at): How did it go? (As planned / Got ahead / Fell behind),
  * "They got to {page}" with a − and +, and, when the plan moved, "What about the end date?" (S18-02): Keep the end date, Move
- * the end to the suggested date, or Pick a date (the shared DateField). The suggestion for a late assignment is the briefing's
+ * the end to the suggested date, or Pick a date (the shared DateField, with no minimum of today). The suggestion for a late assignment is the briefing's
  * own (`lateEnd`), so the late line and this sheet name the same date. Cancel or Save; Save hands the position, the mode and
- * the end date to the board, which sends the week once.
+ * the end date to the board, which sends the week once. S18b-01: a picked date before today stays allowed, and Save asks
+ * "That's before today; this ends the book now. Continue?" and waits. No, Cancel, or leaving it unanswered does not save.
  */
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import type { OverrideMode } from "@hh/engine";
 import type { CheckInItem } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
@@ -16,6 +17,7 @@ import { stepOf } from "../checkin/amount";
 import { isValidLocalDate, type LocalDate } from "@hh/engine";
 import { DateField } from "../../ui/DateField";
 import type { LateEnd } from "../plan/briefingLines";
+import { todayOf } from "../completion/waiting";
 import { shortDate } from "../schedule/formBits";
 import { itemRangeWords } from "../week/weekBars";
 import { endChoices, type EndChoices } from "./endDates";
@@ -44,6 +46,8 @@ export interface UpdateStatusProps {
   /** While the save is on its way, and what went wrong (the sheet stays open to try again). */
   busy?: boolean;
   error?: string | null;
+  /** S18b-02: the other workbooks of this book, when the screen has them. */
+  copies?: ReactNode;
 }
 
 type Way = "asPlanned" | "ahead" | "behind";
@@ -63,7 +67,7 @@ const wayOf = (item: CheckInItem, position: number): Way => {
 
 type EndWay = "keep" | "suggest" | "pick";
 
-export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart, afterDay, whenText, onSave, onClose, busy = false, error = null }: UpdateStatusProps) {
+export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart, afterDay, whenText, onSave, onClose, busy = false, error = null, copies = null }: UpdateStatusProps) {
   const me = useMe();
   const [pos, setPosition] = useState(position);
   /** The number box's own text, so a half-typed number is not rewritten under the finger. */
@@ -72,6 +76,9 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   const [endWay, setEndWay] = useState<EndWay>("keep");
   const [picked, setPicked] = useState<string>("");
   const [pickError, setPickError] = useState<string | null>(null);
+  /** S18b-01: a past date stays allowed, and the save waits until the parent confirms it. */
+  const [askPast, setAskPast] = useState(false);
+  const today = todayOf(me);
   const labelId = useId();
   const step = stepOf(item.unitType);
   const way = wayOf(item, pos);
@@ -89,13 +96,16 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   const rawSuggest = lateNow?.moveTo ?? choices?.move ?? null;
   const suggested = rawSuggest && rawSuggest !== keepDate ? rawSuggest : null;
   const unit = item.unitType === "minutes" ? UNIT_LABELS.minutes.many : UNIT_LABELS[item.unitType].one;
-  const save = () => {
+  const save = (confirmed = false) => {
     if (finished) return onSave(pos, null, null);
     if (way === "asPlanned") return onSave(pos, mode, null);
     if (endWay === "suggest" && suggested) return onSave(pos, "keepEndDate", suggested);
     if (endWay === "pick") {
-      if (!isValidLocalDate(picked)) return setPickError("Pick the new end date.");
-      if (afterDay && picked <= afterDay) return setPickError(`Pick a date after ${shortDate(afterDay)}.`);
+      if (!isValidLocalDate(picked)) { setAskPast(false); return setPickError("Pick the new end date."); }
+      // A date the sheet already refuses never reaches the confirmation.
+      if (afterDay && picked <= afterDay) { setAskPast(false); return setPickError(`Pick a date after ${shortDate(afterDay)}.`); }
+      // S18b-01: before today stays allowed. Saving it asks first and waits. Today or later does not ask.
+      if (picked < today && !confirmed) return setAskPast(true);
       return onSave(pos, "keepEndDate", picked);
     }
     return onSave(pos, "keepEndDate", null);
@@ -126,32 +136,36 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
             <h3 className="status-label" id={`${labelId}-end`}>What about the end date?</h3>
             <div role="radiogroup" aria-labelledby={`${labelId}-end`} className="status-ends">
               <label className={`status-end${endWay === "keep" ? " is-on" : ""}`}>
-                <input type="radio" name="end-date" checked={endWay === "keep"} onChange={() => setEndWay("keep")} />
+                <input type="radio" name="end-date" checked={endWay === "keep"} onChange={() => { setEndWay("keep"); setAskPast(false); }} />
                 <span>Keep {shortDate(keepDate ?? choices.keep)}<small>The remaining days get a little {way === "behind" ? "heavier" : "lighter"}</small></span>
               </label>
               {suggested ? (
                 <label className={`status-end${endWay === "suggest" ? " is-on" : ""}`}>
-                  <input type="radio" name="end-date" checked={endWay === "suggest"} onChange={() => setEndWay("suggest")} />
+                  <input type="radio" name="end-date" checked={endWay === "suggest"} onChange={() => { setEndWay("suggest"); setAskPast(false); }} />
                   <span>Move the end to {shortDate(suggested)}<small>About the same pace</small></span>
                 </label>
               ) : null}
               <label className={`status-end${endWay === "pick" ? " is-on" : ""}`}>
-                <input type="radio" name="end-date" checked={endWay === "pick"} onChange={() => { setEndWay("pick"); if (!picked) setPicked(suggested ?? keepDate ?? choices.keep); }} />
+                <input type="radio" name="end-date" checked={endWay === "pick"} onChange={() => { setEndWay("pick"); setAskPast(false); if (!picked) setPicked(suggested ?? keepDate ?? choices.keep); }} />
                 <span>Pick a date<small>Any day you choose</small></span>
               </label>
               {endWay === "pick" ? (
                 <div className="status-pick">
-                  <DateField value={picked} onChange={(v) => { setPicked(v); setPickError(null); }} aria-label="New end date" aria-invalid={pickError ? true : undefined} opens="up" />
+                  <DateField value={picked} onChange={(v) => { setPicked(v); setPickError(null); setAskPast(false); }} aria-label="New end date" aria-invalid={pickError ? true : undefined} opens="up" />
                   {pickError ? <p className="field-error" role="alert">{pickError}</p> : null}
                 </div>
               ) : null}
             </div>
           </>
         ) : null}
+        {copies}
         {error ? <p className="checkin-error" role="alert">{error}</p> : null}
+        {askPast ? <p className="status-confirm" role="alert">That&apos;s before today; this ends the book now. Continue?</p> : null}
         <div className="btn-row status-actions">
+          {askPast ? <Button disabled={busy} onClick={() => save(true)}>Continue</Button> : null}
+          {askPast ? <Button variant="secondary" disabled={busy} onClick={() => setAskPast(false)}>No</Button> : null}
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button disabled={busy} onClick={save}>Save</Button>
+          {askPast ? null : <Button disabled={busy} onClick={() => save()}>Save</Button>}
         </div>
       </div>
     </ResponsiveSheet>

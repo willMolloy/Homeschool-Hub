@@ -4,7 +4,8 @@
  * offers Update status (S9-02); a finished week shows its bars, and a bar there opens Update status (S8-06).
  * Nothing on the page is a number the family didn't enter.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../../ui/EmptyState";
@@ -25,6 +26,7 @@ import { useWeekPlansState } from "../plan/useWeekPlans";
 import { useDebugFlag, useShownWeek } from "../plan/useShownWeek";
 import { PlanDebugView } from "../plan/PlanDebugView";
 import { WeekAdjustment } from "../plan/WeekAdjustment";
+import { daysOfAssignment } from "../schedule/OtherCopies";
 import { weekSpan } from "../home/homeSummary";
 import { PastWeek } from "../status/PastWeek";
 import { UpdateStatusFlow } from "../status/UpdateStatusFlow";
@@ -93,7 +95,23 @@ function Week({ headSlot, titleSlot }: { headSlot: HTMLElement | null; titleSlot
 function PlannedWeek({ weekStart, currentWeekStart, choice, look, readOnly, layout }: { weekStart: string; currentWeekStart: string; choice: string | null; look: ReturnType<typeof useWeekLookups>; readOnly: boolean; layout: WeekLayout }) {
   const { plans, failed, retry } = useWeekPlansState(weekStart, true);
   const events = useApi<ScheduleEvent[]>("/api/events");
+  const { schoolDays } = useMe();
+  const [params, setParams] = useSearchParams();
+  const adjust = params.get("adjust");
   const [adjusting, setAdjusting] = useState<{ childId: string; childName: string } | null>(null);
+  // S18b-02: "This week's amount" on another workbook opens that child's week.
+  useEffect(() => {
+    if (readOnly || !adjust) return;
+    const kid = look.activeChildren.find((c) => c.id === adjust);
+    if (!kid) return;
+    setAdjusting({ childId: kid.id, childName: kid.name });
+    setParams((p) => {
+      if (!p.get("adjust")) return p;
+      const next = new URLSearchParams(p);
+      next.delete("adjust");
+      return next;
+    }, { replace: true });
+  }, [adjust, readOnly, look.activeChildren, setParams]);
   const [statusFor, setStatusFor] = useState<{ childId: string; assignmentId: string; title: string } | null>(null);
   const [viewing, setViewing] = useState<string | null>(null);
   if (failed) {
@@ -144,10 +162,14 @@ function PlannedWeek({ weekStart, currentWeekStart, choice, look, readOnly, layo
       {readOnly ? <BarDetailSheet assignment={look.assignments.find((a) => a.id === viewing) ?? null} subjects={look.subjects} children={look.children} onClose={() => setViewing(null)} /> : null}
       {readOnly ? null : <ResponsiveSheet open={adjusting !== null} onOpenChange={(o) => !o && setAdjusting(null)}
         title={adjusting ? aheadTitle(adjusting.childName, weekStart, weekEnd, current) : ""}>
-        {adjusting && <WeekAdjustment childId={adjusting.childId} weekStart={weekStart} weekEnd={weekEnd} current={current} onSaved={() => setAdjusting(null)}
+        {adjusting && <WeekAdjustment key={adjusting.childId} childId={adjusting.childId} weekStart={weekStart} weekEnd={weekEnd} current={current} onSaved={() => setAdjusting(null)}
+          nameOf={(id) => look.children.find((c) => c.id === id)?.name ?? ""}
+          daysOf={(a) => daysOfAssignment(a, look.subjects.find((s) => s.id === a.subjectId)?.defaultWeekdays ?? null, schoolDays)}
+          onOpenAmount={(id) => { const kid = look.activeChildren.find((c) => c.id === id); if (kid) setAdjusting({ childId: kid.id, childName: kid.name }); }}
           onUpdateStatus={(t) => { setStatusFor({ childId: adjusting.childId, ...t }); setAdjusting(null); }} />}
       </ResponsiveSheet>}
-      {statusFor && <UpdateStatusFlow assignmentId={statusFor.assignmentId} childId={statusFor.childId} title={statusFor.title} onClose={() => setStatusFor(null)} />}
+      {statusFor && <UpdateStatusFlow assignmentId={statusFor.assignmentId} childId={statusFor.childId} title={statusFor.title} onClose={() => setStatusFor(null)}
+        siblings={{ assignments: look.assignments, nameOf: (id) => look.children.find((c) => c.id === id)?.name ?? "", daysOf: (a) => daysOfAssignment(a, look.subjects.find((s) => s.id === a.subjectId)?.defaultWeekdays ?? null, schoolDays) }} />}
     </>
   );
 }

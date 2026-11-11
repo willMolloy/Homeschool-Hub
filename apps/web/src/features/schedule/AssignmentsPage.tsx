@@ -10,11 +10,14 @@
  * S7-01 / S7-02: "Copy to a new year" and "Copy to another child" (CopyPanels). S3a-04: "Add several" enters a subject's books in one form. S3a-06: "Import CSV" does it from a file.
  */
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { UNIT_TYPES, minutesPerDayFromWeight, weightFromMinutesPerDay, weightPerUnitOf } from "@hh/engine";
 import { Check } from "@phosphor-icons/react";
 import { apiPatch, apiPost, onPlanChange } from "../../api/client";
 import { useApi } from "../../api/useApi";
 import type { Assignment, PlanResponse, Subject, UnitType, WeightSuggestion } from "../../api/types";
+import { daysPhrase } from "./bookCopies";
+import { daysOfAssignment, copyRows, OtherCopies } from "./OtherCopies";
 import { ChildPicker, dateRange, dateRangeError, parsePositive, saveError, sameSet, shortDate, WeekdayPicker } from "./formBits";
 import { useWeekdayChoice } from "./useWeekdayChoice";
 import { WithLookups, type Lookups } from "./lookups";
@@ -34,7 +37,8 @@ import type { EffortPick } from "./effort";
 import { effortCardText } from "./weightText";
 import { useMe } from "../../auth/AuthProvider";
 import { DateField } from "../../ui/DateField";
-import { EndingRow } from "../completion/ChangeEnding";
+import { ChangeEndingSheet, EndingRow } from "../completion/ChangeEnding";
+import { UpdateStatusFlow } from "../status/UpdateStatusFlow";
 import { endedWords } from "../completion/ended";
 
 export { LIMITS };
@@ -89,7 +93,7 @@ export function AssignmentsPage() {
           sort={byStart}
           confirmText="It drops out of the plan. Logged work stays, and you can unarchive it later."
           copyOf={(a) => copyOfAssignment(a, l)}
-          renderCard={(a) => <AssignmentCard a={a} l={l} planEnd={planEnds.get(a.id)} />}
+          renderCard={(a, all) => <AssignmentCard a={a} l={l} planEnd={planEnds.get(a.id)} all={all} />}
           renderForm={(p) => <AssignmentForm {...p} l={l} />}
           renderBulkForm={(p) => <BulkAssignmentsForm {...p} l={l} />}
           renderImportForm={(p) => <ImportAssignmentsForm {...p} l={l} />}
@@ -103,9 +107,12 @@ export function AssignmentsPage() {
   );
 }
 
-function AssignmentCard({ a, l, planEnd }: { a: Assignment; l: Lookups; planEnd?: string }) {
+function AssignmentCard({ a, l, planEnd, all }: { a: Assignment; l: Lookups; planEnd?: string; all: readonly Assignment[] }) {
   // S6b-13: effort as minutes a day at the assignment's own pace (its days, else the subject's, else every school day).
   const { schoolDays } = useMe();
+  const dayList = (x: Assignment) => daysOfAssignment(x, l.subjectWeekdays(x.subjectId), schoolDays);
+  // S18b-02: a second workbook of the same book is named with its days, not only by "· Wren".
+  const twinDays = copyRows(a, all, l.childName, dayList).length > 0 ? ` · ${daysPhrase(dayList(a))}` : "";
   // S7b-10: over the days the plan really has (breaks, days off, skips); until that answers, the weekdays in the dates.
   const days = a.weekdays ?? l.subjectWeekdays(a.subjectId) ?? schoolDays;
   const real = usePace({ subjectId: a.subjectId, childIds: a.childIds, startDate: a.startDate, endDate: a.endDate, weekdays: days });
@@ -114,7 +121,7 @@ function AssignmentCard({ a, l, planEnd }: { a: Assignment; l: Lookups; planEnd?
   return (
     <span className="card-body">
       <span className="card-title">{a.title}</span>
-      <span className="card-line">{l.subjectName(a.subjectId)} · {a.childIds.map(l.childName).join(", ")}</span>
+      <span className="card-line">{l.subjectName(a.subjectId)} · {a.childIds.map(l.childName).join(", ")}{twinDays}</span>
       <span className="card-line">
         {units(a.totalUnits, a.unitType)}{effort ? ` · ${effort}` : ""}
       </span>
@@ -126,8 +133,12 @@ function AssignmentCard({ a, l, planEnd }: { a: Assignment; l: Lookups; planEnd?
 
 type Errors = Partial<Record<"subject" | "title" | "unit" | "totalUnits" | "effort" | "dates" | "children", string>>;
 
-export function AssignmentForm({ item, initial, onSaved, onCancel, extra, externalError, l, look }: FormSlotProps<Assignment> & { l: Lookups; look?: "sheet" }) {
+export function AssignmentForm({ item, initial, onSaved, onCancel, extra, externalError, l, look, items = [] }: FormSlotProps<Assignment> & { l: Lookups; look?: "sheet" }) {
   const sheet = look === "sheet";
+  const navigate = useNavigate();
+  const { schoolDays } = useMe();
+  const [statusId, setStatusId] = useState<string | null>(null);
+  const [finishId, setFinishId] = useState<string | null>(null);
   // S3a-01: a copy opens the Add form (item null) prefilled from `initial`.
   const start = item ?? initial ?? null;
   const activeSubjects = l.subjects.filter((s) => !s.archived || s.id === start?.subjectId);
@@ -305,8 +316,13 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     </div>
   );
   const inv = (err: string | undefined, id: string) => (err ? { "aria-invalid": true as const, "aria-describedby": `${id}-err` } : {});
+  const dayList = (x: Assignment) => daysOfAssignment(x, l.subjectWeekdays(x.subjectId), schoolDays);
+  const copies = item ? copyRows(item, items, l.childName, dayList) : [];
+  const statusTarget = items.find((a) => a.id === statusId) ?? null;
+  const finishTarget = items.find((a) => a.id === finishId) ?? null;
 
   return (
+    <>
     <form className={`card schedule-form${sheet ? " form-sheet" : ""}`} aria-label={item ? `Edit ${item.title}` : "Add assignment"} onSubmit={submit} noValidate>
       {shownError ? <p className="form-error" role="alert">{shownError}</p> : null}
       {item?.endedAs ? <EndingRow assignment={item} names={childIds.map(l.childName)} onChanged={onSaved} /> : null}
@@ -335,6 +351,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       </div>
       )}
       <WeekdayPicker legend={sheet ? "School days" : "Days"} offer={dayChoice.offer} value={dayChoice.shown} onChange={changeDays} />
+      {!item && initial ? <p className="hint">This copy is its own workbook. Set its school days here. The original keeps its days.</p> : null}
       {marked ? (
         <div className="field">
           <p className="hint">Will be the default for {l.subjectName(subjectId)}.</p>
@@ -387,11 +404,27 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
           weight: subjectUsual?.weightPerUnit ?? null,
         }}
         chosenMinutes={pickedMinutes !== null && Number.isFinite(pickedMinutes) && pickedMinutes > 0 ? pickedMinutes : null} error={errors.effort} />}
+      {copies.length > 0 ? (
+        <OtherCopies rows={copies} kinds={["amount", "status", "finish"]} busy={saving}
+          onAmount={(_row, childId) => navigate(`/schedule?view=week&adjust=${childId}`)}
+          onStatus={(row) => setStatusId(row.id)} onFinish={(row) => setFinishId(row.id)} />
+      ) : null}
       <div className="btn-row">
         <button className="btn" type="submit" disabled={saving || awaitingSuggestion} aria-busy={awaitingSuggestion || undefined}>{saving ? "Saving…" : item ? "Save" : "Add"}</button>
         <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>
         {extra}
       </div>
     </form>
+    {statusTarget ? (
+      <UpdateStatusFlow assignmentId={statusTarget.id} title={statusTarget.title}
+        childId={statusTarget.childIds.length === 1 ? statusTarget.childIds[0]! : null}
+        siblings={{ assignments: items, nameOf: l.childName, daysOf: dayList }}
+        onClose={() => setStatusId(null)} />
+    ) : null}
+    {finishTarget ? (
+      <ChangeEndingSheet assignment={finishTarget} names={finishTarget.childIds.map(l.childName)}
+        onClose={() => setFinishId(null)} onChanged={(saved) => { setFinishId(null); onSaved(saved); }} />
+    ) : null}
+    </>
   );
 }
