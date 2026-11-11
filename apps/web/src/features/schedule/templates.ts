@@ -1,6 +1,7 @@
 /** S5-05: the breaks a calendar template adds, worked out from the year's dates. Pure; dates are "YYYY-MM-DD" strings. */
-import { addDays, diffDays, HOLIDAY_KEYS, onOffBreaks, toDayNumber, usHolidays, weekdayOfDayNumber, type HolidayKey, type LocalDate, type WeekStart } from "@hh/engine";
+import { addDays, diffDays, HOLIDAY_KEYS, isLongBreak, onOffBreaks, toDayNumber, usHolidays, weekdayOfDayNumber, type HolidayKey, type LocalDate, type WeekStart } from "@hh/engine";
 import type { BlockedKind, BlockedRange, TemplateBreak } from "../../api/types";
+import { KIND_NAMES } from "../../lib/kindNames";
 
 export interface PlannedBreak {
   /** null = a day off with no label of its own (S5-07). */
@@ -12,6 +13,21 @@ export interface PlannedBreak {
 
 /** The pattern breaks' label. */
 export const BREAK_LABEL = "Break";
+
+/**
+ * S19-06: what is stored. A week or longer with no name of its own takes the kind's name, so saving it is allowed
+ * and the year view has a title. A shorter break may stay unnamed.
+ */
+export function storedBreakLabel(b: PlannedBreak, kindName: string): string | null {
+  const own = b.label?.trim() ?? "";
+  if (own) return own;
+  return isLongBreak(b.start, b.end) ? kindName : null;
+}
+
+/** The body for one break on POST /api/blocked-ranges/bulk. */
+export function breakSaveBody(b: PlannedBreak): { label: string | null; kind: BlockedKind; startDate: string; endDate: string; childIds: string[] } {
+  return { label: storedBreakLabel(b, KIND_NAMES[b.kind]), kind: b.kind, startDate: b.start, endDate: b.end, childIds: [] };
+}
 
 /** The longest school year a template is asked for, as for a plan request. */
 export const MAX_YEAR_DAYS = 400;

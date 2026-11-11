@@ -11,7 +11,7 @@ import { useMe } from "../../auth/AuthProvider";
 import type { BlockedKind, BlockedRange, CalendarTemplate } from "../../api/types";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { dateRangeError, saveError } from "./formBits";
-import { ALL_HOLIDAYS, breakText, leaveOutExisting, MAX_YEAR_DAYS, plannedBreaks, shiftedBreaks, type PlannedBreak } from "./templates";
+import { ALL_HOLIDAYS, breakSaveBody, breakText, leaveOutExisting, MAX_YEAR_DAYS, plannedBreaks, shiftedBreaks, type PlannedBreak } from "./templates";
 import { DateField } from "../../ui/DateField";
 
 /** Custom weeks on and off: whole numbers from 1 to 20. */
@@ -80,7 +80,7 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
     setSaving(true);
     try {
       const created = await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", {
-        blockedRanges: add.map((b) => ({ label: b.label, kind: b.kind, startDate: b.start, endDate: b.end, childIds: [] })),
+        blockedRanges: add.map((b) => breakSaveBody(b)),
       });
       onSaved(created);
     } catch (err) {

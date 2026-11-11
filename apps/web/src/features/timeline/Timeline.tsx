@@ -25,7 +25,16 @@ const HANDLE_H = (rowHeight: number) => Math.min(14, Math.max(8, rowHeight - 6))
 /** S12-04: an ended bar is drawn in the lighter step of its colour (calmer); a stopped one is also muted and dashed (timeline.css). */
 const stepOf = (step: ChildStep, ended?: "finished" | "stopped"): ChildStep => (ended ? "light" : step);
 const STEP_SUFFIX: Record<ChildStep, string> = { base: "", light: "-light", dark: "-dark" };
-export const bandFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]})`;
+/**
+ * S19-04: mix this much of the strong tone into the pastel. The bar stays a pastel, a little stronger than the
+ * page-mixed fill, and the opacity token stays at 1 (not a flat solid, and not above 1).
+ */
+export const BAR_STRONG_MIX = 0.08;
+export const bandFill = (slot: number, step: ChildStep) => {
+  const suffix = STEP_SUFFIX[step];
+  const pct = Math.round(BAR_STRONG_MIX * 100);
+  return `color-mix(in srgb, var(--tl-subject-${slot}${suffix}-strong) ${pct}%, var(--tl-subject-${slot}${suffix}))`;
+};
 /** T-06: the AA label colour picked for each swatch (light or dark text, from the tokens). */
 export const nameFill = (slot: number, step: ChildStep) => `var(--tl-subject-${slot}${STEP_SUFFIX[step]}-label)`;
 
@@ -141,6 +150,12 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
             {b.label ? <title>{b.label}</title> : null}
           </rect>
         ))}
+      </g>
+      {/* S19-06: a named break of a week or longer. Regular weekly days off are not labeled, and never "Wednesdays off". */}
+      <g className="tl-break-labels">
+        {layout.breaks.map((b, i) => b.title ? (
+          <text key={`label-${b.breakId}-${i}`} className="tl-break-label" x={b.title.x} y={b.title.y} dominantBaseline="central" data-above={b.title.above ? "true" : undefined}>{b.title.text}</text>
+        ) : null)}
       </g>
 
       {/* S10-03: the dashed Today line runs through every lane, over the bars and under their names (which carry a halo). */}

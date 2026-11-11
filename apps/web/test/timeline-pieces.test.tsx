@@ -79,7 +79,7 @@ describe("in the layout", () => {
     for (const line of lines) {
       const own = layout.bands.filter((b) => b.assignmentId === line.dataset.connectorFor && b.connectors.length > 0);
       expect(own.map((b) => String(b.cy))).toContain(line.getAttribute("y1"));
-      expect(line.style.stroke).toMatch(/^var\(--tl-subject-\d+(-light|-dark)?\)$/);
+      expect(line.style.stroke).toMatch(/^color-mix\(in srgb, var\(--tl-subject-\d+(-light|-dark)?-strong\) \d+%, var\(--tl-subject-\d+(-light|-dark)?\)\)$/);
     }
   });
 });

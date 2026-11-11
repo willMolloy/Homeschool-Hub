@@ -22,16 +22,19 @@ export interface XScale {
   isColumn(i: number): boolean;
 }
 
-export function makeXScale(grid: Pick<DayGrid, "schoolDay">, first: number, last: number, x: number, width: number): XScale {
+export function makeXScale(
+  grid: Pick<DayGrid, "schoolDay">, first: number, last: number, x: number, width: number, allDays = false,
+): XScale {
   const before: number[] = [];
   let n = 0;
   for (let i = first; i <= last; i++) {
     before.push(n);
-    if (grid.schoolDay[i]) n++;
+    // S19-06: at a month zoom or closer, a regular weekly day off gets a column too. It stays unlabeled.
+    if (allDays || grid.schoolDay[i]) n++;
   }
   const columnWidth = n > 0 ? width / n : 0;
   const clamp = (i: number) => Math.min(last, Math.max(first, i));
-  const isColumn = (i: number) => i >= first && i <= last && Boolean(grid.schoolDay[i]);
+  const isColumn = (i: number) => i >= first && i <= last && (allDays || Boolean(grid.schoolDay[i]));
   const start = (i: number) => (i > last ? x + width : x + before[clamp(i) - first]! * columnWidth);
   return {
     first,

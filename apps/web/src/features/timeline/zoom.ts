@@ -43,6 +43,18 @@ export function spanWeeks(model: Pick<TimelineModel, "dates">, range: readonly [
 export const resolveDetail = (weeks: number, detail: Detail = "auto", previous?: DrawnDetail): DrawnDetail =>
   detail !== "auto" ? detail : detailForSpan(weeks, previous);
 
+/**
+ * S19-06: regular weekly days off (the weekdays that are not school days) are drawn only at a month zoom or closer.
+ * A calendar month is under five weeks. Year is never that close. A term zoom is wider than a month, so it is not either,
+ * unless the family has dated that view down to a month or less.
+ */
+export const MONTH_OR_CLOSER_WEEKS = 5;
+export function showsWeeklyOffs(zoom: Zoom, weeks: number): boolean {
+  if (zoom === "month") return true;
+  if (zoom === "year") return false;
+  return weeks > 0 && weeks <= MONTH_OR_CLOSER_WEEKS;
+}
+
 /** The calendar months ("YYYY-MM") on the grid, in order. */
 export function gridMonths(model: Pick<TimelineModel, "dates">): string[] {
   const out: string[] = [];

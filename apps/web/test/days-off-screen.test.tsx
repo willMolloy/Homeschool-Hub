@@ -66,13 +66,29 @@ describe("Days off screen", () => {
     expect(within(form).getByRole("radio", { name: "Whole family" })).toBeChecked();
     expect(within(form).queryByRole("checkbox", { name: "Frank" })).toBeNull();
     date("First day", "2026-12-21", form);
-    date("Last day", "2027-01-01", form);
+    date("Last day", "2026-12-23", form);
     await user.click(within(form).getByRole("button", { name: "Add" }));
     expect(writes()).toEqual([{
       method: "POST", path: "/api/blocked-ranges",
-      body: { label: null, kind: "vacation", startDate: "2026-12-21", endDate: "2027-01-01", childIds: [] },
+      body: { label: null, kind: "vacation", startDate: "2026-12-21", endDate: "2026-12-23", childIds: [] },
     }]);
-    expect(await screen.findByText("Dec 21, 2026 – Jan 1, 2027 (12 days)")).toBeInTheDocument();
+    expect(await screen.findByText("Dec 21, 2026 – Dec 23, 2026 (3 days)")).toBeInTheDocument();
+  });
+
+  it("a week or longer with no name is refused, and a shorter one is not (S19-06)", async () => {
+    const user = await setup();
+    await user.click(screen.getByRole("button", { name: "Add days off" }));
+    const form = screen.getByRole("form", { name: "Add days off" });
+    date("First day", "2026-12-21", form);
+    date("Last day", "2026-12-27", form);
+    expect(within(form).getByText("Label")).toBeInTheDocument();
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    expect(within(form).getByRole("alert")).toHaveTextContent("A break of a week or longer needs a name.");
+    expect(writes()).toEqual([]);
+    await user.type(within(form).getByLabelText("Label"), "Winter break");
+    fakeApi.on("POST /api/blocked-ranges", (body) => [201, { ...(body as object), id: rowId(19) }]);
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    expect(writes()[0]!.body).toMatchObject({ label: "Winter break", startDate: "2026-12-21", endDate: "2026-12-27" });
   });
 
   it("add for some children; none picked → error, no request", async () => {

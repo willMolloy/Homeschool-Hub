@@ -1,6 +1,6 @@
 /** /schedule/days-off (S2a-15): vacations, holidays and other blocked ranges. Delete is permanent. */
 import { useId, useState, type FormEvent } from "react";
-import { BLOCKED_KINDS } from "@hh/engine";
+import { BLOCKED_KINDS, isLongBreak } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
 import type { BlockedKind, BlockedRange } from "../../api/types";
 import { dayOffTitle, KIND_NAMES } from "../../lib/kindNames";
@@ -79,6 +79,7 @@ function DaysOffForm({ item, onSaved, onCancel, extra, externalError, l }: FormS
     const errs: Errors = {};
     const t = label.trim();
     if (t.length > LIMITS.label) errs.label = `Label must be ${LIMITS.label} characters or fewer.`;
+    else if (startDate && endDate && isLongBreak(startDate, endDate) && !t) errs.label = "A break of a week or longer needs a name.";
     const d = dateRangeError(startDate, endDate, LIMITS.days);
     if (d) errs.dates = d;
     if (!wholeFamily && childIds.length === 0) errs.children = "Pick at least one child, or choose Whole family.";
@@ -120,7 +121,7 @@ function DaysOffForm({ item, onSaved, onCancel, extra, externalError, l }: FormS
         </select>
       </div>
       <div className="field">
-        <label htmlFor={ids.label}>Label (optional)</label>
+        <label htmlFor={ids.label}>{startDate && endDate && isLongBreak(startDate, endDate) ? "Label" : "Label (optional)"}</label>
         <input id={ids.label} type="text" value={label} autoComplete="off" placeholder="e.g. Thanksgiving week"
           onChange={(e) => setLabel(e.target.value)} {...inv(errors.label, ids.label)} />
         {errors.label ? <p id={`${ids.label}-err`} className="field-error" role="alert">{errors.label}</p> : null}
