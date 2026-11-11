@@ -12,6 +12,11 @@
 .print-sheet-head h1 { margin: 0; font-family: var(--tl-font-display); font-weight: 600; font-size: 24pt; line-height: 1.1; overflow-wrap: break-word; min-width: 0; }
 .sheet-when { margin: 2px 0 0; font-size: 13pt; color: #4a4339; }
 .sheet-break, .sheet-empty { margin: 0 0 10px; font-size: 11pt; color: #4a4339; }
+/* S19-05: the weekly sheet is one school day, then the next. */
+.sheet-day-block { margin: 0 0 14px; }
+.sheet-day-block > h2 { margin: 0 0 4px; font-family: var(--tl-font-display); font-weight: 600; font-size: 14pt; }
+.sheet-day-subject { margin: 0 0 6px; }
+.sheet-day-subject > h3 { margin: 0 0 2px; font-family: var(--tl-font); font-size: 10.5pt; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
 .sheet-break { font-style: italic; }
 .sheet-subject { margin: 0 0 12px; padding-left: 10px; border-left: 3px solid var(--sheet-subject, #1f1b16); break-inside: avoid-page; }
 .sheet-subject h2 { margin: 0 0 3px; font-family: var(--tl-font); font-size: 10.5pt; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #1f1b16; }
