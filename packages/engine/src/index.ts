@@ -31,6 +31,10 @@ export { buildCapacityModel, ruleFactor, type CapacityModel } from "./capacity";
 export { capacityDays, type CapacityDaysInput } from "./pace";
 export { countWeekdays, roundUnits, totalForSameDaily } from "./minutesDay";
 export { planChild, planAssignment, planAll, EPS, MAX_PUSH_DAYS } from "./plan";
+export {
+  breakUndoName, listBreakOverlaps, overlapSummary, pickRefusal, pushEndBySchoolDays, resolveEndDates,
+  type BreakOverlap, type BreakSpan, type ListBreakOverlapsInput, type OverlapAssignment, type ResolvedEnds, type RowChoice,
+} from "./breakOverlap";
 export { forecastFinish, forecastOutcome, noRecentProgress, heavyWeek, HEAVY_WEEK_RATIO, type FinishForecast } from "./briefing";
 export { plannedRangeForWeek } from "./checkins";
 export { aggregate, weeklySummary, mergeLane, detailForZoom, sumByDate, DAILY_ZOOM_THRESHOLD_PX, type LaneDay } from "./aggregate";

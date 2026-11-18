@@ -13,6 +13,7 @@ import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { formatDate } from "../../lib/dates";
 import { DateField } from "../../ui/DateField";
 import { dateRangeError, saveError } from "../schedule/formBits";
+import { useBreakOverlap } from "../schedule/useBreakOverlap";
 import { MAX_YEAR_DAYS, breakSaveBody, leaveOutExisting } from "../schedule/templates";
 import { SHAPES, planYear, previewLine, zoomViewsFor, type ShapeId } from "./yearShapes";
 
@@ -32,6 +33,7 @@ export interface YearFormProps {
 
 export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onSave, fail }: YearFormProps) {
   const me = useMe();
+  const overlap = useBreakOverlap(me.schoolDays);
   const existing = useApi<BlockedRange[]>("/api/blocked-ranges");
   const [start, setStart] = useState(saved?.start ?? "");
   const [end, setEnd] = useState(saved?.end ?? "");
@@ -68,9 +70,18 @@ export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onS
     setSaving(true);
     try {
       // Breaks first: if the save after them fails, trying again leaves out the days off that are already there.
-      const { add } = leaveOutExisting(plan.breaks, (await apiGet<BlockedRange[]>("/api/blocked-ranges")));
-      if (add.length > 0) {
-        await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges: add.map(breakSaveBody) });
+      const already = await apiGet<BlockedRange[]>("/api/blocked-ranges");
+      const { add } = leaveOutExisting(plan.breaks, already);
+      const blockedRanges = add.map(breakSaveBody);
+      if (blockedRanges.length > 0) {
+        const savedBreaks = await overlap.ask(
+          blockedRanges.map((b) => ({ label: b.label, start: b.startDate, end: b.endDate, childIds: b.childIds })),
+          already,
+          async (adjustments) => {
+            await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges, ...(adjustments ? { adjustments } : {}) });
+          },
+        );
+        if (!savedBreaks) return;
       }
       const zoom = zoomViewsFor(plan, (await apiGet<FamilySettings>("/api/family")).zoomViews, saved?.shape ?? null);
       await onSave({ schoolYear: { start, end, shape }, ...(zoom ? { zoomViews: zoom } : {}), setupDeferred: rest });
@@ -120,6 +131,7 @@ export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onS
       </fieldset>
       <p className="welcome-preview" aria-live="polite">{preview}</p>
       <div className="btn-row"><Button type="submit" disabled={busy || saving}>{submitLabel}</Button></div>
+      {overlap.sheet}
       {confirmClear && saved ? (
         <ConfirmDialog title="Clear the saved dates?" confirmLabel="Clear the dates" onConfirm={() => void clearDates()} onCancel={() => setConfirmClear(false)}>
           <p>Your school year, {formatDate(saved.start)} to {formatDate(saved.end)}, is cleared and you can set it later. Breaks and term views you already added stay.</p>
