@@ -1,6 +1,6 @@
 # Sprint 21 progress: a break that overlaps assignments
 
-Branch: `hh2/sprint-21`, cut from `main` at the Sprint 20 merge (`b0f3f56`, PR #22). Tickets: `docs/tickets/sprint-21-break-overlap/`. S21-05 is the independent tester's pass and is not part of this build. The pull request stays a draft. Do not mark it ready, and do not merge it. The Sprint 18b tester follow-ups, now S18c-01 through S18c-06, stay ticketed and unbuilt and come after this sprint. Hosting stays on hold.
+Branch: `hh2/sprint-21`, cut from `main` at the Sprint 20 merge (`b0f3f56`, PR #22). Draft pull request: https://github.com/willMolloy/Homeschool-Hub/pull/23. Tickets: `docs/tickets/sprint-21-break-overlap/`. S21-05 is the independent tester's pass and is not part of this build. The pull request stays a draft. Do not mark it ready, and do not merge it. The Sprint 18b tester follow-ups, now S18c-01 through S18c-06, stay ticketed and unbuilt and come after this sprint. Hosting stays on hold.
 
 | Ticket | Commit | Notes |
 |---|---|---|
