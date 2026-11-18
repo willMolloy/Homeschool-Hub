@@ -93,7 +93,7 @@ describe("ask before a break covers open work (S21-01)", () => {
     await user.click(keeps[0]!);
     await user.click(within(sheet).getByRole("button", { name: "Use this for the rest" }));
     expect(within(sheet).getAllByRole("radio", { name: /Keep the end date/ }).every((r) => (r as HTMLInputElement).checked)).toBe(true);
-    expect(within(sheet).getByRole("button", { name: "Confirm" })).toBeDisabled();
+    expect(within(sheet).getByRole("button", { name: "Confirm" })).toBeEnabled();
     expect(writes()).toEqual([]);
   });
 

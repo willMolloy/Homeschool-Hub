@@ -32,6 +32,7 @@ const SAVED: CalendarTemplate = {
 
 async function open(label: "Use a template" | "Save as a template", rows: BlockedRange[] = [], templates: CalendarTemplate[] = []) {
   withRoster();
+  fakeApi.on("GET /api/assignments", 200, []);
   fakeApi.on("GET /api/blocked-ranges", 200, rows);
   fakeApi.on("GET /api/calendar-templates", 200, templates);
   fakeApi.on("POST /api/blocked-ranges/bulk", (body) => [201, (body as { blockedRanges: object[] }).blockedRanges.map((b, i) => ({ ...b, id: rowId(60 + i) }))]);

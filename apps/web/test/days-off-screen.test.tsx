@@ -11,6 +11,7 @@ const DENTIST: BlockedRange = { id: rowId(12), label: null, kind: "sick", startD
 
 async function setup(rows = [THANKS, DENTIST]) {
   withRoster();
+  fakeApi.on("GET /api/assignments", 200, []);
   fakeApi.on("GET /api/blocked-ranges", 200, rows);
   for (const r of rows) {
     fakeApi.on(`PATCH /api/blocked-ranges/${r.id}`, patchMerging(r));

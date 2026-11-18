@@ -123,8 +123,6 @@ class FakeApi {
     this.on("GET /api/family/viewers", 200, { links: [], viewers: [] });
     // S6-08: nothing to undo unless a test says so.
     this.on("GET /api/undo", 200, null);
-    // S21-01: a break checks open books. No books unless a test says otherwise.
-    this.on("GET /api/assignments", 200, []);
     // S9b-07: a Mon-Fri family with no days off, unless a test says otherwise.
     this.on("GET /api/log-entries/run-days", (_b, _p, q) => [200, runDaysFor(q.get("from") ?? "", q.get("to") ?? "")]);
     this.on(`PUT /api/check-ins/${EMPTY_WEEK.weekStart}`, (body) =>
