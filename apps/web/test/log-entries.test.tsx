@@ -36,8 +36,8 @@ const openLog = async (user: ReturnType<typeof userEvent.setup>) => {
   return within(await screen.findByRole("form", { name: "Log" }));
 };
 const type = async (user: ReturnType<typeof userEvent.setup>, el: HTMLElement, v: string) => { await user.clear(el); await user.type(el, v); };
-const dayOf = (form: ReturnType<typeof within>) => form.queryByLabelText("Day") ?? dayOf(form);
-const lastOf = (form: ReturnType<typeof within>) => {
+const dayOf = (form: ReturnType<typeof within>): HTMLElement => form.queryByLabelText("Day") ?? form.getByLabelText("First day");
+const lastOf = (form: ReturnType<typeof within>): HTMLElement => {
   const btn = form.queryByRole("button", { name: "Log more than one day" });
   if (btn) fireEvent.click(btn);
   return form.getByLabelText("Last day");
