@@ -121,7 +121,7 @@ describe("Set up lists the days, and a copy can be given its own (S18b-02)", () 
     await user.click(within(screen.getByRole("form", { name: "Edit Gospel of Luke" })).getByRole("button", { name: "Update status for Wren · Tue–Fri" }));
     const sheet = within(await screen.findByRole("dialog"));
     expect(sheet.getByText(/Wren/)).toBeInTheDocument();
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(writes().some((w) => w.method === "PUT")).toBe(true));
     const put = writes().find((w) => w.method === "PUT")!.body as { items: { assignmentId: string }[] };

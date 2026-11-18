@@ -82,7 +82,7 @@ describe("Update status after Fell behind (S18-02)", () => {
     const user = userEvent.setup();
     const { lateButton, sheet } = await openStatus(user);
     expect(lateButton).toHaveTextContent("Move end to Feb 1, 2027");
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     expect(await sheet.findByRole("radio", { name: /^Move the end to Feb 1, 2027/ })).toBeInTheDocument();
     expect(sheet.getByRole("radio", { name: /^Keep Dec 18, 2026/ })).toBeChecked();
     expect(sheet.getByRole("radio", { name: /^Pick a date/ })).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe("Update status after Fell behind (S18-02)", () => {
     const { lateButton, sheet } = await openStatus(user);
     const date = lateButton.textContent!.replace("Move end to ", "");
     expect(date).toBe(shortDate(suggestedEnd(slow(), CALENDAR as never)!));
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     expect(await sheet.findByRole("radio", { name: new RegExp(`^Move the end to ${date}`) })).toBeInTheDocument();
   });
 
@@ -102,7 +102,7 @@ describe("Update status after Fell behind (S18-02)", () => {
     stub(extended());
     const user = userEvent.setup();
     const { sheet } = await openStatus(user);
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     await user.click(await sheet.findByRole("radio", { name: /^Move the end to Feb 1, 2027/ }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
@@ -113,7 +113,7 @@ describe("Update status after Fell behind (S18-02)", () => {
     stub(extended());
     const user = userEvent.setup();
     const { sheet } = await openStatus(user);
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     await user.click(await sheet.findByRole("radio", { name: /^Pick a date/ }));
     const field = sheet.getByRole("textbox", { name: "New end date" });
     await user.clear(field);
@@ -128,7 +128,7 @@ describe("Update status after Fell behind (S18-02)", () => {
     stub(extended());
     const user = userEvent.setup();
     const { sheet } = await openStatus(user);
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     await user.click(await sheet.findByRole("radio", { name: /^Pick a date/ }));
     const field = sheet.getByRole("textbox", { name: "New end date" });
     await user.clear(field);
@@ -144,7 +144,7 @@ describe("Update status after Fell behind (S18-02)", () => {
     stub(extended());
     const user = userEvent.setup();
     const { sheet } = await openStatus(user);
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(body().endDate).toBeUndefined();

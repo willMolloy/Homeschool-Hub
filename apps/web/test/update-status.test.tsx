@@ -105,7 +105,7 @@ describe("Update status from a Week bar (S9-02)", () => {
     const user = userEvent.setup();
     const sheet = await openStatusFromWeek(user, "Treasure Island");
     expect(sheet.getByText("How did it go?")).toBeInTheDocument();
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     const got = sheet.getByRole("spinbutton", { name: "page reached" });
     await user.clear(got);
     await user.type(got, "38");
@@ -145,10 +145,58 @@ describe("Update status from a Week bar (S9-02)", () => {
     expect(body().status).toBe("reviewed");
   });
 
+  it("chapters 16–18 open on 18, and ahead or behind leaves that number (S20-02)", async () => {
+    const chapters = item({ assignmentId: "ti", unitType: "chapters", plannedFrom: 15, plannedTo: 18.6, totalUnits: 24 });
+    stub({ ...WEEK, items: [chapters, MATH, VIOLIN] });
+    const user = userEvent.setup();
+    const sheet = await openStatusFromWeek(user, "Treasure Island");
+    const got = sheet.getByRole("spinbutton", { name: "chapter reached" });
+    expect(got).toHaveValue(18);
+    expect(sheet.getByRole("button", { name: "As planned" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    expect(got).toHaveValue(18);
+    await user.click(sheet.getByRole("button", { name: "Got ahead" }));
+    expect(got).toHaveValue(18);
+    expect(sheet.getByRole("button", { name: "As planned" })).toHaveAttribute("aria-pressed", "true");
+    await user.clear(got);
+    await user.type(got, "16");
+    await user.click(sheet.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    expect(body().items.find((i) => i.assignmentId === "ti")).toMatchObject({ position: 16, mode: "keepEndDate" });
+
+    stub({ ...WEEK, items: [chapters, MATH, VIOLIN] });
+    const ahead = await openStatusFromWeek(user, "Treasure Island");
+    const box = ahead.getByRole("spinbutton", { name: "chapter reached" });
+    await user.clear(box);
+    await user.type(box, "20");
+    expect(ahead.getByRole("button", { name: "Got ahead" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(ahead.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(puts()).toHaveLength(2));
+    const second = puts()[1]!.body as { items: { assignmentId: string; position: number }[] };
+    expect(second.items.find((i) => i.assignmentId === "ti")).toMatchObject({ position: 20 });
+  });
+
+  it("typing past the last page stores that page, and a saved number reopens (S20-02)", async () => {
+    const user = userEvent.setup();
+    const sheet = await openStatusFromWeek(user, "Treasure Island");
+    const got = sheet.getByRole("spinbutton", { name: "page reached" });
+    expect(got).toHaveValue(80);
+    await user.clear(got);
+    await user.type(got, "100");
+    expect(sheet.getByRole("button", { name: "Got ahead" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(sheet.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    expect(body().items[0]).toMatchObject({ assignmentId: "ti", position: 100 });
+
+    stub({ ...WEEK, status: "reviewed", items: [item({ actual: 16, mode: "keepEndDate" }), MATH, VIOLIN] });
+    const again = await openStatusFromWeek(user, "Treasure Island");
+    expect(again.getByRole("spinbutton", { name: "page reached" })).toHaveValue(16);
+  });
+
   it("Keep is the default: the end stays and the remaining days get heavier", async () => {
     const user = userEvent.setup();
     const sheet = await openStatusFromWeek(user, "Treasure Island");
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     expect(sheet.getByRole("radio", { name: /Keep Dec 1/ })).toBeChecked();
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
@@ -195,7 +243,7 @@ describe("Update status from a Week bar (S9-02)", () => {
     stub({ ...WEEK, status: "reviewed", items: [TI, item({ ...MATH, actual: 12, mode: "keepEndDate" }), VIOLIN] });
     fakeApi.on(PUT, 400, { error: "invalid_request", message: "items.1.position: can't be more than the total (270)." });
     const sheet = await openStatusFromWeek(user, "Treasure Island");
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(body().items.map((i) => i.assignmentId)).toEqual(["math", "ti"]);
@@ -254,7 +302,7 @@ describe("Update status from the Year edit bar (S9-02)", () => {
       await user.click(within(dialog).getByRole("button", { name: week.items[1]!.childName }));
     }
     const sheet = within(await screen.findByText("How did it go?").then((e) => e.closest("[role=dialog]") as HTMLElement));
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(puts()[0]!.path).toBe("/api/check-ins/2026-10-05");
@@ -287,7 +335,7 @@ describe("a finished week on Schedule (S9-02)", () => {
     expect(screen.queryByRole("button", { name: "Save check-in" })).toBeNull();
     await user.click(bars.getByRole("button", { name: /Treasure Island pages 1–80/ }));
     const sheet = within(await screen.findByRole("dialog"));
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(body().items[0]).toMatchObject({ assignmentId: "ti", position: 79, mode: "keepEndDate" });
@@ -303,7 +351,12 @@ describe("a finished week on Schedule (S9-02)", () => {
     const sheet = within(await screen.findByRole("dialog"));
     // S18-02: "Move" now moves the assignment's end date, so a stored pushEndDate row opens on Keep (it is not re-saved as a move).
     expect(sheet.getByRole("radio", { name: /^Keep / })).toBeChecked();
+    const got = sheet.getByRole("spinbutton", { name: "page reached" });
+    expect(got).toHaveValue(40);
     await user.click(sheet.getByRole("button", { name: "As planned" }));
+    expect(got).toHaveValue(40);
+    await user.clear(got);
+    await user.type(got, "80");
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(body()).toEqual({ status: "reviewed", items: [] });
@@ -343,7 +396,7 @@ describe("Update status can be undone (S18-01)", () => {
     fakeApi.on("GET /api/undo", 200, { label: "Updated Treasure Island", createdAt: "2026-10-28T15:00:00.000Z" });
     fakeApi.on("POST /api/undo", 200, { label: "Updated Treasure Island" });
     const sheet = await openStatusFromWeek(user, "Treasure Island");
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -361,7 +414,7 @@ describe("Update status can be undone (S18-01)", () => {
     const bars = within(await screen.findByRole("region", { name: "Frank's week" }));
     await user.click(bars.getByRole("button", { name: /Treasure Island pages 1–80/ }));
     const sheet = within(await screen.findByRole("dialog"));
-    await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+    await user.click(sheet.getByRole("button", { name: "One less" }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
     expect(await screen.findByRole("button", { name: "Undo" })).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Updated Treasure Island.");

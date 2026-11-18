@@ -21,6 +21,7 @@ import { todayOf } from "../completion/waiting";
 import { shortDate } from "../schedule/formBits";
 import { itemRangeWords } from "../week/weekBars";
 import { endChoices, type EndChoices } from "./endDates";
+import { isScheduledEnd, scheduledPosition } from "./scheduledEnd";
 import "../checkin/checkin.css";
 import "./status.css";
 import { useMe } from "../../auth/AuthProvider";
@@ -61,17 +62,21 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const shown = (n: number) => String(Math.round(n));
 
 const wayOf = (item: CheckInItem, position: number): Way => {
+  if (isScheduledEnd(item, position)) return "asPlanned";
   const o = rowOutcome(item, position);
-  return o === "asPlanned" ? "asPlanned" : o === "behind" ? "behind" : "ahead";
+  if (o === "finished") return position < item.plannedTo ? "behind" : "ahead";
+  return o === "behind" ? "behind" : "ahead";
 };
 
 type EndWay = "keep" | "suggest" | "pick";
 
 export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart, afterDay, whenText, onSave, onClose, busy = false, error = null, copies = null }: UpdateStatusProps) {
   const me = useMe();
-  const [pos, setPosition] = useState(position);
+  // S20-02: open on the last unit the week names (or the number she already saved), not one past it.
+  const opened = item.actual != null ? position : scheduledPosition(item);
+  const [pos, setPosition] = useState(opened);
   /** The number box's own text, so a half-typed number is not rewritten under the finger. */
-  const [text, setText] = useState(shown(position));
+  const [text, setText] = useState(shown(opened));
   const setPos = (n: number) => { setPosition(n); setText(shown(n)); };
   const [endWay, setEndWay] = useState<EndWay>("keep");
   const [picked, setPicked] = useState<string>("");
@@ -87,10 +92,9 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   const way = wayOf(item, pos);
   const finished = pos >= item.totalUnits - 1e-9;
   const clamp = (n: number) => Math.min(item.totalUnits, Math.max(item.plannedFrom, round2(n)));
+  // S20-02: tapping a chip does not change the number. The highlight follows the number she left in the box.
   const pick = (w: Way) => {
-    if (w === "asPlanned") return setPos(item.plannedTo);
-    if (w === "ahead") return setPos(clamp(Math.min(item.totalUnits, item.plannedTo + step)));
-    setPos(clamp(item.plannedTo - step <= item.plannedFrom ? item.plannedFrom : item.plannedTo - step));
+    void w;
   };
   const choices: EndChoices | null = plan && way !== "asPlanned" && !finished ? endChoices(plan, item.plannedTo - pos, me.schoolDays) : null;
   // S18-02: behind, a late assignment's suggestion is the late line's date (and its end the line's "Keep" date); otherwise the shortfall estimate.
@@ -108,7 +112,8 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
       return onSave(item.plannedTo, null, picked);
     }
     if (finished) return onSave(pos, null, null);
-    if (way === "asPlanned") return onSave(pos, mode, null);
+    // The scheduled end is as planned. Send the plan's own position so a rounded 18 is not stored as behind 18.6.
+    if (way === "asPlanned") return onSave(item.plannedTo, mode, null);
     if (endWay === "suggest" && suggested) return onSave(pos, "keepEndDate", suggested);
     if (endWay === "pick") {
       if (!isValidLocalDate(picked)) { setAskPast(false); return setPickError("Pick the new end date."); }
