@@ -53,8 +53,8 @@ export function Totals({ totals, fields, subjects, perChild, finished = [] }: { 
             <span>{n.label}</span>
           </div>
         ))}
-        {/* S16-05: only what the parent marked finished; hidden when books are not tracked or none finished (never a zero). */}
-        {fields.books && finished.length > 0 ? (
+        {/* S16-05, S20-05: books she marked finished on the schedule. Not the log, and never a zero. */}
+        {finished.length > 0 ? (
           <button type="button" className="big-number big-number-button" onClick={() => setListing(true)} aria-haspopup="dialog">
             <strong>{finished.length}</strong><span>{finished.length === 1 ? "book finished" : "books finished"}</span>
           </button>
@@ -65,13 +65,6 @@ export function Totals({ totals, fields, subjects, perChild, finished = [] }: { 
           {finished.map((b) => <li key={b.assignmentId}><span>{b.title}</span><span className="finished-on">{formatShort(b.finishedOn)}</span></li>)}
         </ul>
       </ResponsiveSheet>
-      {/* S16-05: the titles typed in log entries, as a short list (de-duplicated by the API), not a number. */}
-      {fields.books && totals.books.length > 0 ? (
-        <section aria-label="Books mentioned in your log">
-          <h2>Books mentioned in your log</h2>
-          <ul className="mentioned-list">{totals.books.map((b) => <li key={b}>{b}</li>)}</ul>
-        </section>
-      ) : null}
       {fields.subjectHours && totals.bySubject.length > 0 ? (
         <section aria-label="Hours by subject">
           <h2>Hours by subject</h2>

@@ -17,7 +17,7 @@ const card = (title: string) => {
   return { layout, text: layout.items.flatMap((i: Item) => (i.k === "text" ? [i.text] : [])).join(" | ") };
 };
 const parts = (text: string) => ({
-  days: /\| 60 \|/.test(` | ${text} | `) && /\| (school|school days) \|/.test(` | ${text} | `), subjects: text.includes("TIME BY SUBJECT"), books: text.includes("BOOKS READ"), core: text.includes("core hours"),
+  days: /\| 60 \|/.test(` | ${text} | `) && /\| (school|school days) \|/.test(` | ${text} | `), subjects: text.includes("TIME BY SUBJECT"), books: text.includes("BOOKS"), core: text.includes("core hours"),
   total: text.includes("in total"), home: text.includes("hours at home"), finished: /finished|FINISHED/.test(text), notes: /note/i.test(text),
 });
 
@@ -43,10 +43,10 @@ describe("the card for each template style", () => {
     expect(parts(text)).toMatchObject({ days: true, total: true, subjects: false, books: false, core: false });
     expect(layout.roomy).toBe(false);
   });
-  it("Detailed log: the bars and the books read; notes are tracked but never on the card", () => {
+  it("Detailed log: the bars, and no books from the log; notes are tracked but never on the card", () => {
     const { text } = card("Detailed log");
-    expect(parts(text)).toMatchObject({ days: false, subjects: true, books: true, core: false, notes: false });
-    expect(text).toContain("Treasure Island");
+    expect(parts(text)).toMatchObject({ days: false, subjects: true, books: false, core: false, notes: false });
+    expect(text).not.toContain("Treasure Island");
   });
   it("none of them carries anything from completions", () => {
     for (const t of TEMPLATES) expect(parts(card(t.title).text).finished).toBe(false);

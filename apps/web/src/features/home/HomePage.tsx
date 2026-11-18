@@ -92,7 +92,7 @@ function Home() {
         <span className="home-icon"><Notebook size={24} weight="light" aria-hidden="true" /></span>
         <div className="home-card-text">
           <h2><Link className="home-card-link" to="/records">Records</Link></h2>
-          <div className="home-sub">Attendance, hours and books</div>
+          <div className="home-sub">Attendance and hours</div>
         </div>
         <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />
       </div>

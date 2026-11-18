@@ -41,7 +41,6 @@ export function summaryOf(e: RecordEntry, subjects: readonly Subject[]): string 
   if (e.totalMinutes != null) parts.push(`${formatMinutes(e.totalMinutes)} in all`);
   if (e.homeMinutes != null) parts.push(`${formatMinutes(e.homeMinutes)} at home`);
   if (e.awayMinutes != null) parts.push(`${formatMinutes(e.awayMinutes)} away`);
-  if (e.books.length) parts.push(`${e.books.length} ${e.books.length === 1 ? "book" : "books"}`);
   if (e.notes) parts.push(e.notes.length > 60 ? `${e.notes.slice(0, 59)}…` : e.notes);
   return parts.join(" · ");
 }

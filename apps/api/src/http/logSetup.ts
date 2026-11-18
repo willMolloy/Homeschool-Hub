@@ -22,6 +22,8 @@ export const LogSetup = z
     if (!LOG_FIELDS.some((k) => f[k])) ctx.addIssue({ code: "custom", path: ["fields"], message: "Pick at least one thing to track." });
     if (f.coreSplit && !f.subjectHours) ctx.addIssue({ code: "custom", path: ["fields", "coreSplit"], message: "Core and non-core hours need hours by subject." });
     if (f.totalHours && f.subjectHours) ctx.addIssue({ code: "custom", path: ["fields", "totalHours"], message: "Total hours are for logs without hours by subject (the subjects add up to the total)." });
+    // S20-05: books read is not part of the log. Old rows may still store titles; the setup cannot turn the field on.
+    if (f.books) ctx.addIssue({ code: "custom", path: ["fields", "books"], message: "Books read is not part of the log." });
   });
 
 export type LogSetupJson = z.infer<typeof LogSetup>;

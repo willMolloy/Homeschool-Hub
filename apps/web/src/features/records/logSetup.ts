@@ -13,7 +13,7 @@ export const TEMPLATES: readonly TemplateInfo[] = [
   { id: "coreNonCore", title: "Core and non-core hours", hint: "Hours for each subject, marked core or non-core; totals for both.", fields: { ...NO_FIELDS, subjectHours: true, coreSplit: true } },
   { id: "daysAttended", title: "Days attended", hint: "School days only.", fields: { ...NO_FIELDS, schoolDays: true } },
   { id: "daysAndHours", title: "Days and hours", hint: "School days plus total hours.", fields: { ...NO_FIELDS, schoolDays: true, totalHours: true } },
-  { id: "detailed", title: "Detailed log", hint: "Hours by subject, notes and books read.", fields: { ...NO_FIELDS, subjectHours: true, notes: true, books: true } },
+  { id: "detailed", title: "Detailed log", hint: "Hours by subject, plus a note if you want one.", fields: { ...NO_FIELDS, subjectHours: true, notes: true } },
 ];
 
 /** The switches, in the order they are shown, with the parent's words. */
@@ -24,7 +24,6 @@ export const FIELD_SWITCHES: readonly { key: keyof LogFields; label: string; hin
   { key: "schoolDays", label: "School days" },
   { key: "homeAway", label: "Hours at home and away" },
   { key: "notes", label: "Notes" },
-  { key: "books", label: "Books read" },
 ];
 
 /** Turning one switch, keeping the rules the API holds: core needs subject hours, and total hours replace them. */
@@ -62,7 +61,11 @@ export function trackedWords(f: LogFields, inSentence = false): string {
   return inSentence ? text : text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export const setupOf = (fields: LogFields): LogSetup => ({ template: templateFor(fields), fields });
+/** S20-05: books read is not a logging choice. A saved setup never turns it on. */
+export const setupOf = (fields: LogFields): LogSetup => {
+  const cleared = { ...fields, books: false };
+  return { template: templateFor(cleared), fields: cleared };
+};
 
 /** The state-rules link in the help line (a page of state laws kept by HSLDA). */
 export const STATE_LAWS_URL = "https://hslda.org/legal";

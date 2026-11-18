@@ -80,7 +80,7 @@ describe("Log setup for a new family", () => {
       "Core and non-core hours": ["Hours by subject", "Core and non-core hours"],
       "Days attended": ["School days"],
       "Days and hours": ["Total hours", "School days"],
-      "Detailed log": ["Hours by subject", "Notes", "Books read"],
+      "Detailed log": ["Hours by subject", "Notes"],
     };
     for (const [name, on] of Object.entries(want)) {
       await user.click(await screen.findByRole("radio", { name: new RegExp(`^${name}`) }));

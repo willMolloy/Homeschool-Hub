@@ -100,11 +100,10 @@ describe("N5: the print summary", () => {
     const totalsMode = await printed("Totals");
     expect(totalsMode[0]!.text).toContain("Treasure Island; The Hobbit");
   });
-  it("leaves out Books read when a child has no typed books, never 'None'", async () => {
-    fakeApi.on("GET /api/log-entries", 200, ENTRIES.map((x) => ({ ...x, books: x.childId === "c2" ? [] : x.books })));
+  it("does not list typed book titles", async () => {
     const pages = await printed("Each entry");
-    expect(pages[0]!.text).toContain("Books read");
-    expect(pages[1]!.text).not.toMatch(/Books read|None/);
+    expect(pages[0]!.text).not.toContain("Books read");
+    expect(pages[1]!.text).not.toContain("Books read");
   });
 });
 

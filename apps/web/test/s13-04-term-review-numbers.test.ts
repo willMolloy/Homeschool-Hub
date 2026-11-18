@@ -26,7 +26,7 @@ describe("one card per log template style (S16-10)", () => {
       expect(r.coreMinutes !== null && r.nonCoreMinutes !== null).toBe(f.coreSplit);
       expect(r.bySubject.length > 0).toBe(f.subjectHours);
       expect(r.homeMinutes !== null && r.awayMinutes !== null).toBe(f.homeAway);
-      expect(r.books.length > 0).toBe(f.books);
+      expect(r.books).toEqual([]);
       expect(partCount(r)).toBeGreaterThan(0);
     });
   }
@@ -40,21 +40,26 @@ describe("one card per log template style (S16-10)", () => {
     expect(parts("Core and non-core hours")).toEqual(["core", "subjects"]);
     expect(parts("Days attended")).toEqual(["days"]);
     expect(parts("Days and hours")).toEqual(["days", "total"]);
-    expect(parts("Detailed log")).toEqual(["subjects", "books"]); // notes are tracked but never on the card
+    expect(parts("Detailed log")).toEqual(["subjects"]); // notes are tracked but never on the card; books come from the schedule
   });
 });
 
 describe("what the card holds (S16-10)", () => {
   it("takes the Records totals as they are: school days, total, core split, subjects (most first), home and away, typed books", () => {
     const r = review({ schoolDays: true, totalHours: true, coreSplit: true, subjectHours: true, homeAway: true, books: true });
-    expect(r).toMatchObject({ schoolDays: 60, totalMinutes: 3600, totalHours: true, coreMinutes: 2400, nonCoreMinutes: 1200, homeMinutes: 3000, awayMinutes: 600, books: ["Treasure Island", "Heidi"] });
+    expect(r).toMatchObject({ schoolDays: 60, totalMinutes: 3600, totalHours: true, coreMinutes: 2400, nonCoreMinutes: 1200, homeMinutes: 3000, awayMinutes: 600, books: [] });
+    const finished = buildTermReview({
+      child: FRANK, range: FALL, subjects: SUBJECTS, fields: { ...NO_FIELDS, schoolDays: true }, totals: totals({ books: ["typed and ignored"] }),
+      assignments: [{ id: "b1", subjectId: "lit", title: "Treasure Island", unitType: "pages", totalUnits: 100, weightPerUnit: null, startDate: FALL.start, endDate: "2026-10-01", childIds: ["c1"], archived: false, weekdays: null, endedAs: "finished", endedOn: "2026-10-01" }],
+    });
+    expect(finished.books).toEqual(["Treasure Island"]);
     expect(r.bySubject.map((s) => [s.name, s.minutes])).toEqual([["Literature", 2700], ["Math", 900]]);
-    expect(partCount(r)).toBe(6);
+    expect(partCount(r)).toBe(5);
   });
-  it("notes are never on it, and nothing from completions is in the model", () => {
-    const r = review({ notes: true });
-    expect(Object.keys(r).sort()).not.toContain("finished");
-    expect(JSON.stringify(r)).not.toMatch(/note|finished/i);
+  it("notes are never on it, and typed book titles are ignored", () => {
+    const r = review({ notes: true, books: true });
+    expect(JSON.stringify(r)).not.toMatch(/note/i);
+    expect(r.books).toEqual([]);
     expect(partCount(r)).toBe(0);
   });
   it("a part the family doesn't track is absent, not zero", () => {

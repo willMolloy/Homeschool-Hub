@@ -37,13 +37,13 @@ describe("the card's layout (S13-05, S16-10)", () => {
     expect([l.width, l.height]).toEqual([1080, 1350]);
     expect(l.title).toBe("Frank · Fall 2026");
     const t = texts(l.items);
-    expect(t).toEqual(expect.arrayContaining(["TERM IN REVIEW", "Homeschool Hub", "Frank · Fall 2026", "Aug 31 – Dec 31, 2026", "72", "school days", "in total", "core hours", "non-core hours", "hours at home", "hours away", "TIME BY SUBJECT", "BOOKS READ", "Treasure Island", "Heidi", "Pagoo"]));
+    expect(t).toEqual(expect.arrayContaining(["TERM IN REVIEW", "Homeschool Hub", "Frank · Fall 2026", "Aug 31 – Dec 31, 2026", "72", "school days", "in total", "core hours", "non-core hours", "hours at home", "hours away", "TIME BY SUBJECT", "BOOKS", "Treasure Island", "Heidi", "Pagoo"]));
     // order: school days, total, core, non-core (tiles), then the bars, then home and away?  (tiles first), then books
     const at = (x: string) => t.indexOf(x);
     expect(at("school days")).toBeLessThan(at("in total"));
     expect(at("in total")).toBeLessThan(at("core hours"));
     expect(at("core hours")).toBeLessThan(at("non-core hours"));
-    expect(at("TIME BY SUBJECT")).toBeLessThan(at("BOOKS READ"));
+    expect(at("TIME BY SUBJECT")).toBeLessThan(at("BOOKS"));
     expect(l.items.every((i) => (i.k !== "text" || i.y <= 1350 - 52 + 4))).toBe(true);
   });
   it("nothing from completions and never notes: no finished list, no 'finished' wording", () => {
@@ -62,7 +62,7 @@ describe("the card's layout (S13-05, S16-10)", () => {
   it("a part with no data is left out, never shown as 0", () => {
     const t = texts(layout(review({ schoolDays: 5 })).items);
     expect(t).not.toContain("TIME BY SUBJECT");
-    expect(t).not.toContain("BOOKS READ");
+    expect(t).not.toContain("BOOKS");
     expect(t.join(" ")).not.toMatch(/\b0\b/);
   });
   it("long books lists show the rows that fit, then 'and N more'; the numbers keep the true totals; nothing is shrunk or drawn below the card", () => {
@@ -214,8 +214,8 @@ describe("Term in review page (S13-05)", () => {
     expect(pages).toHaveLength(2);
     expect(pages[0]!.querySelector("rect")!.getAttribute("fill")).toBe("#FAF6EE");
   });
-  it("a child with nothing logged says so and gets no card; the other child still does", async () => {
-    stub();
+  it("a child with nothing logged and no finished book says so and gets no card; the other child still does", async () => {
+    stub({ assignments: [asg({}), asg({ id: "long", title: "History spine", endedAs: null, endedOn: null, endDate: "2027-05-21", childIds: ["c1", "c2"] })] });
     fakeApi.on("GET /api/records/totals", (_b, _p, q) => [200, q.get("childId") === "c2" ? { ...totals("c2"), schoolDays: 0, totalMinutes: 0, bySubject: [], books: [] } : totals("c1")]);
     renderAt("/records/review?range=fall&child=all");
     expect(await screen.findByRole("img", { name: /^Frank/ })).toBeInTheDocument();

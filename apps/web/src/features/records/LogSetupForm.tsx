@@ -21,7 +21,7 @@ export interface LogSetupFormProps {
 }
 
 export function LogSetupForm({ initial, subjects, onSaved, onCancel }: LogSetupFormProps) {
-  const [fields, setFields] = useState<LogFields | null>(initial);
+  const [fields, setFields] = useState<LogFields | null>(initial ? { ...initial, books: false } : null);
   const [core, setCore] = useState<Record<string, boolean>>(() => Object.fromEntries(subjects.map((s) => [s.id, s.core ?? false])));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

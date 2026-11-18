@@ -11,8 +11,6 @@ import { ApiError, apiPatch, apiPost } from "../../api/client";
 import type { Assignment, Child, LogFields, RecordEntry, Subject } from "../../api/types";
 import { Button, Chip } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
-import { BookInput } from "./BookInput";
-import { recentBooks, suggestBooks } from "./bookSuggestions";
 import { MAX_DAY_MINUTES } from "./limits";
 import { boxesFor, toMinutes } from "./entryText";
 import { RunDayChips } from "./RunDayChips";
@@ -70,7 +68,7 @@ export function identicalEntry(entries: readonly RecordEntry[], childId: string,
     && (body.books === undefined || JSON.stringify(e.books) === JSON.stringify(body.books)));
 }
 
-export function LogEntryForm({ fields, children, subjects, entries = [], assignments = [], entry, onSaved, onCancel }: LogEntryFormProps) {
+export function LogEntryForm({ fields, children, subjects, entries = [], entry, onSaved, onCancel }: LogEntryFormProps) {
   const kids = children.filter((c) => !c.archived);
   const active = subjects.filter((s) => !s.archived);
   const [start, setStart] = useState(entry?.startDate ?? "");
@@ -82,8 +80,6 @@ export function LogEntryForm({ fields, children, subjects, entries = [], assignm
   const [home, setHome] = useState<Box>(boxesFor(entry?.homeMinutes));
   const [away, setAway] = useState<Box>(boxesFor(entry?.awayMinutes));
   const [notes, setNotes] = useState(entry?.notes ?? "");
-  const [books, setBooks] = useState<string[]>(entry?.books ?? []);
-  const [book, setBook] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** "You already logged this. Add it again?" is showing. */
@@ -95,7 +91,6 @@ export function LogEntryForm({ fields, children, subjects, entries = [], assignm
   const allPicked = kids.length > 1 && picked.length === kids.length;
 
   const toggleChild = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-  const addBook = (title: string) => { const t = title.trim(); if (t) { setBooks((b) => [...b, t]); setBook(""); } };
 
   const last = end || start;
   const isRun = !!start && !!end && end > start;
@@ -122,8 +117,6 @@ export function LogEntryForm({ fields, children, subjects, entries = [], assignm
     if (fields.totalHours) body.totalMinutes = typed(total);
     if (fields.homeAway) { body.homeMinutes = typed(home); body.awayMinutes = typed(away); }
     if (fields.notes) body.notes = notes.trim() === "" ? null : notes.trim();
-    // S9b-02: a title typed but not added with Add is saved too, never dropped
-    if (fields.books) body.books = book.trim() ? [...books, book.trim()] : books;
     if (start && last >= start) {
       const days = Math.round((Date.parse(last) - Date.parse(start)) / 86_400_000) + 1;
       const sum = Object.values((body.subjectMinutes ?? {}) as Record<string, number>).reduce((a, b) => a + b, 0);
@@ -132,7 +125,7 @@ export function LogEntryForm({ fields, children, subjects, entries = [], assignm
     }
     const typedMinutes = [body.totalMinutes, body.homeMinutes, body.awayMinutes].some((v) => typeof v === "number")
       || Object.keys((body.subjectMinutes ?? {}) as object).length > 0;
-    const something = counts || typedMinutes || (typeof body.notes === "string" && body.notes !== "") || ((body.books as string[] | undefined)?.length ?? 0) > 0;
+    const something = counts || typedMinutes || (typeof body.notes === "string" && body.notes !== "");
     if (problems.length === 0 && !something) problems.push("Add something to log, or leave \"Count as a school day\" on.");
     if (problems.length > 0) { setError(problems[0]!); return; }
     // S18-04 (E7): the same entry for the same child and days is asked about once ("Add it again?"), never saved twice by accident.
@@ -181,12 +174,6 @@ export function LogEntryForm({ fields, children, subjects, entries = [], assignm
       {fields.totalHours ? <fieldset className="log-hours"><legend>Hours</legend><HoursBoxes label="Total" value={total} onChange={setTotal} /></fieldset> : null}
       {fields.homeAway ? <fieldset className="log-hours"><legend>Where</legend><HoursBoxes label="At home" value={home} onChange={setHome} /><HoursBoxes label="Away" value={away} onChange={setAway} /></fieldset> : null}
       {fields.notes ? <div className="field"><label htmlFor="log-notes">Notes</label><textarea id="log-notes" rows={3} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} /></div> : null}
-      {fields.books ? (
-        <fieldset className="log-books"><legend>Books read</legend>
-          {books.length > 0 ? <ul className="log-book-list">{books.map((b, i) => <li key={`${b}-${i}`}>{b}<button type="button" className="btn btn-quiet" aria-label={`Remove ${b}`} onClick={() => setBooks(books.filter((_, j) => j !== i))}>Remove</button></li>)}</ul> : null}
-          <BookInput value={book} onChange={setBook} onAdd={addBook} suggestions={suggestBooks(book, entries, assignments, books)} recent={recentBooks(entries, picked, books)} />
-        </fieldset>
-      ) : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       {twice ? (
         <div className="log-twice" role="alert">

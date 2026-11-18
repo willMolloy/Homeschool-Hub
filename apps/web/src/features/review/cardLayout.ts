@@ -161,7 +161,7 @@ export function layoutCard(input: CardInput): CardLayout {
   if (hasBooks) {
     const two = r.books.length > 6;
     const rowH = 44, cols = two ? 2 : 1, colW = two ? (BODY_W - 48) / 2 : BODY_W;
-    text(PAD, y + 22, "BOOKS READ", 22, 800, colors.muted, "sans", { ls: 3.08 });
+    text(PAD, y + 22, "BOOKS", 22, 800, colors.muted, "sans", { ls: 3.08 });
     const top = y + 48;
     const perCol = Math.max(1, Math.floor((closeTop - 44 - top) / rowH));
     const { shown, more } = slots(r.books, perCol * cols);
