@@ -11,6 +11,7 @@ import { useMe } from "../../auth/AuthProvider";
 import type { BlockedKind, BlockedRange, CalendarTemplate } from "../../api/types";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { dateRangeError, saveError } from "./formBits";
+import { useBreakOverlap } from "./useBreakOverlap";
 import { ALL_HOLIDAYS, breakSaveBody, breakText, leaveOutExisting, MAX_YEAR_DAYS, plannedBreaks, shiftedBreaks, type PlannedBreak } from "./templates";
 import { DateField } from "../../ui/DateField";
 
@@ -33,7 +34,8 @@ interface Props {
 }
 
 export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props) {
-  const { weekStart } = useMe();
+  const { weekStart, schoolDays } = useMe();
+  const overlap = useBreakOverlap(schoolDays);
   // A failed load just means no saved templates are offered.
   const templates = useApi<CalendarTemplate[]>("/api/calendar-templates");
   const saved = templates.data ?? [];
@@ -79,10 +81,18 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
     if (problem || add.length === 0) return;
     setSaving(true);
     try {
-      const created = await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", {
-        blockedRanges: add.map((b) => breakSaveBody(b)),
-      });
-      onSaved(created);
+      const blockedRanges = add.map((b) => breakSaveBody(b));
+      await overlap.ask(
+        blockedRanges.map((b) => ({ label: b.label, start: b.startDate, end: b.endDate, childIds: b.childIds })),
+        existing,
+        async (adjustments) => {
+          const created = await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", {
+            blockedRanges,
+            ...(adjustments ? { adjustments } : {}),
+          });
+          onSaved(created);
+        },
+      );
     } catch (err) {
       setError(saveError(err));
     } finally {
@@ -205,6 +215,7 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
           <p>Days off already added stay as they are.</p>
         </ConfirmDialog>
       ) : null}
+      {overlap.sheet}
     </form>
   );
 }

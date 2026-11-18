@@ -12,6 +12,7 @@ const END = "2027-05-28";
 
 async function open(rows: BlockedRange[] = []) {
   withRoster();
+  fakeApi.on("GET /api/assignments", 200, []);
   fakeApi.on("GET /api/blocked-ranges", 200, rows);
   fakeApi.on("POST /api/blocked-ranges/bulk", (body) => [201, (body as { blockedRanges: object[] }).blockedRanges.map((b, i) => ({ ...b, id: rowId(60 + i) }))]);
   const user = userEvent.setup();

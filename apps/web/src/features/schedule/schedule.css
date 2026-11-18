@@ -293,6 +293,17 @@
 .choice-list .copy-choice {
   align-items: flex-start;
 }
+/* S21-01: the question before a break covers open books. */
+.overlap-lead { margin: 0 0 12px; }
+.overlap-break { font-size: 1rem; margin: 16px 0 4px; }
+.overlap-book { border: 0; margin: 0 0 12px; padding: 0; min-width: 0; }
+.overlap-book legend { font-weight: 600; padding: 0; }
+.overlap-note { margin: 2px 0 6px; color: var(--muted); }
+.overlap-sheet .choice { align-items: flex-start; }
+.overlap-sheet .choice input { margin-top: 2px; }
+.overlap-when { display: block; color: var(--muted); font-size: 0.8125rem; }
+.overlap-pick { margin: 0 0 8px 30px; }
+
 /* S8-11: the chosen subject's badge beside the subject dropdown. */
 .subject-select-row { display: flex; align-items: center; gap: 10px; }
 .subject-select-row select { flex: 1; min-width: 0; }

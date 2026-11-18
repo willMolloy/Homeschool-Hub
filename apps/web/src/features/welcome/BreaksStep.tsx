@@ -13,6 +13,7 @@ import { useMe } from "../../auth/AuthProvider";
 import { Button } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
 import { dateRangeError, saveError } from "../schedule/formBits";
+import { useBreakOverlap } from "../schedule/useBreakOverlap";
 import { breakDates, breakSaveBody, leaveOutExisting, type PlannedBreak } from "../schedule/templates";
 import { StepHeading, useStep } from "./stepContext";
 import { currentSchoolYear } from "./yearShapes";
@@ -29,6 +30,7 @@ export function BreaksStep() {
 
 function BreaksForm({ saved }: { saved: { start: string; end: string } | null }) {
   const me = useMe();
+  const overlap = useBreakOverlap(me.schoolDays);
   const { next, busy, fail } = useStep();
   const year = saved ?? currentSchoolYear(me.today);
   const holidays = useMemo(() => usHolidays(year.start, year.end), [year.start, year.end]);
@@ -49,11 +51,19 @@ function BreaksForm({ saved }: { saved: { start: string; end: string } | null })
         ...own,
       ];
       // A break that is already a day off for the whole family is not added twice.
-      const { add } = leaveOutExisting(planned, await apiGet<BlockedRange[]>("/api/blocked-ranges"));
-      if (add.length > 0) {
-        await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges: add.map(breakSaveBody) });
-      }
-      await next({ setupDeferred: rest(null) });
+      const existing = await apiGet<BlockedRange[]>("/api/blocked-ranges");
+      const { add } = leaveOutExisting(planned, existing);
+      const blockedRanges = add.map(breakSaveBody);
+      await overlap.ask(
+        blockedRanges.map((b) => ({ label: b.label, start: b.startDate, end: b.endDate, childIds: b.childIds })),
+        existing,
+        async (adjustments) => {
+          if (blockedRanges.length > 0) {
+            await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges, ...(adjustments ? { adjustments } : {}) });
+          }
+          await next({ setupDeferred: rest(null) });
+        },
+      );
     } catch (err) {
       fail(saveError(err));
     } finally {
@@ -95,6 +105,7 @@ function BreaksForm({ saved }: { saved: { start: string; end: string } | null })
         <Button variant="secondary" disabled={busy || saving} onClick={() => void next({ setupDeferred: rest("breaks") })}>I'll get back to you on this</Button>
         <Button variant="quiet" disabled={busy || saving} onClick={() => void next({ setupDeferred: rest(null) })}>Skip</Button>
       </div>
+      {overlap.sheet}
     </div>
   );
 }

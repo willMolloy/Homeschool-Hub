@@ -3,12 +3,14 @@ import { useId, useState, type FormEvent } from "react";
 import { BLOCKED_KINDS, isLongBreak } from "@hh/engine";
 import { apiPatch, apiPost } from "../../api/client";
 import type { BlockedKind, BlockedRange } from "../../api/types";
+import { useMe } from "../../auth/AuthProvider";
 import { dayOffTitle, KIND_NAMES } from "../../lib/kindNames";
 import { ChildPicker, dateRange, dateRangeError, saveError, sameSet, spanDays } from "./formBits";
 import { WithLookups, type Lookups } from "./lookups";
 import { SaveTemplatePanel } from "./SaveTemplatePanel";
 import { TemplatePanel } from "./TemplatePanel";
 import { ScheduleList, type FormSlotProps } from "./ScheduleList";
+import { useBreakOverlap } from "./useBreakOverlap";
 import { DateField } from "../../ui/DateField";
 
 /** Mirrors apps/api/src/routes/blockedRanges.ts and scheduleLimits.ts. */
@@ -60,7 +62,9 @@ function DaysOffCard({ r, l }: { r: BlockedRange; l: Lookups }) {
 
 type Errors = Partial<Record<"label" | "dates" | "children", string>>;
 
-function DaysOffForm({ item, onSaved, onCancel, extra, externalError, l }: FormSlotProps<BlockedRange> & { l: Lookups }) {
+function DaysOffForm({ item, onSaved, onCancel, extra, externalError, l, items }: FormSlotProps<BlockedRange> & { l: Lookups }) {
+  const me = useMe();
+  const overlap = useBreakOverlap(me.schoolDays);
   const [label, setLabel] = useState(item?.label ?? "");
   const [kind, setKind] = useState<BlockedKind>(item?.kind ?? "vacation");
   const [startDate, setStartDate] = useState(item?.startDate ?? "");
@@ -89,18 +93,21 @@ function DaysOffForm({ item, onSaved, onCancel, extra, externalError, l }: FormS
     const full = { label: t || null, kind, startDate, endDate, childIds: wholeFamily ? [] : childIds };
     setSaving(true);
     try {
-      if (!item) {
-        onSaved(await apiPost<BlockedRange>("/api/blocked-ranges", full));
-        return;
-      }
-      const patch: Partial<typeof full> = {};
-      if (full.label !== item.label) patch.label = full.label;
-      if (full.kind !== item.kind) patch.kind = full.kind;
-      if (full.startDate !== item.startDate) patch.startDate = full.startDate;
-      if (full.endDate !== item.endDate) patch.endDate = full.endDate;
-      if (!sameSet(full.childIds, item.childIds)) patch.childIds = full.childIds;
-      if (Object.keys(patch).length === 0) return onCancel();
-      onSaved(await apiPatch<BlockedRange>(`/api/blocked-ranges/${item.id}`, patch));
+      await overlap.ask([{ label: full.label, start: full.startDate, end: full.endDate, childIds: full.childIds }], items ?? [], async (adjustments) => {
+        const extraBody = adjustments ? { adjustments } : {};
+        if (!item) {
+          onSaved(await apiPost<BlockedRange>("/api/blocked-ranges", { ...full, ...extraBody }));
+          return;
+        }
+        const patch: Partial<typeof full> = {};
+        if (full.label !== item.label) patch.label = full.label;
+        if (full.kind !== item.kind) patch.kind = full.kind;
+        if (full.startDate !== item.startDate) patch.startDate = full.startDate;
+        if (full.endDate !== item.endDate) patch.endDate = full.endDate;
+        if (!sameSet(full.childIds, item.childIds)) patch.childIds = full.childIds;
+        if (Object.keys(patch).length === 0 && !adjustments) return onCancel();
+        onSaved(await apiPatch<BlockedRange>(`/api/blocked-ranges/${item.id}`, { ...patch, ...extraBody }));
+      });
     } catch (err) {
       setFormError(saveError(err));
     } finally {
@@ -150,6 +157,7 @@ function DaysOffForm({ item, onSaved, onCancel, extra, externalError, l }: FormS
         <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>
         {extra}
       </div>
+      {overlap.sheet}
     </form>
   );
 }

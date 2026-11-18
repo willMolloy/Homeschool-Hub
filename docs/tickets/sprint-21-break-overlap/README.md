@@ -1,8 +1,8 @@
 # Sprint 21 — Breaks that adjust overlapping assignments
 
-> **Status: decided, not built.** DeeDee settled this on 2026-11-11. Breaks already exist. This sprint is the overlap question: when a new or longer break covers work she already planned, the app asks what to do. It does not quietly reschedule. Nothing here is implemented. Sprint 18b is merged. Build Sprint 19, then Sprint 20, before this sprint. The Sprint 18b tester follow-ups come after this sprint.
+> **Status: built on `hh2/sprint-21`, not merged.** S21-01 to S21-04 are in. S21-05, the tester pass, is not. The pull request stays a draft. Do not mark it ready, and do not merge it. Sprint 20 is merged (PR #22). The Sprint 18b tester follow-ups, including S18c-06, come after this sprint and are not built.
 
-This is one planning change, so the sprint stays small. One branch off `main` after Sprint 20 has merged. One commit per ticket, `bash scripts/check.sh` ALL GREEN before each commit, push after each. Progress in `docs/progress/sprint-21.md`. A PR to `main` only after the tester passes.
+This is one planning change, so the sprint stays small. One branch off `main` after Sprint 20 has merged. One commit per ticket. Progress in `docs/progress/sprint-21.md`. The pull request to `main` stays a draft until the tester passes.
 
 ## Decisions (DeeDee, 2026-11-11)
 
