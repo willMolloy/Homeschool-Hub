@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { ApiError, apiPatch } from "../../api/client";
 import type { FamilySettings, LogFields, Subject } from "../../api/types";
 import { Button, Segmented } from "../../ui/components";
-import { FIELD_SWITCHES, HELP_LINE, STATE_LAWS_URL, TEMPLATES, hasAnyField, setupOf, toggleField } from "./logSetup";
+import { FIELD_SWITCHES, HELP_LINE, STATE_LAWS_URL, TEMPLATES, hasAnyField, sampleLines, setupOf, toggleField } from "./logSetup";
 import "./records.css";
 
 export interface LogSetupFormProps {
@@ -72,6 +72,10 @@ export function LogSetupForm({ initial, subjects, onSaved, onCancel }: LogSetupF
             ))}
             {!hasAnyField(fields) ? <p className="field-error" role="alert">Pick at least one thing to track.</p> : null}
           </fieldset>
+          <section className="log-sample" aria-label="Sample log">
+            <h2>A sample day</h2>
+            <ul>{sampleLines(fields).map((line) => <li key={line}>{line}</li>)}</ul>
+          </section>
 
           {fields.coreSplit ? (
             <fieldset className="log-core">
