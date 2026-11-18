@@ -1,6 +1,6 @@
 /** /api/blocked-ranges (S2a-07): vacations and other days off; POST /api/blocked-ranges/bulk (S5-04). */
 import type { FastifyInstance } from "fastify";
-import { BLOCKED_KINDS, humanList } from "@hh/engine";
+import { BLOCKED_KINDS, breakUndoName, humanList } from "@hh/engine";
 import { z } from "zod";
 import { HttpError } from "../http/errors";
 import { withTransaction, type Tx } from "../db";
@@ -71,6 +71,19 @@ const PatchBody = z
 
 const notFound = () => new HttpError(404, "not_found", "No such day off.");
 
+/**
+ * S21-04: a sheet confirm is one undo, named for the break. A save that overlapped nothing keeps the old wording.
+ * Several breaks in one save are "Added N breaks".
+ */
+function sheetLabel(action: "Added" | "Updated", label: string | null, start: string, count: number, fromSheet: boolean): string {
+  if (!fromSheet) {
+    if (action === "Updated") return "Changed a day off";
+    return count === 1 ? "Added a day off" : `Added ${count} days off`;
+  }
+  if (action === "Added" && count > 1) return `Added ${count} breaks`;
+  return `${action} ${breakUndoName(label, start)}`;
+}
+
 /** S6-06: what to put back for a day off (its fields and children as they were). */
 const stateOf = (r: BlockedRangeRow): BlockedRangeState => ({ label: r.label, kind: r.kind, startDate: r.start_date, endDate: r.end_date, childIds: r.child_ids });
 
@@ -85,7 +98,7 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
       const created = await createOne(c, req.familyId, b);
       const steps: UndoStep[] = [{ op: "blockedRange", id: created.id, set: null }];
       if (b.adjustments?.length) steps.push(...await applyBreakAdjustments(c, req.familyId, b.adjustments, [b]));
-      await recordUndo(c, req.familyId, "Added a day off", steps);
+      await recordUndo(c, req.familyId, sheetLabel("Added", created.label, created.start_date, 1, b.adjustments !== undefined), steps);
       return created;
     });
     return reply.code(201).send(toBlockedRangeJson(row));
@@ -110,7 +123,8 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
       if (adjustments?.length) {
         steps.push(...await applyBreakAdjustments(c, req.familyId, adjustments, created.map((r) => ({ startDate: r.start_date, endDate: r.end_date }))));
       }
-      await recordUndo(c, req.familyId, created.length === 1 ? "Added a day off" : `Added ${created.length} days off`, steps);
+      const first = created[0]!;
+      await recordUndo(c, req.familyId, sheetLabel("Added", first.label, first.start_date, created.length, adjustments !== undefined), steps);
       return created;
     });
     return reply.code(201).send(rows.map(toBlockedRangeJson));
@@ -135,7 +149,9 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
       if (p.adjustments?.length) {
         steps.push(...await applyBreakAdjustments(c, req.familyId, p.adjustments, [{ startDate: after.start_date, endDate: after.end_date }]));
       }
-      if (steps.length) await recordUndo(c, req.familyId, "Changed a day off", steps);
+      if (steps.length) {
+        await recordUndo(c, req.familyId, sheetLabel("Updated", after.label, after.start_date, 1, p.adjustments !== undefined), steps);
+      }
       return after;
     });
     return toBlockedRangeJson(row);
