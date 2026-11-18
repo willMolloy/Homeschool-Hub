@@ -68,7 +68,7 @@ describe("books are not on the log (S20-05)", () => {
     const { user, form } = await openLog();
     expect(form.queryByLabelText("Book title")).toBeNull();
     expect(form.queryByRole("group", { name: "Books read" })).toBeNull();
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    fireEvent.change(form.getByLabelText("Day"), { target: { value: "2026-11-02" } });
     await user.click(form.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(posted()).toHaveLength(1));
     expect(posted()[0]).not.toHaveProperty("books");

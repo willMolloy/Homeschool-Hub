@@ -73,6 +73,8 @@ export function LogEntryForm({ fields, children, subjects, entries = [], entry, 
   const active = subjects.filter((s) => !s.archived);
   const [start, setStart] = useState(entry?.startDate ?? "");
   const [end, setEnd] = useState(entry && entry.endDate !== entry.startDate ? entry.endDate : "");
+  /** S20-06: a new entry is one day. Several days is a choice, and an entry that already covers more than one day opens that way. */
+  const [several, setSeveral] = useState(!!entry && entry.endDate !== entry.startDate);
   const [picked, setPicked] = useState<string[]>(entry ? [entry.childId] : kids.length === 1 ? [kids[0]!.id] : []);
   const [counts, setCounts] = useState(entry?.countsSchoolDay ?? true);
   const [subj, setSubj] = useState<Record<string, Box>>(() => Object.fromEntries(active.map((s) => [s.id, boxesFor(entry?.subjectMinutes[s.id])])));
@@ -92,8 +94,8 @@ export function LogEntryForm({ fields, children, subjects, entries = [], entry, 
 
   const toggleChild = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
-  const last = end || start;
-  const isRun = !!start && !!end && end > start;
+  const last = several && end ? end : start;
+  const isRun = several && !!start && !!end && end > start;
   const sameDates = !!entry && start === entry.startDate && last === entry.endDate;
   const onTicks = useCallback((t: Map<string, boolean>) => { setDayTicks(t); setTicksTouched(true); }, []);
 
@@ -101,7 +103,7 @@ export function LogEntryForm({ fields, children, subjects, entries = [], entry, 
     if (busy) return;
     const problems: string[] = [];
     if (picked.length === 0) problems.push("Pick who this is for.");
-    if (!start) problems.push("Pick the first day.");
+    if (!start) problems.push(several ? "Pick the first day." : "Pick the day.");
     else if (last < start) problems.push("The last day must be on or after the first day.");
     const body: Record<string, unknown> = { startDate: start, endDate: last, countsSchoolDay: counts };
     if (counts && isRun && runDays && (!entry || !sameDates || ticksTouched)) {
@@ -146,9 +148,10 @@ export function LogEntryForm({ fields, children, subjects, entries = [], entry, 
   return (
     <form className="log-form schedule-form" aria-label={entry ? "Change log entry" : "Log"} onSubmit={(e) => { e.preventDefault(); void save(); }} onChange={() => setTwice(false)} noValidate>
       <div className="field-row">
-        <div className="field"><label htmlFor="log-first">{end || !entry ? "First day" : "Day"}</label><DateField id="log-first" value={start} onChange={setStart} /></div>
-        <div className="field"><label htmlFor="log-last">Last day (optional)</label><DateField id="log-last" value={end} onChange={setEnd} clearable /></div>
+        <div className="field"><label htmlFor="log-first">{several ? "First day" : "Day"}</label><DateField id="log-first" value={start} onChange={setStart} /></div>
+        {several ? <div className="field"><label htmlFor="log-last">Last day</label><DateField id="log-last" value={end} onChange={setEnd} /></div> : null}
       </div>
+      {!several ? <button type="button" className="btn btn-secondary" onClick={() => setSeveral(true)}>Log more than one day</button> : null}
       {!entry && kids.length > 1 ? (
         <fieldset className="log-kids">
           <legend>For</legend>

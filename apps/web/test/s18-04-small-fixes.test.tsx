@@ -124,8 +124,9 @@ describe("E7: a new log entry is undoable, and an identical one asks first", () 
     renderAt("/records");
     await user.click(await screen.findByRole("button", { name: "Log" }));
     const form = within(await screen.findByRole("form", { name: "Log" }));
+    fireEvent.click(form.getByRole("button", { name: "Log more than one day" }));
     fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-06" } });
+    fireEvent.change(form.getByLabelText("Last day"), { target: { value: "2026-11-06" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
     await user.type(form.getByLabelText("Math hours"), "3");
     await user.type(form.getByLabelText("Math minutes"), "30");
