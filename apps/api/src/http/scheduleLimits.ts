@@ -11,6 +11,12 @@ import { UUID_RE } from "./validate";
 export const MIN_YEAR = 2000;
 export const MAX_YEAR = 2100;
 export const MAX_TOTAL_UNITS = 100_000;
+/**
+ * S20-01: a minutes assignment stores minutes a day times the school days in its dates, which the parent never
+ * types. A long span at the longest allowed day (1,440 minutes) still fits numeric(10,2). Pages, lessons and
+ * chapters stay at MAX_TOTAL_UNITS.
+ */
+export const MAX_STORED_UNITS = 1_600_000;
 /** ~3 school years. */
 export const MAX_ASSIGNMENT_DAYS = 1096;
 /** One year. */
@@ -26,7 +32,7 @@ export function hasAtMostDecimals(v: number, places: number): boolean {
 }
 
 /** A finite number in [min, max] (exclusive of min when `minExclusive`) with limited decimals. */
-function bounded(label: string, min: number, max: number, places: number, minExclusive: boolean) {
+export function bounded(label: string, min: number, max: number, places: number, minExclusive: boolean) {
   return z
     .number(`${label} must be a number.`)
     .refine(Number.isFinite, `${label} must be a finite number.`)
@@ -36,6 +42,15 @@ function bounded(label: string, min: number, max: number, places: number, minExc
 }
 
 export const TotalUnits = bounded("totalUnits", 0, MAX_TOTAL_UNITS, 2, true);
+/** Accepts a derived minutes total. Callers still reject a typed total above MAX_TOTAL_UNITS for the other units. */
+export const StoredTotalUnits = bounded("totalUnits", 0, MAX_STORED_UNITS, 2, true);
+
+/** Pages, lessons and chapters stay at the typed cap. A minutes total may be the derived pile. */
+export function assertTypedTotal(unitType: string, total: number): void {
+  if (unitType !== "minutes" && total > MAX_TOTAL_UNITS) {
+    throw new HttpError(400, "invalid_request", `totalUnits: totalUnits must be more than 0 and at most ${MAX_TOTAL_UNITS.toLocaleString("en-US")}.`);
+  }
+}
 /** S2b-06: the engine's weight bounds (0.01–100, 2 decimals), inclusive at both ends. Fits numeric(6,2). */
 export const WeightPerUnit = bounded("weightPerUnit", MIN_WEIGHT_PER_UNIT, MAX_WEIGHT_PER_UNIT, WEIGHT_DECIMALS, false);
 export const UnitTypeField = z.enum(UNIT_TYPES, `unitType must be ${humanList(UNIT_TYPES)}.`);

@@ -26,9 +26,9 @@ export function availableColumns(f: LogFields, mode: ExportMode = "entries"): { 
     { key: "coreSplit", label: "Core and non-core hours", on: f.coreSplit },
     { key: "homeAway", label: "Hours at home and away", on: f.homeAway },
     { key: "notes", label: "Notes", on: f.notes && mode === "entries" },
-    // S16-05: the books the parent marked finished (completions), per child, so only in a Totals file; the typed titles stay "Books read".
-    { key: "booksFinished", label: "Books finished", on: f.books && mode === "totals" },
-    { key: "books", label: "Books read", on: f.books },
+    // S20-05: books read is gone. Books finished is the schedule, offered on a totals export.
+    { key: "booksFinished", label: "Books finished", on: mode === "totals" },
+    { key: "books", label: "Books read", on: false },
   ];
   return all.filter((c) => c.on).map(({ key, label }) => ({ key, label }));
 }

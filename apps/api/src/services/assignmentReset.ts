@@ -10,6 +10,7 @@ import { HttpError } from "../http/errors";
 import { checkDatesKeepLatestCheckIn } from "../http/checkInDates";
 import { getAssignment, lockAssignment, updateAssignment, type AssignmentOriginal, type AssignmentRow } from "../repos/assignmentRepo";
 import { recordWeightChoices } from "../repos/weightChoiceRepo";
+import { derivedDailyMinutes } from "./minutesSpan";
 import { assignmentStep, recordUndo, type UndoStep, type WeekOverrideState } from "./undoService";
 
 export type KeptField = "subject" | "children";
@@ -36,10 +37,13 @@ export async function resetAssignment(tx: Tx, familyId: string, id: string): Pro
     if (live[0]!.n !== childIds.length) { childIds = cur.child_ids; kept.push("children"); }
   }
   await checkDatesKeepLatestCheckIn(tx, familyId, id, original.startDate, original.endDate);
+  const minutesPerDay = original.unitType === "minutes"
+    ? original.minutesPerDay ?? await derivedDailyMinutes(tx, familyId, { totalUnits: original.totalUnits, startDate: original.startDate, endDate: original.endDate, weekdays: original.weekdays, subjectId })
+    : null;
 
   await updateAssignment(tx, familyId, id, {
     subjectId, title: original.title, unitType: original.unitType, totalUnits: original.totalUnits, weightPerUnit: original.weightPerUnit,
-    weekdays: original.weekdays, startDate: original.startDate, endDate: original.endDate, childIds,
+    minutesPerDay, weekdays: original.weekdays, startDate: original.startDate, endDate: original.endDate, childIds,
     // The days go back to the created days with no change history: the plan is the created plan again.
     history: { weekdaysFrom: null, previousWeekdays: null },
   });

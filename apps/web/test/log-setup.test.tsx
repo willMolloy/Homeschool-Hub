@@ -4,7 +4,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { FamilySettings, LogSetup, Subject } from "../src/api/types";
-import { NO_FIELDS, TEMPLATES, setupOf, templateFor, toggleField, trackedWords } from "../src/features/records/logSetup";
+import { NO_FIELDS, TEMPLATES, sampleLines, setupOf, templateFor, toggleField, trackedWords } from "../src/features/records/logSetup";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { renderAt } from "./render";
 
@@ -80,7 +80,7 @@ describe("Log setup for a new family", () => {
       "Core and non-core hours": ["Hours by subject", "Core and non-core hours"],
       "Days attended": ["School days"],
       "Days and hours": ["Total hours", "School days"],
-      "Detailed log": ["Hours by subject", "Notes", "Books read"],
+      "Detailed log": ["Hours by subject", "Notes"],
     };
     for (const [name, on] of Object.entries(want)) {
       await user.click(await screen.findByRole("radio", { name: new RegExp(`^${name}`) }));
@@ -164,6 +164,35 @@ describe("changing the setup later", () => {
     await user.click(screen.getByRole("switch", { name: /Core and non-core hours/ }));
     const core = screen.getByRole("group", { name: "Which subjects are core?" });
     expect(within(within(core).getByRole("group", { name: "Math is" })).getByRole("button", { name: "Core" })).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+describe("the sample log (S20-04)", () => {
+  it("each style explains itself, and the sample follows the switches with no books", () => {
+    expect(TEMPLATES.find((t) => t.id === "daysAttended")!.hint).toMatch(/No hours/);
+    expect(sampleLines(TEMPLATES.find((t) => t.id === "daysAttended")!.fields).join(" ")).toMatch(/School day/);
+    expect(sampleLines(TEMPLATES.find((t) => t.id === "daysAttended")!.fields).join(" ")).not.toMatch(/min/);
+    const hours = sampleLines(TEMPLATES.find((t) => t.id === "hoursBySubject")!.fields);
+    expect(hours).toEqual(["Tuesday · Frank", "Math · 30 min", "Reading · 20 min"]);
+    const detailed = sampleLines(TEMPLATES.find((t) => t.id === "detailed")!.fields);
+    expect(detailed.join(" ")).toMatch(/Read aloud/);
+    expect(detailed.join(" ")).not.toMatch(/book/i);
+    const withHome = sampleLines({ ...NO_FIELDS, subjectHours: true, homeAway: true });
+    expect(withHome).toContain("30 min at home");
+    const without = sampleLines({ ...NO_FIELDS, subjectHours: true, homeAway: false });
+    expect(without).not.toContain("30 min at home");
+  });
+
+  it("picking Days attended shows a school day, and hours by subject changes the sample", async () => {
+    const user = await open();
+    await user.click(await screen.findByRole("radio", { name: /^Days attended/ }));
+    const sample = await screen.findByRole("region", { name: "Sample log" });
+    expect(sample).toHaveTextContent("School day");
+    expect(sample).not.toHaveTextContent("min");
+    await user.click(screen.getByRole("radio", { name: /^Hours by subject/ }));
+    expect(sample).toHaveTextContent("Math · 30 min");
+    expect(sample).toHaveTextContent("Reading · 20 min");
+    expect(sample).not.toHaveTextContent(/book/i);
   });
 });
 

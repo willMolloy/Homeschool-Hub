@@ -48,8 +48,14 @@ describe("labels in the layout never overflow or overlap (S10-04b)", () => {
       const right = l.plot.x + l.plot.width;
       for (const n of l.names) {
         const band = l.bands.find((b) => b.rowKey === n.rowKey && b.assignmentId === n.assignmentId)!;
+        const row = l.rows.find((r) => r.key === n.rowKey)!;
         const piece = band.runs[n.piece]!;
-        if (n.outside) {
+        // A name above a thin bar (S17-01) shares the bar's x range and sits clear of the row.
+        const above = n.y + n.height <= row.y + 0.01;
+        if (above) {
+          expect(n.x).toBeGreaterThanOrEqual(piece.x0 - 0.01);
+          expect(n.x + n.width).toBeLessThanOrEqual(right + 0.01);
+        } else if (n.outside) {
           expect(n.x + n.width).toBeLessThanOrEqual(right - OUTSIDE_CLEAR_PX + 0.01);
           for (const b of l.bands.filter((b) => b.rowKey === n.rowKey)) for (const r of b.runs) {
             expect(r.x0 >= n.x + n.width || r.x1 <= n.x).toBe(true);

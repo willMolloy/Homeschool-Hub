@@ -17,4 +17,5 @@
 // 0.12.0: a keepEndDate adjustment in the last week pulls the rest back only into the days from today, else the end moves later (S7b-18).
 // 0.13.0: an assignment the parent said had ended is closed at its endedOn (S12-04): finished keeps its days to the planned end, stopped ends at endedOn; neither forecasts, leaves unplaced work or warns; ChildPlan.endedAs, endedOn.
 // 0.14.0: an assignment finished before its planned end ends at endedOn (S13-00): the work after that day is no longer planned. Finished on or after the planned end is unchanged.
-export const ENGINE_VERSION = "0.14.0";
+// 0.15.0: a minutes assignment keeps its daily amount when days are blocked (S20-01). The other units still spread a fixed total, so a break makes them thicker.
+export const ENGINE_VERSION = "0.15.0";

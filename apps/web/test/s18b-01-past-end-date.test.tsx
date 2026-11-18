@@ -44,7 +44,7 @@ async function pickDate(user: ReturnType<typeof userEvent.setup>, text: string) 
   const adjust = await screen.findByRole("dialog");
   await user.click(await within(adjust).findByRole("button", { name: "Update status for Treasure Island" }));
   const sheet = within(await screen.findByRole("dialog"));
-  await user.click(sheet.getByRole("button", { name: "Fell behind" }));
+  await user.click(sheet.getByRole("button", { name: "One less" }));
   await user.click(await sheet.findByRole("radio", { name: /^Pick a date/ }));
   const field = sheet.getByRole("textbox", { name: "New end date" });
   await user.clear(field);

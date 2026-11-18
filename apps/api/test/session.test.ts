@@ -39,7 +39,7 @@ describe.skipIf(!hasDb)("session check on protected routes (integration)", () =>
 
   it("expired session → 401", async () => {
     const expired = "expired-token-for-test";
-    await pool.query("INSERT INTO session (id, family_id, expires_at) VALUES ($1, $2, now() - interval '1 second')", [hashSessionToken(expired), familyId]);
+    await pool.query("INSERT INTO session (id, family_id, expires_at) VALUES ($1, $2, timestamptz '2000-01-01')", [hashSessionToken(expired), familyId]);
     expect((await whoami(expired)).statusCode).toBe(401);
   });
 

@@ -120,7 +120,7 @@ describe.skipIf(!hasDb)("tester: sessions and cookies", () => {
 
   it("expired session → 401 even one second past expiry; logout then reuse → 401", async () => {
     const token = sessionCookie(await login())!;
-    await pool.query("UPDATE session SET expires_at = now() - interval '1 second' WHERE id = $1", [hashSessionToken(token)]);
+    await pool.query("UPDATE session SET expires_at = timestamptz '2000-01-01' WHERE id = $1", [hashSessionToken(token)]);
     expect((await app.inject({ method: "GET", url: "/api/me", cookies: { hh_session: token } })).statusCode).toBe(401);
     const t2 = sessionCookie(await login())!;
     expect((await app.inject({ method: "POST", url: "/api/auth/logout", cookies: { hh_session: t2 } })).statusCode).toBe(204);

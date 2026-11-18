@@ -11,7 +11,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CaretRight, ListBullets, Notebook } from "@phosphor-icons/react";
-import type { Assignment, Child, Subject } from "../../api/types";
+import type { Assignment, Child, Subject, WeekCheckIn } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useAuth, useMe } from "../../auth/AuthProvider";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
@@ -21,7 +21,9 @@ import { AccountSwitcher } from "../account/AccountSwitcher";
 import { HomeBriefing } from "../plan/HomeBriefing";
 import { CompletionQuestions } from "../completion/CompletionQuestions";
 import { todayOf, waitingQuestions } from "../completion/waiting";
+import { CheckInNudge } from "./CheckInNudge";
 import { Checklist, checklistSteps } from "./Checklist";
+import { hasPendingCheckIn } from "./pendingCheckIn";
 import { PlanRefreshProvider } from "../plan/planRefresh";
 import { useWeekPlans } from "../plan/useWeekPlans";
 import { shownWeek } from "../plan/useShownWeek";
@@ -62,6 +64,9 @@ function Home() {
   const question = children.data && assignments.data ? (
     <CompletionQuestions questions={waiting} subjects={subjects.data ?? []} today={today} onAnswered={assignments.reload} />
   ) : null;
+  // S20-03: one card for the newest unchecked week. It is not a gate.
+  const lastWeek = useApi<WeekCheckIn>("/api/check-ins");
+  const nudge = hasPendingCheckIn(lastWeek.data) && lastWeek.data ? <CheckInNudge weekStart={lastWeek.data.weekStart} /> : null;
   // S8-09: only once the children list has answered, so it never flashes for a family that has set up. S11-05: reminders only.
   const checklist = children.data ? (
     <Checklist steps={checklistSteps({ children: kids.length }, me.setupDeferred ?? [])} />
@@ -87,7 +92,7 @@ function Home() {
         <span className="home-icon"><Notebook size={24} weight="light" aria-hidden="true" /></span>
         <div className="home-card-text">
           <h2><Link className="home-card-link" to="/records">Records</Link></h2>
-          <div className="home-sub">Attendance, hours and books</div>
+          <div className="home-sub">Attendance and hours</div>
         </div>
         <CaretRight className="home-chevron" size={20} weight="light" aria-hidden="true" />
       </div>
@@ -105,6 +110,7 @@ function Home() {
       {wide ? (
         <>
         {question}
+        {nudge}
         {briefing}
         <div className="home-panes">
           <div className="home-pane home-pane-wide">
@@ -119,6 +125,7 @@ function Home() {
       ) : (
         <>
           {question}
+          {nudge}
           {briefing}
           {checklist}
           {schedule}

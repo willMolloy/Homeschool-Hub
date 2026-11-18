@@ -12,7 +12,7 @@ const finished = (over: Partial<Assignment> = {}) => ({ ...open, endedAs: "finis
 const stopped = (over: Partial<Assignment> = {}) => ({ ...open, endedAs: "stopped" as const, endedOn: "2026-10-02", ...over });
 
 describe("the engine version", () => {
-  it("is 0.14.0 for the closed plans", () => expect(ENGINE_VERSION).toBe("0.14.0"));
+  it("is 0.15.0 for the closed plans", () => expect(ENGINE_VERSION).toBe("0.15.0"));
 });
 
 describe("an open assignment is untouched (S12-04)", () => {

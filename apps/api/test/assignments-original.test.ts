@@ -36,7 +36,7 @@ describe.skipIf(!hasDb)("assignment.original (S6-05, integration)", () => {
     const res = await req("POST", "/api/assignments", body());
     expect(res.statusCode).toBe(201);
     expect(await originalOf(res.json().id)).toEqual({
-      title: "Spelling", subjectId: subject, unitType: "pages", totalUnits: 40, weightPerUnit: 1.5, weekdays: [1, 3],
+      title: "Spelling", subjectId: subject, unitType: "pages", totalUnits: 40, weightPerUnit: 1.5, minutesPerDay: null, weekdays: [1, 3],
       startDate: "2026-11-02", endDate: "2026-11-13", childIds: kids,
     });
   });

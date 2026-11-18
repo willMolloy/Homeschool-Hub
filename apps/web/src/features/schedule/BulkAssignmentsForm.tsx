@@ -18,6 +18,7 @@ import { SubjectSelect } from "./SubjectSelect";
 import { useWeekdayChoice } from "./useWeekdayChoice";
 import { DateField } from "../../ui/DateField";
 import { useApi } from "../../api/useApi";
+import { MAX_MINUTES_A_DAY, MINUTES_DAILY_WEIGHT, minutesPile, schoolDayCount } from "./minutesForm";
 import { DuplicateNote, duplicateNote, repeatsOfEarlier, RowPaceNote, type RowFacts } from "./RowChecks";
 
 const START_ROWS = 3;
@@ -77,22 +78,29 @@ export function BulkAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) {
     const d = filled.length > 0 && filled.every((r) => r.open) ? null : dateRangeError(startDate, endDate, LIMITS.days);
     if (d) errs.dates = d;
 
-    if (filled.length === 0) errs.rows = "Add at least one title and total.";
+    if (filled.length === 0) errs.rows = unitType === "minutes" ? "Add at least one title and minutes a day." : "Add at least one title and total.";
     const perRow: Record<number, RowErrors> = {};
-    const items: { title: string; totalUnits: number; startDate: string; endDate: string }[] = [];
+    const items: { title: string; totalUnits: number; weightPerUnit: number | null; minutesPerDay?: number; startDate: string; endDate: string }[] = [];
     for (const r of filled) {
       const re: RowErrors = {};
       const t = r.title.trim();
       if (!t) re.title = "Title is required.";
       else if (t.length > LIMITS.title) re.title = `Title must be ${LIMITS.title} characters or fewer.`;
-      const total = parsePositive(r.total, "Total", LIMITS.totalUnits);
-      if (typeof total === "string") re.total = total;
+      // S20-01: a minutes row is minutes a day. The stored total is that amount times the school days.
+      const amount = parsePositive(r.total, unitType === "minutes" ? "Minutes a day" : "Total", unitType === "minutes" ? MAX_MINUTES_A_DAY : LIMITS.totalUnits);
+      if (typeof amount === "string") re.total = amount;
       const own = r.open ? { startDate: r.start ?? startDate, endDate: r.end ?? endDate } : { startDate, endDate };
       if (r.open) {
         const rd = dateRangeError(own.startDate, own.endDate, LIMITS.days);
         if (rd) re.dates = rd;
       }
-      if (typeof total !== "string") items.push({ title: t, totalUnits: total, ...own });
+      if (typeof amount !== "string") {
+        if (unitType === "minutes") {
+          const days = schoolDayCount(own.startDate, own.endDate, dayChoice.shown);
+          if (days <= 0) re.dates = re.dates ?? "Those dates include no school days.";
+          else items.push({ title: t, totalUnits: minutesPile(amount, days), weightPerUnit: MINUTES_DAILY_WEIGHT, minutesPerDay: amount, ...own });
+        } else items.push({ title: t, totalUnits: amount, weightPerUnit: null, ...own });
+      }
       if (re.title || re.total || re.dates) perRow[r.key] = re;
     }
     setErrors(errs);
@@ -101,7 +109,7 @@ export function BulkAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) {
 
     setSaving(true);
     try {
-      const bodies = items.map((i) => ({ subjectId: sid, ...i, unitType, weightPerUnit: null, childIds, weekdays: dayChoice.value }));
+      const bodies = items.map((i) => ({ subjectId: sid, ...i, unitType, childIds, weekdays: dayChoice.value }));
       // S14-05: one undo for the lot ("Added 6 assignments"); chunks of 50 add to the same entry.
       // The server counts only the rows sent; name them by the row numbers on screen.
       const shown = rows.flatMap((r, i) => (isEmpty(r) ? [] : [i + 1]));
@@ -146,10 +154,16 @@ export function BulkAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) {
       </div>
       {(() => {
         // S18-04 (E9): row facts for the notes; a row that is empty or has no usable total says nothing yet.
-        const facts = (r: Row): RowFacts => ({ subjectId, title: r.title, childIds, unitType, totalUnits: Number(r.total) || 0, startDate: r.open ? r.start ?? startDate : startDate, endDate: r.open ? r.end ?? endDate : endDate });
+        const facts = (r: Row): RowFacts => {
+          const start = r.open ? r.start ?? startDate : startDate;
+          const end = r.open ? r.end ?? endDate : endDate;
+          const typed = Number(r.total) || 0;
+          const days = unitType === "minutes" ? schoolDayCount(start, end, dayChoice.shown) : 0;
+          return { subjectId, title: r.title, childIds, unitType, totalUnits: unitType === "minutes" && days > 0 ? minutesPile(typed, days) : typed, startDate: start, endDate: end };
+        };
         const earlier = repeatsOfEarlier(rows.map((r) => (isEmpty(r) || !r.title.trim() ? { subjectId: "", title: `\u0000${r.key}`, childIds: [] as string[] } : facts(r))));
         return rows.map((r, i) => (
-          <BulkRow key={r.key} n={i + 1} row={r} shared={{ start: startDate, end: endDate }} errors={rowErrors[r.key]} canRemove={rows.length > 1}
+          <BulkRow key={r.key} n={i + 1} amountLabel={unitType === "minutes" ? "Minutes a day" : "Total"} row={r} shared={{ start: startDate, end: endDate }} errors={rowErrors[r.key]} canRemove={rows.length > 1}
             onChange={(patch) => setRow(r.key, patch)} onRemove={() => setRows((rs) => rs.filter((x) => x.key !== r.key))}
             notes={isEmpty(r) ? null : (
               <>
@@ -184,7 +198,7 @@ interface RowProps {
   notes?: ReactNode;
 }
 
-function BulkRow({ n, row, shared, errors, canRemove, onChange, onRemove, notes }: RowProps) {
+function BulkRow({ n, row, shared, errors, canRemove, onChange, onRemove, notes, amountLabel = "Total" }: RowProps & { amountLabel?: string }) {
   const id = useId();
   return (
     <div className="bulk-row" role="group" aria-label={`Row ${n}`}>
@@ -197,7 +211,7 @@ function BulkRow({ n, row, shared, errors, canRemove, onChange, onRemove, notes 
         {errors?.title ? <p id={`${id}-title-err`} className="field-error" role="alert">{errors.title}</p> : null}
       </div>
       <div className="field">
-        <label htmlFor={`${id}-total`}>Total</label>
+        <label htmlFor={`${id}-total`}>{amountLabel}</label>
         <input id={`${id}-total`} type="number" inputMode="decimal" min="0" step="any" value={row.total} onChange={(e) => onChange({ total: e.target.value })}
           aria-invalid={errors?.total ? true : undefined} aria-describedby={errors?.total ? `${id}-total-err` : undefined} />
         {errors?.total ? <p id={`${id}-total-err`} className="field-error" role="alert">{errors.total}</p> : null}

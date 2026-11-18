@@ -31,10 +31,10 @@ describe.skipIf(!hasDb)("the plan for ended assignments (S12-04, integration)", 
     await pool.end();
   });
 
-  it("an open assignment has no ended fields; the engine is 0.14.0", async () => {
+  it("an open assignment has no ended fields; the engine is 0.15.0", async () => {
     const p = await plan();
     expect(p.engineVersion).toBe(ENGINE_VERSION);
-    expect(ENGINE_VERSION).toBe("0.14.0");
+    expect(ENGINE_VERSION).toBe("0.15.0");
     expect(await mine()).not.toHaveProperty("endedAs");
   });
 

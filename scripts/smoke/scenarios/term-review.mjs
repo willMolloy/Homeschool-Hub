@@ -1,6 +1,6 @@
 // S13-06: Term in review end to end. Sign in as smoke@example.com (seed-second-family.ts; it can write), turn on a log that tracks
-// hours by subject, school days and books, log two days for each child, then open Records, "Term in review", check a card for each
-// child (school days, time by subject and the books read, as the log tracks), the card is drawn light for Save and Print even on a dark device, and
+// hours by subject and school days, log two days for each child, mark a pages assignment finished, then open Records, "Term in review",
+// check a card for each child (school days, time by subject, and that finished book). The card is drawn light for Save and Print even on a dark device, and
 // Save image gives one 1080 x 1350 PNG per child on this device with no request leaving the app. Writes to the family, so reseed first:
 //   DATABASE_URL=postgres://hh:hh@localhost:5432/hh_dev npx tsx scripts/smoke/seed-second-family.ts
 //   node flow.mjs term-review
@@ -38,17 +38,26 @@ export default async function ({ page, shot, login, log, BASE }) {
   await login("smoke@example.com");
   await page.waitForFunction(() => location.pathname === "/", { timeout: 15000 });
 
-  // A log that tracks hours by subject, school days and books, and two days for each child.
+  // A log that tracks hours by subject and school days, two days for each child, and a book marked finished on the schedule (S20-05).
   const kids = (await api("GET", "/api/children")).body.filter((c) => !c.archived);
   const subjects = (await api("GET", "/api/subjects")).body.filter((s) => !s.archived);
   const me = (await api("GET", "/api/me")).body;
-  const set = await api("PATCH", "/api/family", { logSetup: { template: "detailed", fields: { subjectHours: true, coreSplit: false, totalHours: false, schoolDays: true, homeAway: false, notes: false, books: true } } });
+  const set = await api("PATCH", "/api/family", { logSetup: { template: "detailed", fields: { subjectHours: true, coreSplit: false, totalHours: false, schoolDays: true, homeAway: false, notes: false, books: false } } });
   check(set.status === 200, `could not set up the log: ${JSON.stringify(set.body)}`);
   const year = me.today.slice(0, 4);
-  for (const [i, k] of kids.entries()) for (const [j, d] of [`${year}-09-08`, `${year}-09-09`].entries()) {
+  for (const [i, k] of kids.entries()) for (const d of [`${year}-09-08`, `${year}-09-09`]) {
     const sm = Object.fromEntries(subjects.slice(0, 3).map((s, n) => [s.id, 30 + 15 * n + 5 * i]));
-    const made = await api("POST", "/api/log-entries", { childIds: [k.id], startDate: d, subjectMinutes: sm, books: [`Smoke book ${i}-${j}`] });
+    const made = await api("POST", "/api/log-entries", { childIds: [k.id], startDate: d, subjectMinutes: sm });
     check(made.status === 201, `could not log a day: ${JSON.stringify(made.body)}`);
+  }
+  for (const [i, k] of kids.entries()) {
+    const made = await api("POST", "/api/assignments", {
+      subjectId: subjects[0].id, title: `Smoke book ${i}`, unitType: "pages", totalUnits: 40,
+      startDate: `${year}-09-01`, endDate: `${year}-09-09`, childIds: [k.id],
+    });
+    check(made.status === 201 && made.body?.id, `could not add a book: ${JSON.stringify(made.body)}`);
+    const done = await api("PATCH", `/api/assignments/${made.body.id}`, { endedAs: "finished", endedOn: `${year}-09-09` });
+    check(done.status === 200, `could not finish a book: ${JSON.stringify(done.body)}`);
   }
 
   // Records links to it, opening on the range and child already picked.
@@ -71,7 +80,8 @@ export default async function ({ page, shot, login, log, BASE }) {
   const cardText = () => page.$eval(".review-card svg", (s) => [...s.querySelectorAll("text")].map((t) => t.textContent));
   const first = await cardText();
   log("first card:", first.join(" | "));
-  check(first.includes("TIME BY SUBJECT") && first.includes("BOOKS READ"), "the card lacks time by subject or the books read");
+  check(first.includes("TIME BY SUBJECT") && first.includes("BOOKS"), "the card lacks time by subject or the finished books");
+  check(first.includes("Smoke book 0"), "the card lacks the book marked finished");
   check(first.includes("school days") || (first.includes("school") && first.includes("days")), "the card lacks school days");
   check(!first.some((t) => /finished/i.test(t)), "the card has something from completions");
   check(!first.some((t) => /favou?rite|note|estimate/i.test(t)), "the card has an invented part");

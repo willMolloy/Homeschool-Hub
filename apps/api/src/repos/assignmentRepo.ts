@@ -13,6 +13,8 @@ export interface AssignmentRow {
   unit_type: UnitType;
   total_units: number;
   weight_per_unit: number | null;
+  /** S20-01 / M1: the minutes a day the parent entered. Null unless the unit is minutes. */
+  minutes_per_day: number | null;
   /** S4-02: the days it is worked on; null = follow the subject's default, then every school day. */
   weekdays: number[] | null;
   /** S4-01b: the date the current days apply from, and the days before (null = every school day); both null without a change. */
@@ -37,6 +39,8 @@ export interface AssignmentJson {
   totalUnits: number;
   /** Relative weight per unit (bar thickness = units × weight); null = the subject default, then the built-in. */
   weightPerUnit: number | null;
+  /** S20-01 / M1: minutes a day, when the unit is minutes. Null for every other unit. */
+  minutesPerDay: number | null;
   /** S4-04: its own days (sorted, 0 = Sunday); null = follows the subject's default, then every school day. */
   weekdays: number[] | null;
   startDate: string;
@@ -51,14 +55,14 @@ export interface AssignmentJson {
 export function toAssignmentJson(r: AssignmentRow): AssignmentJson {
   return {
     id: r.id, subjectId: r.subject_id, title: r.title, unitType: r.unit_type, totalUnits: r.total_units,
-    weightPerUnit: r.weight_per_unit, weekdays: r.weekdays ? [...r.weekdays].sort((x, y) => x - y) : null, startDate: r.start_date, endDate: r.end_date, childIds: r.child_ids,
+    weightPerUnit: r.weight_per_unit, minutesPerDay: r.minutes_per_day, weekdays: r.weekdays ? [...r.weekdays].sort((x, y) => x - y) : null, startDate: r.start_date, endDate: r.end_date, childIds: r.child_ids,
     archived: r.archived_at !== null, endedAs: r.ended_as, endedOn: r.ended_on,
   };
 }
 
 // Children in roster order, so the UI lists them the same way everywhere.
 const SELECT = `
-  SELECT a.id, a.subject_id, a.title, a.unit_type, a.total_units, a.weight_per_unit, a.weekdays, a.weekdays_from, a.previous_weekdays, a.start_date, a.end_date, a.archived_at, a.ended_as, a.ended_on,
+  SELECT a.id, a.subject_id, a.title, a.unit_type, a.total_units, a.weight_per_unit, a.minutes_per_day, a.weekdays, a.weekdays_from, a.previous_weekdays, a.start_date, a.end_date, a.archived_at, a.ended_as, a.ended_on,
          COALESCE((SELECT array_agg(ac.child_id ORDER BY c.sort_order, c.id)
                      FROM assignment_child ac JOIN child c ON c.id = ac.child_id
                     WHERE ac.assignment_id = a.id), '{}') AS child_ids
@@ -84,6 +88,8 @@ export interface AssignmentInput {
   unitType: UnitType;
   totalUnits: number;
   weightPerUnit: number | null;
+  /** Set for a minutes assignment: the minutes a day. Null clears it (any other unit). */
+  minutesPerDay?: number | null;
   weekdays?: number[] | null;
   startDate: string;
   endDate: string;
@@ -97,6 +103,7 @@ export interface AssignmentOriginal {
   unitType: UnitType;
   totalUnits: number;
   weightPerUnit: number | null;
+  minutesPerDay?: number | null;
   weekdays: number[] | null;
   startDate: string;
   endDate: string;
@@ -105,15 +112,16 @@ export interface AssignmentOriginal {
 
 const originalOf = (a: AssignmentInput): AssignmentOriginal => ({
   title: a.title, subjectId: a.subjectId, unitType: a.unitType, totalUnits: a.totalUnits, weightPerUnit: a.weightPerUnit,
+  minutesPerDay: a.unitType === "minutes" ? a.minutesPerDay ?? null : null,
   weekdays: a.weekdays ?? null, startDate: a.startDate, endDate: a.endDate, childIds: a.childIds,
 });
 
 /** Insert an assignment and its children, and keep its created values as `original` (S6-05). References must already be checked. */
 export async function createAssignment(tx: Tx, familyId: string, a: AssignmentInput): Promise<string> {
   const { rows } = await tx.query<{ id: string }>(
-    `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, weight_per_unit, start_date, end_date, weekdays, original)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb) RETURNING id`,
-    [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.weightPerUnit, a.startDate, a.endDate, a.weekdays ?? null, JSON.stringify(originalOf(a))]);
+    `INSERT INTO assignment (family_id, subject_id, title, unit_type, total_units, weight_per_unit, minutes_per_day, start_date, end_date, weekdays, original)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb) RETURNING id`,
+    [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.weightPerUnit, a.unitType === "minutes" ? a.minutesPerDay ?? null : null, a.startDate, a.endDate, a.weekdays ?? null, JSON.stringify(originalOf(a))]);
   const id = rows[0]!.id;
   await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: a.childIds });
   return id;
@@ -132,7 +140,7 @@ export async function lockAssignment(tx: Tx, familyId: string, id: string): Prom
 export async function updateAssignment(tx: Tx, familyId: string, id: string, p: AssignmentPatch): Promise<void> {
   const { set, params } = buildUpdateSet({
     subject_id: p.subjectId, title: p.title, unit_type: p.unitType, total_units: p.totalUnits,
-    weight_per_unit: p.weightPerUnit, start_date: p.startDate, end_date: p.endDate,
+    weight_per_unit: p.weightPerUnit, minutes_per_day: p.minutesPerDay, start_date: p.startDate, end_date: p.endDate,
     weekdays: p.weekdays, weekdays_from: p.history?.weekdaysFrom, previous_weekdays: p.history?.previousWeekdays,
     ended_as: p.endedAs, ended_on: p.endedOn,
   }, { firstParam: 3, archived: p.archived });

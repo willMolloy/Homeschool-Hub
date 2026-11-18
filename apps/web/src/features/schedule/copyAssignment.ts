@@ -21,6 +21,7 @@ export function copyOfAssignment(a: Assignment, lookups: { subjects: readonly Su
     unitType: a.unitType,
     totalUnits: a.totalUnits,
     weightPerUnit: a.weightPerUnit,
+    minutesPerDay: a.minutesPerDay ?? null,
     startDate: a.startDate,
     endDate: a.endDate,
     childIds: a.childIds.filter(activeChild),

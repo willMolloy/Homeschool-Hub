@@ -38,6 +38,13 @@ describe.skipIf(!hasDb)("log setup (S9-03, integration)", () => {
     expect((await get()).json().logSetup).toBeNull();
   });
 
+  it("cannot turn books read on (S20-05)", async () => {
+    await rejected(
+      { template: "detailed", fields: { subjectHours: true, coreSplit: false, totalHours: false, schoolDays: false, homeAway: false, notes: true, books: true } },
+      /Books read is not part of the log/,
+    );
+  });
+
   it("round-trips a setup, keeps the other settings, and is private to the family", async () => {
     const res = await patch(CORE);
     expect(res.statusCode, res.body).toBe(200);

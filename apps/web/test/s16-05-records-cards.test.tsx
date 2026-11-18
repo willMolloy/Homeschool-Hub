@@ -103,19 +103,18 @@ describe("Records (S16-05)", () => {
     void user;
   });
 
-  it("the typed titles are a short list below the totals, de-duplicated, and not a count card", async () => {
+  it("typed titles are not listed; books finished is the schedule", async () => {
     renderAt("/records");
-    const section = await screen.findByRole("region", { name: "Books mentioned in your log" });
-    expect(within(section).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["Heidi", "treasure island", "Pagoo"]);
-    const nums = within(screen.getByRole("group", { name: "Totals" }));
-    expect(nums.queryByText(/^books?$/)).toBeNull();
+    await screen.findByRole("group", { name: "Totals" });
+    expect(screen.queryByRole("region", { name: "Books mentioned in your log" })).toBeNull();
+    expect(screen.getByRole("button", { name: /books finished/ })).toBeInTheDocument();
   });
 
-  it("hidden when books are not tracked, and never a zero when nothing finished", async () => {
+  it("books finished shows even when the log does not track books, and never a zero when nothing finished", async () => {
     stub({ ...ALLF, books: false });
     const first = renderAt("/records");
     await screen.findByRole("group", { name: "Totals" });
-    expect(screen.queryByRole("button", { name: /finished/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /finished/ })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Books mentioned in your log" })).toBeNull();
     first.unmount();
     stub(ALLF, []);
@@ -136,12 +135,13 @@ describe("Records (S16-05)", () => {
 
 describe("the CSV uses the same definition (S16-05)", () => {
   const input = (over = {}) => ({ entries: ENTRIES, assignments: ASSIGNMENTS, children: KIDS, subjects: SUBJECTS, fields: ALLF, start: RANGE.start, end: RANGE.end, childIds: ["c1", "c2"], mode: "totals" as const, columns: ["schoolDays", "booksFinished", "books"] as never, ...over });
-  it("a Totals file has Books finished (from completions) and, ticked, Books read (the typed list)", () => {
+  it("a Totals file has Books finished and no Books read column", () => {
     const t = buildTable(input());
-    expect(t.header).toEqual(["From", "To", "Child", "School days", "Books finished", "Books read"]);
-    expect(t.rows[0]!.slice(2)).toEqual(["Frank", 7, "Treasure Island; The Hobbit", "Heidi; treasure island"]);
-    expect(t.rows[1]!.slice(2)).toEqual(["Margaret", 3, "The Secret Garden", "Pagoo"]);
-    expect(buildTable(input({ columns: ["schoolDays"] })).header).toEqual(["From", "To", "Child", "School days"]); // Books read only if ticked
+    expect(t.header).toEqual(["From", "To", "Child", "School days", "Books finished"]);
+    expect(t.header).not.toContain("Books read");
+    expect(t.rows[0]!.slice(2)).toEqual(["Frank", 7, "Treasure Island; The Hobbit"]);
+    expect(t.rows[1]!.slice(2)).toEqual(["Margaret", 3, "The Secret Garden"]);
+    expect(buildTable(input({ columns: ["schoolDays"] })).header).toEqual(["From", "To", "Child", "School days"]);
   });
   it("Each entry files have no Books finished column (it belongs to a child's range, not an entry)", () => {
     expect(buildTable(input({ mode: "entries", columns: ["booksFinished", "books"] })).header).not.toContain("Books finished");

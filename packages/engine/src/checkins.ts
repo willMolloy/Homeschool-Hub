@@ -76,7 +76,10 @@ export interface CheckInResult {
 
 /** Apply the check-ins to segment 0 in place. */
 export function applyCheckIns(p: Placement, { a, childId, calendar, checkIns, S, E, overrides, c, warn, notBefore }: CheckInArgs): CheckInResult {
-  const total = a.totalUnits;
+  // S20-01: a minutes plan may have placed less than the stored total (days off are not piled onto the others).
+  // Replanning from the stored total would thicken the days that remain. Use what was actually placed.
+  const placed = sumPlanned(p.planned, S, Number.POSITIVE_INFINITY);
+  const total = a.unitType === "minutes" && a.totalUnits - placed > 1e-4 ? placed : a.totalUnits;
   // Segment 0 as planned before any check-in: the end keepEndDate keeps and the pace pushEndDate keeps.
   const original = { end: p.endDay, pace: p.baseRate };
   const weeks: LocalDate[] = [];

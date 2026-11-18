@@ -1,8 +1,8 @@
 # Sprint 20 — Minutes, check-in, and logging
 
-> **Status: decided, not built.** DeeDee settled this on 2026-11-11 after using the app on current `main`. Nothing here is implemented. Sprint 18b is merged. Build Sprint 19 before this sprint. Do not fold Sprint 19, or the Sprint 18b tester follow-ups, into this folder.
+> **Status: built on `hh2/sprint-20`, not merged.** S20-01 to S20-06 are in. S20-07, the tester pass, is not. Sprint 19 is merged (PR #21). Do not fold Sprint 21, or the Sprint 18b tester follow-ups (including S18c-05), into this folder.
 
-One branch for the sprint, off `main` after Sprint 19 has merged. One commit per ticket, `bash scripts/check.sh` ALL GREEN before each commit, push after each. Progress in `docs/progress/sprint-20.md`. A PR to `main` only after the tester passes.
+One branch for the sprint, off `main` after Sprint 19 merged. Progress in `docs/progress/sprint-20.md`. The PR stays a draft until the tester passes. Do not mark it ready, and do not merge it.
 
 ## Decisions (DeeDee, 2026-11-11)
 

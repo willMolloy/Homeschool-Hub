@@ -24,7 +24,7 @@ const ENTRIES = [
   e({ id: "3", startDate: "2026-12-14", endDate: "2026-12-14", schoolDays: 1, subjectMinutes: { math: 60 }, notes: "+1 note" }),
 ];
 const ALLF: LogFields = { subjectHours: true, coreSplit: true, totalHours: false, schoolDays: true, homeAway: true, notes: true, books: true };
-const COLS = ["lastDay", "schoolDays", "subjectHours", "totalHours", "coreSplit", "homeAway", "notes", "books"] as const;
+const COLS = ["lastDay", "schoolDays", "subjectHours", "totalHours", "coreSplit", "homeAway", "notes"] as const;
 const input = (over: Partial<ExportInput> = {}): ExportInput => ({ entries: ENTRIES, children: KIDS, subjects: SUBJECTS, fields: ALLF, start: "2026-08-17", end: "2026-12-18", childIds: ["c1"], mode: "entries", columns: [...COLS], ...over });
 const readBlob = (b: Blob) => new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsText(b); });
 const readBytes = (b: Blob) => new Promise<ArrayBuffer>((res) => { const r = new FileReader(); r.onload = () => res(r.result as ArrayBuffer); r.readAsArrayBuffer(b); });
@@ -53,7 +53,7 @@ describe("the columns on offer", () => {
     expect(availableColumns(ALLF).map((c) => c.key)).toEqual([...COLS]);
     expect(availableColumns(ALLF, "totals").map((c) => c.key)).not.toContain("notes");
     expect(availableColumns(ALLF, "totals").map((c) => c.key)).not.toContain("lastDay");
-    expect(availableColumns({ ...NO_FIELDS, totalHours: true, schoolDays: true }, "totals").map((c) => c.key)).toEqual(["schoolDays", "totalHours"]);
+    expect(availableColumns({ ...NO_FIELDS, totalHours: true, schoolDays: true }, "totals").map((c) => c.key)).toEqual(["schoolDays", "totalHours", "booksFinished"]);
   });
 });
 
@@ -75,10 +75,11 @@ describe("the CSV", () => {
   });
 
   it("a formula in a note, a subject name or a book exports safely", () => {
-    const csv = buildCsv(input({ columns: ["subjectHours", "notes", "books"], entries: [e({ subjectMinutes: { bad: 60 }, notes: "=HYPERLINK(\"http://x\",\"hi\")", books: ["@Evil", "+Plus"] })] }));
+    const csv = buildCsv(input({ columns: ["subjectHours", "notes"], entries: [e({ subjectMinutes: { bad: 60 }, notes: "=HYPERLINK(\"http://x\",\"hi\")", books: ["@Evil", "+Plus"] })] }));
     const [, head, row] = lines(csv);
-    expect(head).toBe(`Date,Child,"'=HYPERLINK(""x"") (hours)",Notes,Books read`);
-    expect(row).toBe(`2026-11-02,Frank,1,"'=HYPERLINK(""http://x"",""hi"")",'@Evil; +Plus`);
+    expect(head).toBe(`Date,Child,"'=HYPERLINK(""x"") (hours)",Notes`);
+    expect(row).toBe(`2026-11-02,Frank,1,"'=HYPERLINK(""http://x"",""hi"")"`);
+    expect(head).not.toContain("Books read");
     expect(csv).not.toMatch(/(^|,|\r\n)"?[=+\-@]/);
   });
 
@@ -104,9 +105,10 @@ describe("the CSV", () => {
 
   it("Totals: one row per child with sums, books once each, and no Notes column", () => {
     const t = buildTable(input({ mode: "totals", childIds: ["c1", "c2"], columns: [...COLS] }));
-    expect(t.header).toEqual(["From", "To", "Child", "School days", "Math (hours)", "Art (hours)", "Total hours", "Core hours", "Non-core hours", "Hours at home", "Books read"]);
+    expect(t.header).toEqual(["From", "To", "Child", "School days", "Math (hours)", "Art (hours)", "Total hours", "Core hours", "Non-core hours", "Hours at home"]);
+    expect(t.header).not.toContain("Books read");
     const D = ["2026-08-17", "2026-12-18"];
-    expect(t.rows).toEqual([[...D, "Frank", 6, "4.5", "1.5", "6", "4.5", "1.5", "", "Heidi"], [...D, "Margaret", 5, "2", "", "2", "2", "", "1", ""]]);
+    expect(t.rows).toEqual([[...D, "Frank", 6, "4.5", "1.5", "6", "4.5", "1.5", ""], [...D, "Margaret", 5, "2", "", "2", "2", "", "1"]]);
     expect(lines(buildCsv(input({ mode: "totals", columns: ["schoolDays"] }))).slice(1)).toEqual(["From,To,Child,School days", "2026-08-17,2026-12-18,Frank,6"]);
   });
 
@@ -205,8 +207,9 @@ describe("the export sheet", () => {
     expect(form.getByLabelText("To")).toHaveValue("May 28, 2027");
     expect(form.getByRole("button", { name: "Frank" })).toHaveAttribute("aria-pressed", "true");
     expect(form.getByRole("button", { name: "Margaret" })).toHaveAttribute("aria-pressed", "false");
-    expect(form.getAllByRole("checkbox").map((c) => c.closest("label")!.textContent)).toEqual(["Last day", "School days", "Hours by subject", "Total hours", "Core and non-core hours", "Hours at home and away", "Notes", "Books read"]);
-    for (const l of ["Hours by subject", "Total hours", "Hours at home and away", "Notes", "Books read"]) await user.click(form.getByRole("checkbox", { name: l }));
+    expect(form.getAllByRole("checkbox").map((c) => c.closest("label")!.textContent)).toEqual(["Last day", "School days", "Hours by subject", "Total hours", "Core and non-core hours", "Hours at home and away", "Notes"]);
+    expect(form.queryByRole("checkbox", { name: "Books read" })).toBeNull();
+    for (const l of ["Hours by subject", "Total hours", "Hours at home and away", "Notes"]) await user.click(form.getByRole("checkbox", { name: l }));
     await user.click(form.getByRole("button", { name: "Download CSV" }));
     expect(clicked).toEqual(["records-2026-08-31-to-2027-05-28.csv"]);
     const text = await readBlob(blobs[0]!);

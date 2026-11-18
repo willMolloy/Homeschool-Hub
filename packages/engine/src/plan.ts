@@ -55,7 +55,7 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   const onWeekdays = weekdays ? new Set<number>(weekdays) : null;
   const S = toDayNumber(a.start);
   const E = toDayNumber(a.end);
-  const total = a.totalUnits;
+  let total = a.totalUnits;
   const asOf = ctx.asOf ? toDayNumber(ctx.asOf) : S;
 
   // S4-00: a missed day on or before asOf is not a plain day off. The plan is built as if it were not missed,
@@ -84,6 +84,21 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     }
     return v;
   };
+
+  // S20-01: minutes are a daily amount. A blocked or skipped day drops that day; it does not thicken the others.
+  // The stored total is the daily amount times the school days in the dates (blocks ignored). When some of
+  // those days have no capacity, place only what the remaining days hold at the same daily rate.
+  if (a.unitType === "minutes" && E >= S) {
+    const schoolWeek = new Set<number>(ctx.calendar.schoolDays);
+    let nominal = 0;
+    let actual = 0;
+    for (let d = S; d <= E; d += 1) {
+      const wd = weekdayOfDayNumber(d);
+      if (schoolWeek.has(wd) && (!beforeChange || beforeChange.has(wd))) nominal += 1;
+      actual += c(d);
+    }
+    if (nominal > EPS && nominal - actual > 1e-4) total = (a.totalUnits / nominal) * actual;
+  }
 
   let p: Placement;
   let done = 0;

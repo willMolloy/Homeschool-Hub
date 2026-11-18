@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { schoolDaysBetween } from "../src/features/schedule/effort";
 import { assignmentsCsvTemplate, errorText, parseAssignmentsCsv } from "../src/features/schedule/csvImport";
 import { makeLookups } from "../src/features/schedule/lookups";
 import { FRANK, LATIN, MAGGIE, MATH, OLD_KID, READING } from "./helpers/schedule-fixtures";
@@ -8,6 +9,16 @@ const HEADER = "subject,title,children,unit,total,start,end";
 const parse = (text: string) => parseAssignmentsCsv(text, lookups);
 
 describe("parseAssignmentsCsv", () => {
+  it("a minutes row is minutes a day, and a total over 1,440 is rejected (S20-01)", () => {
+    const ok = parse(`${HEADER}\nReading,Piano,Frank,minutes,30,2026-11-02,2026-11-06\n`);
+    expect(ok.errors).toEqual([]);
+    const days = schoolDaysBetween("2026-11-02", "2026-11-06", [1, 2, 3, 4, 5]);
+    expect(ok.rows[0]).toMatchObject({ unitType: "minutes", totalUnits: 30 * days, weightPerUnit: 0.5 });
+    const bad = parse(`${HEADER}\nReading,Piano,Frank,minutes,1500,2026-11-02,2026-11-06\n`);
+    expect(bad.rows).toEqual([]);
+    expect(bad.errors.map(errorText).join(" ")).toMatch(/1,440/);
+  });
+
   it("parses a valid file, with the columns in a different order and any case", () => {
     const r = parse("End,Total,Unit,Children,Title,Subject,Start\n2026-12-18,184,pages,Maggie,Charlotte's Web,Reading,2026-10-15\n");
     expect(r.errors).toEqual([]);

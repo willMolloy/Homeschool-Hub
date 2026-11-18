@@ -9,11 +9,11 @@ export const NO_FIELDS: LogFields = { subjectHours: false, coreSplit: false, tot
 export interface TemplateInfo { id: Exclude<LogTemplate, "custom">; title: string; hint: string; fields: LogFields }
 
 export const TEMPLATES: readonly TemplateInfo[] = [
-  { id: "hoursBySubject", title: "Hours by subject", hint: "Hours for each subject.", fields: { ...NO_FIELDS, subjectHours: true } },
-  { id: "coreNonCore", title: "Core and non-core hours", hint: "Hours for each subject, marked core or non-core; totals for both.", fields: { ...NO_FIELDS, subjectHours: true, coreSplit: true } },
-  { id: "daysAttended", title: "Days attended", hint: "School days only.", fields: { ...NO_FIELDS, schoolDays: true } },
-  { id: "daysAndHours", title: "Days and hours", hint: "School days plus total hours.", fields: { ...NO_FIELDS, schoolDays: true, totalHours: true } },
-  { id: "detailed", title: "Detailed log", hint: "Hours by subject, notes and books read.", fields: { ...NO_FIELDS, subjectHours: true, notes: true, books: true } },
+  { id: "hoursBySubject", title: "Hours by subject", hint: "You write how long each subject took.", fields: { ...NO_FIELDS, subjectHours: true } },
+  { id: "coreNonCore", title: "Core and non-core hours", hint: "The same, with each subject marked core or not, and a total for each.", fields: { ...NO_FIELDS, subjectHours: true, coreSplit: true } },
+  { id: "daysAttended", title: "Days attended", hint: "You mark which days counted as school. No hours.", fields: { ...NO_FIELDS, schoolDays: true } },
+  { id: "daysAndHours", title: "Days and hours", hint: "Which days counted, plus one total for the day.", fields: { ...NO_FIELDS, schoolDays: true, totalHours: true } },
+  { id: "detailed", title: "Detailed log", hint: "Hours by subject, plus a note if you want one.", fields: { ...NO_FIELDS, subjectHours: true, notes: true } },
 ];
 
 /** The switches, in the order they are shown, with the parent's words. */
@@ -24,7 +24,6 @@ export const FIELD_SWITCHES: readonly { key: keyof LogFields; label: string; hin
   { key: "schoolDays", label: "School days" },
   { key: "homeAway", label: "Hours at home and away" },
   { key: "notes", label: "Notes" },
-  { key: "books", label: "Books read" },
 ];
 
 /** Turning one switch, keeping the rules the API holds: core needs subject hours, and total hours replace them. */
@@ -62,7 +61,24 @@ export function trackedWords(f: LogFields, inSentence = false): string {
   return inSentence ? text : text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export const setupOf = (fields: LogFields): LogSetup => ({ template: templateFor(fields), fields });
+/** S20-05: books read is not a logging choice. A saved setup never turns it on. */
+/** S20-04: a made-up Tuesday for Frank. It follows the switches and never mentions books. */
+export function sampleLines(fields: LogFields): string[] {
+  const lines = ["Tuesday · Frank"];
+  if (fields.schoolDays && !fields.subjectHours && !fields.totalHours) lines.push("School day");
+  if (fields.totalHours && !fields.subjectHours) lines.push("50 min");
+  if (fields.subjectHours && fields.coreSplit) lines.push("Math · core · 30 min", "Reading · non-core · 20 min");
+  else if (fields.subjectHours) lines.push("Math · 30 min", "Reading · 20 min");
+  if (fields.totalHours && fields.subjectHours) lines.push("50 min");
+  if (fields.homeAway) lines.push("30 min at home", "20 min away");
+  if (fields.notes) lines.push("Read aloud after lunch.");
+  return lines;
+}
+
+export const setupOf = (fields: LogFields): LogSetup => {
+  const cleared = { ...fields, books: false };
+  return { template: templateFor(cleared), fields: cleared };
+};
 
 /** The state-rules link in the help line (a page of state laws kept by HSLDA). */
 export const STATE_LAWS_URL = "https://hslda.org/legal";

@@ -171,8 +171,8 @@ describe("the Year view (S12-04)", () => {
 });
 
 describe("the plan (S12-04)", () => {
-  it("is engine 0.14.0 and an ended plan is closed as the engine says", () => {
-    expect(ENGINE_VERSION).toBe("0.14.0");
+  it("is engine 0.15.0 and an ended plan is closed as the engine says", () => {
+    expect(ENGINE_VERSION).toBe("0.15.0");
     expect(planChild({ ...BOOK, endedAs: "stopped", endedOn: "2026-10-02" }, "c1", { calendar: CAL, asOf: "2026-11-04" })).toMatchObject({ endedAs: "stopped", complete: false, warnings: [] });
   });
 });

@@ -56,7 +56,7 @@ export const DEMO_ME: Me = {
 };
 
 const ROSTER_PATCH = ["name", "color", "sortOrder", "archived"];
-const ASSIGNMENT = ["subjectId", "title", "unitType", "totalUnits", "weightPerUnit", "startDate", "endDate", "childIds", "weekdays"];
+const ASSIGNMENT = ["subjectId", "title", "unitType", "totalUnits", "weightPerUnit", "minutesPerDay", "startDate", "endDate", "childIds", "weekdays"];
 const EVENT = ["name", "weekdays", "startDate", "endDate", "capacityFraction", "defaultRule", "subjectRules", "childIds"];
 const BLOCKED = ["label", "kind", "startDate", "endDate", "childIds"];
 /** The keys each API body schema accepts (apps/api/src/routes/*, all z.strictObject). `:id` = one path segment. */

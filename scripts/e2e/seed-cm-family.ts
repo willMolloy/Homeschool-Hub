@@ -221,7 +221,8 @@ export async function seedCmFamily(databaseUrl: string, opts: { reset?: boolean;
     // The Hartley family: settings, the school year, what the log tracks.
     await call(R, "PATCH", "/api/family", { name: "Hartley family", weekStart: "mon", schoolDays: MON_FRI, timeZone: "America/Chicago" });
     await call(R, "PATCH", "/api/family", { schoolYear: { start: FALL_START, end: SPRING_END, shape: "fall-spring" } });
-    await call(R, "PATCH", "/api/family", { logSetup: { template: "custom", fields: { subjectHours: true, coreSplit: true, totalHours: false, schoolDays: true, homeAway: false, notes: true, books: true } } });
+    // Books read is not part of the log (S20-05). Older entry rows below still carry titles; the setup cannot turn the field on.
+    await call(R, "PATCH", "/api/family", { logSetup: { template: "custom", fields: { subjectHours: true, coreSplit: true, totalHours: false, schoolDays: true, homeAway: false, notes: true, books: false } } });
     // The two terms as the Fall and Spring views (the Year view and Records' ranges): Aug 17 to Dec 18 and Jan 4 to May 21.
     await call(R, "PATCH", "/api/family", { zoomViews: { hidden: [], custom: [], overrides: { fall: { name: "Fall", start: FALL_START, end: FALL_END }, spring: { name: "Spring", start: SPRING_START, end: SPRING_END } } } });
     await call(R, "PATCH", "/api/family", { setupDone: true, tipsSeen: ["bars", "edit", "icons"] });

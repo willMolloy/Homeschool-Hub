@@ -207,6 +207,17 @@ UPDATE assignment SET weight_per_unit = NULL WHERE id = 'a0000000-0000-0000-0000
 UPDATE assignment SET weight_per_unit = 0.5 WHERE id = 'a0000000-0000-0000-0000-0000000000e2';
 DO $$ BEGIN RAISE NOTICE 'ok   weight_per_unit 0.01, 100 and NULL are fine, and a minutes row may hold 0.5'; END $$;
 
+-- 11b. minutes_per_day is only on a minutes row, and only a real number of minutes (028)
+SELECT pg_temp.expect_error($$UPDATE assignment SET minutes_per_day = 30 WHERE id = 'a0000000-0000-0000-0000-0000000000e1'$$,
+  '23514', 'minutes_per_day on a pages row is rejected');
+SELECT pg_temp.expect_error($$UPDATE assignment SET minutes_per_day = 0 WHERE id = 'a0000000-0000-0000-0000-0000000000e2'$$,
+  '23514', 'minutes_per_day 0 is rejected');
+SELECT pg_temp.expect_error($$UPDATE assignment SET minutes_per_day = 1440.01 WHERE id = 'a0000000-0000-0000-0000-0000000000e2'$$,
+  '23514', 'minutes_per_day above 1440 is rejected');
+UPDATE assignment SET minutes_per_day = 30 WHERE id = 'a0000000-0000-0000-0000-0000000000e2';
+UPDATE assignment SET minutes_per_day = NULL WHERE id = 'a0000000-0000-0000-0000-0000000000e2';
+DO $$ BEGIN RAISE NOTICE 'ok   minutes_per_day is 30 or NULL on a minutes row, and never on another unit'; END $$;
+
 -- 12. weight_choice: pages/chapters only, weight 0.01..100 or NULL, same-family child (005_weight_choice)
 INSERT INTO child (id, family_id, name) VALUES ('c0000000-0000-0000-0000-0000000000e1', 'f0000000-0000-0000-0000-0000000000e0', 'Weighted kid');
 INSERT INTO family (id, name, week_start) VALUES ('f0000000-0000-0000-0000-0000000000e9', 'Other weight family', 'mon');

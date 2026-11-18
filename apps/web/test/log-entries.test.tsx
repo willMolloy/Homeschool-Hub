@@ -36,6 +36,12 @@ const openLog = async (user: ReturnType<typeof userEvent.setup>) => {
   return within(await screen.findByRole("form", { name: "Log" }));
 };
 const type = async (user: ReturnType<typeof userEvent.setup>, el: HTMLElement, v: string) => { await user.clear(el); await user.type(el, v); };
+const dayOf = (form: ReturnType<typeof within>): HTMLElement => form.queryByLabelText("Day") ?? form.getByLabelText("First day");
+const lastOf = (form: ReturnType<typeof within>): HTMLElement => {
+  const btn = form.queryByRole("button", { name: "Log more than one day" });
+  if (btn) fireEvent.click(btn);
+  return form.getByLabelText("Last day");
+};
 
 beforeEach(() => stub(DETAILED));
 
@@ -53,7 +59,7 @@ describe("entry words (pure)", () => {
   });
   it("summaries say only what was typed", () => {
     expect(summaryOf(entry(), SUBJECTS)).toBe("5 school days · Math 3 h 30 m, Reading 2 h");
-    expect(summaryOf(entry({ countsSchoolDay: false, schoolDays: 0, subjectMinutes: {}, notes: "Walk", books: ["A"] }), SUBJECTS)).toBe("Not counted as a school day · 1 book · Walk");
+    expect(summaryOf(entry({ countsSchoolDay: false, schoolDays: 0, subjectMinutes: {}, notes: "Walk", books: ["A"] }), SUBJECTS)).toBe("Not counted as a school day · Walk");
     // S9b-05 (N16): the switch off is said, even with nothing else typed
     expect(summaryOf(entry({ countsSchoolDay: false, subjectMinutes: {} }), SUBJECTS)).toBe("Not counted as a school day");
   });
@@ -63,16 +69,28 @@ describe("the log form", () => {
   it("opens with every box empty (nothing from the plan or earlier entries), the switch on, and only the tracked fields", async () => {
     stub(DETAILED, [entry()]);
     const form = await openLog(userEvent.setup());
-    expect(form.getByLabelText("First day")).toHaveValue("");
-    expect(form.getByLabelText(/Last day/)).toHaveValue("");
+    expect(form.getByLabelText("Day")).toHaveValue("");
+    expect(form.queryByLabelText("Last day")).toBeNull();
+    expect(form.getByRole("button", { name: "Log more than one day" })).toBeInTheDocument();
     for (const box of form.getAllByRole("spinbutton")) expect(box).toHaveValue(null);
     expect(form.getByLabelText("Notes")).toHaveValue("");
-    expect(form.getByLabelText("Book title")).toHaveValue("");
+    expect(form.queryByLabelText("Book title")).toBeNull();
     expect(form.getByRole("switch", { name: /Count as a school day/ })).toBeChecked();
     expect(form.queryAllByRole("button", { pressed: true })).toHaveLength(0); // no child chosen for them
     expect(form.getByText("Hours by subject")).toBeInTheDocument();
     expect(form.getByLabelText("Math hours")).toBeInTheDocument();
     expect(form.queryByText("Hours", { selector: "legend" })).toBeNull(); // no total: not tracked
+  });
+
+  it("a new log is one day, and several days names First day and Last day (S20-06)", async () => {
+    const user = userEvent.setup();
+    const form = await openLog(user);
+    expect(form.queryByLabelText("Last day")).toBeNull();
+    fireEvent.change(form.getByLabelText("Day"), { target: { value: "2026-11-02" } });
+    await user.click(form.getByRole("button", { name: "Frank" }));
+    await user.click(form.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(calls("POST")).toHaveLength(1));
+    expect(calls("POST")[0]!.body).toMatchObject({ startDate: "2026-11-02", endDate: "2026-11-02", countsSchoolDay: true });
   });
 
   it("a days-only setup shows no hours at all", async () => {
@@ -85,8 +103,8 @@ describe("the log form", () => {
   it("Mon-Fri for Frank and Margaret with Math 3 h 30 m and Reading 2 h: one POST naming both children, in minutes", async () => {
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-06" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-06" } });
     await user.click(form.getByRole("button", { name: "All children" }));
     expect(form.getByRole("button", { name: "Frank" })).toHaveAttribute("aria-pressed", "true");
     await type(user, form.getByLabelText("Math hours"), "3");
@@ -96,7 +114,7 @@ describe("the log form", () => {
     await waitFor(() => expect(calls("POST")).toHaveLength(1));
     expect(calls("POST")[0]!.body).toEqual({
       childIds: ["c1", "c2"], startDate: "2026-11-02", endDate: "2026-11-06", countsSchoolDay: true, days: ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"],
-      subjectMinutes: { math: 210, read: 120 }, homeMinutes: null, awayMinutes: null, notes: null, books: [],
+      subjectMinutes: { math: 210, read: 120 }, homeMinutes: null, awayMinutes: null, notes: null,
     });
     await waitFor(() => expect(screen.queryByRole("form", { name: "Log" })).toBeNull());
   });
@@ -104,40 +122,38 @@ describe("the log form", () => {
   it("one child, a notes line, a book and the switch turned off", async () => {
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-07" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-07" } });
     await user.click(form.getByRole("button", { name: "Margaret" }));
     await user.click(form.getByRole("switch", { name: /Count as a school day/ }));
     await user.type(form.getByLabelText("Notes"), "Nature walk");
-    await user.type(form.getByLabelText("Book title"), "Heidi{Enter}");
-    expect(form.getByText("Heidi")).toBeInTheDocument();
+    expect(form.queryByLabelText("Book title")).toBeNull();
     await type(user, form.getByLabelText("At home hours"), "1");
     await user.click(form.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(calls("POST")).toHaveLength(1));
-    expect(calls("POST")[0]!.body).toMatchObject({ childIds: ["c2"], startDate: "2026-11-07", endDate: "2026-11-07", countsSchoolDay: false, notes: "Nature walk", books: ["Heidi"], homeMinutes: 60, awayMinutes: null, subjectMinutes: {} });
+    expect(calls("POST")[0]!.body).toMatchObject({ childIds: ["c2"], startDate: "2026-11-07", endDate: "2026-11-07", countsSchoolDay: false, notes: "Nature walk", homeMinutes: 60, awayMinutes: null, subjectMinutes: {} });
+    expect(calls("POST")[0]!.body).not.toHaveProperty("books");
   });
 
-  it("S9b-02: a book title typed but not added is saved with the entry", async () => {
+  it("S20-05: a log save has no books", async () => {
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
-    await user.type(form.getByLabelText("Book title"), "Heidi{Enter}");
-    await user.type(form.getByLabelText("Book title"), "  Charlotte's Web ");
+    await user.type(form.getByLabelText("Notes"), "A note");
     await user.click(form.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(calls("POST")).toHaveLength(1));
-    expect(calls("POST")[0]!.body).toMatchObject({ books: ["Heidi", "Charlotte's Web"] });
+    expect(calls("POST")[0]!.body).not.toHaveProperty("books");
   });
 
-  it("S9b-02: a typed title alone is something to log", async () => {
+  it("S20-05: turning school day off still needs something else to log", async () => {
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
     await user.click(form.getByRole("switch", { name: /Count as a school day/ }));
-    await user.type(form.getByLabelText("Book title"), "Heidi");
     await user.click(form.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(calls("POST")).toHaveLength(1));
-    expect(calls("POST")[0]!.body).toMatchObject({ countsSchoolDay: false, books: ["Heidi"] });
+    expect(await form.findByText(/Add something to log/)).toBeInTheDocument();
+    expect(calls("POST")).toHaveLength(0);
   });
 
   it("a family with one child is not asked who", async () => {
@@ -145,7 +161,7 @@ describe("the log form", () => {
     const user = userEvent.setup();
     const form = await openLog(user);
     expect(form.queryByText("For")).toBeNull();
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
     await user.click(form.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(calls("POST")[0]!.body).toMatchObject({ childIds: ["c1"] }));
   });
@@ -157,12 +173,12 @@ describe("the log form", () => {
     expect(await form.findByRole("alert")).toHaveTextContent("Pick who this is for.");
     await user.click(form.getByRole("button", { name: "Frank" }));
     await user.click(form.getByRole("button", { name: "Save" }));
-    expect(form.getByRole("alert")).toHaveTextContent("Pick the first day.");
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-06" } });
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-02" } });
+    expect(form.getByRole("alert")).toHaveTextContent("Pick the day.");
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-06" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-02" } });
     await user.click(form.getByRole("button", { name: "Save" }));
     expect(form.getByRole("alert")).toHaveTextContent("The last day must be on or after the first day.");
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "" } });
+    fireEvent.change(lastOf(form), { target: { value: "" } });
     await type(user, form.getByLabelText("Math hours"), "25");
     await user.click(form.getByRole("button", { name: "Save" }));
     expect(form.getByRole("alert")).toHaveTextContent("Hours can't be more than 24 a day (24 hours for this day).");
@@ -176,7 +192,7 @@ describe("the log form", () => {
   it("an entry with the switch off and nothing typed is refused", async () => {
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
     await user.click(form.getByRole("switch", { name: /Count as a school day/ }));
     await user.click(form.getByRole("button", { name: "Save" }));
@@ -188,11 +204,11 @@ describe("the log form", () => {
     const user = userEvent.setup();
     const form = await openLog(user);
     fakeApi.on("POST /api/log-entries", 400, { error: "invalid_hours", message: "Hours can't be more than 24 a day (that is 24 hours for this day)." });
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
     await user.click(form.getByRole("button", { name: "Save" }));
     expect(await form.findByRole("alert")).toHaveTextContent("Hours can't be more");
-    expect(form.getByLabelText("First day")).toHaveValue("Nov 2, 2026");
+    expect(dayOf(form)).toHaveValue("Nov 2, 2026");
   });
 });
 
@@ -241,7 +257,7 @@ describe("the entries list", () => {
     const user = userEvent.setup();
     renderAt("/records");
     await user.click(await screen.findByRole("button", { name: "Log" }));
-    expect(fakeApi.calls.some((c) => c.path.startsWith("/api/plan") || c.path.startsWith("/api/check-ins") || (c.method !== "GET" && c.path.startsWith("/api/assignments")))).toBe(false);
+    expect(fakeApi.calls.some((c) => c.path.startsWith("/api/plan") || (c.method !== "GET" && c.path.startsWith("/api/assignments")))).toBe(false);
   });
 });
 
@@ -250,8 +266,8 @@ describe("S9b-07: ticking the days of a run", () => {
   it("a Mon–Sun run with Saturday ticked saves Mon–Sat (6 days); no ticks is refused before saving", async () => {
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-08" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-08" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
     await waitFor(() => expect(form.getByRole("button", { name: "Mon 2, Monday, November 2" })).toHaveAttribute("aria-pressed", "true"));
     await user.click(form.getByRole("button", { name: "Sat 7, Saturday, November 7" }));
@@ -273,8 +289,8 @@ describe("S9b-07: ticking the days of a run", () => {
   it("S10-10b M1: every chip's accessible name starts with the text it shows (WCAG 2.5.3 Label in Name)", async () => {
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-08" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-08" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
     const group = within(await form.findByRole("group", { name: "School days in these dates" }));
     await waitFor(() => expect(group.getByRole("button", { name: /^Mon 2,/ })).toHaveAttribute("aria-pressed", "true"));
@@ -294,8 +310,8 @@ describe("S9b-07: ticking the days of a run", () => {
     });
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-08" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-08" } });
     await user.click(form.getByRole("button", { name: "All children" }));
     expect(await form.findByText("Wed 4 is Frank's day off; ticked, it counts for Frank too.")).toBeInTheDocument();
     await user.click(form.getByRole("button", { name: /^Wed 4,/ }));
@@ -309,8 +325,8 @@ describe("S9b-07: ticking the days of a run", () => {
   it("unticking every day says what to do and sends nothing", async () => {
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-03" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-03" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
     await waitFor(() => expect(form.getByRole("button", { name: "Tue 3, Tuesday, November 3" })).toHaveAttribute("aria-pressed", "true"));
     await user.click(form.getByRole("button", { name: "Mon 2, Monday, November 2" }));
@@ -323,9 +339,9 @@ describe("S9b-07: ticking the days of a run", () => {
   it("one day and a switched-off run show no day chips", async () => {
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
     expect(form.queryByRole("group", { name: /School days/ })).toBeNull();
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-04" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-04" } });
     expect(form.getByRole("group", { name: "School days in these dates" })).toBeInTheDocument();
     await user.click(form.getByRole("switch", { name: /Count as a school day/ }));
     expect(form.queryByRole("group", { name: /School days/ })).toBeNull();
@@ -339,15 +355,15 @@ describe("S9b-07: ticking the days of a run", () => {
     renderAt("/records");
     await user.click(await screen.findByRole("button", { name: /^Edit Frank/ }));
     const form = within(await screen.findByRole("form", { name: "Change log entry" }));
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-17" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-17" } });
     await waitFor(() => expect(form.getByRole("button", { name: /^Tue 17,/ })).toHaveAttribute("aria-pressed", "true"));
     expect(form.getByRole("button", { name: /^Wed 11,/ })).toHaveAttribute("aria-pressed", "true");
     expect(form.getByRole("button", { name: /^Sat 14,/ })).toHaveAttribute("aria-pressed", "true");
     expect(form.getByRole("button", { name: /^Mon 9,/ })).toHaveAttribute("aria-pressed", "false");
     expect(form.getByRole("button", { name: /^Sun 15,/ })).toHaveAttribute("aria-pressed", "false");
     // shorter again, then back: still the parent's ticks
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-12" } });
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-17" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-12" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-17" } });
     await waitFor(() => expect(form.getByRole("button", { name: /^Mon 16,/ })).toHaveAttribute("aria-pressed", "true"));
     expect(form.getByRole("button", { name: /^Wed 11,/ })).toHaveAttribute("aria-pressed", "true");
     await user.click(form.getByRole("button", { name: "Save" }));
@@ -358,13 +374,13 @@ describe("S9b-07: ticking the days of a run", () => {
   it("S10-10b M2: a new run keeps the parent's ticks when its last day moves", async () => {
     const user = userEvent.setup();
     const form = await openLog(user);
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-08" } });
+    fireEvent.change(dayOf(form), { target: { value: "2026-11-02" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-08" } });
     await user.click(form.getByRole("button", { name: "Frank" }));
     await waitFor(() => expect(form.getByRole("button", { name: /^Mon 2,/ })).toHaveAttribute("aria-pressed", "true"));
     await user.click(form.getByRole("button", { name: /^Sat 7,/ }));
     await user.click(form.getByRole("button", { name: /^Wed 4,/ }));
-    fireEvent.change(form.getByLabelText(/Last day/), { target: { value: "2026-11-10" } });
+    fireEvent.change(lastOf(form), { target: { value: "2026-11-10" } });
     await waitFor(() => expect(form.getByRole("button", { name: /^Tue 10,/ })).toHaveAttribute("aria-pressed", "true"));
     expect(form.getByRole("button", { name: /^Sat 7,/ })).toHaveAttribute("aria-pressed", "true");
     expect(form.getByRole("button", { name: /^Wed 4,/ })).toHaveAttribute("aria-pressed", "false");

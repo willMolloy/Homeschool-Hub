@@ -1,6 +1,7 @@
 /**
  * S12-05: how many things need the parent's answer right now, for the needs-you dot on the Home tab and the rail. For now that is
- * only the completion questions (the waiting list of S12-02); a late line or a heavy week is a warning and never counts. It asks
+ * the completion questions (the waiting list of S12-02) and, S20-03, one pending check-in for the previous week.
+ * A late line or a heavy week is a warning and never counts. It asks
  * for the assignments and children itself (the shell sits outside the pages), and asks again after every plan change (an answer
  * from Home, an edit elsewhere), after an undo and when the parent moves to another screen, so the dot clears the moment the last
  * question is answered without a reload. A failed request means no dot.
@@ -8,8 +9,9 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { apiGet, onPlanChange } from "../../api/client";
-import type { Assignment, Child } from "../../api/types";
+import type { Assignment, Child, WeekCheckIn } from "../../api/types";
 import { useMe } from "../../auth/AuthProvider";
+import { hasPendingCheckIn } from "../home/pendingCheckIn";
 import { useUndo } from "../undo/UndoProvider";
 import { todayOf, waitingQuestions } from "./waiting";
 
@@ -28,18 +30,18 @@ export function NeedsYouProvider({ children }: { children: ReactNode }) {
   const { round } = useUndo();
   const { pathname } = useLocation();
   const [changes, setChanges] = useState(0);
-  const [lists, setLists] = useState<{ assignments: Assignment[]; children: Child[] } | null>(null);
+  const [lists, setLists] = useState<{ assignments: Assignment[]; children: Child[]; pending: boolean } | null>(null);
 
   useEffect(() => onPlanChange(() => setChanges((n) => n + 1)), []);
   useEffect(() => {
     let live = true;
-    Promise.all([apiGet<Assignment[]>("/api/assignments"), apiGet<Child[]>("/api/children")]).then(
-      ([assignments, kids]) => { if (live) setLists({ assignments, children: kids }); },
+    Promise.all([apiGet<Assignment[]>("/api/assignments"), apiGet<Child[]>("/api/children"), apiGet<WeekCheckIn>("/api/check-ins")]).then(
+      ([assignments, kids, week]) => { if (live) setLists({ assignments, children: kids, pending: hasPendingCheckIn(week) }); },
       () => { if (live) setLists(null); },
     );
     return () => { live = false; };
   }, [changes, round, pathname]);
 
-  const n = lists ? waitingQuestions(lists.assignments, lists.children, today).length : 0;
+  const n = lists ? waitingQuestions(lists.assignments, lists.children, today).length + (lists.pending ? 1 : 0) : 0;
   return <NeedsYouContext.Provider value={n}>{children}</NeedsYouContext.Provider>;
 }

@@ -43,7 +43,7 @@ describe("suggestions (pure)", () => {
   });
 });
 
-describe("the books field (S16-06)", () => {
+describe("books are not on the log (S20-05)", () => {
   beforeEach(() => {
     localStorage.clear();
     fakeApi.on("GET /api/family", 200, FAMILY);
@@ -64,67 +64,13 @@ describe("the books field (S16-06)", () => {
   }
   const posted = () => fakeApi.calls.filter((c) => c.method === "POST").map((c) => c.body as { books?: string[] });
 
-  it("starts empty with nothing added, the recent titles under it; typing 'trea' offers Treasure Island and one tap adds it", async () => {
+  it("has nowhere to type a book, and a save does not send books", async () => {
     const { user, form } = await openLog();
-    const field = form.getByRole("combobox", { name: "Book title" });
-    expect(field).toHaveValue("");
-    expect(form.queryByRole("list", { name: /Books read|added/ })).toBeNull();
-    expect(within(form.getByRole("group", { name: "Recent titles" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Robinson Crusoe", "Aesop's Fables", "The Wind in the Willows", "Pagoo", "heidi"]);
-    await user.type(field, "trea");
-    expect(form.queryByRole("group", { name: "Recent titles" })).toBeNull(); // the recent row is for the empty field
-    const options = form.getAllByRole("option");
-    expect(options.map((o) => o.textContent)).toEqual(["Treasure Island", "Treasure maps (math)"]);
-    await user.click(options[0]!);
-    expect(field).toHaveValue("");
-    expect(form.getByText("Treasure Island")).toBeInTheDocument();
-    fireEvent.change(form.getByLabelText("First day"), { target: { value: "2026-11-02" } });
+    expect(form.queryByLabelText("Book title")).toBeNull();
+    expect(form.queryByRole("group", { name: "Books read" })).toBeNull();
+    fireEvent.change(form.getByLabelText("Day"), { target: { value: "2026-11-02" } });
     await user.click(form.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(posted()).toHaveLength(1));
-    expect(posted()[0]!.books).toEqual(["Treasure Island"]);
-  });
-
-  it("a recent title adds in one tap and leaves the row; nothing is added without a choice", async () => {
-    const { user, form } = await openLog();
-    await user.click(form.getByRole("button", { name: "Pagoo" }));
-    expect(form.getByRole("group", { name: "Recent titles" }).textContent).not.toContain("Pagoo");
-    expect(form.getByRole("button", { name: "Remove Pagoo" })).toBeInTheDocument();
-    expect(form.getByRole("combobox", { name: "Book title" })).toHaveValue("");
-  });
-
-  it("with no suggestion chosen, Enter adds exactly what was typed (including a new title)", async () => {
-    const { user, form } = await openLog();
-    await user.type(form.getByRole("combobox", { name: "Book title" }), "Trea{Enter}");
-    expect(form.getByRole("button", { name: "Remove Trea" })).toBeInTheDocument();
-    await user.type(form.getByRole("combobox", { name: "Book title" }), "A brand new book{Enter}");
-    expect(form.getByRole("button", { name: "Remove A brand new book" })).toBeInTheDocument();
-  });
-
-  it("keyboard: arrows move through the options, Enter adds the chosen one, Esc closes the list without closing the sheet", async () => {
-    const { user, form } = await openLog();
-    const field = form.getByRole("combobox", { name: "Book title" });
-    await user.type(field, "trea");
-    expect(field).toHaveAttribute("aria-expanded", "true");
-    await user.keyboard("{ArrowDown}");
-    expect(form.getAllByRole("option")[0]).toHaveAttribute("aria-selected", "true");
-    expect(field.getAttribute("aria-activedescendant")).toBe(form.getAllByRole("option")[0]!.id);
-    await user.keyboard("{ArrowDown}");
-    expect(form.getAllByRole("option")[1]).toHaveAttribute("aria-selected", "true");
-    await user.keyboard("{ArrowUp}{ArrowUp}"); // wraps to the last
-    expect(form.getAllByRole("option")[1]).toHaveAttribute("aria-selected", "true");
-    await user.keyboard("{Escape}");
-    expect(field).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("dialog")).toBeInTheDocument(); // the sheet stays open
-    await user.keyboard("{ArrowDown}{Enter}");
-    expect(form.getByRole("button", { name: /^Remove Treasure/ })).toBeInTheDocument();
-    expect(field).toHaveValue("");
-  });
-
-  it("options and chips are 44 px tall by their styles, and a title already added is not offered again", async () => {
-    const { user, form } = await openLog();
-    await user.click(form.getByRole("button", { name: "Pagoo" }));
-    const field = form.getByRole("combobox", { name: "Book title" });
-    await user.type(field, "pag");
-    expect(form.queryAllByRole("option")).toHaveLength(0);
-    expect(field).toHaveAttribute("aria-expanded", "false");
+    expect(posted()[0]).not.toHaveProperty("books");
   });
 });
