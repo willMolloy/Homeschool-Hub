@@ -17,4 +17,16 @@ describe("scheduled end (S20-02)", () => {
     expect(scheduledPosition({ unitType: "pages", plannedFrom: 0, plannedTo: 80, totalUnits: 270 })).toBe(80);
     expect(scheduledPosition({ unitType: "lessons", plannedFrom: 10, plannedTo: 15, totalUnits: 120 })).toBe(15);
   });
+
+  it("a week that only starts its last chapter opens on that chapter, and the one before is not as planned (H1)", () => {
+    const words = "chapters 14–17 (starts 17)";
+    const item = { unitType: "chapters" as const, plannedFrom: 13, plannedTo: 16.3, totalUnits: 24 };
+    // The finished units alone stop at 16. The words the parent reads include the chapter the week starts.
+    expect(scheduledPosition(item)).toBe(16);
+    expect(lastNamedUnit(words)).toBe(17);
+    expect(scheduledPosition(item, words)).toBe(17);
+    expect(isScheduledEnd(item, 17, words)).toBe(true);
+    expect(isScheduledEnd(item, 16, words)).toBe(false);
+    expect(isScheduledEnd(item, 16.3, words)).toBe(true);
+  });
 });

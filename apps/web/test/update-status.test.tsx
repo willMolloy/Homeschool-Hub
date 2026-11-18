@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { ENGINE_VERSION, type ChildPlan } from "@hh/engine";
 import type { CheckInItem, WeekCheckIn } from "../src/api/types";
 import { endChoices, shiftSchoolDays } from "../src/features/status/endDates";
+import { plannedRange, weekRangeWords } from "../src/features/week/weekBars";
 import { statusBody } from "../src/features/status/saveStatus";
 import { DEMO_ME, fakeApi } from "./helpers/fake-api";
 import { SAMPLE_ASSIGNMENTS, SAMPLE_BLOCKED, SAMPLE_CHILDREN, SAMPLE_SUBJECTS, samplePlans } from "./helpers/timeline-fixtures";
@@ -174,6 +175,34 @@ describe("Update status from a Week bar (S9-02)", () => {
     await waitFor(() => expect(puts()).toHaveLength(2));
     const second = puts()[1]!.body as { items: { assignmentId: string; position: number }[] };
     expect(second.items.find((i) => i.assignmentId === "ti")).toMatchObject({ position: 20 });
+  });
+
+  it("a week that starts its last chapter opens on that chapter, with As planned (H1)", async () => {
+    // Mon finishes nothing in 14, Tue finishes 14, Wed 15, Thu 16, Fri starts 17 and does not finish it.
+    const steps = [0.5, 0.5, 1, 1, 0.3];
+    let position = 13;
+    const dates = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"];
+    const days = dates.map((date, i) => {
+      const units = steps[i] ?? 0.2;
+      position += units;
+      return { date, capacity: 1, schoolDay: true, units, thickness: 1, kind: "planned" as const, position };
+    });
+    const chapterPlan = { ...plan("ti", "c1"), unitType: "chapters" as const, totalUnits: 24, days };
+    expect(weekRangeWords(chapterPlan, "2026-10-19")).toBe("chapters 14–17 (starts 17)");
+    const range = plannedRange(chapterPlan, "2026-10-19");
+    const chapters = item({ unitType: "chapters", plannedFrom: range.from, plannedTo: range.to, totalUnits: 24 });
+    stub({ ...WEEK, items: [chapters, MATH, VIOLIN] });
+    fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-10-19", to: "2026-10-25", plans: [chapterPlan, plan("math", "c1"), plan("violin", "c2")] });
+    const user = userEvent.setup();
+    const sheet = await openStatusFromWeek(user, "Treasure Island");
+    expect(sheet.getByText(/chapters 14–17 \(starts 17\)/)).toBeInTheDocument();
+    const got = sheet.getByRole("spinbutton", { name: "chapter reached" });
+    await waitFor(() => expect(got).toHaveValue(17));
+    expect(sheet.getByRole("button", { name: "As planned" })).toHaveAttribute("aria-pressed", "true");
+    await user.clear(got);
+    await user.type(got, "16");
+    expect(sheet.getByRole("button", { name: "As planned" })).toHaveAttribute("aria-pressed", "false");
+    expect(sheet.getByRole("button", { name: "Fell behind" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("typing past the last page stores that page, and a saved number reopens (S20-02)", async () => {

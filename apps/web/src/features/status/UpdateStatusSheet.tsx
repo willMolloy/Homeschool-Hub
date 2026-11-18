@@ -6,13 +6,12 @@
  * the end date to the board, which sends the week once. S18b-01: a picked date before today stays allowed, and Save asks
  * "That's before today; this ends the book now. Continue?" and waits. No, Cancel, or leaving it unanswered does not save.
  */
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import type { OverrideMode } from "@hh/engine";
 import type { CheckInItem } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
 import { UNIT_LABELS } from "../../components/unitLabels";
 import { Button, Chip } from "../../ui/components";
-import { rowOutcome } from "../checkin/absorb";
 import { stepOf } from "../checkin/amount";
 import { isValidLocalDate, type LocalDate } from "@hh/engine";
 import { DateField } from "../../ui/DateField";
@@ -61,23 +60,31 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 /** Whole numbers on screen ("lesson 29", not 29.3); the plan keeps its fractions underneath. */
 const shown = (n: number) => String(Math.round(n));
 
-const wayOf = (item: CheckInItem, position: number): Way => {
-  if (isScheduledEnd(item, position)) return "asPlanned";
-  const o = rowOutcome(item, position);
-  if (o === "finished") return position < item.plannedTo ? "behind" : "ahead";
-  return o === "behind" ? "behind" : "ahead";
+const wayOf = (item: CheckInItem, position: number, words: string): Way => {
+  if (isScheduledEnd(item, position, words)) return "asPlanned";
+  // Compared with the unit the words name, not with the fractional position. 16 is behind "starts 17".
+  return position < scheduledPosition(item, words) ? "behind" : "ahead";
 };
 
 type EndWay = "keep" | "suggest" | "pick";
 
 export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart, afterDay, whenText, onSave, onClose, busy = false, error = null, copies = null }: UpdateStatusProps) {
   const me = useMe();
-  // S20-02: open on the last unit the week names (or the number she already saved), not one past it.
-  const opened = item.actual != null ? position : scheduledPosition(item);
+  // S20-02 / H1: open on the last unit the same words name (including a chapter the week only starts), or the number she already saved.
+  const words = itemRangeWords(item, plan, weekStart);
+  const named = scheduledPosition(item, words);
+  const opened = item.actual != null ? position : named;
   const [pos, setPosition] = useState(opened);
   /** The number box's own text, so a half-typed number is not rewritten under the finger. */
   const [text, setText] = useState(shown(opened));
-  const setPos = (n: number) => { setPosition(n); setText(shown(n)); };
+  /** The plan often arrives after the sheet opens. Until she edits the number, follow the words. */
+  const [touchedNumber, setTouchedNumber] = useState(item.actual != null);
+  useEffect(() => {
+    if (touchedNumber) return;
+    setPosition(named);
+    setText(shown(named));
+  }, [named, touchedNumber]);
+  const setPos = (n: number) => { setTouchedNumber(true); setPosition(n); setText(shown(n)); };
   const [endWay, setEndWay] = useState<EndWay>("keep");
   const [picked, setPicked] = useState<string>("");
   const [pickError, setPickError] = useState<string | null>(null);
@@ -89,7 +96,7 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   const minutes = item.unitType === "minutes";
   const [wantEnd, setWantEnd] = useState(false);
   const step = stepOf(item.unitType);
-  const way = wayOf(item, pos);
+  const way = wayOf(item, pos, words);
   const finished = pos >= item.totalUnits - 1e-9;
   const clamp = (n: number) => Math.min(item.totalUnits, Math.max(item.plannedFrom, round2(n)));
   // S20-02: tapping a chip does not change the number. The highlight follows the number she left in the box.
@@ -128,7 +135,7 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   return (
     <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={<span className="status-title" title={item.title}>{item.title}</span>}>
       <div className="status-sheet">
-        <p className="status-sub">{item.childName} · {itemRangeWords(item, plan, weekStart)} {whenText}</p>
+        <p className="status-sub">{item.childName} · {words} {whenText}</p>
         {minutes ? (
           <>
             <p className="status-sub">This week stood.</p>
@@ -167,7 +174,7 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
             <span>{unit}</span>
             <input type="number" inputMode="numeric" aria-label={`${unit} reached`} value={text}
               min={item.plannedFrom} max={item.totalUnits} step={step}
-              onChange={(e) => { setText(e.target.value); const n = Number(e.target.value); if (Number.isFinite(n) && e.target.value !== "") setPosition(clamp(n)); }}
+              onChange={(e) => { setTouchedNumber(true); setText(e.target.value); const n = Number(e.target.value); if (Number.isFinite(n) && e.target.value !== "") setPosition(clamp(n)); }}
               onBlur={() => setText(shown(pos))} />
             <span className="status-total">of {item.totalUnits}</span>
           </div>
