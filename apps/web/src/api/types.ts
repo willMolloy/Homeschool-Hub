@@ -213,6 +213,8 @@ export interface Assignment {
   totalUnits: number;
   /** Relative effort per unit (S2b-06). null = the subject's default for this unit, else the built-in. */
   weightPerUnit: number | null;
+  /** S20-01 / M1: the minutes a day, when the unit is minutes. Older answers may leave it out. */
+  minutesPerDay?: number | null;
   startDate: string;
   endDate: string;
   childIds: string[];

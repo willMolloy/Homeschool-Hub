@@ -9,6 +9,7 @@ import type { UnitType, WeightSuggestion } from "../../api/types";
 import { subjectUsualHint } from "../../components/effortWords";
 import { usuallyText } from "./WeightHint";
 import { optionFor, paceText, PRESET_MINUTES, wholeMinutes, type EffortPick } from "./effort";
+import { exactPreset, formatDailyMinutes } from "./minutesForm";
 
 interface Props {
   /** A prefix for the ids and the radio group's name. */
@@ -48,8 +49,8 @@ export function EffortField({ id, unitType, pace, paceNote, pick, onPick, baseMi
   }
   const selected: number | "custom" | null = pick
     ? (pick.kind === "preset" ? pick.minutes : "custom")
-    : baseMinutes !== null ? optionFor(baseMinutes) : null;
-  const customText = pick?.kind === "custom" ? pick.text : selected === "custom" && baseMinutes !== null ? String(wholeMinutes(baseMinutes)) : "";
+    : baseMinutes !== null ? (plain ? exactPreset(baseMinutes) : optionFor(baseMinutes)) : null;
+  const customText = pick?.kind === "custom" ? pick.text : selected === "custom" && baseMinutes !== null ? (plain ? formatDailyMinutes(baseMinutes) : String(wholeMinutes(baseMinutes))) : "";
   const baseNow = baseMinutes === null ? null : wholeMinutes(baseMinutes);
   let hint: ReactNode = null;
   if (baseNow !== null) {

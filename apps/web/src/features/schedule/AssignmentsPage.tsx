@@ -32,7 +32,7 @@ import { useWeightSuggestion } from "./useWeightSuggestion";
 import { SubjectSelect } from "./SubjectSelect";
 import { EffortField } from "./EffortField";
 import { paceWarning, unitsPerCapacityDay, unitsPerDay } from "./effort";
-import { impliedMinutesPerDay, MAX_MINUTES_A_DAY, MINUTES_A_DAY_DEFAULT, MINUTES_DAILY_WEIGHT, minutesPile, schoolDayCount } from "./minutesForm";
+import { dailyMinutesOf, formatDailyMinutes, MAX_MINUTES_A_DAY, MINUTES_A_DAY_DEFAULT, MINUTES_DAILY_WEIGHT, minutesPile, schoolDayCount } from "./minutesForm";
 import { requestPace, usableDraft, usePace, type PaceDraft } from "./usePace";
 import type { EffortPick } from "./effort";
 import { effortCardText } from "./weightText";
@@ -116,15 +116,17 @@ function AssignmentCard({ a, l, planEnd, all }: { a: Assignment; l: Lookups; pla
   const real = usePace(a.unitType === "minutes" ? null : { subjectId: a.subjectId, childIds: a.childIds, startDate: a.startDate, endDate: a.endDate, weekdays: days });
   // S20-01: minutes show the daily amount only. Breaks do not change it, so the count ignores days off.
   const perDay = a.unitType === "minutes"
-    ? unitsPerDay(a.totalUnits, a.startDate, a.endDate, days)
+    ? null
     : real ? unitsPerCapacityDay(a.totalUnits, real.capacityDays) : unitsPerDay(a.totalUnits, a.startDate, a.endDate, days);
-  const effort = effortCardText(a, l.subjectDefault(a.subjectId), perDay);
+  const effort = a.unitType === "minutes"
+    ? `${formatDailyMinutes(dailyMinutesOf(a, schoolDayCount(a.startDate, a.endDate, days), l.subjectDefault(a.subjectId)))} min a day`
+    : effortCardText(a, l.subjectDefault(a.subjectId), perDay);
   return (
     <span className="card-body">
       <span className="card-title">{a.title}</span>
       <span className="card-line">{l.subjectName(a.subjectId)} · {a.childIds.map(l.childName).join(", ")}{twinDays}</span>
       <span className="card-line">
-        {a.unitType === "minutes" ? (effort ? effort.replace(/^about /, "") : "Minutes a day") : <>{units(a.totalUnits, a.unitType)}{effort ? ` · ${effort}` : ""}</>}
+        {a.unitType === "minutes" ? effort : <>{units(a.totalUnits, a.unitType)}{effort ? ` · ${effort}` : ""}</>}
       </span>
       <span className="card-line">{dateRange(a.startDate, a.endDate)}{planEnd && planEnd > a.endDate ? ` · plan ends ${shortDate(planEnd)}` : ""}</span>
       {a.endedAs && a.endedOn ? <span className="card-line">{endedWords(a.endedAs, a.endedOn)}</span> : null}
@@ -234,11 +236,13 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       && startDate === item.startDate && endDate === item.endDate && !dayChoice.touched && !markedNow;
     let total: number | string;
     let wpu: number | null;
+    let daily: number | null = null;
     if (minutesMode) {
       const days = schoolDayCount(startDate, endDate, dayChoice.shown);
       if (keepMinutes && item) {
         total = item.totalUnits;
         wpu = item.weightPerUnit;
+        daily = item.minutesPerDay ?? null;
       } else if (days <= 0) {
         total = 0;
         wpu = MINUTES_DAILY_WEIGHT;
@@ -254,8 +258,9 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
             ? schoolDayCount(item.startDate, item.endDate, item.weekdays ?? l.subjectWeekdays(item.subjectId) ?? schoolDays)
             : 0;
           const minutes = picked ?? (item && item.unitType === "minutes"
-            ? impliedMinutesPerDay(item.totalUnits, item.weightPerUnit, storedDays, l.subjectDefault(item.subjectId))
+            ? dailyMinutesOf(item, storedDays, l.subjectDefault(item.subjectId))
             : MINUTES_A_DAY_DEFAULT);
+          daily = minutes;
           total = minutesPile(minutes, days);
           wpu = MINUTES_DAILY_WEIGHT;
         }
@@ -287,7 +292,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     if (Object.keys(errs).length > 0 || typeof total === "string") return;
 
     // S4b-05: a marked default is the subject's first, then the assignment follows it (null).
-    const full = { subjectId: sid, title: t, unitType, totalUnits: total, weightPerUnit: wpu, startDate, endDate, childIds, weekdays: markedNow ? null : dayChoice.value };
+    const full = { subjectId: sid, title: t, unitType, totalUnits: total, weightPerUnit: wpu, startDate, endDate, childIds, weekdays: markedNow ? null : dayChoice.value, ...(minutesMode ? { minutesPerDay: daily } : {}) };
     setSaving(true);
     try {
       if (markedNow) {
@@ -305,6 +310,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       if (full.title !== item.title) patch.title = full.title;
       if (full.unitType !== item.unitType) patch.unitType = full.unitType;
       if (full.totalUnits !== item.totalUnits) patch.totalUnits = full.totalUnits;
+      if (minutesMode && !keepMinutes && full.minutesPerDay !== (item.minutesPerDay ?? null)) patch.minutesPerDay = full.minutesPerDay;
       // A unit change always restates the weight: the API won't carry one across unit types (D7).
       if (full.weightPerUnit !== item.weightPerUnit || patch.unitType) patch.weightPerUnit = full.weightPerUnit;
       if (full.startDate !== item.startDate) patch.startDate = full.startDate;
@@ -342,11 +348,9 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       ? suggestion?.weightPerUnit ?? null
       : weightPerUnitOf({ unitType, weightPerUnit: start?.weightPerUnit ?? null }, subjectId ? l.subjectDefault(subjectId) : null).weight;
   const baseMinutes = baseWeight !== null && pace !== null ? minutesPerDayFromWeight(baseWeight, pace) : null;
-  const storedMinuteDays = item && item.unitType === "minutes"
-    ? schoolDayCount(item.startDate, item.endDate, item.weekdays ?? l.subjectWeekdays(item.subjectId) ?? schoolDays)
-    : 0;
-  const minutesBase = !minutesMode ? null : item && item.unitType === "minutes"
-    ? impliedMinutesPerDay(item.totalUnits, item.weightPerUnit, storedMinuteDays, l.subjectDefault(item.subjectId))
+  const minutesSource = item?.unitType === "minutes" ? item : start?.unitType === "minutes" ? start : null;
+  const minutesBase = !minutesMode ? null : minutesSource
+    ? dailyMinutesOf(minutesSource, schoolDayCount(minutesSource.startDate, minutesSource.endDate, minutesSource.weekdays ?? l.subjectWeekdays(minutesSource.subjectId) ?? schoolDays), l.subjectDefault(minutesSource.subjectId))
     : MINUTES_A_DAY_DEFAULT;
   const pickedMinutes = pick === null ? null : pick.kind === "preset" ? pick.minutes : Number(pick.text.trim() || NaN);
   const shownError = formError ?? externalError;

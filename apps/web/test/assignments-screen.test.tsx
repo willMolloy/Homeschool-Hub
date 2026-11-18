@@ -136,7 +136,7 @@ describe("Assignments screen", () => {
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
     await user.click(within(form).getByRole("button", { name: "Add" }));
     const days = schoolDaysBetween("2026-11-02", "2026-11-26", [1, 2, 3, 4, 5]);
-    expect(writes()[0]!.body).toMatchObject({ unitType: "minutes", totalUnits: 45 * days, weightPerUnit: 0.5 });
+    expect(writes()[0]!.body).toMatchObject({ unitType: "minutes", totalUnits: 45 * days, weightPerUnit: 0.5, minutesPerDay: 45 });
   });
 
   it.each([
@@ -156,6 +156,29 @@ describe("Assignments screen", () => {
     expect(within(form).getByText(msg)).toBeInTheDocument();
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(writes()).toEqual([]);
+  });
+
+  it("an unchanged minutes save keeps the daily amount the list shows (M1)", async () => {
+    const walk: Assignment = {
+      id: rowId(8), subjectId: READING.id, title: "Nature walk and notebook", unitType: "minutes", totalUnits: 1200,
+      weightPerUnit: 0.5, minutesPerDay: 66.67, weekdays: [2], startDate: "2026-08-18", endDate: "2026-12-15", childIds: [FRANK.id], archived: false,
+    };
+    const notebook: Assignment = {
+      ...walk, id: rowId(9), title: "Nature notebook", totalUnits: 480, minutesPerDay: 26.67, weekdays: [3], childIds: [MAGGIE.id],
+    };
+    const user = await setup([walk, notebook]);
+    const card = (title: string) => screen.getByText(title).closest("li")!;
+    expect(card("Nature walk and notebook")).toHaveTextContent("66.67 min a day");
+    expect(card("Nature notebook")).toHaveTextContent("26.67 min a day");
+    await user.click(screen.getByRole("button", { name: /Nature walk and notebook/ }));
+    const form = screen.getByRole("form", { name: "Edit Nature walk and notebook" });
+    const minutes = within(form).getByRole("group", { name: "Minutes a day" });
+    expect(within(minutes).getByRole("radio", { name: "60 min a day" })).not.toBeChecked();
+    expect(within(minutes).getByRole("radio", { name: "Custom" })).toBeChecked();
+    expect(within(minutes).getByLabelText("Minutes a day")).toHaveValue(66.67);
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    expect(writes()).toEqual([]);
+    expect(card("Nature walk and notebook")).toHaveTextContent("66.67 min a day");
   });
 
   it("card variants (S6b-13: minutes a day, never a weight): own weight, the subject's default, the built-in", async () => {
@@ -224,7 +247,7 @@ describe("Assignments screen", () => {
     expect(within(form).getByRole("radio", { name: "30 min a day" })).toBeChecked();
     await user.click(within(form).getByRole("button", { name: "Save" }));
     const days = schoolDaysBetween(NOVEL.startDate, NOVEL.endDate, [1, 2, 3, 4, 5]);
-    expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "minutes", totalUnits: 30 * days, weightPerUnit: 0.5 } }]);
+    expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "minutes", totalUnits: 30 * days, weightPerUnit: 0.5, minutesPerDay: 30 } }]);
   });
 
   it("a unit change with a new effort picked sends that weight", async () => {

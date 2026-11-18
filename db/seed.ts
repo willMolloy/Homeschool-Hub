@@ -10,6 +10,7 @@ import pg from "pg";
 import { DEMO_LOGIN_EMAIL } from "../apps/api/src/auth/demo";
 import { hashPassword } from "../apps/api/src/auth/password";
 import { defaultIconFor } from "../apps/api/src/http/subjectIcons";
+import { countWeekdays, roundUnits, type LocalDate } from "@hh/engine";
 import { DEMO_FAMILY } from "./demo-family";
 import type { SeedFamily } from "./seed-data";
 import { databaseName, databaseUrlFromEnv } from "./migrate";
@@ -62,10 +63,12 @@ export async function seed(databaseUrl: string, email: string = DEMO_EMAIL, fami
         [familyId, s.name, s.color, i, dw?.unitType ?? null, dw?.weightPerUnit ?? null, defaultIconFor(s.name)]);
     }
     for (const a of assignments) {
+      const days = a.unitType === "minutes" ? countWeekdays(a.start as LocalDate, a.end as LocalDate, family.calendar.schoolDays) : 0;
+      const minutesPerDay = a.unitType === "minutes" && days > 0 ? roundUnits(a.totalUnits / days) : null;
       const id = await one(
-        `INSERT INTO assignment (id, family_id, subject_id, title, unit_type, total_units, start_date, end_date, weight_per_unit, ended_as, ended_on)
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-        [familyId, ids.subject[a.subjectId], a.title ?? a.id, a.unitType, a.totalUnits, a.start, a.end, a.weightPerUnit ?? null, a.endedAs ?? null, a.endedAs ? a.endedOn ?? a.end : null]);
+        `INSERT INTO assignment (id, family_id, subject_id, title, unit_type, total_units, minutes_per_day, start_date, end_date, weight_per_unit, ended_as, ended_on)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+        [familyId, ids.subject[a.subjectId], a.title ?? a.id, a.unitType, a.totalUnits, minutesPerDay, a.start, a.end, a.weightPerUnit ?? null, a.endedAs ?? null, a.endedAs ? a.endedOn ?? a.end : null]);
       ids.assignment[a.id] = id;
       for (const c of a.childIds) {
         await client.query("INSERT INTO assignment_child (assignment_id, child_id, family_id) VALUES ($1, $2, $3)", [id, ids.child[c], familyId]);
@@ -73,7 +76,7 @@ export async function seed(databaseUrl: string, email: string = DEMO_EMAIL, fami
       // S6-05: the values as created, for reset.
       await client.query(
         `UPDATE assignment SET original = jsonb_build_object('title', title, 'subjectId', subject_id, 'unitType', unit_type, 'totalUnits', total_units,
-           'weightPerUnit', weight_per_unit, 'weekdays', to_jsonb(weekdays), 'startDate', to_char(start_date, 'YYYY-MM-DD'),
+           'weightPerUnit', weight_per_unit, 'minutesPerDay', minutes_per_day, 'weekdays', to_jsonb(weekdays), 'startDate', to_char(start_date, 'YYYY-MM-DD'),
            'endDate', to_char(end_date, 'YYYY-MM-DD'), 'childIds', to_jsonb($2::uuid[])) WHERE id = $1`,
         [id, a.childIds.map((c) => ids.child[c])]);
     }

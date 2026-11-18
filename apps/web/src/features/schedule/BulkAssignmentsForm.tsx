@@ -80,7 +80,7 @@ export function BulkAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) {
 
     if (filled.length === 0) errs.rows = unitType === "minutes" ? "Add at least one title and minutes a day." : "Add at least one title and total.";
     const perRow: Record<number, RowErrors> = {};
-    const items: { title: string; totalUnits: number; weightPerUnit: number | null; startDate: string; endDate: string }[] = [];
+    const items: { title: string; totalUnits: number; weightPerUnit: number | null; minutesPerDay?: number; startDate: string; endDate: string }[] = [];
     for (const r of filled) {
       const re: RowErrors = {};
       const t = r.title.trim();
@@ -98,7 +98,7 @@ export function BulkAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) {
         if (unitType === "minutes") {
           const days = schoolDayCount(own.startDate, own.endDate, dayChoice.shown);
           if (days <= 0) re.dates = re.dates ?? "Those dates include no school days.";
-          else items.push({ title: t, totalUnits: minutesPile(amount, days), weightPerUnit: MINUTES_DAILY_WEIGHT, ...own });
+          else items.push({ title: t, totalUnits: minutesPile(amount, days), weightPerUnit: MINUTES_DAILY_WEIGHT, minutesPerDay: amount, ...own });
         } else items.push({ title: t, totalUnits: amount, weightPerUnit: null, ...own });
       }
       if (re.title || re.total || re.dates) perRow[r.key] = re;

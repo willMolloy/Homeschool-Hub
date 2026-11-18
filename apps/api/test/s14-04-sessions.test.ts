@@ -62,7 +62,7 @@ describe.skipIf(!hasDb)("sessions (integration)", () => {
 
   it("a session that expired a second ago is refused", async () => {
     const token = sessionCookie(await login("s14-04-a1@example.com"))!;
-    await pool.query("UPDATE session SET expires_at = now() - interval '1 second' WHERE id = $1", [hashSessionToken(token)]);
+    await pool.query("UPDATE session SET expires_at = timestamptz '2000-01-01' WHERE id = $1", [hashSessionToken(token)]);
     expect((await me(token)).statusCode).toBe(401);
   });
 
@@ -89,7 +89,7 @@ describe.skipIf(!hasDb)("sessions (integration)", () => {
   });
 
   it("sweepExpiredSessions counts what it removed and touches nothing else", async () => {
-    await pool.query("INSERT INTO session (id, family_id, expires_at) VALUES ('s14-04-old-1', $1, now() - interval '1 day'), ('s14-04-old-2', $1, now() - interval '1 second'), ('s14-04-new', $1, now() + interval '1 day')", [famA]);
+    await pool.query("INSERT INTO session (id, family_id, expires_at) VALUES ('s14-04-old-1', $1, timestamptz '2000-01-01'), ('s14-04-old-2', $1, timestamptz '2000-01-02'), ('s14-04-new', $1, now() + interval '1 day')", [famA]);
     expect(await sweepExpiredSessions(pool)).toBeGreaterThanOrEqual(2);
     expect((await pool.query("SELECT id FROM session WHERE id LIKE 's14-04-%' ORDER BY id")).rows).toEqual([{ id: "s14-04-new" }]);
     expect(await sweepExpiredSessions(pool)).toBe(0);

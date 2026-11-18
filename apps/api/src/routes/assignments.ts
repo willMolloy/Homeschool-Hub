@@ -4,14 +4,14 @@ import { z } from "zod";
 import { withTransaction, type Tx } from "../db";
 import { checkUnitChange } from "../http/assignmentWeight";
 import { checkDatesKeepLatestCheckIn, short as shortDate } from "../http/checkInDates";
-import { assertTypedTotal, checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, StoredTotalUnits, Title, UnitTypeField, WeightPerUnit, Weekdays } from "../http/scheduleLimits";
+import { assertTypedTotal, bounded, checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, StoredTotalUnits, Title, UnitTypeField, WeightPerUnit, Weekdays } from "../http/scheduleLimits";
 import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
 import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment, type AssignmentRow, type EndedAs } from "../repos/assignmentRepo";
 import { checkRefs } from "../repos/refs";
 import { subjectDefaultWeekdays } from "../repos/subjectRepo";
 import { familyWeekStart } from "../http/familyWeek";
-import { rescaledMinutesTotal } from "../services/minutesSpan";
+import { derivedDailyMinutes, rescaledMinutesTotal } from "../services/minutesSpan";
 import { effectiveWeekdays, weekdaysChange } from "../services/weekdaysChange";
 import { recordWeightChoices } from "../repos/weightChoiceRepo";
 import { resetAssignment } from "../services/assignmentReset";
@@ -19,6 +19,10 @@ import { appendCreatedToUndo, assignmentStep, recordUndo, type UndoStep } from "
 
 const Id = z.string("Must be an id.").regex(UUID_RE, "Must be a UUID.").transform((s) => s.toLowerCase());
 const Children = IdList(MAX_ASSIGNMENT_CHILDREN).min(1, "Pick at least one child.");
+/** S20-01 / M1: the minutes a day the parent entered. Only a minutes assignment stores it. */
+const MinutesPerDay = bounded("minutesPerDay", 0, 1440, 2, true);
+const onlyMinutes = (b: { unitType?: string; minutesPerDay?: number }) =>
+  b.minutesPerDay === undefined || b.unitType === undefined || b.unitType === "minutes";
 
 // Unknown keys (e.g. family_id) are dropped: ownership always comes from the session.
 const CreateBody = z.strictObject({
@@ -32,7 +36,8 @@ const CreateBody = z.strictObject({
   startDate: LocalDate,
   endDate: LocalDate,
   childIds: Children,
-});
+  minutesPerDay: MinutesPerDay.optional(),
+}).refine(onlyMinutes, { message: "minutesPerDay is only for a minutes assignment.", path: ["minutesPerDay"] });
 
 /** S3a-03: the most assignments one bulk request may create. */
 const MAX_BULK = 50;
@@ -66,8 +71,10 @@ const PatchBody = z
     // S12-01: only the parent says an assignment ended. null reopens it. `endedOn` alone moves the day of one already ended.
     endedAs: z.enum(["finished", "stopped"], "endedAs must be finished or stopped.").nullable().optional(),
     endedOn: LocalDate.optional(),
+    minutesPerDay: MinutesPerDay.optional(),
   })
-  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.");
+  .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.")
+  .refine(onlyMinutes, { message: "minutesPerDay is only for a minutes assignment.", path: ["minutesPerDay"] });
 
 type CreateInput = z.infer<typeof CreateBody>;
 
@@ -75,7 +82,10 @@ type CreateInput = z.infer<typeof CreateBody>;
 async function createOne(c: Tx, familyId: string, b: CreateInput) {
   assertTypedTotal(b.unitType, b.totalUnits);
   await checkRefs(c, familyId, { subjectIds: [b.subjectId], childIds: b.childIds });
-  const id = await createAssignment(c, familyId, { ...b, weightPerUnit: b.weightPerUnit ?? null, weekdays: b.weekdays ?? null });
+  const minutesPerDay = b.unitType === "minutes"
+    ? b.minutesPerDay ?? await derivedDailyMinutes(c, familyId, { totalUnits: b.totalUnits, startDate: b.startDate, endDate: b.endDate, weekdays: b.weekdays ?? null, subjectId: b.subjectId })
+    : null;
+  const id = await createAssignment(c, familyId, { ...b, weightPerUnit: b.weightPerUnit ?? null, weekdays: b.weekdays ?? null, minutesPerDay });
   // Taking the default isn't a choice (S2b-07, D5).
   if (b.weightPerUnit != null) {
     await recordWeightChoices(c, { familyId, assignmentId: id, childIds: b.childIds, unitType: b.unitType, weight: b.weightPerUnit });
@@ -214,7 +224,22 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
         });
         if (kept !== null) totalUnits = kept;
       }
-      await updateAssignment(c, req.familyId, cur.id, { ...p, ...ended, history, ...(totalUnits !== undefined && totalUnits !== p.totalUnits ? { totalUnits } : {}) });
+      // The daily amount changes only when she sends a new one, or when the unit becomes minutes. A date move keeps it.
+      let minutesPerDay: number | null | undefined;
+      if (unitType !== "minutes") minutesPerDay = cur.minutes_per_day != null ? null : undefined;
+      else if (p.minutesPerDay !== undefined) minutesPerDay = p.minutesPerDay;
+      else if (p.totalUnits !== undefined || cur.unit_type !== "minutes") {
+        minutesPerDay = await derivedDailyMinutes(c, req.familyId, {
+          totalUnits: totalUnits ?? Number(cur.total_units), startDate: p.startDate ?? cur.start_date, endDate: p.endDate ?? cur.end_date,
+          weekdays: p.weekdays === undefined ? cur.weekdays : p.weekdays, subjectId: p.subjectId ?? cur.subject_id,
+        });
+      }
+      const { minutesPerDay: _ignored, ...rest } = p;
+      await updateAssignment(c, req.familyId, cur.id, {
+        ...rest, ...ended, history,
+        ...(totalUnits !== undefined && totalUnits !== p.totalUnits ? { totalUnits } : {}),
+        ...(minutesPerDay !== undefined ? { minutesPerDay } : {}),
+      });
       // A new weight (or the same number under a new unit type) is a choice for every child left on the assignment.
       let choiceIds: string[] = [];
       if (p.weightPerUnit !== undefined && (p.weightPerUnit !== cur.weight_per_unit || unitType !== cur.unit_type)) {

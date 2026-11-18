@@ -32,7 +32,7 @@ export function hasAtMostDecimals(v: number, places: number): boolean {
 }
 
 /** A finite number in [min, max] (exclusive of min when `minExclusive`) with limited decimals. */
-function bounded(label: string, min: number, max: number, places: number, minExclusive: boolean) {
+export function bounded(label: string, min: number, max: number, places: number, minExclusive: boolean) {
   return z
     .number(`${label} must be a number.`)
     .refine(Number.isFinite, `${label} must be a finite number.`)

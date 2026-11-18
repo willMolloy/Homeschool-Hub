@@ -14,6 +14,8 @@ import { deleteEntry, insertEntry, lockEntry, replaceEntry, type RecordEntryStat
 
 export interface AssignmentState {
   subjectId: string; title: string; unitType: UnitType; totalUnits: number; weightPerUnit: number | null;
+  /** Absent on an undo recorded before minutes a day were stored. */
+  minutesPerDay?: number | null;
   weekdays: number[] | null; weekdaysFrom: string | null; previousWeekdays: number[] | null;
   startDate: string; endDate: string; archived: boolean; childIds: string[];
   /** S12-01: how it ended (a state saved before this existed has neither, and leaves them as they are). */
@@ -45,7 +47,7 @@ export type UndoStep =
 
 export const assignmentState = (r: AssignmentRow): AssignmentState => ({
   subjectId: r.subject_id, title: r.title, unitType: r.unit_type, totalUnits: r.total_units, weightPerUnit: r.weight_per_unit,
-  weekdays: r.weekdays, weekdaysFrom: r.weekdays_from, previousWeekdays: r.previous_weekdays,
+  minutesPerDay: r.minutes_per_day, weekdays: r.weekdays, weekdaysFrom: r.weekdays_from, previousWeekdays: r.previous_weekdays,
   startDate: r.start_date, endDate: r.end_date, archived: r.archived_at !== null, childIds: r.child_ids,
   endedAs: r.ended_as, endedOn: r.ended_on,
 });
@@ -96,6 +98,7 @@ async function applyStep(tx: Tx, familyId: string, step: UndoStep): Promise<void
       if (s.startDate !== cur.start_date || s.endDate !== cur.end_date) await checkDatesKeepLatestCheckIn(tx, familyId, step.id, s.startDate, s.endDate);
       await updateAssignment(tx, familyId, step.id, {
         subjectId: s.subjectId, title: s.title, unitType: s.unitType, totalUnits: s.totalUnits, weightPerUnit: s.weightPerUnit,
+        ...(s.minutesPerDay !== undefined ? { minutesPerDay: s.minutesPerDay } : {}),
         weekdays: s.weekdays, startDate: s.startDate, endDate: s.endDate, childIds: s.childIds, archived: s.archived, endedAs: s.endedAs, endedOn: s.endedOn,
         history: { weekdaysFrom: s.weekdaysFrom, previousWeekdays: s.previousWeekdays },
       });

@@ -22,6 +22,8 @@ export interface AssignmentInput {
   unitType: UnitType;
   totalUnits: number;
   weightPerUnit: number | null;
+  /** S20-01 / M1: the minutes a day, on a minutes row. */
+  minutesPerDay?: number;
   startDate: string;
   endDate: string;
   childIds: string[];
@@ -223,7 +225,7 @@ export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly 
       const days = schoolDayCount(start.date, end.date, schoolDays);
       if (days <= 0) errors.push({ line: r.line, message: "Those dates include no school days." });
       else rows.push({
-        subjectId: subject!.id, title, unitType: unitType!, totalUnits: minutesPile(total.minutes, days), weightPerUnit: MINUTES_DAILY_WEIGHT,
+        subjectId: subject!.id, title, unitType: unitType!, totalUnits: minutesPile(total.minutes, days), weightPerUnit: MINUTES_DAILY_WEIGHT, minutesPerDay: total.minutes,
         startDate: start.date, endDate: end.date, childIds,
       });
     } else {

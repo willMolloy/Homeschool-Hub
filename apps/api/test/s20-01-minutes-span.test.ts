@@ -1,5 +1,5 @@
 /** S20-01: moving a minutes assignment's end date keeps the minutes a day. Pages still thicken. */
-import type { ChildPlan } from "@hh/engine";
+import { countWeekdays, roundUnits, type ChildPlan, type LocalDate } from "@hh/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
 import { testConfig } from "./helpers/config";
@@ -30,7 +30,7 @@ describe.skipIf(!hasDb)("minutes stay a daily amount when the end date moves (S2
       startDate: "2026-09-07", endDate: "2026-09-18", childIds: roster.childIds, ...over,
     });
     expect(res.statusCode, res.body).toBe(201);
-    return res.json() as { id: string; totalUnits: number };
+    return res.json() as { id: string; totalUnits: number; minutesPerDay: number | null };
   };
   const planOf = async (id: string, to: string) => {
     const res = await req("GET", `/api/plan?from=2026-09-07&to=${to}&asOf=2026-09-07`);
@@ -40,11 +40,13 @@ describe.skipIf(!hasDb)("minutes stay a daily amount when the end date moves (S2
 
   it("shortening the end date rescales the hidden total and leaves 30 minutes a day", async () => {
     const a = await create({});
+    expect(a.minutesPerDay).toBe(30);
     const before = await planOf(a.id, "2026-09-18");
     expect(before.baseRate).toBeCloseTo(30);
     const res = await req("PATCH", `/api/assignments/${a.id}`, { endDate: "2026-09-11" });
     expect(res.statusCode, res.body).toBe(200);
     expect(res.json().totalUnits).toBe(150);
+    expect(res.json().minutesPerDay).toBe(30);
     const after = await planOf(a.id, "2026-09-11");
     expect(after.baseRate).toBeCloseTo(30);
     expect(after.weightPerUnit).toBe(0.5);
@@ -58,6 +60,19 @@ describe.skipIf(!hasDb)("minutes stay a daily amount when the end date moves (S2
     expect(res.json().totalUnits).toBe(100);
     const after = await planOf(a.id, "2026-09-11");
     expect(after.baseRate).toBeGreaterThan(before.baseRate);
+  });
+
+  it("an awkward total keeps the same minutes a day when nothing else is saved (M1)", async () => {
+    const start = "2026-08-18";
+    const end = "2026-12-15";
+    const days = countWeekdays(start as LocalDate, end as LocalDate, [2]);
+    const daily = roundUnits(1200 / days);
+    const a = await create({ title: "Nature walk and notebook", totalUnits: 1200, startDate: start, endDate: end, weekdays: [2] });
+    expect(a.minutesPerDay).toBe(daily);
+    expect(daily).not.toBe(60);
+    const res = await req("PATCH", `/api/assignments/${a.id}`, { title: "Nature walk" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ totalUnits: 1200, minutesPerDay: daily, title: "Nature walk" });
   });
 
   it("a lessons total above 100,000 is still rejected", async () => {

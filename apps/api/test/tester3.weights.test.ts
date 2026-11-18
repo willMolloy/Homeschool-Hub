@@ -226,7 +226,7 @@ describe.skipIf(!hasDb)("tester round 3: weights (integration)", () => {
   });
 
   describe("case 10: logged hours", () => {
-    it("no field anywhere in /api/plan or /api/assignments mentions minutes (the unit value \"minutes\" is data)", async () => {
+    it("no field anywhere in /api/plan or /api/assignments mentions minutes, except the stored minutes a day (the unit value \"minutes\" is data)", async () => {
       const keys = new Set<string>();
       const walk = (v: unknown) => {
         if (Array.isArray(v)) v.forEach(walk);
@@ -235,7 +235,7 @@ describe.skipIf(!hasDb)("tester round 3: weights (integration)", () => {
       walk(await plans());
       walk((await req("GET", "/api/assignments?includeArchived=true")).json());
       expect(keys.size).toBeGreaterThan(10);
-      expect([...keys].filter((k) => /minute/i.test(k))).toEqual([]);
+      expect([...keys].filter((k) => /minute/i.test(k))).toEqual(["minutesPerDay"]);
     });
   });
 });
