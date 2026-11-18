@@ -1,6 +1,6 @@
 # Sprint 20 — Minutes, check-in, and logging
 
-> **Status: built on `hh2/sprint-20`, not merged.** S20-01 to S20-06 are in. S20-07, the tester pass, is not. Sprint 19 is merged (PR #21). Do not fold Sprint 21, or the Sprint 18b tester follow-ups (including S18c-05), into this folder.
+> **Status: merged** (PR #22, `b0f3f56`). S20-01 to S20-06 are in. S20-07 was the tester pass. Do not fold Sprint 21, or the Sprint 18b tester follow-ups (including S18c-06), into this folder.
 
 One branch for the sprint, off `main` after Sprint 19 merged. Progress in `docs/progress/sprint-20.md`. The PR stays a draft until the tester passes. Do not mark it ready, and do not merge it.
 
