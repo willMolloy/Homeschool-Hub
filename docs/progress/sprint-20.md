@@ -28,12 +28,23 @@ Branch: `hh2/sprint-20`, cut from `main` at the Sprint 19 merge (`2cdc475`, PR #
 
 None that blocked the build. The tickets' defaults were used where a label was not chosen: the check-in sentence and button, the logging explanations and the Frank/Tuesday sample, "Log more than one day", and "This week stood" plus Keep or Pick a date for a minutes assignment.
 
+## Tester fixes (still a draft)
+
+The independent tester marked `9fed18a` not ready (1 High, 1 Medium). These fixes stay on this branch. The pull request stays a draft. S20-07 is still the tester's.
+
+| Finding | Commit | What changed |
+|---|---|---|
+| H1 Update status opens on 16 when the week reads "chapters 14–17 (starts 17)" | cd31d00 | The box follows the same words the sheet shows, including a chapter the week only starts. It catches up when the plan arrives after the sheet opens. 16 is behind, not as planned. A clean "chapters 16–18" week still opens on 18. |
+| M1 The list said 67 and 27 minutes a day, and Edit opened on 60 and 30 | fdb08aa | A minutes assignment stores the daily amount (`minutes_per_day`). The list and the form both show that number. A nearby value is no longer snapped onto 15, 30, 45, or 60. Saving without a change leaves it. The demo seed and migration 028 fill the same figure from the total and the school days. |
+| A flaky expired-session API test | fdb08aa | Those tests expire the session at the start of 2000, not one second before `now()`. |
+
 ## Gate counts
 
-`bash scripts/check.sh` on this branch, ALL GREEN, after 13b2f36.
+`bash scripts/check.sh` on this branch, ALL GREEN, after the tester fixes.
 
 | | engine | API | web | db |
 |---|---|---|---|---|
-| Sprint 20 | 440 | 1212 | 1803 | 190 |
+| Sprint 20, before the tester fixes | 440 | 1212 | 1803 | 190 |
+| After the tester fixes | 440 | 1213 | 1806 | 190 |
 
-Engine tests also passed in the time-zone run (the same 440, seven extra passes). Web grew by the new ticket tests from 1792 at the Sprint 19 head.
+Engine tests also passed in the time-zone run (the same 440, seven extra passes). Web grew by the new ticket tests from 1792 at the Sprint 19 head, then by the H1 and M1 regressions.
