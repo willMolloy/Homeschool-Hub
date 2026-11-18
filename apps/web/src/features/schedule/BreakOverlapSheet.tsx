@@ -13,8 +13,8 @@ import { DateField } from "../../ui/DateField";
 import type { ProposedBreak } from "./breakOverlap";
 import { toSpan } from "./breakOverlap";
 
-/** Which answers Confirm may save. S21-02 sets "keep". S21-03 sets "all". */
-export const OVERLAP_SAVE: "none" | "keep" | "all" = "none";
+/** Keep and both pushes save. */
+export const OVERLAP_SAVE: "none" | "keep" | "all" = "all";
 
 type Choice = RowChoice | null;
 

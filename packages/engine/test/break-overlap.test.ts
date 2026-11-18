@@ -1,6 +1,8 @@
 /** S21-01: a break lists the open work it newly covers. Partial overlap counts; finished and stopped work does not. */
+/** S21-02: keeping the end date is the plan that already runs: the break is empty, the end stays, the other days carry the work. */
 import { describe, expect, it } from "vitest";
-import { listBreakOverlaps, overlapSummary, type BreakSpan, type OverlapAssignment } from "../src";
+import { countWeekdays, listBreakOverlaps, overlapSummary, planChild, pushEndBySchoolDays, resolveEndDates, weekdayOf, type BlockedPeriod, type BreakSpan, type OverlapAssignment } from "../src";
+import { book, MON_FRI, unitsOn } from "./helpers";
 
 const SCHOOL = [1, 2, 3, 4, 5];
 const feb: BreakSpan = { start: "2026-02-01", end: "2026-02-28", childIds: [] };
@@ -103,5 +105,96 @@ describe("break overlap list (S21-01)", () => {
   it("names one school day, and days that cross two months", () => {
     expect(overlapSummary(["2026-02-02"])).toBe("covers 1 school day in February");
     expect(overlapSummary(["2026-02-27", "2026-03-02"])).toBe("covers 2 school days in February and March");
+  });
+});
+
+describe("keep the end date (S21-02)", () => {
+  const span = book({ id: "hobbit", start: "2026-01-05", end: "2026-05-21", totalUnits: 100, unitType: "pages", weightPerUnit: 1 });
+  const february: BlockedPeriod = { id: "feb", start: "2026-02-01", end: "2026-02-28", kind: "vacation" };
+
+  it("leaves the end on May 21 and puts February's work on the other school days", () => {
+    const open = planChild(span, "frank", { calendar: MON_FRI });
+    const kept = planChild(span, "frank", { calendar: MON_FRI, blocked: [february] });
+    expect(kept.plannedEnd).toBe("2026-05-21");
+    expect(kept.end).toBe("2026-05-21");
+    expect(unitsOn(kept, "2026-02-02")).toBe(0);
+    expect(unitsOn(kept, "2026-02-27")).toBe(0);
+    expect(unitsOn(kept, "2026-01-05")).toBeGreaterThan(unitsOn(open, "2026-01-05"));
+    expect(unitsOn(kept, "2026-03-02")).toBeGreaterThan(0);
+  });
+
+  it("a book that only overlaps the first week of February loses that week, not the rest of the month", () => {
+    const firstWeek: BlockedPeriod = { id: "week", start: "2026-02-02", end: "2026-02-06", kind: "vacation" };
+    const kept = planChild(span, "frank", { calendar: MON_FRI, blocked: [firstWeek] });
+    expect(kept.end).toBe("2026-05-21");
+    expect(unitsOn(kept, "2026-02-02")).toBe(0);
+    expect(unitsOn(kept, "2026-02-06")).toBe(0);
+    expect(unitsOn(kept, "2026-02-09")).toBeGreaterThan(0);
+    expect(unitsOn(kept, "2026-02-27")).toBeGreaterThan(0);
+  });
+});
+
+describe("move the end date (S21-03)", () => {
+  const school = [1, 2, 3, 4, 5];
+  const hobbit = frank({ id: "hobbit", title: "The Hobbit", end: "2026-05-21" });
+  const firstWeekOnly = frank({ id: "partial", title: "Partial", end: "2026-02-06" });
+
+  it("moves by the overlapped school days, not by the calendar length of a longer break", () => {
+    const [full] = list({ assignments: [hobbit] });
+    expect(full!.schoolDays).toBe(20);
+    expect(countWeekdays(hobbit.end, full!.pushedEnd, school) - 1).toBe(20);
+    expect(weekdayOf(full!.pushedEnd)).toBeGreaterThanOrEqual(1);
+    expect(weekdayOf(full!.pushedEnd)).toBeLessThanOrEqual(5);
+
+    const [week] = list({
+      breaks: [{ start: "2026-02-01", end: "2026-02-28", childIds: [] }],
+      assignments: [firstWeekOnly],
+    });
+    expect(week!.schoolDays).toBe(5);
+    expect(week!.pushedEnd).toBe("2026-03-06");
+    expect(pushEndBySchoolDays("2026-02-06", 28, school, [])).not.toBe(week!.pushedEnd);
+  });
+
+  it("keeps the daily pace in the same neighborhood and leaves the break empty", () => {
+    const span = book({ id: "hobbit", start: "2026-01-05", end: "2026-05-21", totalUnits: 100, unitType: "pages", weightPerUnit: 1 });
+    const open = planChild(span, "frank", { calendar: MON_FRI });
+    const [row] = list({ assignments: [hobbit] });
+    const pushed = planChild(
+      { ...span, end: row!.pushedEnd },
+      "frank",
+      { calendar: MON_FRI, blocked: [{ id: "feb", start: "2026-02-01", end: "2026-02-28", kind: "vacation" }] },
+    );
+    expect(pushed.baseRate).toBeCloseTo(open.baseRate, 5);
+    expect(unitsOn(pushed, "2026-02-02")).toBe(0);
+    expect(unitsOn(pushed, "2026-02-27")).toBe(0);
+    expect(pushed.end).toBe(row!.pushedEnd);
+  });
+
+  it("two pushes add, a picked day is the end, and two picked days conflict", () => {
+    const rows = list({
+      breaks: [
+        { start: "2026-02-02", end: "2026-02-06", childIds: [] },
+        { start: "2026-03-02", end: "2026-03-06", childIds: [] },
+      ],
+      assignments: [hobbit, frank({ id: "other", title: "Other" })],
+    });
+    const hobbitRows = rows.filter((r) => r.assignmentId === "hobbit");
+    const both = resolveEndDates(hobbitRows, [{ kind: "push" }, { kind: "push" }], [hobbit], [
+      { start: "2026-02-02", end: "2026-02-06", childIds: [] },
+      { start: "2026-03-02", end: "2026-03-06", childIds: [] },
+    ], [], { schoolDays: SCHOOL });
+    expect(both.conflict).toBeNull();
+    expect(both.ends).toEqual([{ assignmentId: "hobbit", endDate: pushEndBySchoolDays(hobbit.end, hobbitRows[0]!.schoolDays + hobbitRows[1]!.schoolDays, school, [
+      { start: "2026-02-02", end: "2026-02-06", childIds: [] },
+      { start: "2026-03-02", end: "2026-03-06", childIds: [] },
+    ]) }]);
+    const picked = resolveEndDates(hobbitRows, [{ kind: "pick", date: "2026-06-01" }, { kind: "push" }], [hobbit], [
+      { start: "2026-02-02", end: "2026-02-06", childIds: [] },
+      { start: "2026-03-02", end: "2026-03-06", childIds: [] },
+    ], [], { schoolDays: SCHOOL });
+    expect(picked.ends).toEqual([{ assignmentId: "hobbit", endDate: "2026-06-01" }]);
+    const clash = resolveEndDates(hobbitRows, [{ kind: "pick", date: "2026-06-01" }, { kind: "pick", date: "2026-06-15" }], [hobbit], [], [], { schoolDays: SCHOOL });
+    expect(clash.conflict).toBe("Pick one end date for The Hobbit.");
+    expect(clash.ends).toEqual([]);
   });
 });
