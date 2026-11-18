@@ -80,6 +80,9 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   const [askPast, setAskPast] = useState(false);
   const today = todayOf(me);
   const labelId = useId();
+  /** S20-01: minutes have no pile to get through. The week stood, or she picks a new end date. */
+  const minutes = item.unitType === "minutes";
+  const [wantEnd, setWantEnd] = useState(false);
   const step = stepOf(item.unitType);
   const way = wayOf(item, pos);
   const finished = pos >= item.totalUnits - 1e-9;
@@ -97,6 +100,13 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   const suggested = rawSuggest && rawSuggest !== keepDate ? rawSuggest : null;
   const unit = item.unitType === "minutes" ? UNIT_LABELS.minutes.many : UNIT_LABELS[item.unitType].one;
   const save = (confirmed = false) => {
+    if (minutes) {
+      if (!wantEnd || endWay !== "pick") return onSave(item.plannedTo, mode, null);
+      if (!isValidLocalDate(picked)) { setAskPast(false); return setPickError("Pick the new end date."); }
+      if (afterDay && picked <= afterDay) { setAskPast(false); return setPickError(`Pick a date after ${shortDate(afterDay)}.`); }
+      if (picked < today && !confirmed) return setAskPast(true);
+      return onSave(item.plannedTo, null, picked);
+    }
     if (finished) return onSave(pos, null, null);
     if (way === "asPlanned") return onSave(pos, mode, null);
     if (endWay === "suggest" && suggested) return onSave(pos, "keepEndDate", suggested);
@@ -114,12 +124,39 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
     <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={<span className="status-title" title={item.title}>{item.title}</span>}>
       <div className="status-sheet">
         <p className="status-sub">{item.childName} · {itemRangeWords(item, plan, weekStart)} {whenText}</p>
-        <h3 className="status-label" id={labelId}>How did it go?</h3>
+        {minutes ? (
+          <>
+            <p className="status-sub">This week stood.</p>
+            {wantEnd ? (
+              <div role="radiogroup" aria-label="What about the end date?" className="status-ends">
+                <label className={`status-end${endWay === "keep" ? " is-on" : ""}`}>
+                  <input type="radio" name="end-date" checked={endWay === "keep"} onChange={() => { setEndWay("keep"); setAskPast(false); }} />
+                  <span>Keep {plan ? shortDate(plan.plannedEnd) : "the end date"}<small>The minutes a day stay the same</small></span>
+                </label>
+                <label className={`status-end${endWay === "pick" ? " is-on" : ""}`}>
+                  <input type="radio" name="end-date" checked={endWay === "pick"} onChange={() => { setEndWay("pick"); setAskPast(false); if (!picked && plan) setPicked(plan.plannedEnd); }} />
+                  <span>Pick a date<small>Any day you choose</small></span>
+                </label>
+                {endWay === "pick" ? (
+                  <div className="status-pick">
+                    <DateField value={picked} onChange={(v) => { setPicked(v); setPickError(null); setAskPast(false); }} aria-label="New end date" aria-invalid={pickError ? true : undefined} opens="up" />
+                    {pickError ? <p className="field-error" role="alert">{pickError}</p> : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <button type="button" className="btn btn-secondary" onClick={() => { setWantEnd(true); setEndWay("pick"); if (plan && !picked) setPicked(plan.plannedEnd); }}>Change the end date</button>
+            )}
+          </>
+        ) : null}
+        {minutes ? null : <h3 className="status-label" id={labelId}>How did it go?</h3>}
+        {minutes ? null : (
         <div className="status-ways" role="group" aria-labelledby={labelId}>
           {WAYS.map(({ way: w, label }) => <Chip key={w} selected={way === w} onClick={() => pick(w)}>{label}</Chip>)}
         </div>
-        <h3 className="status-label">They got to</h3>
-        <div className="status-stepper" role="group" aria-label={`Where ${item.childName} got to on ${item.title}`}>
+        )}
+        {minutes ? null : <h3 className="status-label">They got to</h3>}
+        {minutes ? null : <div className="status-stepper" role="group" aria-label={`Where ${item.childName} got to on ${item.title}`}>
           <button type="button" className="round-btn" aria-label="One less" disabled={pos <= item.plannedFrom} onClick={() => setPos(clamp(pos - step))}>−</button>
           <div className="status-num">
             <span>{unit}</span>
@@ -130,8 +167,8 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
             <span className="status-total">of {item.totalUnits}</span>
           </div>
           <button type="button" className="round-btn" aria-label="One more" disabled={pos >= item.totalUnits} onClick={() => setPos(clamp(pos + step))}>+</button>
-        </div>
-        {choices ? (
+        </div>}
+        {!minutes && choices ? (
           <>
             <h3 className="status-label" id={`${labelId}-end`}>What about the end date?</h3>
             <div role="radiogroup" aria-labelledby={`${labelId}-end`} className="status-ends">

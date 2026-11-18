@@ -122,6 +122,29 @@ describe("Update status from a Week bar (S9-02)", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
+  it("a minutes assignment has no of-N stepper; Save checks the week in without a position (S20-01)", async () => {
+    const user = userEvent.setup();
+    renderAt("/schedule?view=week");
+    await screen.findByRole("region", { name: "Frank's work" });
+    const pill = screen.queryByRole("button", { name: "Child: Frank" });
+    if (pill) {
+      await user.click(pill);
+      await user.click(await screen.findByRole("button", { name: "Margaret" }));
+    } else await user.click(screen.getByRole("button", { name: "Margaret" }));
+    const margaret = await screen.findByRole("region", { name: "Margaret's work" });
+    await user.click(await within(margaret).findByRole("button", { name: /Violin/ }));
+    const adjust = await screen.findByRole("dialog");
+    await user.click(await within(adjust).findByRole("button", { name: "Update status for Violin" }));
+    const sheet = within(await screen.findByRole("dialog"));
+    expect(sheet.getByText("This week stood.")).toBeInTheDocument();
+    expect(sheet.queryByRole("spinbutton")).toBeNull();
+    expect(sheet.queryByText(/of 3000/)).toBeNull();
+    await user.click(sheet.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    expect(body().items.some((i) => i.assignmentId === "violin")).toBe(false);
+    expect(body().status).toBe("reviewed");
+  });
+
   it("Keep is the default: the end stays and the remaining days get heavier", async () => {
     const user = userEvent.setup();
     const sheet = await openStatusFromWeek(user, "Treasure Island");

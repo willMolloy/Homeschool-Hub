@@ -119,7 +119,7 @@ describe("Assignments screen", () => {
     expect(body).not.toHaveProperty("minutesPerUnit");
   });
 
-  it("minutes: the built-in 0.5 shows as about 32 min a day; picking 45 minutes sends the weight for it (D21)", async () => {
+  it("minutes: no Total; 30 minutes a day is the start, and 45 saves that daily amount (S20-01)", async () => {
     const user = await setup();
     fakeApi.on("POST /api/assignments", (body) => [201, { ...(body as object), id: rowId(9), archived: false }]);
     await user.click(screen.getByRole("button", { name: "Add assignment" }));
@@ -127,16 +127,16 @@ describe("Assignments screen", () => {
     await user.selectOptions(within(form).getByLabelText("Subject"), READING.id);
     await user.type(within(form).getByLabelText("Title"), "Piano");
     await user.selectOptions(within(form).getByLabelText("Unit"), "minutes");
-    await user.type(within(form).getByLabelText("Total"), "600");
+    expect(within(form).queryByLabelText("Total")).toBeNull();
     date("Start", "2026-11-02", form);
     date("End", "2026-11-26", form);
-    expect(await within(form).findByText("Usually about 32 min a day.")).toBeInTheDocument();
-    expect(effort(form, "30 min a day")).toBeChecked();
-    await user.click(effort(form, "45 min a day"));
+    const minutes = within(form).getByRole("group", { name: "Minutes a day" });
+    expect(within(minutes).getByRole("radio", { name: "30 min a day" })).toBeChecked();
+    await user.click(within(minutes).getByRole("radio", { name: "45 min a day" }));
     await user.click(within(form).getByRole("checkbox", { name: "Frank" }));
     await user.click(within(form).getByRole("button", { name: "Add" }));
-    expect(writes()[0]!.body).toMatchObject({ unitType: "minutes", weightPerUnit: weightFor(45, 600, "2026-11-02", "2026-11-26") });
-    expect(weightFor(45, 600, "2026-11-02", "2026-11-26")).toBe(0.71);
+    const days = schoolDaysBetween("2026-11-02", "2026-11-26", [1, 2, 3, 4, 5]);
+    expect(writes()[0]!.body).toMatchObject({ unitType: "minutes", totalUnits: 45 * days, weightPerUnit: 0.5 });
   });
 
   it.each([
@@ -220,9 +220,11 @@ describe("Assignments screen", () => {
     await user.click(screen.getByRole("button", { name: /Charlotte's Web/ }));
     const form = screen.getByRole("form", { name: "Edit Charlotte's Web" });
     await user.selectOptions(within(form).getByLabelText("Unit"), "minutes");
-    expect(await within(form).findByText(/^Usually about /)).toBeInTheDocument();
+    expect(within(form).queryByLabelText("Total")).toBeNull();
+    expect(within(form).getByRole("radio", { name: "30 min a day" })).toBeChecked();
     await user.click(within(form).getByRole("button", { name: "Save" }));
-    expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "minutes", weightPerUnit: null } }]);
+    const days = schoolDaysBetween(NOVEL.startDate, NOVEL.endDate, [1, 2, 3, 4, 5]);
+    expect(writes()).toEqual([{ method: "PATCH", path: `/api/assignments/${NOVEL.id}`, body: { unitType: "minutes", totalUnits: 30 * days, weightPerUnit: 0.5 } }]);
   });
 
   it("a unit change with a new effort picked sends that weight", async () => {

@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { Assignment } from "../src/api/types";
+import { schoolDaysBetween } from "../src/features/schedule/effort";
 import { fakeApi } from "./helpers/fake-api";
 import { FRANK, MATH, READING, rowId, withRoster, writes } from "./helpers/schedule-fixtures";
 import { renderAt } from "./render";
@@ -171,6 +172,22 @@ describe("Add several assignments (S3a-04)", () => {
     expect(within(row(form, 2)).getByLabelText("Title")).toHaveValue("Two");
     expect(within(row(form, 3)).getByLabelText("Total")).toHaveValue(6);
     expect(within(form).getByLabelText("Start")).toHaveValue("Nov 2, 2026");
+  });
+
+  it("a minutes row asks for minutes a day and stores that times the school days (S20-01)", async () => {
+    const { user, form } = await setup();
+    fakeApi.on("POST /api/assignments/bulk", (body) => [201, ((body as { assignments: object[] }).assignments).map((a, i) => ({ ...a, id: rowId(10 + i), archived: false }))]);
+    await fillShared(user, form);
+    await user.selectOptions(within(form).getByLabelText("Unit"), "minutes");
+    expect(within(row(form, 1)).queryByLabelText("Total")).toBeNull();
+    await user.type(within(row(form, 1)).getByLabelText("Title"), "Piano");
+    await user.type(within(row(form, 1)).getByLabelText("Minutes a day"), "30");
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    const days = schoolDaysBetween("2026-11-02", "2026-12-18", [1, 2, 3, 4, 5]);
+    expect((writes()[0]!.body as { assignments: { totalUnits: number; weightPerUnit: number; unitType: string }[] }).assignments[0]).toMatchObject({
+      unitType: "minutes", totalUnits: 30 * days, weightPerUnit: 0.5,
+    });
   });
 
   it("Cancel sends nothing and discards everything", async () => {

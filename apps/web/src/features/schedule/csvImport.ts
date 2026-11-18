@@ -6,6 +6,7 @@
 import { addDays, isValidLocalDate, toDayNumber, UNIT_TYPES, type LocalDate, type UnitType } from "@hh/engine";
 import type { Child, Subject } from "../../api/types";
 import { LIMITS, YEARS } from "./assignmentLimits";
+import { MAX_MINUTES_A_DAY, MINUTES_DAILY_WEIGHT, minutesPile, schoolDayCount } from "./minutesForm";
 
 export const MAX_IMPORT_ROWS = 200; // S14-05: was 50; the import sends chunks of 50 as one undo
 /** S3b-05: a chosen file bigger than this is turned away unread (50 rows are a few KB). */
@@ -20,7 +21,7 @@ export interface AssignmentInput {
   title: string;
   unitType: UnitType;
   totalUnits: number;
-  weightPerUnit: null;
+  weightPerUnit: number | null;
   startDate: string;
   endDate: string;
   childIds: string[];
@@ -102,6 +103,16 @@ function dateProblem(label: string, raw: string): { date: LocalDate } | { error:
   return { date: d };
 }
 
+function minutesProblem(raw: string): { minutes: number } | { error: string } {
+  const t = raw.trim();
+  if (!t) return { error: "minutes a day is required." };
+  if (!/^\d+(\.\d+)?$/.test(t)) return { error: "minutes a day must be a number, like 30." };
+  const v = Number(t);
+  if (v <= 0 || v > MAX_MINUTES_A_DAY) return { error: "minutes a day must be more than 0 and at most 1,440." };
+  if (Math.abs(v * 100 - Math.round(v * 100)) > 1e-6) return { error: "minutes a day can have at most 2 decimal places." };
+  return { minutes: v };
+}
+
 function totalProblem(raw: string): { total: number } | { error: string } {
   const t = raw.trim();
   if (!t) return { error: "total is required." };
@@ -125,7 +136,9 @@ function activeByName<T extends { name: string; archived: boolean }>(list: reado
   return out;
 }
 
-export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly Subject[]; children: readonly Child[] }): CsvResult {
+export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly Subject[]; children: readonly Child[]; schoolDays?: readonly number[] }): CsvResult {
+  // S20-01: a minutes row's number is minutes a day. The stored total uses the family's school days (CSV has no day column).
+  const schoolDays = lookups.schoolDays ?? [1, 2, 3, 4, 5];
   const { recs: all, unclosed, truncated } = records(text.replace(/^\uFEFF/, ""));
   const header = all[0];
   if (!header) return { rows: [], errors: [{ line: 1, message: `add a header row: ${CSV_COLUMNS.join(", ")}.` }] };
@@ -190,7 +203,8 @@ export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly 
     const unitType = unitOf(cell("unit"));
     if (!unitType) bad.push(`unit must be one of ${UNIT_TYPES.join(", ")} (got "${cell("unit").trim()}").`);
 
-    const total = totalProblem(cell("total"));
+    const minutesRow = unitOf(cell("unit")) === "minutes";
+    const total = minutesRow ? minutesProblem(cell("total")) : totalProblem(cell("total"));
     if ("error" in total) bad.push(total.error);
 
     const start = dateProblem("start", cell("start"));
@@ -205,6 +219,13 @@ export function parseAssignmentsCsv(text: string, lookups: { subjects: readonly 
 
     if (bad.length > 0) {
       for (const message of bad) errors.push({ line: r.line, message });
+    } else if (minutesRow && "minutes" in total && "date" in start && "date" in end) {
+      const days = schoolDayCount(start.date, end.date, schoolDays);
+      if (days <= 0) errors.push({ line: r.line, message: "Those dates include no school days." });
+      else rows.push({
+        subjectId: subject!.id, title, unitType: unitType!, totalUnits: minutesPile(total.minutes, days), weightPerUnit: MINUTES_DAILY_WEIGHT,
+        startDate: start.date, endDate: end.date, childIds,
+      });
     } else {
       rows.push({
         subjectId: subject!.id, title, unitType: unitType!, totalUnits: (total as { total: number }).total, weightPerUnit: null,

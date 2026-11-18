@@ -32,6 +32,7 @@ import { useWeightSuggestion } from "./useWeightSuggestion";
 import { SubjectSelect } from "./SubjectSelect";
 import { EffortField } from "./EffortField";
 import { paceWarning, unitsPerCapacityDay, unitsPerDay } from "./effort";
+import { impliedMinutesPerDay, MAX_MINUTES_A_DAY, MINUTES_A_DAY_DEFAULT, MINUTES_DAILY_WEIGHT, minutesPile, schoolDayCount } from "./minutesForm";
 import { requestPace, usableDraft, usePace, type PaceDraft } from "./usePace";
 import type { EffortPick } from "./effort";
 import { effortCardText } from "./weightText";
@@ -53,9 +54,6 @@ export function capSuggestion(s: WeightSuggestion | null, pace: number | null): 
   const fallback = weightPerUnitOf({ unitType: s.unitType, weightPerUnit: null }, s.subjectDefault);
   return { ...s, weightPerUnit: fallback.weight, source: fallback.source === "subject" ? "subject" : "builtin", children: s.children.map((c) => ({ ...c, usual: null })) };
 }
-
-/** A day has this many minutes: the most a custom answer may be. */
-const MAX_MINUTES_A_DAY = 1440;
 
 const units = (n: number, t: UnitType) => `${n.toLocaleString("en-US")} ${n === 1 ? UNIT_LABELS[t].one : UNIT_LABELS[t].many}`;
 
@@ -115,15 +113,18 @@ function AssignmentCard({ a, l, planEnd, all }: { a: Assignment; l: Lookups; pla
   const twinDays = copyRows(a, all, l.childName, dayList).length > 0 ? ` · ${daysPhrase(dayList(a))}` : "";
   // S7b-10: over the days the plan really has (breaks, days off, skips); until that answers, the weekdays in the dates.
   const days = a.weekdays ?? l.subjectWeekdays(a.subjectId) ?? schoolDays;
-  const real = usePace({ subjectId: a.subjectId, childIds: a.childIds, startDate: a.startDate, endDate: a.endDate, weekdays: days });
-  const perDay = real ? unitsPerCapacityDay(a.totalUnits, real.capacityDays) : unitsPerDay(a.totalUnits, a.startDate, a.endDate, days);
+  const real = usePace(a.unitType === "minutes" ? null : { subjectId: a.subjectId, childIds: a.childIds, startDate: a.startDate, endDate: a.endDate, weekdays: days });
+  // S20-01: minutes show the daily amount only. Breaks do not change it, so the count ignores days off.
+  const perDay = a.unitType === "minutes"
+    ? unitsPerDay(a.totalUnits, a.startDate, a.endDate, days)
+    : real ? unitsPerCapacityDay(a.totalUnits, real.capacityDays) : unitsPerDay(a.totalUnits, a.startDate, a.endDate, days);
   const effort = effortCardText(a, l.subjectDefault(a.subjectId), perDay);
   return (
     <span className="card-body">
       <span className="card-title">{a.title}</span>
       <span className="card-line">{l.subjectName(a.subjectId)} · {a.childIds.map(l.childName).join(", ")}{twinDays}</span>
       <span className="card-line">
-        {units(a.totalUnits, a.unitType)}{effort ? ` · ${effort}` : ""}
+        {a.unitType === "minutes" ? (effort ? effort.replace(/^about /, "") : "Minutes a day") : <>{units(a.totalUnits, a.unitType)}{effort ? ` · ${effort}` : ""}</>}
       </span>
       <span className="card-line">{dateRange(a.startDate, a.endDate)}{planEnd && planEnd > a.endDate ? ` · plan ends ${shortDate(planEnd)}` : ""}</span>
       {a.endedAs && a.endedOn ? <span className="card-line">{endedWords(a.endedAs, a.endedOn)}</span> : null}
@@ -178,8 +179,10 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     setPickState(p);
     if (p !== null) setUsual(false);
   };
+  // S20-01: minutes do not wait on a weight suggestion. The question is minutes a day, not a total.
+  const minutesMode = unitType === "minutes" && !unitUnchosen;
   // S2c-04: an untouched suggestion is only saved once it's the answer for the current inputs; a pick can always save.
-  const awaitingSuggestion = followsSuggestion && pending;
+  const awaitingSuggestion = !minutesMode && followsSuggestion && pending;
 
   /** A weight means effort per *this* unit, so changing the unit goes back to the new unit's suggestion (D7). */
   function changeUnit(u: UnitType) {
@@ -225,23 +228,57 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     const t = title.trim();
     if (!t) errs.title = "Title is required.";
     else if (t.length > LIMITS.title) errs.title = `Title must be ${LIMITS.title} characters or fewer.`;
-    const total = parsePositive(totalUnits, "Total", LIMITS.totalUnits);
-    if (typeof total === "string") errs.totalUnits = total;
-    // S6-09: untouched keeps what the form followed (the suggestion, or the stored weight; null follows the subject default, D21);
-    // a pick becomes a weight per unit at this pace.
-    let wpu: number | null = usualNow ? null : followsSuggestion ? suggestedValue() : suggesting ? null : start?.weightPerUnit ?? null;
-    if (pick) {
-      const minutes = pick.kind === "preset" ? pick.minutes : parsePositive(pick.text, "Minutes", MAX_MINUTES_A_DAY);
-      // S7b-10: the pace is asked afresh here, so the weight never rests on a count that is still loading.
-      let exact = pace;
-      if (typeof total === "number" && paceDraft && usableDraft(paceDraft)) {
-        try {
-          exact = unitsPerCapacityDay(total, (await requestPace({ ...paceDraft, subjectId: sid || null })).capacityDays);
-        } catch { /* keep the pace the form shows */ }
+    // S20-01: minutes ask for minutes a day and the dates. The total is derived and never shown.
+    // An edit that does not touch the minutes, the dates or the days keeps what is stored.
+    const keepMinutes = minutesMode && !!item && item.unitType === "minutes" && pick === null
+      && startDate === item.startDate && endDate === item.endDate && !dayChoice.touched && !markedNow;
+    let total: number | string;
+    let wpu: number | null;
+    if (minutesMode) {
+      const days = schoolDayCount(startDate, endDate, dayChoice.shown);
+      if (keepMinutes && item) {
+        total = item.totalUnits;
+        wpu = item.weightPerUnit;
+      } else if (days <= 0) {
+        total = 0;
+        wpu = MINUTES_DAILY_WEIGHT;
+        errs.dates = errs.dates ?? "Those dates include no school days.";
+      } else {
+        const picked = pick === null ? null : pick.kind === "preset" ? pick.minutes : parsePositive(pick.text, "Minutes", MAX_MINUTES_A_DAY);
+        if (typeof picked === "string") {
+          errs.effort = picked;
+          total = 0;
+          wpu = MINUTES_DAILY_WEIGHT;
+        } else {
+          const storedDays = item && item.unitType === "minutes"
+            ? schoolDayCount(item.startDate, item.endDate, item.weekdays ?? l.subjectWeekdays(item.subjectId) ?? schoolDays)
+            : 0;
+          const minutes = picked ?? (item && item.unitType === "minutes"
+            ? impliedMinutesPerDay(item.totalUnits, item.weightPerUnit, storedDays, l.subjectDefault(item.subjectId))
+            : MINUTES_A_DAY_DEFAULT);
+          total = minutesPile(minutes, days);
+          wpu = MINUTES_DAILY_WEIGHT;
+        }
       }
-      if (typeof minutes === "string") errs.effort = minutes;
-      else if (exact === null) errs.effort = "Fill in the total, the dates and the days first.";
-      else wpu = weightFromMinutesPerDay(minutes, exact);
+    } else {
+      total = parsePositive(totalUnits, "Total", LIMITS.totalUnits);
+      if (typeof total === "string") errs.totalUnits = total;
+      // S6-09: untouched keeps what the form followed (the suggestion, or the stored weight; null follows the subject default, D21);
+      // a pick becomes a weight per unit at this pace.
+      wpu = usualNow ? null : followsSuggestion ? suggestedValue() : suggesting ? null : start?.weightPerUnit ?? null;
+      if (pick) {
+        const minutes = pick.kind === "preset" ? pick.minutes : parsePositive(pick.text, "Minutes", MAX_MINUTES_A_DAY);
+        // S7b-10: the pace is asked afresh here, so the weight never rests on a count that is still loading.
+        let exact = pace;
+        if (typeof total === "number" && paceDraft && usableDraft(paceDraft)) {
+          try {
+            exact = unitsPerCapacityDay(total, (await requestPace({ ...paceDraft, subjectId: sid || null })).capacityDays);
+          } catch { /* keep the pace the form shows */ }
+        }
+        if (typeof minutes === "string") errs.effort = minutes;
+        else if (exact === null) errs.effort = "Fill in the total, the dates and the days first.";
+        else wpu = weightFromMinutesPerDay(minutes, exact);
+      }
     }
     const d = dateRangeError(startDate, endDate, LIMITS.days);
     if (d) errs.dates = d;
@@ -305,6 +342,12 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       ? suggestion?.weightPerUnit ?? null
       : weightPerUnitOf({ unitType, weightPerUnit: start?.weightPerUnit ?? null }, subjectId ? l.subjectDefault(subjectId) : null).weight;
   const baseMinutes = baseWeight !== null && pace !== null ? minutesPerDayFromWeight(baseWeight, pace) : null;
+  const storedMinuteDays = item && item.unitType === "minutes"
+    ? schoolDayCount(item.startDate, item.endDate, item.weekdays ?? l.subjectWeekdays(item.subjectId) ?? schoolDays)
+    : 0;
+  const minutesBase = !minutesMode ? null : item && item.unitType === "minutes"
+    ? impliedMinutesPerDay(item.totalUnits, item.weightPerUnit, storedMinuteDays, l.subjectDefault(item.subjectId))
+    : MINUTES_A_DAY_DEFAULT;
   const pickedMinutes = pick === null ? null : pick.kind === "preset" ? pick.minutes : Number(pick.text.trim() || NaN);
   const shownError = formError ?? externalError;
   const field = (id: string, label: string, err: string | undefined, input: ReactNode, hint?: ReactNode) => (
@@ -387,15 +430,15 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
               <option key={u} value={u}>{unitTitle(u)}</option>
             ))}
           </select>)}
-      {field(ids.total, "Total", errors.totalUnits,
+      {minutesMode ? null : field(ids.total, "Total", errors.totalUnits,
           <input id={ids.total} type="number" inputMode="decimal" min="0" step="any" value={totalUnits}
             onChange={(e) => setTotalUnits(e.target.value)} {...inv(errors.totalUnits, ids.total)} />)}
       {/* S6b-07: one quiet line for a pace that looks like a typo; it never blocks Save. */}
       {/* S18-04 (E9): the same warning Add several and CSV import give (effort.ts `paceWarning`): the unit pace first, then more than two hours a day. */}
-      {!unitUnchosen && paceWarning(pace, unitType, pickedMinutes !== null && Number.isFinite(pickedMinutes) ? pickedMinutes : baseMinutes)
-        ? <p className="hint pace-note" role="note">{paceWarning(pace, unitType, pickedMinutes !== null && Number.isFinite(pickedMinutes) ? pickedMinutes : baseMinutes)}</p> : null}
-      {unitUnchosen ? null : <EffortField id={ids.effort} unitType={unitType} pace={pace} paceNote={paceNote} pick={pick} onPick={setPick} baseMinutes={baseMinutes}
-        suggestion={suggesting && !usualNow ? suggestion : null} subjectName={l.subjectName(subjectId)}
+      {!unitUnchosen && paceWarning(minutesMode ? null : pace, unitType, pickedMinutes !== null && Number.isFinite(pickedMinutes) ? pickedMinutes : (minutesMode ? minutesBase : baseMinutes))
+        ? <p className="hint pace-note" role="note">{paceWarning(minutesMode ? null : pace, unitType, pickedMinutes !== null && Number.isFinite(pickedMinutes) ? pickedMinutes : (minutesMode ? minutesBase : baseMinutes))}</p> : null}
+      {unitUnchosen ? null : <EffortField id={ids.effort} unitType={unitType} plain={minutesMode} pace={pace} paceNote={minutesMode ? null : paceNote} pick={pick} onPick={setPick} baseMinutes={minutesMode ? minutesBase : baseMinutes}
+        suggestion={minutesMode ? null : suggesting && !usualNow ? suggestion : null} subjectName={l.subjectName(subjectId)}
         usual={{
           active: usualNow,
           // Own effort is a pick, or what is stored when editing; while following a subject-sourced suggestion the existing "Use about" covers it.

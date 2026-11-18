@@ -9,6 +9,7 @@ import { HttpError } from "../http/errors";
 import { checkDatesKeepLatestCheckIn, short } from "../http/checkInDates";
 import { checkDateOrder, MAX_ASSIGNMENT_DAYS } from "../http/scheduleLimits";
 import { getAssignment, lockAssignment, updateAssignment } from "../repos/assignmentRepo";
+import { rescaledMinutesTotal } from "./minutesSpan";
 import { saveWeek, type SaveWeekRequest, type WeekCheckInJson } from "./checkInService";
 import { assignmentStep, recordUndo, type UndoStep, type WeekCheckInsState } from "./undoService";
 
@@ -46,7 +47,11 @@ export async function saveStatus(tx: Tx, familyId: string, req: StatusSaveReques
     // The check-ins are written first, so the latest one (maybe this week's) is held to the new end.
     checkDateOrder(cur.start_date, endDate.endDate, MAX_ASSIGNMENT_DAYS);
     await checkDatesKeepLatestCheckIn(tx, familyId, cur.id, cur.start_date, endDate.endDate);
-    await updateAssignment(tx, familyId, cur.id, { endDate: endDate.endDate });
+    // S20-01: moving the end of a minutes assignment keeps the minutes a day (the total follows the new span).
+    const kept = cur.unit_type === "minutes"
+      ? await rescaledMinutesTotal(tx, familyId, cur, { startDate: cur.start_date, endDate: endDate.endDate, weekdays: cur.weekdays, subjectId: cur.subject_id })
+      : null;
+    await updateAssignment(tx, familyId, cur.id, { endDate: endDate.endDate, ...(kept !== null ? { totalUnits: kept } : {}) });
     const step = assignmentStep(cur, (await getAssignment(tx, familyId, cur.id))!);
     if (step) {
       // The assignment goes back after the check-ins (an earlier end must not meet a newer check-in).

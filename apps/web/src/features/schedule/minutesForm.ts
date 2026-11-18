@@ -1,0 +1,29 @@
+/**
+ * S20-01: a minutes assignment is minutes a day plus the dates. The stored total is that daily amount times the
+ * school days in the dates (the parent never sees it), and the weight is the built-in 0.5 so one unit is one minute.
+ */
+import { DEFAULT_WEIGHT_PER_UNIT, minutesPerDayFromWeight, weightPerUnitOf, type SubjectDefaultWeight } from "@hh/engine";
+import { schoolDaysBetween } from "./effort";
+
+/** What a new minutes assignment starts on when she has not chosen yet. */
+export const MINUTES_A_DAY_DEFAULT = 30;
+/** A day has this many minutes: the most a custom answer may be. */
+export const MAX_MINUTES_A_DAY = 1440;
+/** 0.5, so minutes a day equals the units placed on a full day. */
+export const MINUTES_DAILY_WEIGHT = DEFAULT_WEIGHT_PER_UNIT.minutes;
+
+/** The total that places `minutesPerDay` on each of `days` school days. */
+export function minutesPile(minutesPerDay: number, days: number): number {
+  return Math.round((minutesPerDay * days + Number.EPSILON) * 100) / 100;
+}
+
+/** The minutes a day a stored minutes assignment already implies, over `days` school days. */
+export function impliedMinutesPerDay(total: number, weight: number | null, days: number, subjectDefault: SubjectDefaultWeight | null): number {
+  const w = weightPerUnitOf({ unitType: "minutes", weightPerUnit: weight }, subjectDefault).weight;
+  if (!(days > 0)) return MINUTES_A_DAY_DEFAULT;
+  return minutesPerDayFromWeight(w, total / days);
+}
+
+export function schoolDayCount(start: string, end: string, weekdays: readonly number[]): number {
+  return schoolDaysBetween(start, end, weekdays);
+}

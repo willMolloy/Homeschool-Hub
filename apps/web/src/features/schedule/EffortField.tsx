@@ -30,12 +30,14 @@ interface Props {
   chosenMinutes: number | null;
   /** S6b-13: "Use the subject's usual": `active` once chosen, `offer` while the assignment has its own effort and the subject has a usual. */
   usual?: { active: boolean; offer: boolean; onUse: () => void; /** The subject's weight per unit, for the hint (S7-17). */ weight: number | null };
+  /** S20-01: minutes assignments ask only for minutes a day. No pace line, no "add the total first", no subject usual. */
+  plain?: boolean;
   error?: string;
 }
 
-export function EffortField({ id, unitType, pace, paceNote, pick, onPick, baseMinutes, suggestion, subjectName, chosenMinutes, usual, error }: Props) {
-  const legend = "About how long will that take?";
-  if (pace === null) {
+export function EffortField({ id, unitType, pace, paceNote, pick, onPick, baseMinutes, suggestion, subjectName, chosenMinutes, usual, plain = false, error }: Props) {
+  const legend = plain ? "Minutes a day" : "About how long will that take?";
+  if (!plain && pace === null) {
     return (
       <fieldset className="effort">
         <legend>{legend}</legend>
@@ -73,8 +75,8 @@ export function EffortField({ id, unitType, pace, paceNote, pick, onPick, baseMi
   return (
     <fieldset className="effort" aria-describedby={describedBy} aria-invalid={error ? true : undefined}>
       <legend>{legend}</legend>
-      <p className="effort-pace">{paceText(pace, unitType)}</p>
-      {paceNote ? <p className="hint">{paceNote}</p> : null}
+      {plain || pace === null ? null : <p className="effort-pace">{paceText(pace, unitType)}</p>}
+      {!plain && paceNote ? <p className="hint">{paceNote}</p> : null}
       <div className="effort-options">
         {PRESET_MINUTES.map((m) => (
           <label key={m} className="effort-chip">
@@ -96,8 +98,8 @@ export function EffortField({ id, unitType, pace, paceNote, pick, onPick, baseMi
             onChange={(e) => onPick({ kind: "custom", text: e.target.value })} aria-invalid={error ? true : undefined} />
         </label>
       ) : null}
-      {hint ? <p id={`${id}-hint`} className="hint">{hint}</p> : null}
-      {useUsual}
+      {!plain && hint ? <p id={`${id}-hint`} className="hint">{hint}</p> : null}
+      {plain ? null : useUsual}
       {error ? <p id={`${id}-err`} className="field-error" role="alert">{error}</p> : null}
     </fieldset>
   );

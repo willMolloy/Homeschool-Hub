@@ -54,7 +54,6 @@ describe("the pace note on the Add form", () => {
     ["pages", "61", "60"],
     ["chapters", "6", "5"],
     ["lessons", "6", "5"],
-    ["minutes", "241", "240"],
   ])("%s: shown above the threshold and not at it", async (unit, above, at) => {
     const { user, form } = await openAdd(unit);
     set(form, "Start", "2026-11-02");
@@ -65,6 +64,19 @@ describe("the pace note on the Add form", () => {
     await user.clear(total);
     await user.type(total, at);
     expect(within(form).queryByText(NOTE)).toBeNull();
+  });
+
+  it("minutes: no Total, and a heavy day says so (S20-01)", async () => {
+    const { user, form } = await openAdd("minutes");
+    expect(within(form).queryByLabelText("Total")).toBeNull();
+    set(form, "Start", "2026-11-02");
+    set(form, "End", "2026-11-06");
+    expect(within(form).queryByText(NOTE)).toBeNull();
+    await user.click(within(form).getByRole("radio", { name: "Custom" }));
+    const minutes = within(form).getByLabelText("Minutes a day");
+    await user.clear(minutes);
+    await user.type(minutes, "150");
+    expect(within(form).getByText("That's about 150 min a day. Is that right?")).toBeInTheDocument();
   });
 
   it("no note until the total and dates are filled", async () => {

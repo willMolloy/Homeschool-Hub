@@ -3,6 +3,7 @@
  * every row through POST /api/assignments/bulk (S14-05: in chunks of 50, as one undo). Parsing and checking are csvImport.ts; any error blocks the whole import.
  */
 import { useId, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useMe } from "../../auth/AuthProvider";
 import type { Assignment } from "../../api/types";
 import { assignmentsCsvTemplate, errorText, MAX_IMPORT_BYTES, MAX_IMPORT_ROWS, parseAssignmentsCsv } from "./csvImport";
 import { bulkFailureText, saveInChunks } from "./copyPlan";
@@ -33,7 +34,8 @@ export function ImportAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) 
   const [saving, setSaving] = useState(false);
   const ids = { file: useId(), paste: useId() };
   const existing = useApi<Assignment[]>("/api/assignments");
-  const result = useMemo(() => (text.trim() ? parseAssignmentsCsv(text, l) : null), [text, l]);
+  const { schoolDays } = useMe();
+  const result = useMemo(() => (text.trim() ? parseAssignmentsCsv(text, { ...l, schoolDays }) : null), [text, l, schoolDays]);
   const template = useMemo(() => `data:text/csv;charset=utf-8,${encodeURIComponent(assignmentsCsvTemplate(l))}`, [l]);
   /** S18-04 (E9): rows that repeat something the family has, or an earlier row of this file, are flagged (never blocked). */
   const earlier = useMemo(() => repeatsOfEarlier(result?.rows ?? []), [result]);
@@ -85,6 +87,7 @@ export function ImportAssignmentsForm({ l, onSaved, onAdded, onCancel }: Props) 
         <textarea id={ids.paste} rows={6} value={text} onChange={(e) => { setText(e.target.value); setFormError(null); }} />
       </div>
       <p><a href={template} download="assignments-template.csv">Download template</a></p>
+      <p className="hint">For minutes, the number in the total column is minutes a day, not a total to finish.</p>
       {result && result.errors.length > 0 ? (
         <ul className="import-list" aria-label="Fix these">
           {result.errors.map((err, i) => (

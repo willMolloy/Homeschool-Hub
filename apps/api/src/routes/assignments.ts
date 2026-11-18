@@ -4,13 +4,14 @@ import { z } from "zod";
 import { withTransaction, type Tx } from "../db";
 import { checkUnitChange } from "../http/assignmentWeight";
 import { checkDatesKeepLatestCheckIn, short as shortDate } from "../http/checkInDates";
-import { checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, Title, TotalUnits, UnitTypeField, WeightPerUnit, Weekdays } from "../http/scheduleLimits";
+import { assertTypedTotal, checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, StoredTotalUnits, Title, UnitTypeField, WeightPerUnit, Weekdays } from "../http/scheduleLimits";
 import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
 import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment, type AssignmentRow, type EndedAs } from "../repos/assignmentRepo";
 import { checkRefs } from "../repos/refs";
 import { subjectDefaultWeekdays } from "../repos/subjectRepo";
 import { familyWeekStart } from "../http/familyWeek";
+import { rescaledMinutesTotal } from "../services/minutesSpan";
 import { effectiveWeekdays, weekdaysChange } from "../services/weekdaysChange";
 import { recordWeightChoices } from "../repos/weightChoiceRepo";
 import { resetAssignment } from "../services/assignmentReset";
@@ -24,7 +25,7 @@ const CreateBody = z.strictObject({
   subjectId: Id,
   title: Title,
   unitType: UnitTypeField,
-  totalUnits: TotalUnits,
+  totalUnits: StoredTotalUnits,
   weightPerUnit: WeightPerUnit.nullable().optional(),
   // null (or left out) = follow the subject's default weekdays, then every school day (S4-04).
   weekdays: Weekdays.nullable().optional(),
@@ -53,7 +54,7 @@ const PatchBody = z
     subjectId: Id.optional(),
     title: Title.optional(),
     unitType: UnitTypeField.optional(),
-    totalUnits: TotalUnits.optional(),
+    totalUnits: StoredTotalUnits.optional(),
     // null clears the weight (back to the subject default, then the built-in).
     weightPerUnit: WeightPerUnit.nullable().optional(),
     // null clears the days (back to the subject's default, then every school day).
@@ -72,6 +73,7 @@ type CreateInput = z.infer<typeof CreateBody>;
 
 /** Checks references, inserts one assignment and records its weight choice. The caller owns the transaction. */
 async function createOne(c: Tx, familyId: string, b: CreateInput) {
+  assertTypedTotal(b.unitType, b.totalUnits);
   await checkRefs(c, familyId, { subjectIds: [b.subjectId], childIds: b.childIds });
   const id = await createAssignment(c, familyId, { ...b, weightPerUnit: b.weightPerUnit ?? null, weekdays: b.weekdays ?? null });
   // Taking the default isn't a choice (S2b-07, D5).
@@ -188,6 +190,7 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       }
       const ended = await resolveEnded(c, req, cur, p);
       const unitType = p.unitType ?? cur.unit_type;
+      if (p.totalUnits !== undefined) assertTypedTotal(unitType, p.totalUnits);
       checkUnitChange({ unitType: cur.unit_type, weightPerUnit: cur.weight_per_unit }, p.unitType, p);
       // Only newly named references are checked: an assignment may keep a subject that was archived later.
       // Ids already linked may stay even if archived since (the forms keep them ticked); new ones must be active.
@@ -202,7 +205,16 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
         const week = await familyWeekStart(c, req);
         history = weekdaysChange({ startDate: p.startDate ?? cur.start_date, today: week.today, weekStart: week.weekStart, before, after, schoolDays: week.schoolDays, stored: { weekdaysFrom: cur.weekdays_from, previousWeekdays: cur.previous_weekdays } }) ?? undefined;
       }
-      await updateAssignment(c, req.familyId, cur.id, { ...p, ...ended, history });
+      // S20-01: a minutes assignment's dates or days changed without a new total. Keep the minutes a day.
+      let totalUnits = p.totalUnits;
+      if (unitType === "minutes" && cur.unit_type === "minutes" && totalUnits === undefined) {
+        const kept = await rescaledMinutesTotal(c, req.familyId, cur, {
+          startDate: p.startDate ?? cur.start_date, endDate: p.endDate ?? cur.end_date,
+          weekdays: p.weekdays === undefined ? cur.weekdays : p.weekdays, subjectId: p.subjectId ?? cur.subject_id,
+        });
+        if (kept !== null) totalUnits = kept;
+      }
+      await updateAssignment(c, req.familyId, cur.id, { ...p, ...ended, history, ...(totalUnits !== undefined && totalUnits !== p.totalUnits ? { totalUnits } : {}) });
       // A new weight (or the same number under a new unit type) is a choice for every child left on the assignment.
       let choiceIds: string[] = [];
       if (p.weightPerUnit !== undefined && (p.weightPerUnit !== cur.weight_per_unit || unitType !== cur.unit_type)) {
