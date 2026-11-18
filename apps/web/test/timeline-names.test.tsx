@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { layoutTimeline } from "../src/features/timeline/layout";
 import { buildTimelineModel } from "../src/features/timeline/model";
 import {
-  ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, LATER_PIECE_NAME_FACTOR, placeName, placePieceName, placePieceNames,
+  ABOVE_NAME_PX, ELLIPSIS, MIN_NAME_CHARS, NAME_INSET_PX, NAME_PAD_PX, NAME_PATCH_PX, estimateTextWidth, fitName, LATER_PIECE_NAME_FACTOR, placeName, placePieceName, placePieceNames,
   NAME_FONT_PX, OUTSIDE_CLEAR_PX, OUTSIDE_GAP_PX, placeRightName,
 } from "../src/features/timeline/names";
 import type { BandColumn } from "../src/features/timeline/paths";
@@ -136,7 +136,9 @@ describe("names in the layout", () => {
         expect(seen.has(`${band.rowKey}|${band.assignmentId}|${n.piece}`)).toBe(false);
         seen.add(`${band.rowKey}|${band.assignmentId}|${n.piece}`);
         const piece = band.runs[n.piece]!;
-        if (n.outside) {
+        // S20-01: a minutes bar that a skipped day no longer thickens can be under NAME_PATCH_PX, so its name sits above the row (S17-01).
+        const above = n.y + n.height <= row.y + 0.01;
+        if (n.outside && !above) {
           // S10-04b: just right of the piece, centred on the row, clear of every other piece in the row and the plot edge.
           expect(n.x).toBeCloseTo(piece.x1 + OUTSIDE_GAP_PX, 5);
           expect(n.textY).toBeCloseTo(band.cy, 5);
@@ -145,6 +147,9 @@ describe("names in the layout", () => {
           for (const other of l.bands.filter((b) => b.rowKey === n.rowKey)) {
             for (const run of other.runs) expect(run.x0 >= n.x + n.width + OUTSIDE_CLEAR_PX - 0.01 || run.x1 <= n.x + 0.01).toBe(true);
           }
+        } else if (above) {
+          expect(n.x).toBeGreaterThanOrEqual(piece.x0 - 0.01);
+          expect(n.y + n.height).toBeLessThanOrEqual(row.y + 0.01);
         } else {
           // T-11: inside its piece, inside its row.
           expect(n.x).toBeGreaterThanOrEqual(piece.x0 - 0.01);
@@ -159,8 +164,8 @@ describe("names in the layout", () => {
         for (const m of l.names.filter((m) => m.rowKey === n.rowKey && m !== n)) expect(m.x >= n.x + n.width || m.x + m.width <= n.x).toBe(true);
       }
       if (width === 1280) expect(l.names.length).toBeGreaterThan(5);
-      // S10-04b: names never need extra space above a row any more.
-      for (const r of l.rows) expect(r.labelLane).toBe(0);
+      // A row of bars thick enough for a name has no extra lane. A thinner row (minutes, after S20-01) may.
+      for (const r of l.rows) expect([0, ABOVE_NAME_PX]).toContain(r.labelLane);
     });
   }
 

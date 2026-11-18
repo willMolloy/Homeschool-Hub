@@ -17,8 +17,11 @@ describe("sample family (proto data.ts)", () => {
     }
   });
 
-  it("matches the prototype day by day for all 14 assignments (no overrides)", () => {
+  it("matches the prototype day by day for every assignment that is not minutes", () => {
+    // S20-01: the prototype thickens minutes onto the days that remain when a Friday or Thursday is skipped.
+    // Minutes now keep the daily amount, so piano and violin are checked on their own below.
     for (const pa of protoData.assignments) {
+      if (pa.unit === "minutes") continue;
       const pp = proto.plan(pa, protoData.events);
       const na = S.assignments.find((x) => x.id === pa.id)!;
       for (const np of planAssignment(na, ctx)) {
@@ -26,6 +29,19 @@ describe("sample family (proto data.ts)", () => {
           const i = proto.dayOf(d.date);
           expect(d.units, `${pa.id} ${np.childId} ${d.date}`).toBeCloseTo(pp.daily[i] ?? 0, 9);
         }
+      }
+    }
+  });
+
+  it("piano and violin stay thinner than the prototype on the first school day (S20-01)", () => {
+    for (const id of ["piano", "violin"]) {
+      const pa = protoData.assignments.find((a) => a.id === id)!;
+      const pp = proto.plan(pa, protoData.events);
+      const na = S.assignments.find((x) => x.id === id)!;
+      for (const np of planAssignment(na, ctx)) {
+        const first = np.days.find((d) => d.units > 0)!;
+        const i = proto.dayOf(first.date);
+        expect(first.units, `${id} ${np.childId} ${first.date}`).toBeLessThan((pp.daily[i] ?? 0) - 1);
       }
     }
   });
