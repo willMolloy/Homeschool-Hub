@@ -6,7 +6,7 @@
  * the end date to the board, which sends the week once. S18b-01: a picked date before today stays allowed, and Save asks
  * "That's before today; this ends the book now. Continue?" and waits. No, Cancel, or leaving it unanswered does not save.
  */
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { OverrideMode } from "@hh/engine";
 import type { CheckInItem } from "../../api/types";
 import { ResponsiveSheet } from "../../components/ui/ResponsiveSheet";
@@ -90,6 +90,12 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   const [pickError, setPickError] = useState<string | null>(null);
   /** S18b-01: a past date stays allowed, and the save waits until the parent confirms it. */
   const [askPast, setAskPast] = useState(false);
+  const confirmRef = useRef<HTMLDivElement>(null);
+  // S18c-02: the question is drawn at the top of the sheet. If the sheet was already scrolled, bring it back into view.
+  useEffect(() => {
+    if (!askPast) return;
+    confirmRef.current?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [askPast]);
   const today = todayOf(me);
   const labelId = useId();
   /** S20-01: minutes have no pile to get through. The week stood, or she picks a new end date. */
@@ -132,9 +138,20 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
     }
     return onSave(pos, "keepEndDate", null);
   };
+  const confirm = (
+    <div className="status-confirm-block" ref={confirmRef}>
+      <p className="status-confirm" role="alert">That&apos;s before today; this ends the book now. Continue?</p>
+      <div className="btn-row status-actions">
+        <Button disabled={busy} onClick={() => save(true)}>Continue</Button>
+        <Button variant="secondary" disabled={busy} onClick={() => setAskPast(false)}>No</Button>
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+      </div>
+    </div>
+  );
   return (
     <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={<span className="status-title" title={item.title}>{item.title}</span>}>
       <div className="status-sheet">
+        {askPast ? confirm : null}
         <p className="status-sub">{item.childName} · {words} {whenText}</p>
         {minutes ? (
           <>
@@ -209,13 +226,12 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
         ) : null}
         {copies}
         {error ? <p className="checkin-error" role="alert">{error}</p> : null}
-        {askPast ? <p className="status-confirm" role="alert">That&apos;s before today; this ends the book now. Continue?</p> : null}
-        <div className="btn-row status-actions">
-          {askPast ? <Button disabled={busy} onClick={() => save(true)}>Continue</Button> : null}
-          {askPast ? <Button variant="secondary" disabled={busy} onClick={() => setAskPast(false)}>No</Button> : null}
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          {askPast ? null : <Button disabled={busy} onClick={() => save()}>Save</Button>}
-        </div>
+        {askPast ? null : (
+          <div className="btn-row status-actions">
+            <Button variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button disabled={busy} onClick={() => save()}>Save</Button>
+          </div>
+        )}
       </div>
     </ResponsiveSheet>
   );
