@@ -15,6 +15,7 @@ import { isLongBreak, weekdayOf } from "@hh/engine";
 import { dayOffTitle } from "../../lib/kindNames";
 import type { BuiltInZoomOverrides, CustomZoomView } from "../../api/types";
 import type { ChildStep, SubjectLane, TimelineAssignment, TimelineModel } from "./model";
+import { separateBreakTitles } from "./breakTitles";
 import { ABOVE_NAME_PX, barTitle, daysEnding, estimateTextWidth, fitName, OUTSIDE_CLEAR_PX, placeNameAbove, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
@@ -711,19 +712,23 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
   // Breaks: family-wide ones span every group; per-child ones only that child's group (its header included).
   // S19-06: a break of a week or longer shows its name. A shorter one keeps its wash and its kind name in the list, not a year-view title.
   const breaks: BreakRect[] = [];
+  const titled: { text: string; x: number; y: number; width: number; full: string }[] = [];
   // Below the sticky month axis, and below a group's sticky header, so the name is not hidden under either.
   const placeTitle = (b: (typeof model.breaks)[number], bandX: number, clearBelow: number): BreakRect["title"] => {
     const start = model.dates[b.first];
     const end = model.dates[b.last];
     if (!start || !end || !isLongBreak(start, end)) return null;
+    const full = dayOffTitle(b);
     const room = Math.max(24, plotRight - plotX - 4);
-    const text = fitName(dayOffTitle(b), room, measure) ?? dayOffTitle(b);
+    const text = fitName(full, room, measure) ?? full;
     const width = measure(text);
     let x = bandX + 4;
     if (x + width > plotRight - 2) x = plotRight - 2 - width;
     if (x < plotX) x = plotX;
     const y = Math.max(m.axis + 10, clearBelow + 10);
-    return { text, x, y, width };
+    const title = { text, x, y, width, full };
+    titled.push(title);
+    return title;
   };
   for (const b of model.breaks) {
     const from = Math.max(b.first, first);
@@ -747,6 +752,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
       }
     }
   }
+  separateBreakTitles(titled, measure, plotRight);
 
   const t = model.todayIndex;
   const todayX = t >= 0 && shown(t) ? (xs.isColumn(t) ? xs.start(t) + xs.columnWidth / 2 : xs.start(t)) : null;
