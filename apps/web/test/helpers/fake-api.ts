@@ -58,14 +58,14 @@ export const DEMO_ME: Me = {
 const ROSTER_PATCH = ["name", "color", "sortOrder", "archived"];
 const ASSIGNMENT = ["subjectId", "title", "unitType", "totalUnits", "weightPerUnit", "minutesPerDay", "startDate", "endDate", "childIds", "weekdays"];
 const EVENT = ["name", "weekdays", "startDate", "endDate", "capacityFraction", "defaultRule", "subjectRules", "childIds"];
-const BLOCKED = ["label", "kind", "startDate", "endDate", "childIds"];
+const BLOCKED = ["label", "kind", "startDate", "endDate", "childIds", "adjustments"];
 /** The keys each API body schema accepts (apps/api/src/routes/*, all z.strictObject). `:id` = one path segment. */
 export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/auth/login": ["email", "password"],
   "POST /api/auth/switch": ["familyId"],
   "POST /api/family/view-links": ["label"],
   "POST /api/plan/preview-event": ["event", "eventId"],
-  "POST /api/blocked-ranges/bulk": ["blockedRanges"],
+  "POST /api/blocked-ranges/bulk": ["blockedRanges", "adjustments"],
   "POST /api/calendar-templates": ["name", "breaks"],
   "PATCH /api/family": ["name", "weekStart", "schoolDays", "timeZone", "zoomViews", "logSetup", "setupStep", "setupDone", "setupDeferred", "schoolYear", "tipsSeen", "checklistHidden"],
   "POST /api/log-entries": ["childIds", "startDate", "endDate", "countsSchoolDay", "days", "subjectMinutes", "totalMinutes", "homeMinutes", "awayMinutes", "notes", "books"],

@@ -240,6 +240,7 @@ describe("the undo bar after other changes", () => {
 
   it("a day off created shows it", async () => {
     withRoster();
+    fakeApi.on("GET /api/assignments", 200, []);
     fakeApi.on("GET /api/blocked-ranges", 200, []);
     fakeApi.on("POST /api/blocked-ranges", (body) => [201, { ...(body as object), id: rowId(19) }]);
     const user = userEvent.setup();

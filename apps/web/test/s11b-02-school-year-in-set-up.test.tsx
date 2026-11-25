@@ -62,7 +62,7 @@ describe("the School year screen", () => {
     expect(patch.zoomViews.custom.map((v) => v.name)).toEqual(["Term 1", "Term 2", "Term 3"]);
     expect(patch.setupDeferred).toEqual([]);
     expect(patch.setupStep).toBeUndefined();
-    expect(f.blocked).toHaveLength(2);
+    expect(f.blocked).toHaveLength(0);
     expect(f.me.setupDeferred).toEqual([]);
   });
 

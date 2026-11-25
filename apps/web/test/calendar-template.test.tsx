@@ -12,8 +12,9 @@ const END = "2027-05-28";
 
 async function open(rows: BlockedRange[] = []) {
   withRoster();
+  fakeApi.on("GET /api/assignments", 200, []);
   fakeApi.on("GET /api/blocked-ranges", 200, rows);
-  fakeApi.on("POST /api/blocked-ranges/bulk", (body) => [201, (body as { blockedRanges: object[] }).blockedRanges.map((b, i) => ({ ...b, id: rowId(60 + i) }))]);
+  fakeApi.on("POST /api/blocked-ranges", (body) => [201, { ...(body as object), id: rowId(60 + fakeApi.calls.filter((c) => c.method === "POST" && c.path === "/api/blocked-ranges").length) }]);
   const user = userEvent.setup();
   renderAt("/schedule/days-off");
   await screen.findByRole("heading", { name: "Days off" });
@@ -28,7 +29,7 @@ const fillYear = (form: HTMLElement) => {
   date("Last day of the year", END, form);
 };
 const shape = (user: ReturnType<typeof userEvent.setup>, form: HTMLElement, name: string) => user.selectOptions(within(form).getByLabelText("Year shape"), name);
-const lines = (form: HTMLElement) => within(form).queryAllByRole("listitem").map((li) => li.textContent);
+const lines = (form: HTMLElement) => within(form).queryAllByRole("listitem").map((li) => li.querySelector("span")?.textContent ?? li.textContent);
 
 describe("Use a template (S5-05)", () => {
   it("opens next to Add, with the built-in shapes, Custom and every holiday ticked", async () => {
@@ -100,48 +101,46 @@ describe("Use a template (S5-05)", () => {
     expect(within(form).getByText("1 already in your days off")).toBeInTheDocument();
   });
 
-  it("Add breaks sends one bulk request: holidays as holiday, pattern breaks as vacation, for everyone; the list refreshes", async () => {
+  it("Add saves one break, leaves the panel open, and a second Add is its own save", async () => {
     const { user, form } = await open();
     fillYear(form);
     await shape(user, form, "Sabbath schedule (6 on, 1 off)");
-    await user.click(within(form).getByRole("button", { name: "Add breaks" }));
-    const w = writes();
-    expect(w).toHaveLength(1);
-    expect(w[0]).toMatchObject({ method: "POST", path: "/api/blocked-ranges/bulk" });
-    const sent = (w[0]!.body as { blockedRanges: { label: string; kind: string; startDate: string; endDate: string; childIds: string[] }[] }).blockedRanges;
-    expect(sent).toHaveLength(11);
-    expect(sent.every((b) => b.childIds.length === 0)).toBe(true);
-    expect(sent.filter((b) => b.kind === "vacation").map((b) => [b.label, b.startDate, b.endDate])[0]).toEqual(["Break", "2026-09-28", "2026-10-04"]);
-    expect(sent.filter((b) => b.kind === "holiday").map((b) => b.label)).toEqual([
-      "Labor Day", "Thanksgiving", "Winter break", "Martin Luther King Jr. Day", "Presidents' Day", "Good Friday",
-    ]);
-    expect(await screen.findByRole("list", { name: "Days off" })).toBeInTheDocument();
-    expect(within(screen.getByRole("list", { name: "Days off" })).getAllByRole("listitem")).toHaveLength(11);
-    expect(screen.queryByRole("form", { name: "Use a template" })).toBeNull();
+    const row = (text: string) => within(form).getAllByRole("listitem").find((li) => li.querySelector("span")?.textContent?.startsWith(text));
+    await user.click(within(row("Break: Sep 28")!).getByRole("button", { name: "Add" }));
+    expect(writes()).toEqual([{
+      method: "POST", path: "/api/blocked-ranges",
+      body: { label: "Break", kind: "vacation", startDate: "2026-09-28", endDate: "2026-10-04", childIds: [] },
+    }]);
+    expect(screen.getByRole("form", { name: "Use a template" })).toBeInTheDocument();
+    await user.click(within(row("Labor Day")!).getByRole("button", { name: "Add" }));
+    expect(writes()).toHaveLength(2);
+    expect(writes()[1]!.path).toBe("/api/blocked-ranges");
+    await user.click(within(form).getByRole("button", { name: "Done" }));
+    expect(within(screen.getByRole("list", { name: "Days off" })).getAllByRole("listitem")).toHaveLength(2);
   });
 
   it("invalid dates block Add: blank, and an end before the start; so do custom weeks outside 1-20", async () => {
     const { user, form } = await open();
-    await user.click(within(form).getByRole("button", { name: "Add breaks" }));
+    await user.click(within(form).getByRole("button", { name: "Done" }));
     expect(within(form).getByText("Pick a start and an end date.")).toBeInTheDocument();
     date("First day of the year", END, form);
     date("Last day of the year", START, form);
-    await user.click(within(form).getByRole("button", { name: "Add breaks" }));
+    await user.click(within(form).getByRole("button", { name: "Done" }));
     expect(within(form).getByText("The end date must be on or after the start date.")).toBeInTheDocument();
     fillYear(form);
     await shape(user, form, "Custom");
     fireEvent.change(within(form).getByLabelText("Weeks off"), { target: { value: "21" } });
-    await user.click(within(form).getByRole("button", { name: "Add breaks" }));
+    await user.click(within(form).getByRole("button", { name: "Done" }));
     expect(within(form).getByText("Weeks on and off are whole numbers from 1 to 20.")).toBeInTheDocument();
     expect(writes()).toEqual([]);
   });
 
   it("a failed request shows the error and keeps the panel open", async () => {
     const { user, form } = await open();
-    fakeApi.on("POST /api/blocked-ranges/bulk", 400, { error: "invalid_request", message: "Day off 2: bad." });
+    fakeApi.on("POST /api/blocked-ranges", 400, { error: "invalid_request", message: "That break could not be saved." });
     fillYear(form);
-    await user.click(within(form).getByRole("button", { name: "Add breaks" }));
-    expect(await within(form).findByRole("alert")).toHaveTextContent("Day off 2: bad.");
+    await user.click(within(form).getAllByRole("button", { name: "Add" })[0]!);
+    expect(await within(form).findByRole("alert")).toHaveTextContent("That break could not be saved.");
     expect(screen.getByRole("form", { name: "Use a template" })).toBeInTheDocument();
   });
 
@@ -157,13 +156,11 @@ describe("Use a template (S5-05)", () => {
       ["Labor Day", "2026-09-07", "2026-09-07"], ["Thanksgiving", "2026-11-26", "2026-11-27"], ["Winter break", "2026-12-24", "2027-01-01"],
       ["Martin Luther King Jr. Day", "2027-01-18", "2027-01-18"], ["Presidents' Day", "2027-02-15", "2027-02-15"], ["Good Friday", "2027-03-26", "2027-03-26"],
     ].map(([label, startDate, endDate], i) => ({ id: rowId(30 + i), label: label!, kind: "holiday", startDate: startDate!, endDate: endDate!, childIds: [] }));
-    const { user, form } = await open(holidays);
+    const { form } = await open(holidays);
     fillYear(form);
     expect(within(form).getByText("Nothing new to add: these breaks are already in your days off.")).toBeInTheDocument();
     expect(within(form).queryByText(/breaks? to add/)).toBeNull();
-    const add = within(form).getByRole("button", { name: "Add breaks" });
-    expect(add).toBeDisabled();
-    await user.click(add);
+    expect(within(form).queryByRole("button", { name: "Add" })).toBeNull();
     expect(writes()).toEqual([]);
   });
 
@@ -172,7 +169,7 @@ describe("Use a template (S5-05)", () => {
     fillYear(form);
     for (const box of within(form).getAllByRole("checkbox")) await user.click(box);
     expect(within(form).getByText("No breaks in this range.")).toBeInTheDocument();
-    expect(within(form).getByRole("button", { name: "Add breaks" })).toBeDisabled();
+    expect(within(form).queryByRole("button", { name: "Add" })).toBeNull();
     expect(writes()).toEqual([]);
   });
 });

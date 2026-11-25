@@ -32,9 +32,10 @@ const SAVED: CalendarTemplate = {
 
 async function open(label: "Use a template" | "Save as a template", rows: BlockedRange[] = [], templates: CalendarTemplate[] = []) {
   withRoster();
+  fakeApi.on("GET /api/assignments", 200, []);
   fakeApi.on("GET /api/blocked-ranges", 200, rows);
   fakeApi.on("GET /api/calendar-templates", 200, templates);
-  fakeApi.on("POST /api/blocked-ranges/bulk", (body) => [201, (body as { blockedRanges: object[] }).blockedRanges.map((b, i) => ({ ...b, id: rowId(60 + i) }))]);
+  fakeApi.on("POST /api/blocked-ranges", (body) => [201, { ...(body as object), id: rowId(60 + fakeApi.calls.filter((c) => c.method === "POST" && c.path === "/api/blocked-ranges").length) }]);
   fakeApi.on("POST /api/calendar-templates", (body) => [201, { ...(body as object), id: rowId(81) }]);
   const user = userEvent.setup();
   renderAt("/schedule/days-off");
@@ -45,7 +46,7 @@ async function open(label: "Use a template" | "Save as a template", rows: Blocke
   return { user, form };
 }
 const date = (label: string, value: string, scope: HTMLElement) => fireEvent.change(within(scope).getByLabelText(label), { target: { value } });
-const lines = (form: HTMLElement) => within(form).queryAllByRole("listitem").map((li) => li.textContent);
+const lines = (form: HTMLElement) => within(form).queryAllByRole("listitem").map((li) => li.querySelector("span")?.textContent ?? li.textContent);
 
 describe("Save as a template (S5-07)", () => {
   it("saves the year's family-wide days off as offsets, keeping kind and label, and says how many per-child ones were left out", async () => {
@@ -139,26 +140,21 @@ describe("Use a saved template (S5-07)", () => {
     expect(within(form).queryByRole("checkbox")).toBeNull();
   });
 
-  it("previews the breaks shifted by the difference in start dates, and one bulk POST adds them", async () => {
+  it("previews the shifted breaks, and Add saves only the one that was clicked", async () => {
     const { user, form } = await open("Use a template", [], [SAVED]);
     await waitFor(() => expect(within(form).getByRole("option", { name: "2026–27" })).toBeInTheDocument());
     await choose(user, form);
     date("First day of the new year", "2027-08-16", form); // 364 days after 2026-08-17
     expect(within(form).getByText("3 breaks to add")).toBeInTheDocument();
     expect(lines(form)).toEqual(["Sick day: Aug 16", "Break: Sep 27 – Oct 3", "Thanksgiving: Nov 25–26"]);
-    await user.click(within(form).getByRole("button", { name: "Add breaks" }));
+    await user.click(within(form).getAllByRole("button", { name: "Add" })[0]!);
     expect(writes()).toEqual([{
-      method: "POST", path: "/api/blocked-ranges/bulk",
-      body: {
-        blockedRanges: [
-          { label: null, kind: "sick", startDate: "2027-08-16", endDate: "2027-08-16", childIds: [] },
-          { label: "Break", kind: "vacation", startDate: "2027-09-27", endDate: "2027-10-03", childIds: [] },
-          { label: "Thanksgiving", kind: "holiday", startDate: "2027-11-25", endDate: "2027-11-26", childIds: [] },
-        ],
-      },
+      method: "POST", path: "/api/blocked-ranges",
+      body: { label: null, kind: "sick", startDate: "2027-08-16", endDate: "2027-08-16", childIds: [] },
     }]);
-    expect(await screen.findByRole("list", { name: "Days off" })).toBeInTheDocument();
-    expect(within(screen.getByRole("list", { name: "Days off" })).getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.getByRole("form", { name: "Use a template" })).toBeInTheDocument();
+    await user.click(within(form).getByRole("button", { name: "Done" }));
+    expect(within(screen.getByRole("list", { name: "Days off" })).getAllByRole("listitem")).toHaveLength(1);
   });
 
   it("the same overlap rule: a break over an existing family-wide day off is left out and noted", async () => {
@@ -175,7 +171,7 @@ describe("Use a saved template (S5-07)", () => {
     const { user, form } = await open("Use a template", [], [SAVED]);
     await waitFor(() => expect(within(form).getByRole("option", { name: "2026–27" })).toBeInTheDocument());
     await choose(user, form);
-    await user.click(within(form).getByRole("button", { name: "Add breaks" }));
+    await user.click(within(form).getByRole("button", { name: "Done" }));
     expect(within(form).getByText("Pick the first day of the new year.")).toBeInTheDocument();
     expect(writes()).toEqual([]);
   });

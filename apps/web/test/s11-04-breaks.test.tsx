@@ -12,33 +12,33 @@ import { renderAt } from "./render";
 
 beforeEach(() => { clearSetupLater(); sessionStorage.clear(); });
 
-const bulkPosts = () => fakeApi.calls.filter((c) => c.method === "POST" && c.path === "/api/blocked-ranges/bulk").map((c) => (c.body as { blockedRanges: unknown[] }).blockedRanges);
-function bulkAdds(f: NewFamily) {
-  fakeApi.on("POST /api/blocked-ranges/bulk", (body) => {
-    const rows = (body as { blockedRanges: Omit<BlockedRange, "id">[] }).blockedRanges.map((b, i) => ({ ...b, id: `b${f.blocked.length + i + 1}` }));
-    f.blocked.push(...(rows as BlockedRange[]));
-    return [201, rows];
+const onePosts = () => fakeApi.calls.filter((c) => c.method === "POST" && c.path === "/api/blocked-ranges").map((c) => c.body);
+function savesOne(f: NewFamily) {
+  fakeApi.on("POST /api/blocked-ranges", (body) => {
+    const row = { ...(body as Omit<BlockedRange, "id">), id: `b${f.blocked.length + 1}` };
+    f.blocked.push(row);
+    return [201, row];
   });
 }
 async function atBreaks(f = newFamily({ setupStep: 5 }), year: { start: string; end: string } | null = { start: "2026-08-17", end: "2027-05-21" }) {
   f.schoolYear = year;
-  bulkAdds(f);
+  savesOne(f);
   const user = userEvent.setup();
   renderAt("/welcome");
   await screen.findByRole("heading", { level: 1, name: "Any breaks this year?" });
   await screen.findByRole("group", { name: "Holidays" });
   return { f, user };
 }
-const holidayBoxes = () => within(screen.getByRole("group", { name: "Holidays" })).getAllByRole("checkbox") as HTMLInputElement[];
+const holidayNames = () => within(screen.getByRole("group", { name: "Holidays" })).getAllByRole("listitem").map((li) => li.querySelector("span")!.textContent);
 
 describe("step 5: breaks", () => {
   it("lists the US holidays in the year's range, none ticked, and offers Add a break", async () => {
     await atBreaks();
-    expect(holidayBoxes().map((b) => b.closest("label")!.textContent)).toEqual([
+    expect(holidayNames()).toEqual([
       "Labor Day: Sep 7", "Thanksgiving: Nov 26–27", "Winter break: Dec 24 – Jan 1",
       "Martin Luther King Jr. Day: Jan 18", "Presidents' Day: Feb 15", "Good Friday: Mar 26",
     ]);
-    expect(holidayBoxes().every((b) => !b.checked)).toBe(true);
+    expect(within(screen.getByRole("group", { name: "Holidays" })).getByRole("button", { name: "Add Thanksgiving" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Add a break" })).toBeInTheDocument();
   });
 
@@ -46,15 +46,15 @@ describe("step 5: breaks", () => {
     await atBreaks(newFamily({ setupStep: 5, setupDeferred: ["year"] }), null);
     const y = currentSchoolYear("2026-10-28");
     expect(y).toEqual({ start: "2026-08-01", end: "2027-06-30" });
-    expect(holidayBoxes()).toHaveLength(usHolidays(y.start, y.end).length);
+    expect(holidayNames()).toHaveLength(usHolidays(y.start, y.end).length);
     expect(currentSchoolYear("2027-03-04")).toEqual({ start: "2026-08-01", end: "2027-06-30" });
     expect(currentSchoolYear("2026-07-20")).toEqual({ start: "2026-08-01", end: "2027-06-30" });
   });
 
-  it("Add breaks saves the ticked holidays and the breaks added, and moves to step 6 with no reminder", async () => {
+  it("each break is saved on its own, and Continue moves on with no reminder", async () => {
     const { f, user } = await atBreaks();
-    expect(screen.getByRole("button", { name: "Add breaks" })).toBeDisabled();
-    await user.click(screen.getByRole("checkbox", { name: "Thanksgiving: Nov 26–27" }));
+    await user.click(screen.getByRole("button", { name: "Add Thanksgiving" }));
+    expect(onePosts()).toEqual([{ label: "Thanksgiving", kind: "holiday", startDate: "2026-11-26", endDate: "2026-11-27", childIds: [] }]);
     await user.click(screen.getByRole("button", { name: "Add a break" }));
     await user.type(screen.getByLabelText("Name of the break"), "Fall break");
     const own = within(screen.getByRole("group", { name: "Add a break" }));
@@ -62,12 +62,11 @@ describe("step 5: breaks", () => {
     fireEvent.change(own.getByLabelText("Last day"), { target: { value: "2026-10-16" } });
     await user.click(own.getByRole("button", { name: "Add" }));
     expect(within(screen.getByRole("list", { name: "Breaks you added" })).getByText("Fall break: Oct 12–16")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add breaks" }));
+    expect(onePosts()).toHaveLength(2);
+    expect(onePosts()[1]).toMatchObject({ label: "Fall break", kind: "vacation", startDate: "2026-10-12", endDate: "2026-10-16", childIds: [] });
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByText("Step 6 of 6");
-    expect(bulkPosts()).toEqual([[
-      { label: "Thanksgiving", kind: "holiday", startDate: "2026-11-26", endDate: "2026-11-27", childIds: [] },
-      { label: "Fall break", kind: "vacation", startDate: "2026-10-12", endDate: "2026-10-16", childIds: [] },
-    ]]);
+    expect(onePosts()).toHaveLength(2);
     expect(familyPatches()).toEqual([{ setupDeferred: [], setupStep: 6 }]);
     expect(f.blocked.map((b) => b.label)).toEqual(["Thanksgiving", "Fall break"]);
   });
@@ -81,37 +80,36 @@ describe("step 5: breaks", () => {
     expect(screen.queryByRole("list", { name: "Breaks you added" })).toBeNull();
   });
 
-  it("a break added by mistake can be removed before saving", async () => {
-    const { user } = await atBreaks();
+  it("a break saved by mistake can be removed", async () => {
+    const { f, user } = await atBreaks();
     await user.click(screen.getByRole("button", { name: "Add a break" }));
     await user.type(screen.getByLabelText("Name of the break"), "Trip");
     fireEvent.change(screen.getByLabelText("First day"), { target: { value: "2026-10-12" } });
     fireEvent.change(screen.getByLabelText("Last day"), { target: { value: "2026-10-16" } });
     await user.click(screen.getByRole("button", { name: "Add" }));
+    fakeApi.on("DELETE /api/blocked-ranges/b1", 204);
     await user.click(screen.getByRole("button", { name: "Remove Trip" }));
     expect(screen.queryByRole("list", { name: "Breaks you added" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Add breaks" })).toBeDisabled();
+    expect(fakeApi.calls.some((c) => c.method === "DELETE")).toBe(true);
+    expect(f.blocked).toHaveLength(1);
   });
 
-  it("holidays that are already days off are not added twice", async () => {
+  it("a holiday that is already a day off is not added again", async () => {
     const f = newFamily({ setupStep: 5 });
     f.blocked.push({ id: "b0", label: "Thanksgiving", kind: "holiday", startDate: "2026-11-26", endDate: "2026-11-27", childIds: [] });
     const { user } = await atBreaks(f);
-    await user.click(screen.getByRole("checkbox", { name: "Thanksgiving: Nov 26–27" }));
-    await user.click(screen.getByRole("checkbox", { name: "Labor Day: Sep 7" }));
-    await user.click(screen.getByRole("button", { name: "Add breaks" }));
-    await screen.findByText("Step 6 of 6");
-    expect(bulkPosts()).toEqual([[{ label: "Labor Day", kind: "holiday", startDate: "2026-09-07", endDate: "2026-09-07", childIds: [] }]]);
+    expect(screen.getByRole("button", { name: "Added Thanksgiving" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Add Labor Day" }));
+    expect(onePosts()).toEqual([{ label: "Labor Day", kind: "holiday", startDate: "2026-09-07", endDate: "2026-09-07", childIds: [] }]);
   });
 });
 
 describe("the other two buttons", () => {
   it("I'll get back to you on this: saves no breaks, goes on, and leaves a reminder on Home", async () => {
     const { user } = await atBreaks();
-    await user.click(screen.getByRole("checkbox", { name: "Labor Day: Sep 7" })); // ticked but not saved
     await user.click(screen.getByRole("button", { name: "I'll get back to you on this" }));
     await screen.findByText("Step 6 of 6");
-    expect(bulkPosts()).toEqual([]);
+    expect(onePosts()).toEqual([]);
     expect(familyPatches()).toEqual([{ setupDeferred: ["breaks"], setupStep: 6 }]);
     await user.click(screen.getByRole("button", { name: "Finish later" }));
     const reminder = await screen.findByRole("link", { name: /Add your breaks/ });
@@ -122,7 +120,7 @@ describe("the other two buttons", () => {
     const { user } = await atBreaks();
     await user.click(screen.getByRole("button", { name: "Skip" }));
     await screen.findByText("Step 6 of 6");
-    expect(bulkPosts()).toEqual([]);
+    expect(onePosts()).toEqual([]);
     expect(familyPatches()).toEqual([{ setupDeferred: [], setupStep: 6 }]);
     await user.click(screen.getByRole("button", { name: "Finish later" }));
     await screen.findByRole("button", { name: "Family and settings" });
@@ -139,14 +137,14 @@ describe("the other two buttons", () => {
   it("the reminder opens the step on its own, and Add breaks there clears it and goes Home", async () => {
     const f = newFamily({ setupDone: true, setupDeferred: ["breaks"] });
     f.schoolYear = { start: "2026-08-17", end: "2027-05-21" };
-    bulkAdds(f);
+    savesOne(f);
     const user = userEvent.setup();
     const { router } = renderAt("/");
     await user.click(await screen.findByRole("link", { name: /Add your breaks/ }));
     await screen.findByRole("group", { name: "Holidays" });
     expect(screen.queryByRole("progressbar")).toBeNull();
-    await user.click(screen.getByRole("checkbox", { name: "Labor Day: Sep 7" }));
-    await user.click(screen.getByRole("button", { name: "Add breaks" }));
+    await user.click(screen.getByRole("button", { name: "Add Labor Day" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("button", { name: "Family and settings" });
     expect(router.state.location.pathname).toBe("/");
     expect(familyPatches()).toEqual([{ setupDeferred: [] }]);

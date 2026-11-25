@@ -1,16 +1,19 @@
 /**
- * S5-05: "Use a template" on Days off: pick a year shape and the year's dates, see the breaks, add them in one step.
+ * S5-05: "Use a template" on Days off: pick a year shape and the year's dates, see the breaks.
+ * Each break is added on its own (DeeDee: one break at a time).
  * S5-07: the family's saved templates follow the built-in shapes; one asks only for the new year's first day.
  * S7-07: with nothing to add the panel says why and Add breaks is off.
  */
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { CALENDAR_SHAPES, HOLIDAY_KEYS, HOLIDAY_LABELS, isValidLocalDate, type HolidayKey } from "@hh/engine";
-import { apiDelete, apiPost } from "../../api/client";
+import { apiDelete } from "../../api/client";
 import { useApi } from "../../api/useApi";
 import { useMe } from "../../auth/AuthProvider";
 import type { BlockedKind, BlockedRange, CalendarTemplate } from "../../api/types";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { dateRangeError, saveError } from "./formBits";
+import { saveOneBreak } from "./breakOverlap";
+import { useBreakOverlap } from "./useBreakOverlap";
 import { ALL_HOLIDAYS, breakSaveBody, breakText, leaveOutExisting, MAX_YEAR_DAYS, plannedBreaks, shiftedBreaks, type PlannedBreak } from "./templates";
 import { DateField } from "../../ui/DateField";
 
@@ -29,11 +32,14 @@ interface Props {
   existing: BlockedRange[];
   kindLabels: Record<BlockedKind, string>;
   onSaved: (created: BlockedRange[]) => void;
+  /** Adds a row and leaves the panel open. */
+  onAdded?: (created: BlockedRange[]) => void;
   onCancel: () => void;
 }
 
-export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props) {
-  const { weekStart } = useMe();
+export function TemplatePanel({ existing, kindLabels, onAdded, onCancel }: Props) {
+  const { weekStart, schoolDays } = useMe();
+  const overlap = useBreakOverlap(schoolDays);
   // A failed load just means no saved templates are offered.
   const templates = useApi<CalendarTemplate[]>("/api/calendar-templates");
   const saved = templates.data ?? [];
@@ -46,6 +52,7 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
   const [tried, setTried] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addedHere, setAddedHere] = useState<BlockedRange[]>([]);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const ids = { shape: useId(), on: useId(), off: useId(), start: useId(), end: useId() };
@@ -61,28 +68,32 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
   const weeksError = custom && (on === null || off === null) ? `Weeks on and off are whole numbers from 1 to ${MAX_CUSTOM_WEEKS}.` : null;
   const problem = datesError ?? weeksError;
 
+  const known = useMemo(() => [...existing, ...addedHere], [existing, addedHere]);
   const { add, skipped } = useMemo((): { add: PlannedBreak[]; skipped: number } => {
     if (datesError || weeksError) return { add: [], skipped: 0 };
-    if (chosen) return leaveOutExisting(shiftedBreaks(chosen.breaks, start, weekStart), existing);
+    if (chosen) return leaveOutExisting(shiftedBreaks(chosen.breaks, start, weekStart), known);
     const pattern = custom ? { weeksOn: on!, weeksOff: off! } : builtIn?.pattern ?? null;
-    return leaveOutExisting(plannedBreaks(start, end, pattern, holidays, weekStart), existing);
-  }, [datesError, weeksError, chosen, custom, on, off, builtIn, start, end, holidays, weekStart, existing]);
+    return leaveOutExisting(plannedBreaks(start, end, pattern, holidays, weekStart), known);
+  }, [datesError, weeksError, chosen, custom, on, off, builtIn, start, end, holidays, weekStart, known]);
 
   /** S7-07: the dates are fine but no break would be added (all are already days off, or the range has none). */
   const nothingToAdd = !problem && add.length === 0;
 
-  async function submit(e: FormEvent) {
+  function revealProblems(e: FormEvent) {
     e.preventDefault();
-    if (saving) return;
-    setError(null);
     setTried(true);
-    if (problem || add.length === 0) return;
+  }
+
+  async function addOne(b: PlannedBreak) {
+    if (saving || problem) return;
+    setError(null);
     setSaving(true);
     try {
-      const created = await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", {
-        blockedRanges: add.map((b) => breakSaveBody(b)),
-      });
-      onSaved(created);
+      const body = breakSaveBody(b);
+      const created = await saveOneBreak(overlap.ask, body, known);
+      if (!created) return;
+      setAddedHere((list) => [...list, created]);
+      onAdded?.([created]);
     } catch (err) {
       setError(saveError(err));
     } finally {
@@ -113,7 +124,7 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
   });
 
   return (
-    <form className="card schedule-form" aria-label="Use a template" onSubmit={submit} noValidate>
+    <form className="card schedule-form" aria-label="Use a template" onSubmit={revealProblems} noValidate>
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       <div className="field">
         <label htmlFor={ids.shape}>Year shape</label>
@@ -183,14 +194,20 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
           ) : (
             <>
               <p className="event-preview-title">{add.length === 1 ? "1 break to add" : `${add.length} breaks to add`}</p>
-              <ul>{add.map((b) => <li key={`${b.start}/${b.end}/${b.label}`}>{breakText(b, kindLabels)}</li>)}</ul>
+              <p className="hint">Add one break at a time.</p>
+              <ul>{add.map((b) => (
+                <li key={`${b.start}/${b.end}/${b.label}`}>
+                  <span>{breakText(b, kindLabels)}</span>
+                  <button className="btn btn-secondary" type="button" disabled={saving} onClick={() => void addOne(b)}>Add</button>
+                </li>
+              ))}</ul>
               {skipped > 0 ? <p className="hint">{skipped} already in your days off</p> : null}
             </>
           )}
         </div>
       ) : null}
       <div className="btn-row">
-        <button className="btn" type="submit" disabled={saving || nothingToAdd}>{saving ? "Adding…" : "Add breaks"}</button>
+        <button className="btn" type="button" disabled={saving} onClick={() => { if (problem) { setTried(true); return; } onCancel(); }}>Done</button>
         <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>
       </div>
       {deleting && chosen ? (
@@ -205,6 +222,7 @@ export function TemplatePanel({ existing, kindLabels, onSaved, onCancel }: Props
           <p>Days off already added stay as they are.</p>
         </ConfirmDialog>
       ) : null}
+      {overlap.sheet}
     </form>
   );
 }
