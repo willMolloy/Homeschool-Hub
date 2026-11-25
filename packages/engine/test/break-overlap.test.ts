@@ -1,7 +1,7 @@
 /** S21-01: a break lists the open work it newly covers. Partial overlap counts; finished and stopped work does not. */
 /** S21-02: keeping the end date is the plan that already runs: the break is empty, the end stays, the other days carry the work. */
 import { describe, expect, it } from "vitest";
-import { countWeekdays, listBreakOverlaps, overlapSummary, planChild, pushEndBySchoolDays, resolveEndDates, weekdayOf, type BlockedPeriod, type BreakSpan, type OverlapAssignment } from "../src";
+import { countWeekdays, listBreakOverlaps, overlapSummary, pickRefusal, planChild, pushEndBySchoolDays, resolveEndDates, weekdayOf, type BlockedPeriod, type BreakSpan, type OverlapAssignment } from "../src";
 import { book, MON_FRI, unitsOn } from "./helpers";
 
 const SCHOOL = [1, 2, 3, 4, 5];
@@ -196,5 +196,19 @@ describe("move the end date (S21-03)", () => {
     const clash = resolveEndDates(hobbitRows, [{ kind: "pick", date: "2026-06-01" }, { kind: "pick", date: "2026-06-15" }], [hobbit], [], [], { schoolDays: SCHOOL });
     expect(clash.conflict).toBe("Pick one end date for The Hobbit.");
     expect(clash.ends).toEqual([]);
+  });
+
+  it("a picked day must be a family school day, after the break, and not already off", () => {
+    const opts = {
+      breakEnd: "2026-02-28",
+      assignmentStart: "2026-01-05",
+      schoolDays: [1, 2, 3, 4, 5],
+      off: [{ start: "2026-03-16", end: "2026-03-20", childIds: [] }],
+      childIds: ["frank"],
+    };
+    expect(pickRefusal("2026-02-10", opts)).toBe("inside");
+    expect(pickRefusal("2026-03-07", opts)).toBe("not-school-day");
+    expect(pickRefusal("2026-03-18", opts)).toBe("day-off");
+    expect(pickRefusal("2026-03-02", opts)).toBeNull();
   });
 });

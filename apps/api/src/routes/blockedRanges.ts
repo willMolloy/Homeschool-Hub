@@ -72,15 +72,14 @@ const PatchBody = z
 const notFound = () => new HttpError(404, "not_found", "No such day off.");
 
 /**
- * S21-04: a sheet confirm is one undo, named for the break. A save that overlapped nothing keeps the old wording.
- * Several breaks in one save are "Added N breaks".
+ * S21-04: a sheet confirm is one undo, named for that one break. A save that overlapped nothing keeps the old wording.
+ * DeeDee: a break is added one at a time, so a sheet confirm is never "Added N breaks".
  */
 function sheetLabel(action: "Added" | "Updated", label: string | null, start: string, count: number, fromSheet: boolean): string {
   if (!fromSheet) {
     if (action === "Updated") return "Changed a day off";
     return count === 1 ? "Added a day off" : `Added ${count} days off`;
   }
-  if (action === "Added" && count > 1) return `Added ${count} breaks`;
   return `${action} ${breakUndoName(label, start)}`;
 }
 
@@ -116,6 +115,7 @@ export async function blockedRangesRoutes(app: FastifyInstance): Promise<void> {
         return b;
       }));
     }
+    if (adjustments?.length && items.length !== 1) throw new HttpError(400, "invalid_request", "Add one break at a time.");
     const rows = await withTransaction(app.db, async (c) => {
       const created = [];
       for (const [i, b] of items.entries()) created.push(await atPosition(i + 1, () => createOne(c, req.familyId, b)));

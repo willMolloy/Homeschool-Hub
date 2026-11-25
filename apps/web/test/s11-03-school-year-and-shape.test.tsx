@@ -23,6 +23,11 @@ function bulkAdds(f: NewFamily) {
     f.blocked.push(...(rows as BlockedRange[]));
     return [201, rows];
   });
+  fakeApi.on("POST /api/blocked-ranges", (body) => {
+    const row = { ...(body as Omit<BlockedRange, "id">), id: `b${f.blocked.length + 1}` };
+    f.blocked.push(row);
+    return [201, row];
+  });
 }
 async function atYear(f = newFamily({ setupStep: 4 })) {
   bulkAdds(f);
@@ -111,10 +116,7 @@ describe("step 4: the school year", () => {
     await user.click(shapeCard("Three terms"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByText("Step 5 of 6");
-    expect(bulkPosts()).toEqual([[
-      { label: "Break", kind: "vacation", startDate: "2026-11-09", endDate: "2026-11-22", childIds: [] },
-      { label: "Break", kind: "vacation", startDate: "2027-02-15", endDate: "2027-02-28", childIds: [] },
-    ]]);
+    expect(bulkPosts()).toEqual([]);
     const patch = familyPatches().at(-1) as { schoolYear: unknown; zoomViews: { hidden: string[]; custom: { name: string; start: string; end: string }[] }; setupStep: number; setupDeferred: string[] };
     expect(patch.schoolYear).toEqual({ start: START, end: END, shape: "three-terms" });
     expect(patch.zoomViews.hidden).toEqual(["fall", "spring"]);
@@ -123,7 +125,7 @@ describe("step 4: the school year", () => {
     ]);
     expect(patch.setupStep).toBe(5);
     expect(patch.setupDeferred).toEqual([]);
-    expect(f.blocked).toHaveLength(2);
+    expect(f.blocked).toHaveLength(0);
   });
 
   it("Fall and Spring: the two views are re-dated to the year, and no breaks are added", async () => {
@@ -153,8 +155,20 @@ describe("step 4: the school year", () => {
     await user.click(shapeCard("6 weeks on, 1 off"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByText("Step 5 of 6");
-    expect(f.blocked).toHaveLength(5);
-    expect(f.blocked[0]).toMatchObject({ startDate: "2026-09-28", endDate: "2026-10-04", kind: "vacation" });
+    expect(f.blocked).toHaveLength(0);
+  });
+
+  it("a shape break is saved on its own, and Continue does not add the rest", async () => {
+    const { f, user } = await atYear();
+    fillYear();
+    await user.click(shapeCard("Three terms"));
+    await user.click(screen.getAllByRole("button", { name: "Add" })[0]!);
+    expect(f.blocked).toHaveLength(1);
+    expect(f.blocked[0]).toMatchObject({ label: "Break", kind: "vacation", startDate: "2026-11-09", endDate: "2026-11-22", childIds: [] });
+    expect(fakeApi.calls.filter((c) => c.path === "/api/blocked-ranges/bulk")).toEqual([]);
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Step 5 of 6");
+    expect(f.blocked).toHaveLength(1);
   });
 
   it("breaks that are already days off are left out, so going Back and Continue does not add them twice", async () => {
@@ -166,8 +180,7 @@ describe("step 4: the school year", () => {
     expect(screen.getByText("Adds 3 term views and 1 break: Feb 15–28. 1 already in your days off.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByText("Step 5 of 6");
-    expect(bulkPosts()).toHaveLength(1);
-    expect((bulkPosts()[0] as unknown[]).length).toBe(1);
+    expect(bulkPosts()).toEqual([]);
   });
 
   it("the year already given comes back when the step is opened again", async () => {
@@ -205,7 +218,7 @@ describe("Back remembers the shape (S11b-01)", () => {
     await screen.findByText("Step 5 of 6");
     expect(JSON.stringify(f.zoomViews)).toBe(views);
     expect(f.zoomViews.hidden).toEqual(["fall", "spring"]);
-    expect(f.blocked).toHaveLength(2);
+    expect(f.blocked).toHaveLength(0);
     expect(fakeApi.calls.slice(before).filter((c) => c.method !== "GET").map((c) => [c.method, c.path, c.body])).toEqual([["PATCH", "/api/family", { setupDeferred: [], setupStep: 5 }]]);
   });
 

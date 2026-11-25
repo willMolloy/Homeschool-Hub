@@ -45,20 +45,28 @@ function coveringEnds(rows: BreakOverlap[], proposed: ProposedBreak[], assignmen
   return proposed.filter((_, i) => indexes.has(i)).map((b) => b.end);
 }
 
-function rowProblem(row: BreakOverlap, choice: Choice, rows: BreakOverlap[], proposed: ProposedBreak[], assignments: OverlapAssignment[]): string | null {
+function rowProblem(row: BreakOverlap, choice: Choice, rows: BreakOverlap[], proposed: ProposedBreak[], assignments: OverlapAssignment[], schoolDays: readonly number[], existing: { start: string; end: string; childIds: readonly string[] }[]): string | null {
   if (choice?.kind !== "pick") return null;
   const start = assignments.find((a) => a.id === row.assignmentId)?.start ?? row.dates[0] ?? "";
-  const why = pickRefusal(choice.date, coveringEnds(rows, proposed, row.assignmentId), start);
+  const book = assignments.find((a) => a.id === row.assignmentId);
+  const breakEnd = coveringEnds(rows, proposed, row.assignmentId).sort().at(-1) ?? "";
+  const why = pickRefusal(choice.date, {
+    breakEnd, assignmentStart: start, schoolDays,
+    off: [...existing.map(toSpan), ...proposed.map(toSpan)],
+    childIds: book?.childIds ?? [],
+  });
   if (!why) return null;
-  const day = why === "before-start" ? start : coveringEnds(rows, proposed, row.assignmentId).sort().at(-1) ?? "";
-  return `Pick a day after ${formatDate(day)}.`;
+  if (why === "not-school-day") return "Pick a school day.";
+  if (why === "day-off") return "That day is already off. Pick a school day.";
+  if (why === "before-start") return `Pick a day after ${formatDate(start)}.`;
+  return `Pick a day after ${formatDate(breakEnd)}.`;
 }
 
 function canConfirm(choices: Choice[], rows: BreakOverlap[], proposed: ProposedBreak[], assignments: OverlapAssignment[], ctx: Pick<Props, "existing" | "schoolDays" | "subjectWeekdays">): boolean {
   if (OVERLAP_SAVE === "none") return false;
   if (choices.some((c) => c === null)) return false;
   if (OVERLAP_SAVE === "keep") return choices.every((c) => c?.kind === "keep");
-  if (rows.some((row, i) => rowProblem(row, choices[i] ?? null, rows, proposed, assignments))) return false;
+  if (rows.some((row, i) => rowProblem(row, choices[i] ?? null, rows, proposed, assignments, ctx.schoolDays, ctx.existing))) return false;
   const resolved = resolveEndDates(rows, choices, assignments, proposed.map(toSpan), ctx.existing.map(toSpan), ctx);
   return resolved.conflict === null;
 }
@@ -109,7 +117,7 @@ export function BreakOverlapSheet({ rows, proposed, assignments, existing, schoo
               {proposed.length > 1 ? <h3 className="overlap-break">{breakUndoName(b.label, b.start)}</h3> : null}
               {mine.map(({ row, index }) => {
                 const choice = choices[index];
-                const problem = rowProblem(row, choice ?? null, rows, proposed, assignments);
+                const problem = rowProblem(row, choice ?? null, rows, proposed, assignments, schoolDays, existing);
                 const group = `overlap-${row.breakIndex}-${row.assignmentId}`;
                 return (
                   <fieldset key={group} className="choice-list overlap-book">

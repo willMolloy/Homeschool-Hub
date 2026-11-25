@@ -6,7 +6,7 @@
  * this save newly takes it off. A day already off (this break's current dates, or another break)
  * does not count again. Finished and stopped work is left off the list. A shared book is one row.
  */
-import { isValidLocalDate, toDayNumber, weekdayOfDayNumber, fromDayNumber } from "./dates";
+import { isValidLocalDate, toDayNumber, weekdayOf, weekdayOfDayNumber, fromDayNumber } from "./dates";
 import { weekdaysOf } from "./weekdays";
 import type { LocalDate, Weekday } from "./types";
 
@@ -218,11 +218,26 @@ export function resolveEndDates(
   return { ends, conflict: null };
 }
 
-/** Why a picked day cannot be the end, or null when it can. The day must be after the break and after the start. */
-export function pickRefusal(date: LocalDate, breakEnds: readonly LocalDate[], assignmentStart: LocalDate): "inside" | "before-start" | null {
+export type PickProblem = "inside" | "before-start" | "not-school-day" | "day-off";
+
+/**
+ * Why a picked day cannot be the end, or null when it can.
+ * It must be after the break, after the book's start, a family school day, and not already off.
+ */
+export function pickRefusal(date: LocalDate, opts: {
+  breakEnd: LocalDate;
+  assignmentStart: LocalDate;
+  schoolDays: readonly number[];
+  /** Days already off, including this break. A whole-family break has no child ids. */
+  off?: readonly BreakSpan[];
+  childIds?: readonly string[];
+}): PickProblem | null {
   if (!isValidLocalDate(date)) return "inside";
-  const lastBreak = [...breakEnds].sort().at(-1);
-  if (lastBreak && date <= lastBreak) return "inside";
-  if (!isValidLocalDate(assignmentStart) || date <= assignmentStart) return "before-start";
+  if (isValidLocalDate(opts.breakEnd) && date <= opts.breakEnd) return "inside";
+  if (!isValidLocalDate(opts.assignmentStart) || date <= opts.assignmentStart) return "before-start";
+  if (!opts.schoolDays.includes(weekdayOf(date))) return "not-school-day";
+  const kids = opts.childIds ?? [];
+  const blocked = (opts.off ?? []).some((b) => date >= b.start && date <= b.end && (b.childIds.length === 0 || b.childIds.some((id) => kids.includes(id))));
+  if (blocked) return "day-off";
   return null;
 }

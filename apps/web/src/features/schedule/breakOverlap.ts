@@ -3,8 +3,8 @@
  * The sheet (BreakOverlapSheet) asks what to do. Nothing here saves.
  */
 import { listBreakOverlaps, type BreakOverlap, type BreakSpan, type OverlapAssignment } from "@hh/engine";
-import { apiGet } from "../../api/client";
-import type { Assignment, BlockedRange, Subject } from "../../api/types";
+import { apiGet, apiPost } from "../../api/client";
+import type { Assignment, BlockedKind, BlockedRange, Subject } from "../../api/types";
 
 export interface ProposedBreak {
   label: string | null;
@@ -54,4 +54,21 @@ export async function overlapContext(proposed: readonly ProposedBreak[], existin
     subjectWeekdays,
   });
   return { rows, assignments: books, subjectWeekdays };
+}
+
+/** One break, one save, one undo. Cancel returns null and writes nothing. */
+export async function saveOneBreak(
+  ask: (proposed: ProposedBreak[], existing: readonly BlockedRange[], perform: (adjustments: { assignmentId: string; endDate: string }[] | null) => Promise<void>) => Promise<boolean>,
+  body: { label: string | null; kind: BlockedKind; startDate: string; endDate: string; childIds: string[] },
+  existing: readonly BlockedRange[],
+): Promise<BlockedRange | null> {
+  let created: BlockedRange | null = null;
+  const ok = await ask(
+    [{ label: body.label, start: body.startDate, end: body.endDate, childIds: body.childIds }],
+    existing,
+    async (adjustments) => {
+      created = await apiPost<BlockedRange>("/api/blocked-ranges", { ...body, ...(adjustments ? { adjustments } : {}) });
+    },
+  );
+  return ok ? created : null;
 }

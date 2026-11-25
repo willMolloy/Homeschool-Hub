@@ -67,6 +67,9 @@ describe("move the end date (S21-03)", () => {
     fireEvent.change(field, { target: { value: "2026-02-10" } });
     expect(within(sheet).getByRole("alert")).toHaveTextContent("Pick a day after Feb 28, 2026.");
     expect(within(sheet).getByRole("button", { name: "Confirm" })).toBeDisabled();
+    fireEvent.change(field, { target: { value: "2026-03-07" } });
+    expect(within(sheet).getByRole("alert")).toHaveTextContent("Pick a school day.");
+    expect(within(sheet).getByRole("button", { name: "Confirm" })).toBeDisabled();
     fireEvent.change(field, { target: { value: "2026-06-15" } });
     expect(within(sheet).queryByRole("alert")).toBeNull();
     await user.click(within(sheet).getByRole("button", { name: "Confirm" }));

@@ -45,6 +45,17 @@ describe.skipIf(!hasDb)("move the end when a break overlaps (S21-03)", () => {
     expect((await req("GET", "/api/assignments")).json().find((a: { id: string }) => a.id === id).endDate).toBe("2026-05-21");
   });
 
+  it("refuses a Saturday, which is not a family school day", async () => {
+    const id = (await make("Weekend")).json().id as string;
+    const refused = await req("POST", "/api/blocked-ranges", {
+      label: "February", startDate: "2026-02-01", endDate: "2026-02-28",
+      adjustments: [{ assignmentId: id, endDate: "2026-03-07" }],
+    });
+    expect(refused.statusCode).toBe(400);
+    expect(refused.json().message).toBe("Pick a school day.");
+    expect((await req("GET", "/api/blocked-ranges")).json().some((b: { label: string }) => b.label === "February")).toBe(false);
+  });
+
   it("pushes one book by its overlapped school days and leaves the other on May 21", async () => {
     const kept = (await make("Kept")).json().id as string;
     const moved = (await make("Moved")).json().id as string;

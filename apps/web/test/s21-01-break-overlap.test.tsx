@@ -127,7 +127,6 @@ describe("ask before a break covers open work (S21-01)", () => {
     fireEvent.change(own.getByLabelText("First day"), { target: { value: "2026-10-12" } });
     fireEvent.change(own.getByLabelText("Last day"), { target: { value: "2026-10-16" } });
     await user.click(own.getByRole("button", { name: "Add" }));
-    await user.click(screen.getByRole("button", { name: "Add breaks" }));
     const sheet = await screen.findByRole("dialog", { name: "October break covers planned work" });
     expect(within(sheet).getByText("October book")).toBeInTheDocument();
     expect(within(sheet).getByRole("button", { name: "Confirm" })).toBeDisabled();

@@ -1,10 +1,10 @@
 /**
  * S11-03, S11b-02: the school year's first and last day and its shape (cards, with a preview line), shared by step 4 of the setup
- * flow and the School year screen in Set up, so they behave the same. Saving adds the shape's breaks (the existing calendar
- * templates), applies its term views and hands `onSave` what to store; "I'll set this later" (the flow only) hands it a deferral.
+ * flow and the School year screen in Set up, so they behave the same. Saving stores the year and its term views.
+ * Breaks from the shape are added one at a time, each with its own save. "I'll set this later" (the flow only) hands it a deferral.
  */
 import { useId, useMemo, useState, type FormEvent } from "react";
-import { apiGet, apiPost } from "../../api/client";
+import { apiGet } from "../../api/client";
 import type { BlockedRange, FamilySettings, FamilySettingsPatch, SetupDeferral, YearShape } from "../../api/types";
 import { useApi } from "../../api/useApi";
 import { useMe } from "../../auth/AuthProvider";
@@ -13,8 +13,9 @@ import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { formatDate } from "../../lib/dates";
 import { DateField } from "../../ui/DateField";
 import { dateRangeError, saveError } from "../schedule/formBits";
+import { saveOneBreak } from "../schedule/breakOverlap";
 import { useBreakOverlap } from "../schedule/useBreakOverlap";
-import { MAX_YEAR_DAYS, breakSaveBody, leaveOutExisting } from "../schedule/templates";
+import { MAX_YEAR_DAYS, breakDates, breakSaveBody, leaveOutExisting } from "../schedule/templates";
 import { SHAPES, planYear, previewLine, zoomViewsFor, type ShapeId } from "./yearShapes";
 
 export interface YearFormProps {
@@ -44,11 +45,28 @@ export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onS
   const [saving, setSaving] = useState(false);
   // S12-09 (N8): "I'll set this later" after a year was saved asks before it clears the saved dates.
   const [confirmClear, setConfirmClear] = useState(false);
+  const [addedBreaks, setAddedBreaks] = useState<BlockedRange[]>([]);
   const ids = { start: useId(), end: useId() };
   const later = shape === "later";
   const problem = later ? null : dateRangeError(start, end, MAX_YEAR_DAYS);
   const plan = useMemo(() => (later || problem ? null : planYear(shape, start, end, me.weekStart)), [later, problem, shape, start, end, me.weekStart]);
-  const preview = later ? previewLine("later", { breaks: [], halves: null, terms: null }, []) : plan && existing.data ? previewLine(shape, plan, existing.data) : null;
+  const have = [...(existing.data ?? []), ...addedBreaks];
+  const preview = later ? previewLine("later", { breaks: [], halves: null, terms: null }, []) : plan && existing.data ? previewLine(shape, plan, have) : null;
+  const toAdd = plan && existing.data ? leaveOutExisting(plan.breaks, have).add : [];
+
+  async function addShapeBreak(b: { label: string | null; kind: BlockedRange["kind"]; start: string; end: string }) {
+    if (busy || saving) return;
+    fail(null);
+    setSaving(true);
+    try {
+      const created = await saveOneBreak(overlap.ask, breakSaveBody(b), have);
+      if (created) setAddedBreaks((list) => [...list, created]);
+    } catch (err) {
+      fail(saveError(err));
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -70,19 +88,6 @@ export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onS
     setSaving(true);
     try {
       // Breaks first: if the save after them fails, trying again leaves out the days off that are already there.
-      const already = await apiGet<BlockedRange[]>("/api/blocked-ranges");
-      const { add } = leaveOutExisting(plan.breaks, already);
-      const blockedRanges = add.map(breakSaveBody);
-      if (blockedRanges.length > 0) {
-        const savedBreaks = await overlap.ask(
-          blockedRanges.map((b) => ({ label: b.label, start: b.startDate, end: b.endDate, childIds: b.childIds })),
-          already,
-          async (adjustments) => {
-            await apiPost<BlockedRange[]>("/api/blocked-ranges/bulk", { blockedRanges, ...(adjustments ? { adjustments } : {}) });
-          },
-        );
-        if (!savedBreaks) return;
-      }
       const zoom = zoomViewsFor(plan, (await apiGet<FamilySettings>("/api/family")).zoomViews, saved?.shape ?? null);
       await onSave({ schoolYear: { start, end, shape }, ...(zoom ? { zoomViews: zoom } : {}), setupDeferred: rest });
     } catch (err) {
@@ -130,6 +135,19 @@ export function YearForm({ saved, allowLater, laterFirst, submitLabel, busy, onS
         ))}
       </fieldset>
       <p className="welcome-preview" aria-live="polite">{preview}</p>
+      {toAdd.length > 0 ? (
+        <>
+          <p className="hint">Add one break at a time. Saving the year does not add them.</p>
+          <ul className="welcome-list" aria-label="Breaks to add">
+            {toAdd.map((b) => (
+              <li key={`${b.start}/${b.end}/${b.label}`}>
+                <span className="welcome-list-name">{b.label ?? "Break"}: {breakDates(b.start, b.end)}</span>
+                <Button type="button" variant="secondary" disabled={busy || saving} onClick={() => void addShapeBreak(b)}>Add</Button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
       <div className="btn-row"><Button type="submit" disabled={busy || saving}>{submitLabel}</Button></div>
       {overlap.sheet}
       {confirmClear && saved ? (
