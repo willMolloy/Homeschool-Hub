@@ -15,7 +15,7 @@ import { isLongBreak, weekdayOf } from "@hh/engine";
 import { dayOffTitle } from "../../lib/kindNames";
 import type { BuiltInZoomOverrides, CustomZoomView } from "../../api/types";
 import type { ChildStep, SubjectLane, TimelineAssignment, TimelineModel } from "./model";
-import { ABOVE_NAME_PX, barTitle, estimateTextWidth, fitName, OUTSIDE_CLEAR_PX, placeNameAbove, placePieceNames, type MeasureText } from "./names";
+import { ABOVE_NAME_PX, barTitle, daysEnding, estimateTextWidth, fitName, OUTSIDE_CLEAR_PX, placeNameAbove, placePieceNames, type MeasureText } from "./names";
 import { connectorsOf, insetEnds, piecesOf } from "./pieces";
 import { bandPath, rectsPath, smoothBandPath, type BandColumn } from "./paths";
 import { drawnExtent, packRows, soloRows } from "./rows";
@@ -651,7 +651,8 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
             // S17-06 (N1): an assignment with nothing drawn in this range (a stopped or finished-early one that ended before it) has no pieces to name.
             if (pieces.length === 0) return { a, pieces, limits: [] as number[], placed: [] as ReturnType<typeof placePieceNames> };
             const limits = pieces.map((p) => freeTo(p[p.length - 1]!.x1));
-            const placed = placePieceNames(barTitle(a.title, a.endedAs), pieces, cy, detail === "smooth", measure, limits, a.endedAs === "stopped" ? { left: starts[0]! < pieces[pieces.length - 1]![0]!.x0 - 0.01 ? Number.POSITIVE_INFINITY : plotX, right: plotRight } : undefined);
+            const drawnTitle = barTitle(a.title, a.endedAs);
+            const placed = placePieceNames(drawnTitle, pieces, cy, detail === "smooth", measure, limits, a.endedAs === "stopped" ? { left: starts[0]! < pieces[pieces.length - 1]![0]!.x0 - 0.01 ? Number.POSITIVE_INFINITY : plotX, right: plotRight } : undefined, daysEnding(drawnTitle, a.daysLabel));
             return { a, pieces, limits, placed };
           });
         };

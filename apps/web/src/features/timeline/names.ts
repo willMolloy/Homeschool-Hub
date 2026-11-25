@@ -39,15 +39,8 @@ export type MeasureText = (text: string) => number;
  */
 export const estimateTextWidth: MeasureText = (text) => text.length * NAME_FONT_PX * 0.6;
 
-/**
- * The full title if it fits in `room`, else (unless `fullOnly`) the longest "prefix…" with at least MIN_NAME_CHARS
- * characters, else null.
- */
-export function fitName(title: string, room: number, measure: MeasureText = estimateTextWidth, fullOnly = false): string | null {
-  const text = title.trim();
-  if (!text) return null;
-  if (measure(text) <= room) return text;
-  if (fullOnly) return null;
+/** The longest "prefix…" with at least MIN_NAME_CHARS characters that fits, else null. */
+function cutToRoom(text: string, room: number, measure: MeasureText): string | null {
   for (let n = text.length - 1; n >= MIN_NAME_CHARS; n--) {
     const prefix = text.slice(0, n).trimEnd();
     if (prefix.length < MIN_NAME_CHARS) break;
@@ -55,6 +48,51 @@ export function fitName(title: string, room: number, measure: MeasureText = esti
     if (measure(candidate) <= room) return candidate;
   }
   return null;
+}
+
+/**
+ * S18c-03: `keep` (the days, and a finished check or "Stopped" after them) stays on the bar.
+ * The title in front of it may shorten. Null when even `keep` does not fit.
+ */
+export function fitKeepingSuffix(text: string, keep: string, room: number, measure: MeasureText): string | null {
+  if (!keep || !text.endsWith(keep) || measure(keep) > room) return null;
+  if (measure(text) <= room) return text;
+  const prefix = text.slice(0, text.length - keep.length).replace(/\s*·\s*$/, "");
+  if (!prefix) return keep;
+  const ending = ` · ${keep}`;
+  for (let n = prefix.length; n >= 1; n--) {
+    const head = prefix.slice(0, n).trimEnd();
+    if (!head) continue;
+    const candidate = `${head}${ELLIPSIS}${ending}`;
+    if (measure(candidate) <= room) return candidate;
+  }
+  const short = `${ELLIPSIS}${ending}`;
+  return measure(short) <= room ? short : keep;
+}
+
+/** The days ending of a drawn bar title, including a check or "Stopped" that follows the days. */
+export function daysEnding(drawn: string, daysLabel: string | undefined): string | undefined {
+  if (!daysLabel) return undefined;
+  const mark = ` · ${daysLabel}`;
+  const at = drawn.lastIndexOf(mark);
+  if (at < 0) return daysLabel;
+  return drawn.slice(at + " · ".length) || undefined;
+}
+
+/**
+ * The full title if it fits in `room`, else (unless `fullOnly`) the longest "prefix…" with at least MIN_NAME_CHARS
+ * characters, else null. S18c-03: when `keep` is set, that ending is not the part that is cut.
+ */
+export function fitName(title: string, room: number, measure: MeasureText = estimateTextWidth, fullOnly = false, keep?: string): string | null {
+  const text = title.trim();
+  if (!text) return null;
+  if (measure(text) <= room) return text;
+  if (fullOnly) return null;
+  if (keep) {
+    const kept = fitKeepingSuffix(text, keep, room, measure);
+    if (kept) return kept;
+  }
+  return cutToRoom(text, room, measure);
 }
 
 export interface NamePlacement {
@@ -76,7 +114,7 @@ const TOUCH_EPS = 0.5;
  * hold a fitted name. Columns are the bar's drawn columns in order (null = not drawn), centred on cy.
  */
 export function placeName(
-  title: string, columns: readonly (BandColumn | null)[], cy: number, measure: MeasureText = estimateTextWidth, fullOnly = false,
+  title: string, columns: readonly (BandColumn | null)[], cy: number, measure: MeasureText = estimateTextWidth, fullOnly = false, keep?: string,
 ): NamePlacement | null {
   type Stretch = { x0: number; x1: number; cols: BandColumn[] };
   const stretches: Stretch[] = [];
@@ -94,7 +132,7 @@ export function placeName(
   for (const s of stretches) {
     const room = s.x1 - s.x0 - 2 * NAME_INSET_PX - 2 * NAME_PAD_PX;
     if (room <= 0) continue;
-    const text = fitName(title, room, measure, fullOnly);
+    const text = fitName(title, room, measure, fullOnly, fullOnly ? undefined : keep);
     if (text && (!best || text.length > best.text.length)) best = { s, text };
     if (text === title.trim()) break;
   }
@@ -113,9 +151,9 @@ export function placeName(
 
 /** T-11: a name inside one piece (a run of touching columns), wherever the piece is thick enough to hold the text. */
 export function placePieceName(
-  title: string, piece: readonly BandColumn[], cy: number, measure: MeasureText = estimateTextWidth, fullOnly = false,
+  title: string, piece: readonly BandColumn[], cy: number, measure: MeasureText = estimateTextWidth, fullOnly = false, keep?: string,
 ): NamePlacement | null {
-  return placeName(title, piece, cy, measure, fullOnly);
+  return placeName(title, piece, cy, measure, fullOnly, keep);
 }
 
 /** S10-04b (mockup): an outside name starts this far right of its piece's end. */
@@ -174,13 +212,13 @@ export function placeStoppedWord(
  */
 export function placePieceNames(
   title: string, pieces: readonly (readonly BandColumn[])[], cy: number, sparse: boolean, measure: MeasureText = estimateTextWidth,
-  limits?: readonly number[], stopped?: PlotBounds,
+  limits?: readonly number[], stopped?: PlotBounds, keep?: string,
 ): PieceName[] {
   const out: PieceName[] = [];
   pieces.forEach((piece, i) => {
     const full = placePieceName(title, piece, cy, measure, true);
     const right = full || !limits ? null : placeRightName(title, piece, cy, limits[i] ?? Number.NEGATIVE_INFINITY, measure);
-    const name = full ?? right ?? placePieceName(title, piece, cy, measure);
+    const name = full ?? right ?? placePieceName(title, piece, cy, measure, false, keep);
     if (!name) return;
     const width = piece[piece.length - 1]!.x1 - piece[0]!.x0;
     if (sparse && out.length > 0 && width < LATER_PIECE_NAME_FACTOR * name.width) return;
