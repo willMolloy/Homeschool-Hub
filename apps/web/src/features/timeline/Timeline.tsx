@@ -144,7 +144,7 @@ export function Timeline({ layout, label, selectedId = null, onPick, flashId = n
         {layout.bands.map((b) => (b.d ? (
           <path key={`${b.rowKey}-${b.assignmentId}`} className={`tl-band${b.ended ? ` tl-ended tl-${b.ended}` : ""}${dim(b.assignmentId)}`} d={b.d}
             style={{ fill: bandFill(b.paletteSlot, stepOf(b.step, b.ended)), stroke: `var(--tl-subject-${b.paletteSlot}-strong)` }}
-            data-assignment={b.assignmentId} {...(b.ended ? { "data-ended": b.ended } : {})} />
+            data-assignment={b.assignmentId} aria-label={b.title} {...(b.ended ? { "data-ended": b.ended } : {})} />
         ) : null))}
       </g>
 

@@ -50,24 +50,38 @@ function cutToRoom(text: string, room: number, measure: MeasureText): string | n
   return null;
 }
 
+/** The days a label must still show. "Mon–Thu · E C" and "Tue–Fri ✓" both give the days. */
+export function daysToken(keep: string): string {
+  return keep.split(" · ")[0]!.replace(/ ✓$/, "");
+}
+
 /**
- * S18c-03: `keep` (the days, and a finished check or "Stopped" after them) stays on the bar.
- * The title in front of it may shorten. Null when even `keep` does not fit.
+ * S18c-03: `keep` (the days, then a together-bar's initials or a finished check) stays when it fits.
+ * The title in front of it may shorten. When the initials no longer fit, the days themselves stay.
+ * Null only when even those days do not fit in `room`.
  */
 export function fitKeepingSuffix(text: string, keep: string, room: number, measure: MeasureText): string | null {
-  if (!keep || !text.endsWith(keep) || measure(keep) > room) return null;
+  const days = daysToken(keep);
+  if (!days || !text.includes(days)) return null;
   if (measure(text) <= room) return text;
-  const prefix = text.slice(0, text.length - keep.length).replace(/\s*·\s*$/, "");
-  if (!prefix) return keep;
-  const ending = ` · ${keep}`;
-  for (let n = prefix.length; n >= 1; n--) {
-    const head = prefix.slice(0, n).trimEnd();
-    if (!head) continue;
-    const candidate = `${head}${ELLIPSIS}${ending}`;
-    if (measure(candidate) <= room) return candidate;
+  const tails = text.endsWith(keep) && keep !== days ? [keep, days] : [days];
+  for (const ending of tails) {
+    if (measure(ending) > room) continue;
+    const at = text.lastIndexOf(ending);
+    const prefix = at < 0 ? "" : text.slice(0, at).replace(/\s*·\s*$/, "");
+    if (!prefix) return ending;
+    const joiner = ` · ${ending}`;
+    for (let n = prefix.length; n >= 1; n--) {
+      const head = prefix.slice(0, n).trimEnd();
+      if (!head) continue;
+      const candidate = `${head}${ELLIPSIS}${joiner}`;
+      if (measure(candidate) <= room) return candidate;
+    }
+    const short = `${ELLIPSIS}${joiner}`;
+    if (measure(short) <= room) return short;
+    return ending;
   }
-  const short = `${ELLIPSIS}${ending}`;
-  return measure(short) <= room ? short : keep;
+  return null;
 }
 
 /** The days ending of a drawn bar title, including a check or "Stopped" that follows the days. */
@@ -88,10 +102,7 @@ export function fitName(title: string, room: number, measure: MeasureText = esti
   if (!text) return null;
   if (measure(text) <= room) return text;
   if (fullOnly) return null;
-  if (keep) {
-    const kept = fitKeepingSuffix(text, keep, room, measure);
-    if (kept) return kept;
-  }
+  if (keep) return fitKeepingSuffix(text, keep, room, measure);
   return cutToRoom(text, room, measure);
 }
 
@@ -224,6 +235,37 @@ export function placePieceNames(
     if (sparse && out.length > 0 && width < LATER_PIECE_NAME_FACTOR * name.width) return;
     out.push({ ...name, piece: i, outside: name === right });
   });
+  // S18c-03: a thin bar (under the inside-name thickness) or a bar whose full title will not fit beside it
+  // was left with no name at all. The days still have to be readable. Draw them on the longest piece even
+  // when that piece is too thin for an ordinary inside name.
+  if (keep) {
+    const days = daysToken(keep);
+    if (days && !out.some((n) => n.text.includes(days)) && pieces.length > 0) {
+      let best = 0;
+      let bestW = -1;
+      pieces.forEach((p, i) => {
+        const w = p[p.length - 1]!.x1 - p[0]!.x0;
+        if (w > bestW) { bestW = w; best = i; }
+      });
+      const piece = pieces[best]!;
+      const x0 = piece[0]!.x0;
+      const x1 = piece[piece.length - 1]!.x1;
+      const insideRoom = x1 - x0 - 2 * NAME_INSET_PX - 2 * NAME_PAD_PX;
+      const inside = insideRoom > 0 ? fitKeepingSuffix(title, keep, insideRoom, measure) : null;
+      if (inside) {
+        const width = measure(inside) + 2 * NAME_PAD_PX;
+        const x = x0 + NAME_INSET_PX;
+        out.push({ text: inside, x, y: cy - NAME_FONT_PX / 2, width, height: NAME_FONT_PX, textX: x + NAME_PAD_PX, textY: cy, piece: best, outside: false });
+      } else if (limits) {
+        const x = x1 + OUTSIDE_GAP_PX;
+        const room = (limits[best] ?? Number.NEGATIVE_INFINITY) - OUTSIDE_CLEAR_PX - x;
+        const beside = room > 0 ? fitKeepingSuffix(title, keep, room, measure) : null;
+        if (beside) {
+          out.push({ text: beside, x, y: cy - NAME_FONT_PX / 2, width: measure(beside), height: NAME_FONT_PX, textX: x, textY: cy, piece: best, outside: true });
+        }
+      }
+    }
+  }
   // S13-00: a stopped bar always says so. If no name carries the word (cut, or none at all), "Stopped" stands alone on the last piece.
   if (stopped && pieces.length > 0 && !out.some((n) => n.text.endsWith(STOPPED_WORD))) {
     const last = pieces.length - 1;
