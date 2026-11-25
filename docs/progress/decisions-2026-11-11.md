@@ -1,8 +1,8 @@
 # Decisions, 2026-11-11 (DeeDee)
 
-She ran the app locally on current `main` (Sprint 18 already merged) and settled the notes below. Sprint 18b, Sprint 19, and Sprint 20 have since merged (PRs #20, #21, and #22). Sprint 21 is built on `hh2/sprint-21` and is not merged. Hosting stays on hold until Will says go.
+She ran the app locally on current `main` (Sprint 18 already merged) and settled the notes below. Sprint 18b, Sprint 19, Sprint 20, and Sprint 21 have since merged (PRs #20, #21, #22, and #23). Hosting stays on hold until Will says go.
 
-Sprint 18b stays its own merged sprint: `docs/tickets/sprint-18b-follow-ups/`. Do not rewrite those tickets or fold them into 19–21. The tester follow-ups from that merge, plus S18c-05 and S18c-06, are `docs/tickets/sprint-18b-tester-follow-ups/` and come after Sprint 21. Sprint 19 and Sprint 20 are merged. Sprint 21 is built on `hh2/sprint-21` and is not merged. Hosting stays on hold.
+Sprint 18b stays its own merged sprint: `docs/tickets/sprint-18b-follow-ups/`. Do not rewrite those tickets or fold them into 19–21. The tester follow-ups from that merge, plus S18c-05 and S18c-06, are `docs/tickets/sprint-18b-tester-follow-ups/` and are built on `hh2/sprint-18c` (not merged; the tester pass is S18c-07). Sprint 19, Sprint 20, and Sprint 21 are merged. Hosting stays on hold.
 
 Full tickets: `docs/tickets/sprint-19-visual-print/`, `docs/tickets/sprint-20-minutes-check-in/`, `docs/tickets/sprint-21-break-overlap/`. Where a tiny label was not chosen, the ticket states a default. Those defaults are not open questions.
 
