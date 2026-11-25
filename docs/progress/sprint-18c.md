@@ -1,6 +1,6 @@
 # Sprint 18c progress: follow-ups from the Sprint 18b tester
 
-Branch: `hh2/sprint-18c`, cut from `main` at the Sprint 21 merge (`81809b7`, PR #23). Tickets: `docs/tickets/sprint-18b-tester-follow-ups/`. S18c-07 is the independent tester's pass and is not part of this build. The pull request stays a draft. Do not mark it ready, and do not merge it. Hosting stays on hold. A per-child end date on a shared assignment is not in this sprint.
+Branch: `hh2/sprint-18c`, cut from `main` at the Sprint 21 merge (`81809b7`, PR #23). Draft pull request: https://github.com/willMolloy/Homeschool-Hub/pull/24. Tickets: `docs/tickets/sprint-18b-tester-follow-ups/`. S18c-07 is the independent tester's pass and is not part of this build. The pull request stays a draft. Do not mark it ready, and do not merge it. Hosting stays on hold. A per-child end date on a shared assignment is not in this sprint.
 
 Sprint 21 is merged (PR #23, `81809b7`).
 
