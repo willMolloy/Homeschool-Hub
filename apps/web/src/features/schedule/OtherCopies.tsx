@@ -5,6 +5,7 @@
 import type { Assignment } from "../../api/types";
 import { Button } from "../../ui/components";
 import { joinNames } from "../completion/waiting";
+import { dateRange, sameSet } from "./formBits";
 import { daysPhrase, otherCopies, resolvedWeekdays } from "./bookCopies";
 import "./copy-others.css";
 
@@ -22,19 +23,25 @@ export interface CopyRow {
 }
 
 export function copyRows(
-  assignment: { id: string; subjectId: string; title: string },
+  assignment: Assignment,
   list: readonly Assignment[],
   nameOf: (id: string) => string,
   daysOf: (a: Assignment) => number[],
 ): CopyRow[] {
+  const mine = daysOf(assignment);
   return otherCopies(list, assignment).map((a) => {
     const children = (a.childIds ?? []).map((id) => ({ id, name: nameOf(id) })).filter((c) => c.name);
     const childNames = children.length ? joinNames(children.map((c) => c.name)) : "they";
     const days = daysPhrase(daysOf(a));
+    // S18c-01: the same child and the same days need the dates, or next year's copy looks like this one.
+    const dates = sameSet(a.childIds ?? [], assignment.childIds ?? []) && sameSet(daysOf(a), mine)
+      ? dateRange(a.startDate, a.endDate)
+      : null;
+    const who = children.length ? `${childNames} · ${days}` : days;
     return {
       id: a.id,
       title: a.title,
-      label: children.length ? `${childNames} · ${days}` : days,
+      label: dates ? `${who} · ${dates}` : who,
       childIds: children.map((c) => c.id),
       children,
       childNames,
