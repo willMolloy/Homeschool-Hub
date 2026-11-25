@@ -168,17 +168,17 @@ describe("Assignments screen", () => {
     };
     const user = await setup([walk, notebook]);
     const card = (title: string) => screen.getByText(title).closest("li")!;
-    expect(card("Nature walk and notebook")).toHaveTextContent("66.67 min a day");
-    expect(card("Nature notebook")).toHaveTextContent("26.67 min a day");
+    expect(card("Nature walk and notebook")).toHaveTextContent("67 min a day");
+    expect(card("Nature notebook")).toHaveTextContent("27 min a day");
     await user.click(screen.getByRole("button", { name: /Nature walk and notebook/ }));
     const form = screen.getByRole("form", { name: "Edit Nature walk and notebook" });
     const minutes = within(form).getByRole("group", { name: "Minutes a day" });
     expect(within(minutes).getByRole("radio", { name: "60 min a day" })).not.toBeChecked();
     expect(within(minutes).getByRole("radio", { name: "Custom" })).toBeChecked();
-    expect(within(minutes).getByLabelText("Minutes a day")).toHaveValue(66.67);
+    expect(within(minutes).getByLabelText("Minutes a day")).toHaveValue(67);
     await user.click(within(form).getByRole("button", { name: "Save" }));
     expect(writes()).toEqual([]);
-    expect(card("Nature walk and notebook")).toHaveTextContent("66.67 min a day");
+    expect(card("Nature walk and notebook")).toHaveTextContent("67 min a day");
   });
 
   it("card variants (S6b-13: minutes a day, never a weight): own weight, the subject's default, the built-in", async () => {
