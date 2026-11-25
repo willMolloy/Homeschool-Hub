@@ -156,7 +156,7 @@ describe("Use a template (S5-05)", () => {
       ["Labor Day", "2026-09-07", "2026-09-07"], ["Thanksgiving", "2026-11-26", "2026-11-27"], ["Winter break", "2026-12-24", "2027-01-01"],
       ["Martin Luther King Jr. Day", "2027-01-18", "2027-01-18"], ["Presidents' Day", "2027-02-15", "2027-02-15"], ["Good Friday", "2027-03-26", "2027-03-26"],
     ].map(([label, startDate, endDate], i) => ({ id: rowId(30 + i), label: label!, kind: "holiday", startDate: startDate!, endDate: endDate!, childIds: [] }));
-    const { user, form } = await open(holidays);
+    const { form } = await open(holidays);
     fillYear(form);
     expect(within(form).getByText("Nothing new to add: these breaks are already in your days off.")).toBeInTheDocument();
     expect(within(form).queryByText(/breaks? to add/)).toBeNull();
