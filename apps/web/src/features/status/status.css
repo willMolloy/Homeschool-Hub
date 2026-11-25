@@ -17,7 +17,10 @@
 .status-actions .btn { flex: 1; }
 .status-pick { padding: 0 2px; }
 .status-pick .field-error { margin: 6px 0 0; }
-/* S18b-01: the past-date question sits above the buttons and the save waits for it. */
-.status-confirm { margin: 16px 0 0; font-weight: 600; }
+/* S18b-01: the past-date question sits with its answers, and the save waits for it.
+   S18c-02: that block is the first thing in the sheet, so Continue and No are on screen with the question. */
+.status-confirm-block { margin: 0 0 16px; }
+.status-confirm { margin: 0 0 8px; font-weight: 600; }
+.status-confirm-block .status-actions { margin-top: 0; flex-wrap: nowrap; }
 /* S18-04 (E13): a long title is cut with an ellipsis so the close button stays on the title row (the full title is in the tooltip and the dialog's name). */
 .status-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

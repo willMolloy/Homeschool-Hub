@@ -4,6 +4,7 @@
  */
 import { planAll, type Assignment, type BlockedPeriod, type ChildPlan, type FamilyCalendar, type RecurringEvent } from "@hh/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { hashSessionToken } from "../src/auth/session";
 import { buildApp } from "../src/app";
 import type { PlanResponse } from "../src/routes/plan";
 import { testConfig } from "./helpers/config";
@@ -120,7 +121,12 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
     });
 
     it("an expired or revoked session gets 401 on every new route", async () => {
-      await pool.query("UPDATE session SET expires_at = now() - interval '1 second' WHERE family_id = $1", [A.familyId]);
+      // A sign-in in another file sweeps every expired session. Remember this row so it can be put back
+      // if that sweep deletes it during the 401s; otherwise the restore updates nothing and the cookie stays dead.
+      const token = A.cookies.hh_session;
+      const id = hashSessionToken(token);
+      const saved = await pool.query<{ family_id: string; parent_id: string | null }>("SELECT family_id, parent_id FROM session WHERE id = $1", [id]);
+      await pool.query("UPDATE session SET expires_at = now() - interval '1 second' WHERE id = $1", [id]);
       const calls: [string, string, unknown?][] = [
         ["GET", "/api/family"], ["PATCH", "/api/family", { name: "x" }],
         ["GET", "/api/assignments"], ["POST", "/api/assignments", {}], ["PATCH", `/api/assignments/${aAssignment}`, { title: "x" }],
@@ -132,7 +138,13 @@ describe.skipIf(!hasDb)("tester round 2: Sprint 2a schedule API (integration)", 
         expect((await A.req(m as "GET", url, body)).statusCode, `${m} ${url}`).toBe(401);
         expect((await inject(app, null)(m as "GET", url, body)).statusCode, `anon ${m} ${url}`).toBe(401);
       }
-      await pool.query("UPDATE session SET expires_at = now() + interval '1 day' WHERE family_id = $1", [A.familyId]);
+      const row = saved.rows[0]!;
+      await pool.query(
+        `INSERT INTO session (id, family_id, parent_id, expires_at)
+         VALUES ($1, $2, $3, now() + interval '1 day')
+         ON CONFLICT (id) DO UPDATE SET expires_at = EXCLUDED.expires_at`,
+        [id, row.family_id, row.parent_id],
+      );
       expect((await A.req("GET", "/api/blocked-ranges")).json()).toHaveLength(1);
     });
   });

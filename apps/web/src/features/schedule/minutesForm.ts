@@ -23,17 +23,19 @@ export function dailyMinutesOf(a: { totalUnits: number; weightPerUnit: number | 
   return impliedMinutesPerDay(a.totalUnits, a.weightPerUnit, days, subjectDefault);
 }
 
-/** "60", "66.67": the same text on the list and in the edit box. */
+/** S18c-06: a whole number of minutes for the list and the edit box. 66.67 is shown as 67. The stored amount stays exact. */
 export function formatDailyMinutes(n: number): string {
-  const r = Math.round((n + Number.EPSILON) * 100) / 100;
-  if (Number.isInteger(r)) return String(r);
-  return r.toFixed(2).replace(/0$/, "");
+  if (!Number.isFinite(n)) return "";
+  return String(Math.round(n));
 }
 
-/** A preset only when the daily amount is that preset. 67 is not 60. */
+/**
+ * A preset only when the stored amount is that preset. 67 is not 60, and a displayed 67 must not
+ * select the 60 chip (Sprint 20 M1). Rounding for the screen does not change this.
+ */
 export function exactPreset(minutes: number): number | "custom" {
-  const shown = Number(formatDailyMinutes(minutes));
-  return (PRESET_MINUTES as readonly number[]).includes(shown) ? shown : "custom";
+  const hit = (PRESET_MINUTES as readonly number[]).find((p) => Math.abs(p - minutes) < 0.005);
+  return hit ?? "custom";
 }
 
 /** The minutes a day a stored minutes assignment already implies, over `days` school days. */

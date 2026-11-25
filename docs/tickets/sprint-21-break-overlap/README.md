@@ -1,6 +1,6 @@
 # Sprint 21 — Breaks that adjust overlapping assignments
 
-> **Status: built on `hh2/sprint-21`, not merged.** S21-01 to S21-04 are in. S21-05, the tester pass, is not. The pull request stays a draft. Do not mark it ready, and do not merge it. Sprint 20 is merged (PR #22). The Sprint 18b tester follow-ups, including S18c-06, come after this sprint and are not built.
+> **Status: merged** (PR #23, `81809b7`, 2026-11-25). S21-01 to S21-04 are in. S21-05 was the tester's to write. Sprint 20 is merged (PR #22). The Sprint 18b tester follow-ups, S18c-01 through S18c-06, are built on `hh2/sprint-18c` and are not merged.
 
 This is one planning change, so the sprint stays small. One branch off `main` after Sprint 20 has merged. One commit per ticket. Progress in `docs/progress/sprint-21.md`. The pull request to `main` stays a draft until the tester passes.
 

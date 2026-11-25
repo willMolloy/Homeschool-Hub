@@ -17,15 +17,25 @@ export function sameBook(a: { subjectId: string; title: string }, b: { subjectId
   return a.subjectId === b.subjectId && bookTitle(a.title) === bookTitle(b.title);
 }
 
-/** The other open workbooks of this book. An archived row is not one of them. */
-export function otherCopies<T extends { id: string; subjectId: string; title: string; archived?: boolean }>(
-  list: readonly T[], a: { id: string; subjectId: string; title: string },
-): T[] {
-  return list.filter((x) => x.archived !== true && x.id !== a.id && sameBook(x, a));
+type Dated = { startDate?: string | null; endDate?: string | null };
+
+/** S18c-01: the two ranges share a day, counting both ends. A next-year copy that starts after this one ends does not. */
+export function rangesShareADay(a: Dated, b: Dated): boolean {
+  if (!a.startDate || !a.endDate || !b.startDate || !b.endDate) return false;
+  const [a0, a1] = a.startDate <= a.endDate ? [a.startDate, a.endDate] : [a.endDate, a.startDate];
+  const [b0, b1] = b.startDate <= b.endDate ? [b.startDate, b.endDate] : [b.endDate, b.startDate];
+  return a0 <= b1 && b0 <= a1;
 }
 
-/** Assignment ids that have at least one other open workbook of the same book. */
-export function twinIds(list: readonly { id: string; subjectId: string; title: string; archived?: boolean }[]): Set<string> {
+type Copyable = { id: string; subjectId: string; title: string; archived?: boolean } & Dated;
+
+/** The other open workbooks of this book that are running at the same time. An archived row is not one of them. */
+export function otherCopies<T extends Copyable>(list: readonly T[], a: Copyable): T[] {
+  return list.filter((x) => x.archived !== true && x.id !== a.id && sameBook(x, a) && rangesShareADay(x, a));
+}
+
+/** Assignment ids that have at least one other open workbook of the same book running at the same time. */
+export function twinIds(list: readonly Copyable[]): Set<string> {
   const ids = new Set<string>();
   for (const a of list) {
     if (a.archived === true) continue;

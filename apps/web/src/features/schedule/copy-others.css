@@ -1,5 +1,6 @@
 /* S18b-02: the other workbooks of the book on screen, and the way onto the same kind of update. */
-.copy-others { margin-top: 16px; }
+/* S18c-04: the gap under the block keeps a copy's buttons clear of the form's Save. */
+.copy-others { margin-top: 16px; margin-bottom: 28px; }
 .copy-others h3 { font-family: var(--tl-font, inherit); font-size: 0.95rem; font-weight: 700; margin: 0 0 6px; }
 .copy-others .hint { margin: 0 0 10px; color: var(--tl-muted-foreground, var(--muted)); font-size: 0.875rem; }
 .copy-others ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
