@@ -42,7 +42,22 @@ function subjectDefaultFor(a: Assignment, ctx: PlanContext): SubjectWeight | nul
  * - The rate is an output only; nothing here is meant to be persisted.
  * Never returns NaN or Infinity: impossible plans report unplacedUnits and a warning instead.
  */
-export function planChild(a: Assignment, childId: string, ctx: PlanContext, model?: CapacityModel): ChildPlan {
+/** The assignment as this child sees it: their end and ending, or the book's when they have no row of their own. */
+function assignmentForChild(source: Assignment, childId: string): Assignment {
+  const row = source.childSchedules?.find((s) => s.childId === childId);
+  if (!row) return source;
+  if (!isValidLocalDate(row.end)) throw new EngineInputError(`Assignment ${source.id}: invalid end ${JSON.stringify(row.end)} for ${childId}`);
+  return {
+    ...source,
+    end: row.end,
+    endedAs: row.endedAs === undefined ? source.endedAs : row.endedAs,
+    endedOn: row.endedOn === undefined ? source.endedOn : row.endedOn,
+    childSchedules: undefined,
+  };
+}
+
+export function planChild(source: Assignment, childId: string, ctx: PlanContext, model?: CapacityModel): ChildPlan {
+  const a = assignmentForChild(source, childId);
   validateAssignment(a);
   const warnings: PlanWarning[] = [];
   const warn = (w: PlanWarning): void => {
@@ -55,7 +70,8 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
   const onWeekdays = weekdays ? new Set<number>(weekdays) : null;
   const S = toDayNumber(a.start);
   const E = toDayNumber(a.end);
-  let total = a.totalUnits;
+  const sharedEnd = toDayNumber(source.end);
+  let total = source.totalUnits;
   const asOf = ctx.asOf ? toDayNumber(ctx.asOf) : S;
 
   // S4-00: a missed day on or before asOf is not a plain day off. The plan is built as if it were not missed,
@@ -85,6 +101,23 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
     return v;
   };
 
+  // S22-02: a minutes book stores one total for the longest span. A child with a different end keeps the same
+  // minutes a day, so their total is that daily amount times their own school days.
+  if (a.unitType === "minutes" && E !== sharedEnd && sharedEnd >= S && E >= S) {
+    const schoolWeek = new Set<number>(ctx.calendar.schoolDays);
+    const schoolDaysUntil = (endDay: number): number => {
+      let n = 0;
+      for (let d = S; d <= endDay; d += 1) {
+        const wd = weekdayOfDayNumber(d);
+        if (schoolWeek.has(wd) && (!beforeChange || beforeChange.has(wd))) n += 1;
+      }
+      return n;
+    };
+    const full = schoolDaysUntil(sharedEnd);
+    const mine = schoolDaysUntil(E);
+    if (full > EPS) total = (source.totalUnits / full) * mine;
+  }
+
   // S20-01: minutes are a daily amount. A blocked or skipped day drops that day; it does not thicken the others.
   // The stored total is the daily amount times the school days in the dates (blocks ignored). When some of
   // those days have no capacity, place only what the remaining days hold at the same daily rate.
@@ -97,7 +130,7 @@ export function planChild(a: Assignment, childId: string, ctx: PlanContext, mode
       if (schoolWeek.has(wd) && (!beforeChange || beforeChange.has(wd))) nominal += 1;
       actual += c(d);
     }
-    if (nominal > EPS && nominal - actual > 1e-4) total = (a.totalUnits / nominal) * actual;
+    if (nominal > EPS && nominal - actual > 1e-4) total = (total / nominal) * actual;
   }
 
   let p: Placement;

@@ -20,7 +20,7 @@ function stub(week: unknown, me: unknown = DEMO_ME) {
   fakeApi.on("GET /api/assignments", 200, [
     { id: "ti", subjectId: "lit", title: "Treasure Island", unitType: "pages", totalUnits: 100, weightPerUnit: null, startDate: "2026-08-31", endDate: "2027-05-28", childIds: ["c1"], archived: false, weekdays: null, endedAs: null, endedOn: null },
   ]);
-  fakeApi.on("GET /api/plan", 200, { engineVersion: "0.15.0", asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [] });
+  fakeApi.on("GET /api/plan", 200, { engineVersion: "0.16.0", asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [] });
   fakeApi.on("GET /api/check-ins", 200, week);
 }
 
@@ -59,7 +59,7 @@ describe("a pending check-in on Home (S20-03)", () => {
     fakeApi.on("GET /api/assignments", 200, [
       { id: "ti", subjectId: "lit", title: "Treasure Island", unitType: "pages", totalUnits: 100, weightPerUnit: null, startDate: "2026-08-31", endDate: "2026-10-23", childIds: ["c1"], archived: false, weekdays: null, endedAs: null, endedOn: null },
     ]);
-    fakeApi.on("GET /api/plan", 200, { engineVersion: "0.15.0", asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [] });
+    fakeApi.on("GET /api/plan", 200, { engineVersion: "0.16.0", asOf: "2026-10-28", from: "2026-10-26", to: "2026-11-01", plans: [] });
     fakeApi.on("GET /api/check-ins", 200, PENDING);
     renderAt("/");
     const main = await screen.findByRole("main");

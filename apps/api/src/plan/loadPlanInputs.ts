@@ -80,8 +80,12 @@ export async function readPlanInputs(db: Queryable, familyId: string): Promise<P
   }>(db,
     `SELECT id, subject_id, title, unit_type, total_units, start_date, end_date, weight_per_unit, weekdays, weekdays_from, previous_weekdays, ended_as, ended_on
        FROM assignment WHERE family_id = $1 AND archived_at IS NULL ORDER BY start_date, id`, [familyId]);
-  const assignmentChildren = await query<{ assignment_id: string; child_id: string }>(db,
-    "SELECT assignment_id, child_id FROM assignment_child WHERE family_id = $1 ORDER BY child_id", [familyId]);
+  const assignmentChildren = await query<{
+    assignment_id: string; child_id: string; end_date: string;
+    ended_as: "finished" | "stopped" | null; ended_on: string | null;
+  }>(db,
+    `SELECT assignment_id, child_id, end_date::text AS end_date, ended_as, ended_on::text AS ended_on
+       FROM assignment_child WHERE family_id = $1 ORDER BY child_id`, [familyId]);
   const eventRows = await query<{
     id: string; name: string; weekdays: number[]; start_date: string | null; end_date: string | null;
     capacity_fraction: number; default_rule: SubjectRule;
@@ -108,6 +112,7 @@ export async function readPlanInputs(db: Queryable, familyId: string): Promise<P
   const keepChildren = (ids: string[] | undefined) => (ids ?? []).filter((id) => activeChild.has(id));
 
   const childrenOf = groupBy(assignmentChildren, (r) => r.assignment_id, (r) => r.child_id);
+  const scheduleOf = new Map(assignmentChildren.map((r) => [`${r.assignment_id}/${r.child_id}`, r]));
   const assignments: Assignment[] = [];
   for (const a of assignmentRows) {
     if (!activeSubject.has(a.subject_id)) continue;
@@ -128,6 +133,11 @@ export async function readPlanInputs(db: Queryable, familyId: string): Promise<P
       previousWeekdays: sortedDays(a.previous_weekdays),
       endedAs: a.ended_as,
       endedOn: a.ended_on,
+      // S22-02: each child is planned from their own row. After the copy they match the book, so the plan does not move.
+      childSchedules: childIds.map((childId) => {
+        const row = scheduleOf.get(`${a.id}/${childId}`);
+        return { childId, end: row?.end_date ?? a.end_date, endedAs: row?.ended_as ?? a.ended_as, endedOn: row?.ended_on ?? a.ended_on };
+      }),
     });
   }
   const planned = new Set(assignments.map((a) => a.id));

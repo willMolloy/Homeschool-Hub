@@ -7,8 +7,8 @@ Sprint 18c is merged (PR #24). Sprints 19, 20, and 21 are merged (PRs #21, #22, 
 | Ticket | Commit | Notes |
 |---|---|---|
 | Tickets | ecb81a4 | S22-01 to S22-10. S22-10 is not this build. |
-| S22-01 Copy each child's end from the book | (this commit) | Migration 029 copies the book's end and ending onto every child. A save of the book's end or ending still updates every child. A child added to the book starts on the book's current end and ending. |
-| S22-02 Plan each child to their own end | | |
+| S22-01 Copy each child's end from the book | 57a3dcf | Migration 029 copies the book's end and ending onto every child. A save of the book's end or ending still updates every child. A child added to the book starts on the book's current end and ending. |
+| S22-02 Plan each child to their own end | (this commit) | Engine 0.16.0. A child row plans that child. A copied row matches today's plan. A minutes book keeps its minutes a day when one end is shorter. |
 | S22-03 Change one child's end | | |
 | S22-04 Ask whether one child finished | | |
 | S22-05 Update status for one child | | |

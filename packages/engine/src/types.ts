@@ -43,6 +43,19 @@ export interface Assignment {
    */
   endedAs?: "finished" | "stopped" | null;
   endedOn?: LocalDate | null;
+  /**
+   * S22-02: each child's own planned end and ending. A child with no row uses `end`, `endedAs` and `endedOn`.
+   * While every row matches those, the plan is unchanged.
+   */
+  childSchedules?: ChildSchedule[] | null;
+}
+
+/** S22-02: one child's planned end, and how that child finished or stopped. */
+export interface ChildSchedule {
+  childId: string;
+  end: LocalDate;
+  endedAs?: "finished" | "stopped" | null;
+  endedOn?: LocalDate | null;
 }
 
 /**

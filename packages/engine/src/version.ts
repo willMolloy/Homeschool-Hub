@@ -18,4 +18,5 @@
 // 0.13.0: an assignment the parent said had ended is closed at its endedOn (S12-04): finished keeps its days to the planned end, stopped ends at endedOn; neither forecasts, leaves unplaced work or warns; ChildPlan.endedAs, endedOn.
 // 0.14.0: an assignment finished before its planned end ends at endedOn (S13-00): the work after that day is no longer planned. Finished on or after the planned end is unchanged.
 // 0.15.0: a minutes assignment keeps its daily amount when days are blocked (S20-01). The other units still spread a fixed total, so a break makes them thicker.
-export const ENGINE_VERSION = "0.15.0";
+// 0.16.0: a child with their own end or ending is planned from that, not from the shared book (S22-02). Without one, the plan is unchanged. A minutes book keeps its daily amount when one child's end differs.
+export const ENGINE_VERSION = "0.16.0";

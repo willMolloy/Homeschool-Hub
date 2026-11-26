@@ -91,7 +91,7 @@ function plansBefore(inputs: PlanInputs, w0: LocalDate, today: LocalDate) {
  * the end date and the plan's own end (it ignores those with `checkin-outside-range`).
  */
 const inCheckInRange = (a: Assignment, plan: ChildPlan, w0: LocalDate): boolean =>
-  addDays(w0, 6) >= a.start && w0 <= (a.end > plan.end ? a.end : plan.end);
+  addDays(w0, 6) >= a.start && w0 <= ((plan.plannedEnd > plan.end ? plan.plannedEnd : plan.end));
 
 /** The week's view, given its inputs: planned ranges (earlier check-ins only), stored actuals and status. */
 async function weekView(db: Queryable, familyId: string, inputs: PlanInputs, w0: LocalDate, today: LocalDate): Promise<WeekCheckInJson> {
