@@ -14,7 +14,7 @@ import { assignmentStep, type UndoStep } from "./undoService";
 const SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const usDate = (d: string) => `${SHORT[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8, 10))}, ${d.slice(0, 4)}`;
 
-export interface EndAdjustment { assignmentId: string; endDate: string }
+export interface EndAdjustment { assignmentId: string; endDate: string; childId?: string }
 export interface SavedBreak { startDate: string; endDate: string }
 
 const FALLBACK_SCHOOL_DAYS = [1, 2, 3, 4, 5];
@@ -41,10 +41,13 @@ export async function applyBreakAdjustments(tx: Tx, familyId: string, adjustment
   const steps: UndoStep[] = [];
   const seen = new Set<string>();
   for (const adj of adjustments) {
-    if (seen.has(adj.assignmentId)) throw new HttpError(400, "invalid_request", "Each book can have one end date.");
-    seen.add(adj.assignmentId);
+    const seenKey = `${adj.assignmentId}/${adj.childId ?? ""}`;
+    if (seen.has(seenKey)) throw new HttpError(400, "invalid_request", "Each book can have one end date.");
+    seen.add(seenKey);
     const cur = await lockAssignment(tx, familyId, adj.assignmentId);
-    if (!cur || cur.archived_at || cur.ended_as) throw new HttpError(400, "invalid_request", "That book is not open.");
+    if (!cur || cur.archived_at) throw new HttpError(400, "invalid_request", "That book is not open.");
+    const targets = (adj.childId ? cur.children.filter((c) => c.childId === adj.childId) : cur.children).filter((c) => !c.endedAs);
+    if (targets.length === 0) throw new HttpError(400, "invalid_request", "That book is not open.");
     const inside = breaks.filter((b) => adj.endDate >= b.startDate && adj.endDate <= b.endDate).map((b) => b.endDate).sort();
     if (inside.length > 0) throw new HttpError(400, "invalid_request", `Pick a day after ${usDate(inside.at(-1)!)}.`);
     if (adj.endDate <= cur.start_date) throw new HttpError(400, "invalid_request", `Pick a day after ${usDate(cur.start_date)}.`);
@@ -53,15 +56,22 @@ export async function applyBreakAdjustments(tx: Tx, familyId: string, adjustment
     const coversBook = others.some((b) => adj.endDate >= b.start && adj.endDate <= b.end && (b.childIds.length === 0 || b.childIds.some((id) => cur.child_ids.includes(id))));
     if (coversBook) throw new HttpError(400, "invalid_request", "That day is already off. Pick a school day.");
     checkDateOrder(cur.start_date, adj.endDate, MAX_ASSIGNMENT_DAYS);
-    await checkDatesKeepLatestCheckIn(tx, familyId, cur.id, cur.start_date, adj.endDate);
+    for (const child of targets) await checkDatesKeepLatestCheckIn(tx, familyId, cur.id, cur.start_date, adj.endDate, child.childId);
+    const latest = cur.children.reduce((m, c) => {
+      const end = targets.some((t) => t.childId === c.childId) ? adj.endDate : c.endDate;
+      return end > m ? end : m;
+    }, adj.endDate);
     let totalUnits: number | undefined;
     if (cur.unit_type === "minutes") {
       const kept = await rescaledMinutesTotal(tx, familyId, cur, {
-        startDate: cur.start_date, endDate: adj.endDate, weekdays: cur.weekdays, subjectId: cur.subject_id,
+        startDate: cur.start_date, endDate: latest, weekdays: cur.weekdays, subjectId: cur.subject_id,
       });
       if (kept !== null) totalUnits = kept;
     }
-    await updateAssignment(tx, familyId, cur.id, { endDate: adj.endDate, ...(totalUnits !== undefined ? { totalUnits } : {}) });
+    await updateAssignment(tx, familyId, cur.id, {
+      childEnds: targets.map((c) => ({ childId: c.childId, endDate: adj.endDate })),
+      ...(totalUnits !== undefined ? { totalUnits } : {}),
+    });
     const after = (await lockAssignment(tx, familyId, cur.id))!;
     const step = assignmentStep(cur, after);
     if (step) steps.push(step);

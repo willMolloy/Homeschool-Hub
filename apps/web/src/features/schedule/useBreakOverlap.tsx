@@ -16,7 +16,8 @@ interface Pending {
   existing: BlockedRange[];
   schoolDays: number[];
   subjectWeekdays: { subjectId: string; weekdays: number[] | null }[];
-  perform: (adjustments: { assignmentId: string; endDate: string }[]) => Promise<void>;
+  perform: (adjustments: { assignmentId: string; endDate: string; childId?: string }[]) => Promise<void>;
+  childName: (id: string) => string;
   resolve: () => void;
 }
 
@@ -26,7 +27,7 @@ export function useBreakOverlap(schoolDays: readonly number[]) {
   const [error, setError] = useState<string | null>(null);
 
   /** True when the save ran (or there was nothing to ask). False when she cancels the sheet. */
-  async function ask(proposed: ProposedBreak[], existing: readonly BlockedRange[], perform: (adjustments: { assignmentId: string; endDate: string }[] | null) => Promise<void>): Promise<boolean> {
+  async function ask(proposed: ProposedBreak[], existing: readonly BlockedRange[], perform: (adjustments: { assignmentId: string; endDate: string; childId?: string }[] | null) => Promise<void>): Promise<boolean> {
     const found = await overlapContext(proposed, existing, schoolDays);
     if (found.rows.length === 0) {
       await perform(null);
@@ -41,6 +42,7 @@ export function useBreakOverlap(schoolDays: readonly number[]) {
         existing: [...existing],
         schoolDays: [...schoolDays],
         subjectWeekdays: found.subjectWeekdays,
+        childName: found.childName,
         perform: async (adjustments) => {
           setSaving(true);
           setError(null);
@@ -67,6 +69,7 @@ export function useBreakOverlap(schoolDays: readonly number[]) {
       existing={pending.existing.map((b) => ({ start: b.startDate, end: b.endDate, childIds: b.childIds }))}
       schoolDays={pending.schoolDays}
       subjectWeekdays={pending.subjectWeekdays}
+      childName={pending.childName}
       saving={saving}
       error={error}
       onCancel={() => {

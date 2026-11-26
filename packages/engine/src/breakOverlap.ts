@@ -32,6 +32,8 @@ export interface OverlapAssignment {
   subjectId: string;
   endedAs?: "finished" | "stopped" | null;
   archived?: boolean;
+  /** S22-07: each child's end. Absent means every child uses `end` and `endedAs`. */
+  children?: readonly { childId: string; end: LocalDate; endedAs?: "finished" | "stopped" | null }[];
 }
 
 export interface BreakOverlap {
@@ -46,8 +48,10 @@ export interface BreakOverlap {
   summary: string;
   /** The end date a push of this row alone would use. */
   pushedEnd: LocalDate;
-  /** More than one child is on the book, so one end date is everyone's. */
+  /** More than one open child shares this end, so the end date moves for each of them. */
   shared: boolean;
+  /** Set when this row is one child's end. Absent when the row is the whole book. */
+  childId?: string;
 }
 
 export interface ListBreakOverlapsInput {
@@ -149,32 +153,57 @@ export function pushEndBySchoolDays(end: LocalDate, count: number, weekdays: rea
   return fromDayNumber(n);
 }
 
+/** Open children, each with the end this row would move. No per-child rows: the book's one end, unless the book has ended. */
+function openChildren(a: OverlapAssignment): { childId: string; end: LocalDate }[] {
+  if (a.archived) return [];
+  if (!a.children || a.children.length === 0) {
+    if (a.endedAs === "finished" || a.endedAs === "stopped") return [];
+    return a.childIds.map((childId) => ({ childId, end: a.end }));
+  }
+  return a.children
+    .filter((c) => a.childIds.includes(c.childId) && c.endedAs !== "finished" && c.endedAs !== "stopped")
+    .map((c) => ({ childId: c.childId, end: c.end }));
+}
+
+function rowFor(a: OverlapAssignment, kids: readonly { childId: string; end: LocalDate }[], span: BreakSpan, breakIndex: number, input: ListBreakOverlapsInput): BreakOverlap | null {
+  const view: OverlapAssignment = { ...a, end: kids[0]!.end, childIds: kids.map((k) => k.childId), endedAs: null };
+  const days = assignmentDays(view, input);
+  const dates = coveredDates(view, span, input.existing, days);
+  if (dates.length === 0) return null;
+  return {
+    breakIndex,
+    assignmentId: a.id,
+    title: a.title,
+    schoolDays: dates.length,
+    dates,
+    summary: overlapSummary(dates),
+    pushedEnd: pushEndBySchoolDays(view.end, dates.length, days, skipsFor(view, input.breaks, input.existing)),
+    shared: kids.length > 1,
+    ...(kids.length === 1 && a.children && a.children.length > 1 ? { childId: kids[0]!.childId } : {}),
+  };
+}
+
 export function listBreakOverlaps(input: ListBreakOverlapsInput): BreakOverlap[] {
   const rows: BreakOverlap[] = [];
   input.breaks.forEach((span, breakIndex) => {
     for (const a of input.assignments) {
-      if (a.archived || a.endedAs === "finished" || a.endedAs === "stopped") continue;
-      const days = assignmentDays(a, input);
-      const dates = coveredDates(a, span, input.existing, days);
-      if (dates.length === 0) continue;
-      rows.push({
-        breakIndex,
-        assignmentId: a.id,
-        title: a.title,
-        schoolDays: dates.length,
-        dates,
-        summary: overlapSummary(dates),
-        pushedEnd: pushEndBySchoolDays(a.end, dates.length, days, skipsFor(a, input.breaks, input.existing)),
-        shared: a.childIds.length > 1,
-      });
+      const kids = openChildren(a);
+      if (kids.length === 0) continue;
+      const ends = new Set(kids.map((k) => k.end));
+      // Matching ends stay one row, and the end moves for every open child. Different ends are one row each.
+      const groups = ends.size === 1 ? [kids] : kids.map((k) => [k]);
+      for (const group of groups) {
+        const row = rowFor(a, group, span, breakIndex, input);
+        if (row) rows.push(row);
+      }
     }
   });
   return rows;
 }
 
 export interface ResolvedEnds {
-  /** One new end per book that is not staying put. Empty when every row keeps its end. */
-  ends: { assignmentId: string; endDate: LocalDate }[];
+  /** One new end per row that is not staying put. `childId` is set when the row was one child. */
+  ends: { assignmentId: string; endDate: LocalDate; childId?: string }[];
   /** Two rows of the same book named two different days. */
   conflict: string | null;
 }
@@ -195,25 +224,34 @@ export function resolveEndDates(
   rows.forEach((row, i) => {
     const choice = choices[i];
     if (!choice || choice.kind === "keep") return;
-    const bag = byId.get(row.assignmentId) ?? { rows: [], choices: [] };
+    const key = `${row.assignmentId}\n${row.childId ?? ""}`;
+    const bag = byId.get(key) ?? { rows: [], choices: [] };
     bag.rows.push(row);
     bag.choices.push(choice);
-    byId.set(row.assignmentId, bag);
+    byId.set(key, bag);
   });
   const ends: ResolvedEnds["ends"] = [];
-  for (const [assignmentId, bag] of byId) {
-    const a = assignments.find((x) => x.id === assignmentId);
+  for (const [, bag] of byId) {
+    const row = bag.rows[0]!;
+    const a = assignments.find((x) => x.id === row.assignmentId);
     if (!a) continue;
+    const childEnd = row.childId ? (a.children?.find((c) => c.childId === row.childId)?.end ?? a.end) : a.end;
+    const view: OverlapAssignment = row.childId ? { ...a, end: childEnd, childIds: [row.childId] } : { ...a, end: childEnd };
+    const who = row.childId ? `${a.title}` : a.title;
     const picks = bag.choices.filter((c): c is Extract<RowChoice, { kind: "pick" }> => c.kind === "pick");
     if (picks.length > 0) {
       const dates = [...new Set(picks.map((p) => p.date))];
-      if (dates.length > 1) return { ends: [], conflict: `Pick one end date for ${a.title}.` };
-      ends.push({ assignmentId, endDate: dates[0]! });
+      if (dates.length > 1) return { ends: [], conflict: `Pick one end date for ${who}.` };
+      ends.push({ assignmentId: a.id, endDate: dates[0]!, ...(row.childId ? { childId: row.childId } : {}) });
       continue;
     }
     const count = bag.rows.reduce((s, r) => s + r.schoolDays, 0);
-    const days = assignmentDays(a, { ...input, breaks: proposed, assignments, existing });
-    ends.push({ assignmentId, endDate: pushEndBySchoolDays(a.end, count, days, skipsFor(a, proposed, existing)) });
+    const days = assignmentDays(view, { ...input, breaks: proposed, assignments, existing });
+    ends.push({
+      assignmentId: a.id,
+      endDate: pushEndBySchoolDays(childEnd, count, days, skipsFor(view, proposed, existing)),
+      ...(row.childId ? { childId: row.childId } : {}),
+    });
   }
   return { ends, conflict: null };
 }

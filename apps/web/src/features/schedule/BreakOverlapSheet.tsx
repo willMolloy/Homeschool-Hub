@@ -28,7 +28,9 @@ interface Props {
   saving: boolean;
   error: string | null;
   onCancel: () => void;
-  onConfirm: (adjustments: { assignmentId: string; endDate: string }[]) => void;
+  onConfirm: (adjustments: { assignmentId: string; endDate: string; childId?: string }[]) => void;
+  /** Child id to the name shown on a forked row. */
+  childName?: (id: string) => string;
 }
 
 function choiceAt(choices: Choice[], index: number, kind: RowChoice["kind"], pushedEnd: string): Choice[] {
@@ -40,8 +42,8 @@ function choiceAt(choices: Choice[], index: number, kind: RowChoice["kind"], pus
 }
 
 /** The breaks this book is listed under, so a picked day has to land after all of them. */
-function coveringEnds(rows: BreakOverlap[], proposed: ProposedBreak[], assignmentId: string): string[] {
-  const indexes = new Set(rows.filter((r) => r.assignmentId === assignmentId).map((r) => r.breakIndex));
+function coveringEnds(rows: BreakOverlap[], proposed: ProposedBreak[], row: BreakOverlap): string[] {
+  const indexes = new Set(rows.filter((r) => r.assignmentId === row.assignmentId && r.childId === row.childId).map((r) => r.breakIndex));
   return proposed.filter((_, i) => indexes.has(i)).map((b) => b.end);
 }
 
@@ -49,7 +51,7 @@ function rowProblem(row: BreakOverlap, choice: Choice, rows: BreakOverlap[], pro
   if (choice?.kind !== "pick") return null;
   const start = assignments.find((a) => a.id === row.assignmentId)?.start ?? row.dates[0] ?? "";
   const book = assignments.find((a) => a.id === row.assignmentId);
-  const breakEnd = coveringEnds(rows, proposed, row.assignmentId).sort().at(-1) ?? "";
+  const breakEnd = coveringEnds(rows, proposed, row).sort().at(-1) ?? "";
   const why = pickRefusal(choice.date, {
     breakEnd, assignmentStart: start, schoolDays,
     off: [...existing.map(toSpan), ...proposed.map(toSpan)],
@@ -71,7 +73,7 @@ function canConfirm(choices: Choice[], rows: BreakOverlap[], proposed: ProposedB
   return resolved.conflict === null;
 }
 
-export function BreakOverlapSheet({ rows, proposed, assignments, existing, schoolDays, subjectWeekdays, saving, error, onCancel, onConfirm }: Props) {
+export function BreakOverlapSheet({ rows, proposed, assignments, existing, schoolDays, subjectWeekdays, saving, error, onCancel, onConfirm, childName = (id) => id }: Props) {
   const [choices, setChoices] = useState<Choice[]>(() => rows.map(() => null));
   const [last, setLast] = useState<Choice>(null);
   const ctx = { existing, schoolDays, subjectWeekdays };
@@ -118,10 +120,11 @@ export function BreakOverlapSheet({ rows, proposed, assignments, existing, schoo
               {mine.map(({ row, index }) => {
                 const choice = choices[index];
                 const problem = rowProblem(row, choice ?? null, rows, proposed, assignments, schoolDays, existing);
-                const group = `overlap-${row.breakIndex}-${row.assignmentId}`;
+                const group = `overlap-${row.breakIndex}-${row.assignmentId}-${row.childId ?? "all"}`;
+                const legend = row.childId ? `${row.title} · ${childName(row.childId)}` : row.title;
                 return (
                   <fieldset key={group} className="choice-list overlap-book">
-                    <legend>{row.title}</legend>
+                    <legend>{legend}</legend>
                     <p className="overlap-note">{row.summary[0]!.toUpperCase()}{row.summary.slice(1)}.</p>
                     {row.shared ? <p className="overlap-note">The end date moves for everyone on this book.</p> : null}
                     <label className="choice">

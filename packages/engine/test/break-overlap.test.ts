@@ -212,3 +212,50 @@ describe("move the end date (S21-03)", () => {
     expect(pickRefusal("2026-03-02", opts)).toBeNull();
   });
 });
+
+describe("a shared book whose ends differ (S22-07)", () => {
+  const shared = frank({
+    id: "shared",
+    title: "History spine",
+    childIds: ["elias", "margaret"],
+    end: "2026-05-21",
+    children: [
+      { childId: "elias", end: "2026-02-06", endedAs: null },
+      { childId: "margaret", end: "2026-05-21", endedAs: null },
+    ],
+  });
+
+  it("is one row while the open children share an end, and one row each when they do not", () => {
+    const same = list({ assignments: [frank({ id: "shared", title: "History spine", childIds: ["elias", "margaret"], children: [
+      { childId: "elias", end: "2026-05-21", endedAs: null },
+      { childId: "margaret", end: "2026-05-21", endedAs: null },
+    ] })] });
+    expect(same).toHaveLength(1);
+    expect(same[0]!.shared).toBe(true);
+    expect(same[0]!.childId).toBeUndefined();
+
+    const rows = list({ assignments: [shared] });
+    expect(rows.map((r) => r.childId)).toEqual(["elias", "margaret"]);
+    expect(rows.every((r) => r.shared === false)).toBe(true);
+    expect(rows[0]!.schoolDays).toBeLessThan(rows[1]!.schoolDays);
+    expect(rows[0]!.pushedEnd).not.toBe(rows[1]!.pushedEnd);
+  });
+
+  it("leaves a finished child off the sheet, and Use this for the rest keeps each row's own push", () => {
+    const rows = list({ assignments: [frank({
+      ...shared,
+      children: [
+        { childId: "elias", end: "2026-02-06", endedAs: "finished" },
+        { childId: "margaret", end: "2026-05-21", endedAs: null },
+      ],
+    })] });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.childId).toBe("margaret");
+    const open = list({ assignments: [shared] });
+    const resolved = resolveEndDates(open, open.map(() => ({ kind: "push" as const })), [shared], [feb], [], { schoolDays: SCHOOL });
+    expect(resolved.ends).toEqual([
+      { assignmentId: "shared", endDate: open[0]!.pushedEnd, childId: "elias" },
+      { assignmentId: "shared", endDate: open[1]!.pushedEnd, childId: "margaret" },
+    ]);
+  });
+});

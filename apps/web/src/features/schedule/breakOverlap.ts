@@ -29,6 +29,7 @@ export function toOverlapAssignment(a: Assignment): OverlapAssignment {
     subjectId: a.subjectId,
     endedAs: a.endedAs ?? null,
     archived: a.archived,
+    children: a.children?.map((c) => ({ childId: c.childId, end: c.endDate, endedAs: c.endedAs ?? null })),
   };
 }
 
@@ -36,13 +37,15 @@ export interface OverlapContext {
   rows: BreakOverlap[];
   assignments: OverlapAssignment[];
   subjectWeekdays: { subjectId: string; weekdays: number[] | null }[];
+  childName: (id: string) => string;
 }
 
 /** The open books this save would cover. Loads the books and the subjects' days. */
 export async function overlapContext(proposed: readonly ProposedBreak[], existing: readonly BlockedRange[], schoolDays: readonly number[]): Promise<OverlapContext> {
-  const [assignments, subjects] = await Promise.all([
+  const [assignments, subjects, children] = await Promise.all([
     apiGet<Assignment[]>("/api/assignments"),
     apiGet<Subject[]>("/api/subjects"),
+    apiGet<{ id: string; name: string }[]>("/api/children"),
   ]);
   const subjectWeekdays = subjects.map((s) => ({ subjectId: s.id, weekdays: s.defaultWeekdays }));
   const books = assignments.map(toOverlapAssignment);
@@ -53,12 +56,13 @@ export async function overlapContext(proposed: readonly ProposedBreak[], existin
     schoolDays,
     subjectWeekdays,
   });
-  return { rows, assignments: books, subjectWeekdays };
+  const names = new Map(children.map((c) => [c.id, c.name]));
+  return { rows, assignments: books, subjectWeekdays, childName: (id: string) => names.get(id) ?? "them" };
 }
 
 /** One break, one save, one undo. Cancel returns null and writes nothing. */
 export async function saveOneBreak(
-  ask: (proposed: ProposedBreak[], existing: readonly BlockedRange[], perform: (adjustments: { assignmentId: string; endDate: string }[] | null) => Promise<void>) => Promise<boolean>,
+  ask: (proposed: ProposedBreak[], existing: readonly BlockedRange[], perform: (adjustments: { assignmentId: string; endDate: string; childId?: string }[] | null) => Promise<void>) => Promise<boolean>,
   body: { label: string | null; kind: BlockedKind; startDate: string; endDate: string; childIds: string[] },
   existing: readonly BlockedRange[],
 ): Promise<BlockedRange | null> {

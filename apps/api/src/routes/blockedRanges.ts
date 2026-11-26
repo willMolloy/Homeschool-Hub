@@ -25,6 +25,7 @@ const Children = IdList(20);
 const Adjustments = z.array(z.strictObject({
   assignmentId: z.string().regex(UUID_RE, "assignmentId must be a UUID.").transform((s) => s.toLowerCase()),
   endDate: LocalDate,
+  childId: z.string().regex(UUID_RE, "childId must be a UUID.").transform((s) => s.toLowerCase()).optional(),
 })).max(200, "At most 200 books.").optional();
 
 const RangeBody = z.strictObject({
