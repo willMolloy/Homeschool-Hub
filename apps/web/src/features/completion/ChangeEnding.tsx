@@ -24,22 +24,26 @@ const CHOICES: readonly { answer: Answer; label: string }[] = [
 ];
 
 /** The sheet itself: open while `assignment` is set. `onChanged` gets the saved assignment. */
-export function ChangeEndingSheet({ assignment, names = [], onClose, onChanged, copies = null }: { assignment: Assignment | null; names?: readonly string[]; onClose: () => void; onChanged: (saved: Assignment) => void; copies?: ReactNode }) {
+export function ChangeEndingSheet({ assignment, names = [], childId, onClose, onChanged, copies = null }: { assignment: Assignment | null; names?: readonly string[]; childId?: string; onClose: () => void; onChanged: (saved: Assignment) => void; copies?: ReactNode }) {
   const me = useMe();
   const today = todayOf(me);
   const [answer, setAnswer] = useState<Answer | null>(null);
+  const [who, setWho] = useState(childId ?? "everyone");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const close = () => { setAnswer(null); setError(null); onClose(); };
   const a = assignment;
-  useEffect(() => { setAnswer(null); setError(null); }, [a?.id]);
-  const question = a ? { assignment: a, text: `Did ${names.length ? joinNames(names) : "they"} finish ${a.title}?` } : null;
+  useEffect(() => { setAnswer(null); setError(null); setWho(childId ?? "everyone"); }, [a?.id, childId]);
+  const several = (a?.childIds.length ?? 0) > 1 && !childId;
+  const target = who === "everyone" ? undefined : who;
+  const whoName = target ? (names[a?.childIds.indexOf(target) ?? -1] ?? "they") : (names.length ? joinNames(names) : "they");
+  const question = a ? { assignment: a, child: target ? { id: target, name: whoName, color: null, sortOrder: 0, archived: false } : undefined, text: `Did ${whoName} finish ${a.title}?` } : null;
   const notEnded = async () => {
     if (!a) return;
     setBusy(true);
     setError(null);
     try {
-      const saved = await reopen(a);
+      const saved = await reopen(a, target);
       setAnswer(null);
       onChanged(saved);
     } catch (e) {
@@ -53,6 +57,15 @@ export function ChangeEndingSheet({ assignment, names = [], onClose, onChanged, 
       {a && question && answer === null ? (
         <div className="answer-form">
           <p className="answer-question">{question.text}</p>
+          {several ? (
+            <fieldset className="choice-list">
+              <legend>Who is this for?</legend>
+              <label className="choice"><input type="radio" name="end-who" checked={who === "everyone"} onChange={() => setWho("everyone")} /> For everyone</label>
+              {a.childIds.map((id, i) => (
+                <label className="choice" key={id}><input type="radio" name="end-who" checked={who === id} onChange={() => setWho(id)} /> Just {names[i] ?? "them"}</label>
+              ))}
+            </fieldset>
+          ) : null}
           <p className="answer-question">{a.endedAs ? endedWords(a.endedAs, a.endedOn ?? a.endDate) : "Not ended"}. How did it go?</p>
           {copies}
           <div className="change-choices">
@@ -72,13 +85,21 @@ export function ChangeEndingSheet({ assignment, names = [], onClose, onChanged, 
 
 /** "Finished Nov 2" with Change, for an ended assignment (nothing for an open one). */
 export function EndingRow({ assignment, names, onChanged }: { assignment: Assignment; names?: readonly string[]; onChanged: (saved: Assignment) => void }) {
-  const [open, setOpen] = useState(false);
-  if (!assignment.endedAs) return null;
+  const [open, setOpen] = useState<string | null>(null);
+  const rows = (assignment.children?.length ? assignment.children : assignment.childIds.map((id) => ({ childId: id, endDate: assignment.endDate, endedAs: assignment.endedAs, endedOn: assignment.endedOn })))
+    .filter((r) => r.endedAs);
+  if (rows.length === 0) return null;
+  const same = rows.length === assignment.childIds.length && rows.every((r) => r.endedAs === rows[0]!.endedAs && r.endedOn === rows[0]!.endedOn);
+  const shown = same ? [rows[0]!] : rows;
   return (
-    <div className="ended-row" data-ended={assignment.endedAs}>
-      <span className="ended-text">{endedWords(assignment.endedAs, assignment.endedOn ?? assignment.endDate)}</span>
-      <Button variant="secondary" onClick={() => setOpen(true)} aria-label={`Change how ${assignment.title} ended`}>Change</Button>
-      <ChangeEndingSheet assignment={open ? assignment : null} names={names} onClose={() => setOpen(false)} onChanged={(saved) => { setOpen(false); onChanged(saved); }} />
-    </div>
+    <>
+      {shown.map((r) => (
+        <div className="ended-row" data-ended={r.endedAs} key={same ? "all" : r.childId}>
+          <span className="ended-text">{!same && names?.[assignment.childIds.indexOf(r.childId)] ? `${names[assignment.childIds.indexOf(r.childId)]} · ` : ""}{endedWords(r.endedAs as "finished" | "stopped", r.endedOn ?? r.endDate)}</span>
+          <Button variant="secondary" onClick={() => setOpen(same ? "all" : r.childId)} aria-label={`Change how ${assignment.title} ended`}>Change</Button>
+        </div>
+      ))}
+      <ChangeEndingSheet assignment={open ? assignment : null} names={names} childId={open && open !== "all" ? open : undefined} onClose={() => setOpen(null)} onChanged={(saved) => { setOpen(null); onChanged(saved); }} />
+    </>
   );
 }

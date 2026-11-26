@@ -14,6 +14,18 @@ const book = (over: Partial<Assignment>): Assignment => ({
   id: "ti", subjectId: "lit", title: "Treasure Island", unitType: "pages", totalUnits: 100, weightPerUnit: null,
   startDate: "2026-10-05", endDate: "2026-10-23", childIds: ["c1"], archived: false, weekdays: null, endedAs: null, endedOn: null, ...over,
 });
+function applyAnswer(a: Assignment, body: unknown): Assignment {
+  const b = body as { childEnds?: { childId: string; endDate?: string; endedAs?: "finished" | "stopped" | null; endedOn?: string | null }[] };
+  if (!b.childEnds) return { ...a, ...(body as Partial<Assignment>) };
+  const children = (a.children ?? a.childIds.map((id) => ({ childId: id, endDate: a.endDate, endedAs: a.endedAs ?? null, endedOn: a.endedOn ?? null })))
+    .map((c) => {
+      const hit = b.childEnds!.find((r) => r.childId === c.childId);
+      if (!hit) return c;
+      return { ...c, endDate: hit.endDate ?? c.endDate, endedAs: hit.endedAs === undefined ? c.endedAs : hit.endedAs, endedOn: hit.endedAs === undefined ? c.endedOn : hit.endedOn ?? null };
+    });
+  const same = children.every((c) => c.endedAs === children[0]!.endedAs && c.endedOn === children[0]!.endedOn);
+  return { ...a, children, endedAs: same ? children[0]!.endedAs : null, endedOn: same ? children[0]!.endedOn : null };
+}
 function stub(initial: Assignment[]) {
   let list = initial;
   fakeApi.on("GET /api/children", 200, [{ id: "c1", name: "Frank", color: null, sortOrder: 0, archived: false }]);
@@ -22,7 +34,7 @@ function stub(initial: Assignment[]) {
   fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-08-01", to: "2027-06-30", plans: [] });
   for (const a of initial) {
     fakeApi.on(`PATCH /api/assignments/${a.id}`, (b) => {
-      list = list.map((x) => (x.id === a.id ? { ...x, ...(b as object) } as Assignment : x));
+      list = list.map((x) => (x.id === a.id ? applyAnswer(x, b) : x));
       return [200, list.find((x) => x.id === a.id)];
     });
   }

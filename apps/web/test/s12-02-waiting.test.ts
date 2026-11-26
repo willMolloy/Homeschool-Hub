@@ -57,7 +57,7 @@ describe("joinNames (S12-02)", () => {
 });
 
 describe("waitingQuestions (S12-02)", () => {
-  it("lists the waiting ones, oldest end first, one question each naming every child", () => {
+  it("lists one question per child, oldest end first", () => {
     const list = waitingQuestions([
       book({ id: "b", title: "History spine", endDate: "2026-10-30", childIds: ["c2", "c1"] }),
       book({ id: "a", title: "Treasure Island", endDate: "2026-10-26", childIds: ["c1"] }),
@@ -68,8 +68,11 @@ describe("waitingQuestions (S12-02)", () => {
     ], KIDS, TODAY);
     expect(list.map((q) => q.text)).toEqual([
       "Did Frank finish Treasure Island?",
-      "Did Frank, Margaret and Leo finish Fractions?", // same end as History spine: by title
-      "Did Frank and Margaret finish History spine?", // names in roster order, not the order the assignment lists them
+      "Did Frank finish Fractions?",
+      "Did Margaret finish Fractions?",
+      "Did Leo finish Fractions?",
+      "Did Frank finish History spine?",
+      "Did Margaret finish History spine?",
     ]);
   });
   it("leaves an archived child out of the names, and an assignment nobody active is on", () => {
@@ -86,6 +89,14 @@ describe("waitingQuestions (S12-02)", () => {
 });
 
 describe("the demo family (S12-02, S12-07)", () => {
+  it("asks once per child whose own end has passed, and skips a child who already finished", () => {
+    const shared = book({ id: "shared", title: "History spine", endDate: "2026-10-30", childIds: ["c1", "c2"], children: [
+      { childId: "c1", endDate: "2026-10-20", endedAs: "finished", endedOn: "2026-10-20" },
+      { childId: "c2", endDate: "2026-10-30", endedAs: null, endedOn: null },
+    ] });
+    expect(waitingQuestions([shared], KIDS, TODAY).map((q) => q.text)).toEqual(["Did Margaret finish History spine?"]);
+  });
+
   it("has exactly one question on Nov 4, 2026: the poems that ended last week and were never answered", () => {
     const assignments = DEMO_FAMILY.assignments.map((a): Assignment => ({
       id: a.id, subjectId: a.subjectId, title: a.title ?? a.id, unitType: a.unitType, totalUnits: a.totalUnits, weightPerUnit: a.weightPerUnit ?? null,

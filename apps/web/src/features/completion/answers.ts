@@ -15,10 +15,12 @@ export type Answer = "finished" | "notyet" | "stopped";
  * (or today when that hasn't come yet); for We stopped, the day it ended on, else today (never before the start); for Not yet,
  * a week from today.
  */
-export function defaultDay(answer: Answer, a: Assignment, today: LocalDate): LocalDate {
+export function defaultDay(answer: Answer, a: Assignment, today: LocalDate, childId?: string): LocalDate {
+  const end = childId ? (a.children?.find((c) => c.childId === childId)?.endDate ?? a.endDate) : a.endDate;
+  const endedOn = childId ? (a.children?.find((c) => c.childId === childId)?.endedOn ?? null) : a.endedOn;
   if (answer === "notyet") return addDays(today, 7);
-  if (a.endedOn) return a.endedOn;
-  return answer === "finished" ? (a.endDate < today ? a.endDate : today) : today > a.startDate ? today : a.startDate;
+  if (endedOn) return endedOn;
+  return answer === "finished" ? (end < today ? end : today) : today > a.startDate ? today : a.startDate;
 }
 
 /** The label of the date field. */
@@ -41,10 +43,17 @@ export function dayProblem(answer: Answer, a: Assignment, day: string, today: Lo
  * Save the answer. `reopen` (changing an answer, S12-06): Not yet also clears how it ended, so it is open again with the new end.
  * Rejects with the API's ApiError (its message is in the parent's words).
  */
-export function saveAnswer(answer: Answer, a: Assignment, day: LocalDate, reopen = false): Promise<Assignment> {
+export function saveAnswer(answer: Answer, a: Assignment, day: LocalDate, reopen = false, childId?: string): Promise<Assignment> {
+  if (childId) {
+    const row = answer === "notyet"
+      ? (reopen ? { childId, endedAs: null, endDate: day } : { childId, endDate: day })
+      : { childId, endedAs: answer, endedOn: day };
+    return apiPatch<Assignment>(`/api/assignments/${a.id}`, { childEnds: [row] });
+  }
   const body = answer === "notyet" ? (reopen ? { endedAs: null, endDate: day } : { endDate: day }) : { endedAs: answer, endedOn: day };
   return apiPatch<Assignment>(`/api/assignments/${a.id}`, body);
 }
 
-/** S12-06: Not ended: open again (it waits for an answer again if its end has passed). */
-export const reopen = (a: Assignment): Promise<Assignment> => apiPatch<Assignment>(`/api/assignments/${a.id}`, { endedAs: null });
+/** S12-06: Not ended: open again (it waits for an answer again if its end has passed). One child, when named. */
+export const reopen = (a: Assignment, childId?: string): Promise<Assignment> =>
+  apiPatch<Assignment>(`/api/assignments/${a.id}`, childId ? { childEnds: [{ childId, endedAs: null }] } : { endedAs: null });

@@ -30,13 +30,26 @@ function stub(initial: Assignment[]) {
   fakeApi.on("GET /api/plan", 200, { engineVersion: ENGINE_VERSION, asOf: "2026-10-28", from: "2026-08-01", to: "2027-06-30", plans: [] });
   const patch = (_b: unknown, path: string) => {
     const id = path.split("/").pop()!;
-    const body = _b as Partial<Assignment> & { endedOn?: string };
-    list = list.map((a) => (a.id === id ? { ...a, ...body, endedOn: body.endedOn ?? a.endedOn } : a));
+    list = list.map((a) => (a.id === id ? applyAnswer(a, _b) : a));
     return [200, list.find((a) => a.id === id)] as [number, unknown];
   };
   for (const a of initial) fakeApi.on(`PATCH /api/assignments/${a.id}`, patch);
 }
 const patches = () => fakeApi.calls.filter((c) => c.method === "PATCH" && c.path.startsWith("/api/assignments/"));
+
+/** A per-child answer updates that child's end, so a refetch does not ask again. */
+function applyAnswer(a: Assignment, body: unknown): Assignment {
+  const b = body as { childEnds?: { childId: string; endDate?: string; endedAs?: "finished" | "stopped" | null; endedOn?: string | null }[] };
+  if (!b.childEnds) return { ...a, ...(body as Partial<Assignment>) };
+  const children = (a.children ?? a.childIds.map((id) => ({ childId: id, endDate: a.endDate, endedAs: a.endedAs ?? null, endedOn: a.endedOn ?? null })))
+    .map((c) => {
+      const hit = b.childEnds!.find((r) => r.childId === c.childId);
+      if (!hit) return c;
+      return { ...c, endDate: hit.endDate ?? c.endDate, endedAs: hit.endedAs === undefined ? c.endedAs : hit.endedAs, endedOn: hit.endedAs === undefined ? c.endedOn : hit.endedOn ?? null };
+    });
+  const same = children.every((c) => c.endedAs === children[0]!.endedAs && c.endedOn === children[0]!.endedOn);
+  return { ...a, children, endDate: children.reduce((m, c) => (c.endDate > m ? c.endDate : m), a.endDate), endedAs: same ? children[0]!.endedAs : null, endedOn: same ? children[0]!.endedOn : null };
+}
 
 function width(wide: boolean) {
   vi.stubGlobal("matchMedia", (query: string) => ({
@@ -73,7 +86,7 @@ describe("the completion question on Home (S12-03)", () => {
     renderAt("/");
     await user.click(await screen.findByRole("button", { name: "Yes, finished" }));
     await waitFor(() => expect(patches()).toHaveLength(1));
-    expect(patches()[0]).toMatchObject({ path: "/api/assignments/ti", body: { endedAs: "finished", endedOn: "2026-10-23" } });
+    expect(patches()[0]).toMatchObject({ path: "/api/assignments/ti", body: { childEnds: [{ childId: "c1", endedAs: "finished", endedOn: "2026-10-23" }] } });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Finished on")).not.toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("region", { name: "A question for you" })).not.toBeInTheDocument());
@@ -87,7 +100,7 @@ describe("the completion question on Home (S12-03)", () => {
     expect(await screen.findByLabelText("Stopped on")).toHaveValue("Oct 28, 2026");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(patches()).toHaveLength(1));
-    expect(patches()[0]!.body).toEqual({ endedAs: "stopped", endedOn: "2026-10-28" });
+    expect(patches()[0]!.body).toEqual({ childEnds: [{ childId: "c1", endedAs: "stopped", endedOn: "2026-10-28" }] });
     await waitFor(() => expect(screen.queryByRole("region", { name: "A question for you" })).not.toBeInTheDocument());
   });
 
@@ -101,7 +114,7 @@ describe("the completion question on Home (S12-03)", () => {
     expect(within(sheet).getByText("The question comes back after this day.")).toBeInTheDocument();
     await user.click(within(sheet).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(patches()).toHaveLength(1));
-    expect(patches()[0]).toMatchObject({ path: "/api/assignments/ti", body: { endDate: "2026-11-04" } });
+    expect(patches()[0]).toMatchObject({ path: "/api/assignments/ti", body: { childEnds: [{ childId: "c1", endDate: "2026-11-04" }] } });
     expect(patches()[0]!.body).not.toHaveProperty("endedAs");
     await waitFor(() => expect(screen.queryByRole("region", { name: "A question for you" })).not.toBeInTheDocument());
   });
@@ -146,10 +159,15 @@ describe("the completion question on Home (S12-03)", () => {
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
   });
 
-  it("names every child on the assignment", async () => {
+  it("asks each child on the assignment", async () => {
     stub([book({ id: "hist", title: "History spine", childIds: ["c2", "c1"] })]);
     renderAt("/");
-    expect(await screen.findByRole("heading", { level: 2, name: "Did Frank and Margaret finish History spine?" })).toBeInTheDocument();
+    const card = await screen.findByRole("region", { name: "A question for you" });
+    expect(within(card).getByRole("heading", { level: 2, name: "2 assignments ended" })).toBeInTheDocument();
+    await userEvent.setup().click(within(card).getByRole("button", { name: "Answer them" }));
+    const sheet = await screen.findByRole("dialog", { name: "2 assignments ended" });
+    expect(within(sheet).getByText("Did Frank finish History spine?")).toBeInTheDocument();
+    expect(within(sheet).getByText("Did Margaret finish History spine?")).toBeInTheDocument();
   });
 });
 
@@ -166,13 +184,13 @@ describe("several waiting (S12-03)", () => {
     const user = userEvent.setup();
     renderAt("/");
     const card = await screen.findByRole("region", { name: "A question for you" });
-    expect(within(card).getByRole("heading", { level: 2, name: "3 assignments ended" })).toBeInTheDocument();
-    expect(within(card).getByText("Aesop's Fables, Treasure Island and 1 more")).toBeInTheDocument();
+    expect(within(card).getByRole("heading", { level: 2, name: "4 assignments ended" })).toBeInTheDocument();
+    expect(within(card).getByText("Aesop's Fables, Treasure Island and 2 more")).toBeInTheDocument();
     await user.click(within(card).getByRole("button", { name: "Answer them" }));
-    const sheet = await screen.findByRole("dialog", { name: "3 assignments ended" });
+    const sheet = await screen.findByRole("dialog", { name: "4 assignments ended" });
     const rows = within(sheet).getAllByRole("listitem");
     expect(rows.map((r) => within(r).getByText(/^Did /).textContent)).toEqual([
-      "Did Margaret finish Aesop's Fables?", "Did Frank finish Treasure Island?", "Did Frank and Margaret finish Poems?",
+      "Did Margaret finish Aesop's Fables?", "Did Frank finish Treasure Island?", "Did Frank finish Poems?", "Did Margaret finish Poems?",
     ]);
     for (const r of rows) expect(within(r).getAllByRole("button")).toHaveLength(3);
     expect(within(rows[0]!).getByRole("button", { name: "Not yet: Aesop's Fables" })).toBeInTheDocument();
@@ -185,19 +203,23 @@ describe("several waiting (S12-03)", () => {
     await user.click(await screen.findByRole("button", { name: "Answer them" }));
     await user.click(await screen.findByRole("button", { name: "Yes, finished: Treasure Island" }));
     await waitFor(() => expect(patches()).toHaveLength(1));
-    expect(patches()[0]).toMatchObject({ path: "/api/assignments/a", body: { endedAs: "finished", endedOn: "2026-10-23" } });
-    const sheet = await screen.findByRole("dialog", { name: "2 assignments ended" });
-    expect(within(sheet).getAllByRole("listitem")).toHaveLength(2);
+    expect(patches()[0]).toMatchObject({ path: "/api/assignments/a", body: { childEnds: [{ childId: "c1", endedAs: "finished", endedOn: "2026-10-23" }] } });
+    const sheet = await screen.findByRole("dialog", { name: "3 assignments ended" });
+    expect(within(sheet).getAllByRole("listitem")).toHaveLength(3);
     expect(within(sheet).queryByText("Did Frank finish Treasure Island?")).not.toBeInTheDocument();
     await user.click(within(sheet).getByRole("button", { name: "We stopped: Aesop's Fables" }));
     await user.click(await screen.findByRole("button", { name: "Save" }));
     // One left: the sheet is the list of one, still with its three choices.
-    await user.click(await screen.findByRole("button", { name: "Not yet: Poems" }));
+    await user.click((await screen.findAllByRole("button", { name: "Not yet: Poems" }))[0]!);
     await user.click(await screen.findByRole("button", { name: "Save" }));
+    await user.click(await screen.findByRole("button", { name: "Yes, finished: Poems" }));
     await waitFor(() => expect(screen.queryByRole("region", { name: "A question for you" })).not.toBeInTheDocument());
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(patches().map((p) => p.body)).toEqual([
-      { endedAs: "finished", endedOn: "2026-10-23" }, { endedAs: "stopped", endedOn: "2026-10-28" }, { endDate: "2026-11-04" },
+      { childEnds: [{ childId: "c1", endedAs: "finished", endedOn: "2026-10-23" }] },
+      { childEnds: [{ childId: "c2", endedAs: "stopped", endedOn: "2026-10-28" }] },
+      { childEnds: [{ childId: "c1", endDate: "2026-11-04" }] },
+      { childEnds: [{ childId: "c2", endedAs: "finished", endedOn: "2026-10-26" }] },
     ]);
   });
 
@@ -206,9 +228,9 @@ describe("several waiting (S12-03)", () => {
     const user = userEvent.setup();
     renderAt("/");
     await user.click(await screen.findByRole("button", { name: "Answer them" }));
-    await user.click(await screen.findByRole("button", { name: "Not yet: Poems" }));
+    await user.click((await screen.findAllByRole("button", { name: "Not yet: Poems" }))[0]!);
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
-    expect(await screen.findByRole("dialog", { name: "3 assignments ended" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "4 assignments ended" })).toBeInTheDocument();
     expect(patches()).toHaveLength(0);
   });
 });

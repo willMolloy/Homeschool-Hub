@@ -8,9 +8,9 @@ Sprint 18c is merged (PR #24). Sprints 19, 20, and 21 are merged (PRs #21, #22, 
 |---|---|---|
 | Tickets | ecb81a4 | S22-01 to S22-10. S22-10 is not this build. |
 | S22-01 Copy each child's end from the book | 57a3dcf | Migration 029 copies the book's end and ending onto every child. A save of the book's end or ending still updates every child. A child added to the book starts on the book's current end and ending. |
-| S22-02 Plan each child to their own end | (this commit) | Engine 0.16.0. A child row plans that child. A copied row matches today's plan. A minutes book keeps its minutes a day when one end is shorter. |
-| S22-03 Change one child's end | | |
-| S22-04 Ask whether one child finished | | |
+| S22-02 Plan each child to their own end | 847489b | Engine 0.16.0. A child row plans that child. A copied row matches today's plan. A minutes book keeps its minutes a day when one end is shorter. |
+| S22-03 Change one child's end | 79a86af | `childEnds` names the children. No name still updates everyone. The form defaults to For everyone when the ends match. Undo stores each child's end. |
+| S22-04 Ask whether one child finished | (this commit) | One question per child. Yes, Not yet, and We stopped name that child. Change offers For everyone when they still share an ending. |
 | S22-05 Update status for one child | | |
 | S22-06 Keep one year bar while the ends match | | |
 | S22-07 Ask about a break for each child's end | | |

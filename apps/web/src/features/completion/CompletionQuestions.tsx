@@ -16,7 +16,7 @@ import { subjectSlots } from "../timeline/model";
 import { Button, Card } from "../../ui/components";
 import { DateField } from "../../ui/DateField";
 import { DAY_LABEL, dayProblem, defaultDay, saveAnswer, sheetTitle, type Answer } from "./answers";
-import { joinNames, type WaitingQuestion } from "./waiting";
+import { joinNames, questionKey, type WaitingQuestion } from "./waiting";
 import "./completion.css";
 
 const CHOICES: readonly { answer: Answer; label: string; primary?: boolean }[] = [
@@ -45,7 +45,7 @@ export function CompletionQuestions({ questions, subjects, today, onAnswered }: 
   // One-tap Yes (S13-00): the one being saved, and a refusal in the parent's words.
   const [saving, setSaving] = useState<string | null>(null);
   const [quickError, setQuickError] = useState<string | null>(null);
-  const left = questions.filter((q) => !gone.has(q.assignment.id));
+  const left = questions.filter((q) => !gone.has(questionKey(q)));
   const slot = subjectSlots(subjects);
   const subjectOf = (q: WaitingQuestion) => subjects.find((s) => s.id === q.assignment.subjectId);
 
@@ -53,21 +53,21 @@ export function CompletionQuestions({ questions, subjects, today, onAnswered }: 
 
   if (left.length === 0) return null;
 
-  const answered = (id: string) => {
-    setGone((g) => new Set([...g, id]));
+  const answered = (q: WaitingQuestion) => {
+    setGone((g) => new Set([...g, questionKey(q)]));
     onAnswered();
     // Back to the list while others wait; otherwise the sheet closes (the effect above).
     setOpen((o) => (o && o.view === "answer" && o.back && left.length > 1 ? { view: "list" } : null));
   };
-  // Yes, finished saves at once with the stored end date (no date sheet; Change edits the day later). The others open their sheet.
+  // Yes, finished saves at once with that child's end (no date sheet; Change edits the day later). The others open their sheet.
   const choose = async (q: WaitingQuestion, answer: Answer, back: boolean) => {
-    if (answer !== "finished") { setQuickError(null); setOpen({ view: "answer", id: q.assignment.id, answer, back }); return; }
+    if (answer !== "finished") { setQuickError(null); setOpen({ view: "answer", id: questionKey(q), answer, back }); return; }
     if (saving) return;
-    setSaving(q.assignment.id);
+    setSaving(questionKey(q));
     setQuickError(null);
     try {
-      await saveAnswer("finished", q.assignment, defaultDay("finished", q.assignment, today));
-      setGone((g) => new Set([...g, q.assignment.id]));
+      await saveAnswer("finished", q.assignment, defaultDay("finished", q.assignment, today, q.child.id), false, q.child.id);
+      setGone((g) => new Set([...g, questionKey(q)]));
       onAnswered();
     } catch (e) {
       setQuickError(e instanceof ApiError ? e.message : "Couldn't save that. Please try again.");
@@ -75,7 +75,7 @@ export function CompletionQuestions({ questions, subjects, today, onAnswered }: 
       setSaving(null);
     }
   };
-  const current = open && open.view === "answer" ? left.find((q) => q.assignment.id === open.id) : undefined;
+  const current = open && open.view === "answer" ? left.find((q) => questionKey(q) === open.id) : undefined;
 
   return (
     <section className="home-question" aria-label="A question for you">
@@ -102,14 +102,14 @@ export function CompletionQuestions({ questions, subjects, today, onAnswered }: 
         {open?.view === "list" ? (
           <ul className="question-list">
             {left.map((q) => (
-              <li key={q.assignment.id}>
+              <li key={questionKey(q)}>
                 <OneQuestion q={q} subject={subjectOf(q)} slot={slot(q.assignment.subjectId)} row busy={saving !== null} onChoose={(answer) => void choose(q, answer, true)} />
               </li>
             ))}
           </ul>
         ) : null}
         {open?.view === "answer" && current ? (
-          <AnswerForm key={`${current.assignment.id}-${open.answer}`} q={current} answer={open.answer} today={today} onSaved={() => answered(current.assignment.id)}
+          <AnswerForm key={`${questionKey(current)}-${open.answer}`} q={current} answer={open.answer} today={today} onSaved={() => answered(current)}
             onCancel={() => setOpen(open.back && left.length > 1 ? { view: "list" } : null)} />
         ) : null}
       </ResponsiveSheet>
@@ -133,7 +133,7 @@ function OneQuestion({ q, subject, slot, row = false, busy = false, onChoose }: 
         <SubjectBadge subject={subject} slot={slot} size={40} />
         <div className="home-question-text">
           {row ? <p id={id} className="home-question-title">{q.text}</p> : <h2 id={id}>{q.text}</h2>}
-          <p className="home-question-sub">Ended {formatShort(q.assignment.endDate)}</p>
+          <p className="home-question-sub">Ended {formatShort(q.endDate)}</p>
         </div>
       </div>
       <div className="home-question-actions" role="group" aria-labelledby={id}>
@@ -151,10 +151,11 @@ function OneQuestion({ q, subject, slot, row = false, busy = false, onChoose }: 
 
 /** The date for the answer and Save. */
 export function AnswerForm({ q, answer, today, reopen = false, onSaved, onCancel }: {
-  q: Pick<WaitingQuestion, "assignment" | "text">; answer: Answer; today: LocalDate; reopen?: boolean; onSaved: (saved: Assignment) => void; onCancel: () => void;
+  q: Pick<WaitingQuestion, "assignment" | "text"> & { child?: WaitingQuestion["child"] }; answer: Answer; today: LocalDate; reopen?: boolean; onSaved: (saved: Assignment) => void; onCancel: () => void;
 }) {
   const a = q.assignment;
-  const [day, setDay] = useState<string>(defaultDay(answer, a, today));
+  const childId = q.child?.id;
+  const [day, setDay] = useState<string>(defaultDay(answer, a, today, childId));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fieldId = useId();
@@ -164,7 +165,7 @@ export function AnswerForm({ q, answer, today, reopen = false, onSaved, onCancel
     setBusy(true);
     setError(null);
     try {
-      onSaved(await saveAnswer(answer, a, day, reopen));
+      onSaved(await saveAnswer(answer, a, day, reopen, childId));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Couldn't save that. Please try again.");
       setBusy(false);
