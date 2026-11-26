@@ -7,7 +7,7 @@ import type { OverrideMode } from "@hh/engine";
 import type { CheckInItem, SaveWeekBody, WeekCheckIn } from "../../api/types";
 import { itemKey, rowOutcome } from "../checkin/absorb";
 
-export function statusBody(week: WeekCheckIn, item: CheckInItem, position: number, mode: OverrideMode | null, endDate: string | null = null): SaveWeekBody {
+export function statusBody(week: WeekCheckIn, item: CheckInItem, position: number, mode: OverrideMode | null, endDate: string | null = null, everyone = false): SaveWeekBody {
   const key = itemKey(item);
   const kept = [...week.items, ...week.addable]
     .filter((i) => i.actual !== null && itemKey(i) !== key)
@@ -16,5 +16,5 @@ export function statusBody(week: WeekCheckIn, item: CheckInItem, position: numbe
     ? [{ assignmentId: item.assignmentId, childId: item.childId, position, mode: rowOutcome(item, position) === "finished" ? null : mode }]
     : [];
   // S18-02: a moved or picked end date goes in the same save, so one Undo takes back both.
-  return { status: "reviewed", items: [...kept, ...changed], ...(endDate ? { endDate: { assignmentId: item.assignmentId, endDate } } : {}) };
+  return { status: "reviewed", items: [...kept, ...changed], ...(endDate ? { endDate: { assignmentId: item.assignmentId, endDate, ...(everyone ? {} : { childId: item.childId }) } } : {}) };
 }

@@ -106,7 +106,7 @@ describe("Update status after Fell behind (S18-02)", () => {
     await user.click(await sheet.findByRole("radio", { name: /^Move the end to Feb 1, 2027/ }));
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
-    expect(body()).toEqual({ status: "reviewed", items: [{ assignmentId: "ti", childId: "c1", position: 19, mode: "keepEndDate" }], endDate: { assignmentId: "ti", endDate: "2027-02-01" } });
+    expect(body()).toEqual({ status: "reviewed", items: [{ assignmentId: "ti", childId: "c1", position: 19, mode: "keepEndDate" }], endDate: { assignmentId: "ti", endDate: "2027-02-01", childId: "c1" } });
   });
 
   it("Pick a date: any later date can be typed and is the one saved", async () => {
@@ -120,7 +120,7 @@ describe("Update status after Fell behind (S18-02)", () => {
     await user.type(field, "Mar 15, 2027");
     await user.click(sheet.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts()).toHaveLength(1));
-    expect(body().endDate).toEqual({ assignmentId: "ti", endDate: "2027-03-15" });
+    expect(body().endDate).toEqual({ assignmentId: "ti", endDate: "2027-03-15", childId: "c1" });
     expect(body().items[0]).toMatchObject({ mode: "keepEndDate" });
   });
 
@@ -151,7 +151,8 @@ describe("Update status after Fell behind (S18-02)", () => {
   });
 
   it("statusBody (pure): the end date rides along with the changed assignment only when one is given", () => {
-    expect(statusBody(WEEK, TI, 15, "keepEndDate", "2027-02-01").endDate).toEqual({ assignmentId: "ti", endDate: "2027-02-01" });
+    expect(statusBody(WEEK, TI, 15, "keepEndDate", "2027-02-01").endDate).toEqual({ assignmentId: "ti", endDate: "2027-02-01", childId: "c1" });
+    expect(statusBody(WEEK, TI, 15, "keepEndDate", "2027-02-01", true).endDate).toEqual({ assignmentId: "ti", endDate: "2027-02-01" });
     expect("endDate" in statusBody(WEEK, TI, 15, "keepEndDate")).toBe(false);
   });
 });

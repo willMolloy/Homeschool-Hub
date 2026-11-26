@@ -23,7 +23,7 @@ const SaveBody = z.strictObject({
     mode: z.enum(OVERRIDE_MODES, `mode must be ${humanList(OVERRIDE_MODES)} or null.`).nullable().default(null),
   })).max(MAX_CHECKIN_ITEMS, `items: at most ${MAX_CHECKIN_ITEMS}.`),
   /** S18-02: move one assignment's end date as part of the save (the parent's pick, or the late line's date). One undo covers both. */
-  endDate: z.strictObject({ assignmentId: Id("assignmentId"), endDate: LocalDate }).optional(),
+  endDate: z.strictObject({ assignmentId: Id("assignmentId"), endDate: LocalDate, childId: Id("childId").optional() }).optional(),
 });
 
 export async function checkInsRoutes(app: FastifyInstance): Promise<void> {

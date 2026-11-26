@@ -14,8 +14,8 @@ import { saveWeek, type SaveWeekRequest, type WeekCheckInJson } from "./checkInS
 import { assignmentStep, recordUndo, type UndoStep, type WeekCheckInsState } from "./undoService";
 
 export interface StatusSaveRequest extends SaveWeekRequest {
-  /** Move this assignment's end date (every child on it) as part of the save. */
-  endDate?: { assignmentId: string; endDate: LocalDate };
+  /** Move an end as part of the save. With `childId`, only that child. Without it, every child. */
+  endDate?: { assignmentId: string; endDate: LocalDate; childId?: string };
 }
 
 /** The week's stored check-ins and review status as they are now (the state an undo puts back). */
@@ -46,12 +46,19 @@ export async function saveStatus(tx: Tx, familyId: string, req: StatusSaveReques
     if (!cur) throw new HttpError(400, "invalid_reference", "endDate.assignmentId: must be one of your assignments.");
     // The check-ins are written first, so the latest one (maybe this week's) is held to the new end.
     checkDateOrder(cur.start_date, endDate.endDate, MAX_ASSIGNMENT_DAYS);
-    await checkDatesKeepLatestCheckIn(tx, familyId, cur.id, cur.start_date, endDate.endDate);
+    const childEnd = endDate.childId ? cur.children.find((c) => c.childId === endDate.childId)?.endDate : undefined;
+    if (endDate.childId && childEnd === undefined) throw new HttpError(400, "invalid_reference", "That child is not on this book.");
+    await checkDatesKeepLatestCheckIn(tx, familyId, cur.id, cur.start_date, endDate.endDate, endDate.childId);
     // S20-01: moving the end of a minutes assignment keeps the minutes a day (the total follows the new span).
+    const latest = endDate.childId
+      ? cur.children.reduce((m, c) => { const end = c.childId === endDate.childId ? endDate.endDate : c.endDate; return end > m ? end : m; }, endDate.endDate)
+      : endDate.endDate;
     const kept = cur.unit_type === "minutes"
-      ? await rescaledMinutesTotal(tx, familyId, cur, { startDate: cur.start_date, endDate: endDate.endDate, weekdays: cur.weekdays, subjectId: cur.subject_id })
+      ? await rescaledMinutesTotal(tx, familyId, cur, { startDate: cur.start_date, endDate: latest, weekdays: cur.weekdays, subjectId: cur.subject_id })
       : null;
-    await updateAssignment(tx, familyId, cur.id, { endDate: endDate.endDate, ...(kept !== null ? { totalUnits: kept } : {}) });
+    await updateAssignment(tx, familyId, cur.id, endDate.childId
+      ? { childEnds: [{ childId: endDate.childId, endDate: endDate.endDate }], ...(kept !== null ? { totalUnits: kept } : {}) }
+      : { endDate: endDate.endDate, ...(kept !== null ? { totalUnits: kept } : {}) });
     const step = assignmentStep(cur, (await getAssignment(tx, familyId, cur.id))!);
     if (step) {
       // The assignment goes back after the check-ins (an earlier end must not meet a newer check-in).

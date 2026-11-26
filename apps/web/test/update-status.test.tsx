@@ -119,7 +119,7 @@ describe("Update status from a Week bar (S9-02)", () => {
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(puts()[0]!.path).toBe("/api/check-ins/2026-10-19");
     // S18-02: moving the end moves the assignment's end date in the same save (the check-in is keepEndDate against the new end).
-    expect(body()).toEqual({ status: "reviewed", items: [{ assignmentId: "ti", childId: "c1", position: 38, mode: "keepEndDate" }], endDate: { assignmentId: "ti", endDate: "2026-12-07" } });
+    expect(body()).toEqual({ status: "reviewed", items: [{ assignmentId: "ti", childId: "c1", position: 38, mode: "keepEndDate" }], endDate: { assignmentId: "ti", endDate: "2026-12-07", childId: "c1" } });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 

@@ -55,7 +55,8 @@ export function UpdateStatusFlow({ assignmentId, childId, title, onClose, onSave
       <UpdateStatusSheet key={`${currentId}:${item.childId}`} item={item} position={item.actual ?? item.plannedTo} mode={item.mode}
         plan={plans?.find((p) => p.assignmentId === item.assignmentId && p.childId === item.childId)} late={late} weekStart={week.weekStart} afterDay={week.weekEnd} whenText="last week"
         copies={copies} busy={state.busy} error={state.error ?? Object.values(state.itemErrors)[0] ?? null} onClose={onClose}
-        onSave={(position, mode, endDate) => { void state.save(statusBody(week, item, position, mode, endDate)).then((res) => { if (res) { onSaved?.(); onClose(); } }); }} />
+        shared={(current?.childIds.length ?? 0) > 1}
+        onSave={(position, mode, endDate, everyone) => { void state.save(statusBody(week, item, position, mode, endDate, everyone)).then((res) => { if (res) { onSaved?.(); onClose(); } }); }} />
     );
   }
   return (

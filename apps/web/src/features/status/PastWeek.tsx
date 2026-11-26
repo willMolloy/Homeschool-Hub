@@ -68,7 +68,8 @@ export function PastWeek({ weekStart, choice, look, readOnly = false, layout = "
       {open && !readOnly ? (
         <UpdateStatusSheet key={itemKey(open)} item={open} position={positionOf(open)} mode={open.mode} plan={plans?.find((p) => p.assignmentId === open.assignmentId && p.childId === open.childId)}
           late={late} weekStart={weekStart} afterDay={week.weekEnd} whenText="that week" busy={state.busy} error={state.error ?? Object.values(state.itemErrors)[0] ?? null} onClose={() => setOpen(null)}
-          onSave={(position, mode, endDate) => { void state.save(statusBody(week, open, position, mode, endDate)).then((res) => { if (res) setOpen(null); }); }} />
+          shared={(look.assignments.find((a) => a.id === open.assignmentId)?.childIds.length ?? 0) > 1}
+          onSave={(position, mode, endDate, everyone) => { void state.save(statusBody(week, open, position, mode, endDate, everyone)).then((res) => { if (res) setOpen(null); }); }} />
       ) : null}
     </div>
   );

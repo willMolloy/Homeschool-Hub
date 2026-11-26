@@ -40,8 +40,10 @@ export interface UpdateStatusProps {
   weekStart?: LocalDate;
   /** S18-02: a picked end date must come after this day (the end of the week being updated). */
   afterDay?: LocalDate;
-  /** `endDate` is the new end for the assignment, or null to leave it (the default). */
-  onSave: (position: number, mode: OverrideMode | null, endDate: LocalDate | null) => void;
+  /** `endDate` is the new end, or null to leave it. `everyone` moves every child; otherwise just this child. */
+  onSave: (position: number, mode: OverrideMode | null, endDate: LocalDate | null, everyone?: boolean) => void;
+  /** S22-05: the book has more than one child, so the end can move for everyone or just this child. */
+  shared?: boolean;
   onClose: () => void;
   /** While the save is on its way, and what went wrong (the sheet stays open to try again). */
   busy?: boolean;
@@ -68,7 +70,7 @@ const wayOf = (item: CheckInItem, position: number, words: string): Way => {
 
 type EndWay = "keep" | "suggest" | "pick";
 
-export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart, afterDay, whenText, onSave, onClose, busy = false, error = null, copies = null }: UpdateStatusProps) {
+export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart, afterDay, whenText, onSave, onClose, busy = false, error = null, copies = null, shared = false }: UpdateStatusProps) {
   const me = useMe();
   // S20-02 / H1: open on the last unit the same words name (including a chapter the week only starts), or the number she already saved.
   const words = itemRangeWords(item, plan, weekStart);
@@ -101,6 +103,8 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   /** S20-01: minutes have no pile to get through. The week stood, or she picks a new end date. */
   const minutes = item.unitType === "minutes";
   const [wantEnd, setWantEnd] = useState(false);
+  const [who, setWho] = useState<"child" | "everyone">("child");
+  const commit = (position: number, nextMode: OverrideMode | null, end: LocalDate | null) => onSave(position, nextMode, end, Boolean(shared && end && who === "everyone"));
   const step = stepOf(item.unitType);
   const way = wayOf(item, pos, words);
   const finished = pos >= item.totalUnits - 1e-9;
@@ -118,25 +122,25 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
   const unit = item.unitType === "minutes" ? UNIT_LABELS.minutes.many : UNIT_LABELS[item.unitType].one;
   const save = (confirmed = false) => {
     if (minutes) {
-      if (!wantEnd || endWay !== "pick") return onSave(item.plannedTo, mode, null);
+      if (!wantEnd || endWay !== "pick") return commit(item.plannedTo, mode, null);
       if (!isValidLocalDate(picked)) { setAskPast(false); return setPickError("Pick the new end date."); }
       if (afterDay && picked <= afterDay) { setAskPast(false); return setPickError(`Pick a date after ${shortDate(afterDay)}.`); }
       if (picked < today && !confirmed) return setAskPast(true);
-      return onSave(item.plannedTo, null, picked);
+      return commit(item.plannedTo, null, picked);
     }
-    if (finished) return onSave(pos, null, null);
+    if (finished) return commit(pos, null, null);
     // The scheduled end is as planned. Send the plan's own position so a rounded 18 is not stored as behind 18.6.
-    if (way === "asPlanned") return onSave(item.plannedTo, mode, null);
-    if (endWay === "suggest" && suggested) return onSave(pos, "keepEndDate", suggested);
+    if (way === "asPlanned") return commit(item.plannedTo, mode, null);
+    if (endWay === "suggest" && suggested) return commit(pos, "keepEndDate", suggested);
     if (endWay === "pick") {
       if (!isValidLocalDate(picked)) { setAskPast(false); return setPickError("Pick the new end date."); }
       // A date the sheet already refuses never reaches the confirmation.
       if (afterDay && picked <= afterDay) { setAskPast(false); return setPickError(`Pick a date after ${shortDate(afterDay)}.`); }
       // S18b-01: before today stays allowed. Saving it asks first and waits. Today or later does not ask.
       if (picked < today && !confirmed) return setAskPast(true);
-      return onSave(pos, "keepEndDate", picked);
+      return commit(pos, "keepEndDate", picked);
     }
-    return onSave(pos, "keepEndDate", null);
+    return commit(pos, "keepEndDate", null);
   };
   const confirm = (
     <div className="status-confirm-block" ref={confirmRef}>
@@ -223,6 +227,19 @@ export function UpdateStatusSheet({ item, position, mode, plan, late, weekStart,
               ) : null}
             </div>
           </>
+        ) : null}
+        {shared ? (
+          <fieldset className="choice-list">
+            <legend>Who is the end date for?</legend>
+            <label className="choice">
+              <input type="radio" name="status-who" checked={who === "child"} onChange={() => setWho("child")} />
+              Just {item.childName}
+            </label>
+            <label className="choice">
+              <input type="radio" name="status-who" checked={who === "everyone"} onChange={() => setWho("everyone")} />
+              For everyone
+            </label>
+          </fieldset>
         ) : null}
         {copies}
         {error ? <p className="checkin-error" role="alert">{error}</p> : null}
