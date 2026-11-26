@@ -373,6 +373,28 @@ export function togetherInitials(initials: readonly string[]): string {
   return initials.length > TOGETHER_MAX_INITIALS ? `${shown} +${initials.length - TOGETHER_MAX_INITIALS}` : shown;
 }
 
+/**
+ * S22-06: one Together bar while every child has the same planned end and the same ending.
+ * A check-in that does not change the stored end still shares the bar. A finish or a stop on a different day does not.
+ */
+export function endsAgree(copies: readonly TimelineAssignment[]): boolean {
+  const first = copies[0];
+  if (!first) return false;
+  return copies.every((c) => c.plannedEnd === first.plannedEnd
+    && (c.endedAs ?? null) === (first.endedAs ?? null)
+    && (first.endedAs ? c.end === first.end : true));
+}
+
+/** Shared books whose children still end together. Those are the ones drawn once, in Together. */
+export function togetherAssignmentIds(model: Pick<TimelineModel, "lanes">): Set<string> {
+  const copiesOf = (id: string): TimelineAssignment[] => {
+    const out: TimelineAssignment[] = [];
+    for (const l of model.lanes) for (const c of l.children) for (const a of c.assignments) if (a.assignmentId === id) out.push(a);
+    return out;
+  };
+  return new Set([...sharedAssignmentIds(model)].filter((id) => endsAgree(copiesOf(id))));
+}
+
 /** S10-02: the assignments that two or more children share (each child has its own plan for them). */
 export function sharedAssignmentIds(model: Pick<TimelineModel, "lanes">): Set<string> {
   const seen = new Map<string, Set<string>>();
@@ -559,7 +581,7 @@ export function layoutTimeline(model: TimelineModel, options: LayoutOptions): Ti
     return options.zoom === "month" ? packed.map((r) => r.filter(inMonth)).filter((r) => r.length > 0) : packed;
   };
   const children = model.children ?? [...new Map(model.lanes.flatMap((l) => l.children.map((c) => [c.childId, { childId: c.childId, name: c.childName }] as const))).values()];
-  const sharedIds = children.length > 1 ? sharedAssignmentIds(model) : new Set<string>();
+  const sharedIds = children.length > 1 ? togetherAssignmentIds(model) : new Set<string>();
   const initials = new Map(children.map((c) => [c.childId, initialOf(c.name)]));
 
   type LaneSource = { subjectId: string; subjectName: string; paletteSlot: number; laneKey: string; assignments: TimelineAssignment[] };
