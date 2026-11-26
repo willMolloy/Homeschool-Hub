@@ -13,8 +13,8 @@ Sprint 18c is merged (PR #24). Sprints 19, 20, and 21 are merged (PRs #21, #22, 
 | S22-04 Ask whether one child finished | 912be44 | One question per child. Yes, Not yet, and We stopped name that child. Change offers For everyone when they still share an ending. |
 | S22-05 Update status for one child | 0b3a719 | The end saved from Update status names the child. Just {name} is the default. For everyone is the other choice on a shared book. |
 | S22-06 Keep one year bar while the ends match | e38eab3 | One Together bar while planned ends and endings match. Otherwise each child has a bar in their own group. |
-| S22-07 Ask about a break for each child's end | (this commit) | Matching ends stay one row. Different ends are one row per open child. A finished child is left off. Use this for the rest uses each row's own push-back day. |
-| S22-08 Undo restores each child's end | | |
+| S22-07 Ask about a break for each child's end | fb2be7e | Matching ends stay one row. Different ends are one row per open child. A finished child is left off. Use this for the rest uses each row's own push-back day. |
+| S22-08 Undo restores each child's end | (this commit) | The assignment snapshot stores each child's end. Undoing a break puts back every child the sheet moved, and leaves a child it did not move. |
 | S22-09 Read each child's end everywhere else | | |
 | S22-10 Tester pass | | Not this build. The independent tester writes `docs/reviews/sprint-22-verification.md`. |
 
