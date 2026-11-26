@@ -4,7 +4,7 @@
  */
 import type { UnitType } from "@hh/engine";
 import type { Queryable, Tx } from "../db";
-import { buildUpdateSet, replaceLinks } from "./sql";
+import { buildUpdateSet } from "./sql";
 
 export interface AssignmentRow {
   id: string;
@@ -27,9 +27,19 @@ export interface AssignmentRow {
   ended_as: EndedAs | null;
   ended_on: string | null;
   child_ids: string[];
+  /** S22-01: each child's own end and ending. Copied from the book until a parent changes one child. */
+  children: ChildSchedule[];
 }
 
 export type EndedAs = "finished" | "stopped";
+
+/** S22-01: one child's planned end and how that child finished or stopped. */
+export interface ChildSchedule {
+  childId: string;
+  endDate: string;
+  endedAs: EndedAs | null;
+  endedOn: string | null;
+}
 
 export interface AssignmentJson {
   id: string;
@@ -50,13 +60,15 @@ export interface AssignmentJson {
   /** S12-01: how the parent said it ended ("finished" or "stopped"), and the day; both null while it is open. */
   endedAs: EndedAs | null;
   endedOn: string | null;
+  /** S22-01: each child's end and ending, in roster order. While they match, they repeat the book. */
+  children: ChildSchedule[];
 }
 
 export function toAssignmentJson(r: AssignmentRow): AssignmentJson {
   return {
     id: r.id, subjectId: r.subject_id, title: r.title, unitType: r.unit_type, totalUnits: r.total_units,
     weightPerUnit: r.weight_per_unit, minutesPerDay: r.minutes_per_day, weekdays: r.weekdays ? [...r.weekdays].sort((x, y) => x - y) : null, startDate: r.start_date, endDate: r.end_date, childIds: r.child_ids,
-    archived: r.archived_at !== null, endedAs: r.ended_as, endedOn: r.ended_on,
+    archived: r.archived_at !== null, endedAs: r.ended_as, endedOn: r.ended_on, children: r.children ?? [],
   };
 }
 
@@ -65,7 +77,14 @@ const SELECT = `
   SELECT a.id, a.subject_id, a.title, a.unit_type, a.total_units, a.weight_per_unit, a.minutes_per_day, a.weekdays, a.weekdays_from, a.previous_weekdays, a.start_date, a.end_date, a.archived_at, a.ended_as, a.ended_on,
          COALESCE((SELECT array_agg(ac.child_id ORDER BY c.sort_order, c.id)
                      FROM assignment_child ac JOIN child c ON c.id = ac.child_id
-                    WHERE ac.assignment_id = a.id), '{}') AS child_ids
+                    WHERE ac.assignment_id = a.id), '{}') AS child_ids,
+         COALESCE((SELECT json_agg(json_build_object(
+                     'childId', ac.child_id,
+                     'endDate', to_char(ac.end_date, 'YYYY-MM-DD'),
+                     'endedAs', ac.ended_as,
+                     'endedOn', to_char(ac.ended_on, 'YYYY-MM-DD')) ORDER BY c.sort_order, c.id)
+                     FROM assignment_child ac JOIN child c ON c.id = ac.child_id
+                    WHERE ac.assignment_id = a.id), '[]'::json) AS children
     FROM assignment a`;
 
 /** The family's assignments by start date, title, id. Archived ones only when asked. */
@@ -123,7 +142,8 @@ export async function createAssignment(tx: Tx, familyId: string, a: AssignmentIn
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb) RETURNING id`,
     [familyId, a.subjectId, a.title, a.unitType, a.totalUnits, a.weightPerUnit, a.unitType === "minutes" ? a.minutesPerDay ?? null : null, a.startDate, a.endDate, a.weekdays ?? null, JSON.stringify(originalOf(a))]);
   const id = rows[0]!.id;
-  await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: a.childIds });
+  await replaceAssignmentChildren(tx, familyId, id, a.childIds, { endDate: a.endDate, endedAs: null, endedOn: null });
+  await syncAssignmentSummary(tx, familyId, id);
   return id;
 }
 
@@ -136,7 +156,11 @@ export async function lockAssignment(tx: Tx, familyId: string, id: string): Prom
   return rowCount ? getAssignment(tx, familyId, id) : null;
 }
 
-/** Apply the given fields (and replace children when `childIds` is sent). */
+/**
+ * Apply the given fields (and replace children when `childIds` is sent).
+ * An end or an ending sent here is for every child (S22-01). A later ticket names one child.
+ * The book's stored end is then the latest child's end, and its ending is stored only when every child shares it.
+ */
 export async function updateAssignment(tx: Tx, familyId: string, id: string, p: AssignmentPatch): Promise<void> {
   const { set, params } = buildUpdateSet({
     subject_id: p.subjectId, title: p.title, unit_type: p.unitType, total_units: p.totalUnits,
@@ -145,7 +169,69 @@ export async function updateAssignment(tx: Tx, familyId: string, id: string, p: 
     ended_as: p.endedAs, ended_on: p.endedOn,
   }, { firstParam: 3, archived: p.archived });
   await tx.query(`UPDATE assignment SET ${set} WHERE id = $1 AND family_id = $2`, [id, familyId, ...params]);
-  if (p.childIds) await replaceLinks(tx, "assignment_child", { ownerId: id, familyId, childIds: p.childIds });
+  if (p.childIds) {
+    const [book] = (await tx.query<{ end_date: string; ended_as: EndedAs | null; ended_on: string | null }>(
+      "SELECT end_date::text, ended_as, ended_on::text FROM assignment WHERE id = $1 AND family_id = $2",
+      [id, familyId],
+    )).rows;
+    await replaceAssignmentChildren(tx, familyId, id, p.childIds, {
+      endDate: book!.end_date, endedAs: book!.ended_as, endedOn: book!.ended_on,
+    });
+  }
+  if (p.endDate !== undefined) {
+    await tx.query("UPDATE assignment_child SET end_date = $3 WHERE assignment_id = $1 AND family_id = $2", [id, familyId, p.endDate]);
+  }
+  if (p.endedAs !== undefined || p.endedOn !== undefined) {
+    await tx.query(
+      `UPDATE assignment_child ac SET ended_as = a.ended_as, ended_on = a.ended_on
+         FROM assignment a
+        WHERE ac.assignment_id = a.id AND ac.family_id = a.family_id AND a.id = $1 AND a.family_id = $2`,
+      [id, familyId],
+    );
+  }
+  await syncAssignmentSummary(tx, familyId, id);
+}
+
+/** Keep the children who stay, and give a newly added child the book's current end and ending. */
+async function replaceAssignmentChildren(
+  tx: Tx, familyId: string, assignmentId: string, childIds: readonly string[],
+  fresh: { endDate: string; endedAs: EndedAs | null; endedOn: string | null },
+): Promise<void> {
+  await tx.query(
+    "DELETE FROM assignment_child WHERE assignment_id = $1 AND family_id = $2 AND NOT (child_id = ANY($3::uuid[]))",
+    [assignmentId, familyId, childIds],
+  );
+  if (childIds.length === 0) return;
+  await tx.query(
+    `INSERT INTO assignment_child (assignment_id, child_id, family_id, end_date, ended_as, ended_on)
+     SELECT $1, c, $2, $4::date, $5, $6::date
+       FROM unnest($3::uuid[]) AS c
+      WHERE NOT EXISTS (
+        SELECT 1 FROM assignment_child ac WHERE ac.assignment_id = $1 AND ac.child_id = c AND ac.family_id = $2)`,
+    [assignmentId, familyId, childIds, fresh.endDate, fresh.endedAs, fresh.endedOn],
+  );
+}
+
+/** The book's end is the latest child's end. Its ending is stored only when every child shares one. */
+async function syncAssignmentSummary(tx: Tx, familyId: string, assignmentId: string): Promise<void> {
+  await tx.query(
+    `UPDATE assignment a SET
+        end_date = s.end_date,
+        ended_as = s.ended_as,
+        ended_on = s.ended_on
+       FROM (
+         SELECT MAX(end_date) AS end_date,
+                CASE WHEN COUNT(DISTINCT (COALESCE(ended_as, '') || '|' || COALESCE(ended_on::text, ''))) = 1
+                     THEN MIN(ended_as) ELSE NULL END AS ended_as,
+                CASE WHEN COUNT(DISTINCT (COALESCE(ended_as, '') || '|' || COALESCE(ended_on::text, ''))) = 1
+                     THEN MIN(ended_on) ELSE NULL END AS ended_on
+           FROM assignment_child
+          WHERE assignment_id = $1 AND family_id = $2
+       ) s
+      WHERE a.id = $1 AND a.family_id = $2
+        AND EXISTS (SELECT 1 FROM assignment_child WHERE assignment_id = $1 AND family_id = $2)`,
+    [assignmentId, familyId],
+  );
 }
 
 /**

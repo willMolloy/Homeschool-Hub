@@ -411,4 +411,25 @@ SELECT pg_temp.expect_error($$UPDATE assignment SET ended_as = 'finished' WHERE 
 UPDATE assignment SET ended_as = 'stopped', ended_on = '2026-10-20' WHERE id = 'a0000000-0000-0000-0000-0000000000c7';
 DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c7';
 
+-- S22-01: a child copies the book's end, and cannot end before the book starts (029_child_schedule)
+INSERT INTO family (id, name) VALUES ('f0000000-0000-0000-0000-0000000000c8', 'Child end family');
+INSERT INTO child (id, family_id, name) VALUES
+  ('c0000000-0000-0000-0000-0000000000c8', 'f0000000-0000-0000-0000-0000000000c8', 'Elias'),
+  ('c0000000-0000-0000-0000-0000000000c9', 'f0000000-0000-0000-0000-0000000000c8', 'Margaret');
+INSERT INTO subject (id, family_id, name) VALUES ('50000000-0000-0000-0000-0000000000c8', 'f0000000-0000-0000-0000-0000000000c8', 'Reading');
+INSERT INTO assignment (id, family_id, subject_id, title, unit_type, total_units, start_date, end_date) VALUES
+  ('a0000000-0000-0000-0000-0000000000c8', 'f0000000-0000-0000-0000-0000000000c8', '50000000-0000-0000-0000-0000000000c8', 'Treasure Island', 'pages', 100, '2026-10-01', '2026-10-30');
+INSERT INTO assignment_child (assignment_id, child_id, family_id) VALUES
+  ('a0000000-0000-0000-0000-0000000000c8', 'c0000000-0000-0000-0000-0000000000c8', 'f0000000-0000-0000-0000-0000000000c8');
+DO $$ BEGIN
+  IF (SELECT end_date FROM assignment_child WHERE assignment_id = 'a0000000-0000-0000-0000-0000000000c8') <> '2026-10-30' THEN
+    RAISE EXCEPTION 'FAIL a new child should copy the book end'; END IF;
+  IF (SELECT ended_as FROM assignment_child WHERE assignment_id = 'a0000000-0000-0000-0000-0000000000c8') IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL a new child of an open book should be open'; END IF;
+  RAISE NOTICE 'ok   a new child copies the book end and starts open (029)';
+END $$;
+SELECT pg_temp.expect_error($$INSERT INTO assignment_child (assignment_id, child_id, family_id, end_date) VALUES ('a0000000-0000-0000-0000-0000000000c8','c0000000-0000-0000-0000-0000000000c9','f0000000-0000-0000-0000-0000000000c8','2026-01-01')$$, '23514', 'child end before the book starts');
+SELECT pg_temp.expect_error($$UPDATE assignment_child SET ended_as = 'finished' WHERE assignment_id = 'a0000000-0000-0000-0000-0000000000c8'$$, '23514', 'child ended_as needs ended_on');
+DELETE FROM family WHERE id = 'f0000000-0000-0000-0000-0000000000c8';
+
 DO $$ BEGIN RAISE NOTICE 'ALL CHECKS PASSED'; END $$;

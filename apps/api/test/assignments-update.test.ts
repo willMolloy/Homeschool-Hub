@@ -52,7 +52,10 @@ describe.skipIf(!hasDb)("PATCH /api/assignments/:id (integration)", () => {
     const before = (await req("GET", "/api/assignments")).json().find((x: { id: string }) => x.id === id);
     const res = await patch(body);
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ ...before, ...expected });
+    const saved = res.json();
+    // S22-01: an end sent for the book is copied onto every child.
+    const children = "endDate" in expected ? before.children.map((c: { endDate: string }) => ({ ...c, endDate: expected.endDate })) : before.children;
+    expect(saved).toEqual({ ...before, ...expected, children });
   });
 
   it("subjectId → 200 when it's an active subject of this family", async () => {
