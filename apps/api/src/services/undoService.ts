@@ -20,6 +20,8 @@ export interface AssignmentState {
   startDate: string; endDate: string; archived: boolean; childIds: string[];
   /** S12-01: how it ended (a state saved before this existed has neither, and leaves them as they are). */
   endedAs?: EndedAs | null; endedOn?: string | null;
+  /** S22-03: each child's end. Absent on an undo recorded before children had their own. */
+  children?: { childId: string; endDate: string; endedAs?: EndedAs | null; endedOn?: string | null }[];
 }
 export interface BlockedRangeState { label: string | null; kind: string; startDate: string; endDate: string; childIds: string[] }
 export interface WeekOverrideState {
@@ -50,6 +52,7 @@ export const assignmentState = (r: AssignmentRow): AssignmentState => ({
   minutesPerDay: r.minutes_per_day, weekdays: r.weekdays, weekdaysFrom: r.weekdays_from, previousWeekdays: r.previous_weekdays,
   startDate: r.start_date, endDate: r.end_date, archived: r.archived_at !== null, childIds: r.child_ids,
   endedAs: r.ended_as, endedOn: r.ended_on,
+  children: (r.children ?? []).map((c) => ({ childId: c.childId, endDate: c.endDate, endedAs: c.endedAs, endedOn: c.endedOn })),
 });
 
 /** The assignment as it stands, as a step; null when nothing differs from `before` (a no-op edit isn't worth an undo). */
@@ -99,7 +102,9 @@ async function applyStep(tx: Tx, familyId: string, step: UndoStep): Promise<void
       await updateAssignment(tx, familyId, step.id, {
         subjectId: s.subjectId, title: s.title, unitType: s.unitType, totalUnits: s.totalUnits, weightPerUnit: s.weightPerUnit,
         ...(s.minutesPerDay !== undefined ? { minutesPerDay: s.minutesPerDay } : {}),
-        weekdays: s.weekdays, startDate: s.startDate, endDate: s.endDate, childIds: s.childIds, archived: s.archived, endedAs: s.endedAs, endedOn: s.endedOn,
+        weekdays: s.weekdays, startDate: s.startDate, endDate: s.endDate, childIds: s.childIds, archived: s.archived,
+        // A snapshot with per-child rows restores those. An older one sets every child from the book's end.
+        ...(s.children ? { childEnds: s.children.map((c) => ({ childId: c.childId, endDate: c.endDate, endedAs: c.endedAs ?? null, endedOn: c.endedOn ?? null })) } : { endedAs: s.endedAs, endedOn: s.endedOn }),
         history: { weekdaysFrom: s.weekdaysFrom, previousWeekdays: s.previousWeekdays },
       });
       return;

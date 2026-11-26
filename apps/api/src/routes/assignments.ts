@@ -7,7 +7,7 @@ import { checkDatesKeepLatestCheckIn, short as shortDate } from "../http/checkIn
 import { assertTypedTotal, bounded, checkDateOrder, IdList, LocalDate, MAX_ASSIGNMENT_CHILDREN, MAX_ASSIGNMENT_DAYS, StoredTotalUnits, Title, UnitTypeField, WeightPerUnit, Weekdays } from "../http/scheduleLimits";
 import { parseBody, parseListQuery, UUID_RE } from "../http/validate";
 import { HttpError } from "../http/errors";
-import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment, type AssignmentRow, type EndedAs } from "../repos/assignmentRepo";
+import { createAssignment, getAssignment, listAssignments, lockAssignment, toAssignmentJson, updateAssignment, type AssignmentRow, type ChildEndPatch, type ChildSchedule, type EndedAs } from "../repos/assignmentRepo";
 import { checkRefs } from "../repos/refs";
 import { subjectDefaultWeekdays } from "../repos/subjectRepo";
 import { familyWeekStart } from "../http/familyWeek";
@@ -72,9 +72,20 @@ const PatchBody = z
     endedAs: z.enum(["finished", "stopped"], "endedAs must be finished or stopped.").nullable().optional(),
     endedOn: LocalDate.optional(),
     minutesPerDay: MinutesPerDay.optional(),
+    // S22-03: these children only. The book's end, sent without this, still updates every child.
+    childEnds: z.array(z.strictObject({
+      childId: Id,
+      endDate: LocalDate.optional(),
+      endedAs: z.enum(["finished", "stopped"], "endedAs must be finished or stopped.").nullable().optional(),
+      endedOn: LocalDate.optional(),
+    })).min(1, "Name at least one child.").max(MAX_ASSIGNMENT_CHILDREN, `Name at most ${MAX_ASSIGNMENT_CHILDREN} children.`).optional(),
   })
   .refine((b) => Object.values(b).some((v) => v !== undefined), "Send at least one field to change.")
-  .refine(onlyMinutes, { message: "minutesPerDay is only for a minutes assignment.", path: ["minutesPerDay"] });
+  .refine(onlyMinutes, { message: "minutesPerDay is only for a minutes assignment.", path: ["minutesPerDay"] })
+  .refine((b) => !(b.childEnds && (b.endDate !== undefined || b.endedAs !== undefined || b.endedOn !== undefined)), {
+    message: "Send the end for everyone, or name the children, not both.",
+    path: ["childEnds"],
+  });
 
 type CreateInput = z.infer<typeof CreateBody>;
 
@@ -148,6 +159,44 @@ async function resolveEnded(c: Tx, req: FastifyRequest, cur: AssignmentRow, p: z
   return result ?? {};
 }
 
+/** S22-03: the end and ending each named child is left with. */
+async function resolveChildEnds(
+  c: Tx, req: FastifyRequest, cur: AssignmentRow,
+  rows: NonNullable<z.infer<typeof PatchBody>["childEnds"]>, start: string,
+): Promise<ChildEndPatch[]> {
+  const today = (await familyWeekStart(c, req)).today;
+  const seen = new Set<string>();
+  const out: ChildEndPatch[] = [];
+  for (const row of rows) {
+    if (seen.has(row.childId)) throw new HttpError(400, "invalid_request", "Name each child once.");
+    seen.add(row.childId);
+    const child: ChildSchedule | undefined = cur.children.find((ch) => ch.childId === row.childId);
+    if (!child || !cur.child_ids.includes(row.childId)) throw new HttpError(400, "invalid_reference", "That child is not on this book.");
+    if (row.endDate === undefined && row.endedAs === undefined && row.endedOn === undefined) {
+      throw new HttpError(400, "invalid_request", "Say what changes for that child.");
+    }
+    const patch: ChildEndPatch = { childId: row.childId };
+    if (row.endDate !== undefined) patch.endDate = row.endDate;
+    if (row.endedAs === null) {
+      if (row.endedOn !== undefined) throw new HttpError(400, "invalid_request", "Reopening an assignment takes no end day.");
+      patch.endedAs = null;
+      patch.endedOn = null;
+    } else if (row.endedAs !== undefined) {
+      const on = row.endedOn ?? (row.endedAs === "finished" ? (row.endDate ?? child.endDate) : today > start ? today : start);
+      if (on < start) throw new HttpError(400, "invalid_range", "It can't end before it starts.");
+      patch.endedAs = row.endedAs;
+      patch.endedOn = on;
+    } else if (row.endedOn !== undefined) {
+      if (!child.endedAs) throw new HttpError(400, "invalid_request", "Say how it ended first (endedAs).");
+      if (row.endedOn < start) throw new HttpError(400, "invalid_range", "It can't end before it starts.");
+      patch.endedAs = child.endedAs;
+      patch.endedOn = row.endedOn;
+    }
+    out.push(patch);
+  }
+  return out;
+}
+
 export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/assignments", async (req) => {
     const { includeArchived } = parseListQuery(req.query);
@@ -193,12 +242,21 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
     const row = await withTransaction(app.db, async (c) => {
       const cur = await lockAssignment(c, req.familyId, req.params.id);
       if (!cur) throw notFound();
+      const start = p.startDate ?? cur.start_date;
+      const childEnds = p.childEnds ? await resolveChildEnds(c, req, cur, p.childEnds, start) : undefined;
+      const nextEnd = (childId: string, stored: string) => childEnds?.find((r) => r.childId === childId)?.endDate ?? p.endDate ?? stored;
+      const ends = cur.children.length > 0 ? cur.children.map((ch) => nextEnd(ch.childId, ch.endDate)) : [p.endDate ?? cur.end_date];
+      const latest = ends.reduce((a, b) => (a > b ? a : b));
       // Dates are checked on the merged row, so moving only one end can't invert the range.
-      checkDateOrder(p.startDate ?? cur.start_date, p.endDate ?? cur.end_date, MAX_ASSIGNMENT_DAYS);
+      checkDateOrder(start, latest, MAX_ASSIGNMENT_DAYS);
+      if (ends.some((end) => end < start)) throw new HttpError(400, "invalid_range", "It can't end before it starts.");
       if (p.startDate !== undefined || p.endDate !== undefined) {
-        await checkDatesKeepLatestCheckIn(c, req.familyId, cur.id, p.startDate ?? cur.start_date, p.endDate ?? cur.end_date);
+        await checkDatesKeepLatestCheckIn(c, req.familyId, cur.id, start, p.endDate ?? latest);
       }
-      const ended = await resolveEnded(c, req, cur, p);
+      for (const row of childEnds ?? []) {
+        if (row.endDate !== undefined) await checkDatesKeepLatestCheckIn(c, req.familyId, cur.id, start, row.endDate, row.childId);
+      }
+      const ended = childEnds ? {} : await resolveEnded(c, req, cur, p);
       const unitType = p.unitType ?? cur.unit_type;
       if (p.totalUnits !== undefined) assertTypedTotal(unitType, p.totalUnits);
       checkUnitChange({ unitType: cur.unit_type, weightPerUnit: cur.weight_per_unit }, p.unitType, p);
@@ -219,7 +277,7 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       let totalUnits = p.totalUnits;
       if (unitType === "minutes" && cur.unit_type === "minutes" && totalUnits === undefined) {
         const kept = await rescaledMinutesTotal(c, req.familyId, cur, {
-          startDate: p.startDate ?? cur.start_date, endDate: p.endDate ?? cur.end_date,
+          startDate: start, endDate: latest,
           weekdays: p.weekdays === undefined ? cur.weekdays : p.weekdays, subjectId: p.subjectId ?? cur.subject_id,
         });
         if (kept !== null) totalUnits = kept;
@@ -230,13 +288,14 @@ export async function assignmentsRoutes(app: FastifyInstance): Promise<void> {
       else if (p.minutesPerDay !== undefined) minutesPerDay = p.minutesPerDay;
       else if (p.totalUnits !== undefined || cur.unit_type !== "minutes") {
         minutesPerDay = await derivedDailyMinutes(c, req.familyId, {
-          totalUnits: totalUnits ?? Number(cur.total_units), startDate: p.startDate ?? cur.start_date, endDate: p.endDate ?? cur.end_date,
+          totalUnits: totalUnits ?? Number(cur.total_units), startDate: start, endDate: latest,
           weekdays: p.weekdays === undefined ? cur.weekdays : p.weekdays, subjectId: p.subjectId ?? cur.subject_id,
         });
       }
-      const { minutesPerDay: _ignored, ...rest } = p;
+      const { minutesPerDay: _ignored, childEnds: _childEnds, endDate: _end, endedAs: _endedAs, endedOn: _endedOn, ...rest } = p;
       await updateAssignment(c, req.familyId, cur.id, {
-        ...rest, ...ended, history,
+        ...rest, history,
+        ...(childEnds ? { childEnds } : { ...(p.endDate !== undefined ? { endDate: p.endDate } : {}), ...ended }),
         ...(totalUnits !== undefined && totalUnits !== p.totalUnits ? { totalUnits } : {}),
         ...(minutesPerDay !== undefined ? { minutesPerDay } : {}),
       });

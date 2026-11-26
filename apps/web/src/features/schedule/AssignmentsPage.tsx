@@ -44,6 +44,11 @@ import { endedWords } from "../completion/ended";
 
 export { LIMITS };
 
+/** Each child's end, or the book's end when the answer has no per-child rows yet. */
+export function childEndRows(a: Assignment): { childId: string; endDate: string }[] {
+  return a.childIds.map((id) => ({ childId: id, endDate: a.children?.find((c) => c.childId === id)?.endDate ?? a.endDate }));
+}
+
 /** S7b-14 (F-11): the most minutes a day a learned suggestion may come to before it is set aside. */
 export const MAX_SUGGESTED_MINUTES_A_DAY = 240;
 
@@ -162,6 +167,12 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
   const [suggesting, setSuggesting] = useState(!start);
   const [startDate, setStartDate] = useState(start?.startDate ?? "");
   const [endDate, setEndDate] = useState(start?.endDate ?? "");
+  // S22-03: a shared book can keep one end for everyone, or give one child their own.
+  const endRows = item ? childEndRows(item) : [];
+  const endsMatch = endRows.length < 2 || endRows.every((r) => r.endDate === endRows[0]!.endDate);
+  const [endFor, setEndFor] = useState<"everyone" | "each" | string>(endsMatch ? "everyone" : "each");
+  const [perChildEnd, setPerChildEnd] = useState<Record<string, string>>(() => Object.fromEntries(endRows.map((r) => [r.childId, r.endDate])));
+  const endScopeName = useId();
   const activeChildren = l.children.filter((c) => !c.archived);
   const [childIds, setChildIds] = useState<string[]>(start?.childIds ?? (activeChildren.length === 1 ? [activeChildren[0]!.id] : []));
   // S4-07: the chips start from the assignment's own days, else the subject's default, else every school day.
@@ -287,6 +298,12 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
     }
     const d = dateRangeError(startDate, endDate, LIMITS.days);
     if (d) errs.dates = d;
+    if (!d && item && endFor === "each") {
+      for (const id of childIds) {
+        const one = dateRangeError(startDate, perChildEnd[id] ?? endDate, LIMITS.days);
+        if (one) errs.dates = one;
+      }
+    }
     if (childIds.length === 0) errs.children = "Pick at least one child.";
     setErrors(errs);
     if (Object.keys(errs).length > 0 || typeof total === "string") return;
@@ -305,7 +322,7 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
         onSaved(await apiPost<Assignment>("/api/assignments", full));
         return;
       }
-      const patch: Partial<typeof full> = {};
+      const patch: Partial<typeof full> & { childEnds?: { childId: string; endDate: string }[] } = {};
       if (full.subjectId !== item.subjectId) patch.subjectId = full.subjectId;
       if (full.title !== item.title) patch.title = full.title;
       if (full.unitType !== item.unitType) patch.unitType = full.unitType;
@@ -314,7 +331,14 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
       // A unit change always restates the weight: the API won't carry one across unit types (D7).
       if (full.weightPerUnit !== item.weightPerUnit || patch.unitType) patch.weightPerUnit = full.weightPerUnit;
       if (full.startDate !== item.startDate) patch.startDate = full.startDate;
-      if (full.endDate !== item.endDate) patch.endDate = full.endDate;
+      if (childIds.length > 1 && endFor === "each") {
+        const changed = childIds.filter((id) => (perChildEnd[id] ?? endDate) !== (endRows.find((r) => r.childId === id)?.endDate ?? item.endDate));
+        if (changed.length > 0) patch.childEnds = changed.map((id) => ({ childId: id, endDate: perChildEnd[id] ?? endDate }));
+      } else if (childIds.length > 1 && endFor !== "everyone") {
+        if (full.endDate !== (endRows.find((r) => r.childId === endFor)?.endDate ?? item.endDate)) {
+          patch.childEnds = [{ childId: endFor, endDate: full.endDate }];
+        }
+      } else if (full.endDate !== item.endDate) patch.endDate = full.endDate;
       if (!sameSet(full.childIds, item.childIds)) patch.childIds = full.childIds;
       // S4b-04: only when a chip was tapped (or a default was set), so a title-only edit never changes the days.
       if ((dayChoice.touched || markedNow) && JSON.stringify(full.weekdays) !== JSON.stringify(item.weekdays ?? null)) patch.weekdays = full.weekdays;
@@ -397,6 +421,27 @@ export function AssignmentForm({ item, initial, onSaved, onCancel, extra, extern
           <DateField id={ids.end} value={endDate} onChange={setEndDate} {...inv(errors.dates, ids.end)} />)}
       </div>
       )}
+      {item && childIds.length > 1 ? (
+        <fieldset className="choice-list">
+          <legend>Who is this end date for?</legend>
+          <label className="choice">
+            <input type="radio" name={endScopeName} checked={endFor === "everyone"} onChange={() => setEndFor("everyone")} />
+            For everyone
+          </label>
+          {childIds.map((id) => (
+            <label className="choice" key={id}>
+              <input type="radio" name={endScopeName} checked={endFor === id} onChange={() => { setEndFor(id); setEndDate(perChildEnd[id] ?? endRows.find((r) => r.childId === id)?.endDate ?? endDate); }} />
+              Just {l.childName(id)}
+            </label>
+          ))}
+          {endFor === "each" ? childIds.map((id) => (
+            <label className="field" key={`${id}-end`}>
+              {l.childName(id)}
+              <DateField id={`${endScopeName}-${id}`} value={perChildEnd[id] ?? endDate} onChange={(v) => setPerChildEnd((s) => ({ ...s, [id]: v }))} />
+            </label>
+          )) : null}
+        </fieldset>
+      ) : null}
       <WeekdayPicker legend={sheet ? "School days" : "Days"} offer={dayChoice.offer} value={dayChoice.shown} onChange={changeDays} />
       {!item && initial ? <p className="hint">This copy is its own workbook. Set its school days here. The original keeps its days.</p> : null}
       {marked ? (

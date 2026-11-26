@@ -11,9 +11,11 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 /** "Nov 2" from a YYYY-MM-DD date (S6b-14 uses it for undo labels). */
 export const short = (d: string) => `${MONTHS[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8, 10))}`;
 
-export async function checkDatesKeepLatestCheckIn(tx: Tx, familyId: string, assignmentId: string, start: string, end: string): Promise<void> {
+export async function checkDatesKeepLatestCheckIn(tx: Tx, familyId: string, assignmentId: string, start: string, end: string, childId?: string): Promise<void> {
   const { rows } = await tx.query<{ week: string | null }>(
-    "SELECT max(week_start)::text AS week FROM progress_checkin WHERE family_id = $1 AND assignment_id = $2", [familyId, assignmentId]);
+    `SELECT max(week_start)::text AS week FROM progress_checkin
+      WHERE family_id = $1 AND assignment_id = $2 AND ($3::uuid IS NULL OR child_id = $3)`,
+    [familyId, assignmentId, childId ?? null]);
   const week = rows[0]?.week;
   if (!week) return;
   if (start > addDays(week as LocalDate, 6)) {

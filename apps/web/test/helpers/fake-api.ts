@@ -75,7 +75,7 @@ export const BODY_KEYS: Record<string, readonly string[]> = {
   "POST /api/subjects": ["name", "color", "defaultWeight", "defaultWeekdays", "icon", "core"],
   "PATCH /api/subjects/:id": [...ROSTER_PATCH, "defaultWeight", "defaultWeekdays", "icon", "core"],
   "POST /api/assignments": ASSIGNMENT,
-  "PATCH /api/assignments/:id": [...ASSIGNMENT, "archived", "endedAs", "endedOn"],
+  "PATCH /api/assignments/:id": [...ASSIGNMENT, "archived", "endedAs", "endedOn", "childEnds"],
   "POST /api/events": EVENT,
   "PATCH /api/events/:id": [...EVENT, "archived"],
   "POST /api/blocked-ranges": BLOCKED,

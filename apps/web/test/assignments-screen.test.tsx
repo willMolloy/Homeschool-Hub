@@ -515,3 +515,24 @@ describe("Assignment weight suggestion (S2b-11)", () => {
     });
   });
 });
+
+describe("a shared book's end (S22-03)", () => {
+  it("defaults to everyone, and Just Frank sends only his end", async () => {
+    const user = await setup();
+    await user.click(screen.getByRole("button", { name: /Saxon 5\/4/ }));
+    const form = screen.getByRole("form", { name: "Edit Saxon 5/4" });
+    expect(within(form).getByRole("radio", { name: "For everyone" })).toBeChecked();
+    expect(within(form).getByRole("radio", { name: "Just Frank" })).not.toBeChecked();
+    date("End", "2026-12-04", form);
+    await user.click(within(form).getByRole("button", { name: "Save" }));
+    expect(writes().at(-1)?.body).toMatchObject({ endDate: "2026-12-04" });
+    expect(writes().at(-1)?.body).not.toHaveProperty("childEnds");
+
+    await user.click(screen.getByRole("button", { name: /Saxon 5\/4/ }));
+    const again = screen.getByRole("form", { name: "Edit Saxon 5/4" });
+    await user.click(within(again).getByRole("radio", { name: "Just Frank" }));
+    date("End", "2026-12-18", again);
+    await user.click(within(again).getByRole("button", { name: "Save" }));
+    expect(writes().at(-1)?.body).toEqual({ childEnds: [{ childId: FRANK.id, endDate: "2026-12-18" }] });
+  });
+});

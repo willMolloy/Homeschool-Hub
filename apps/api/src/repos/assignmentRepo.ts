@@ -147,8 +147,23 @@ export async function createAssignment(tx: Tx, familyId: string, a: AssignmentIn
   return id;
 }
 
+/** S22-03: one child's end or ending. Absent fields stay as they are. `endedAs: null` reopens that child. */
+export interface ChildEndPatch {
+  childId: string;
+  endDate?: string;
+  endedAs?: EndedAs | null;
+  endedOn?: string | null;
+}
+
 /** `history` (S4-01b) is written with a weekday change: the date the new days apply from and the days before. */
-export type AssignmentPatch = Partial<AssignmentInput> & { archived?: boolean; endedAs?: EndedAs | null; endedOn?: string | null; history?: { weekdaysFrom: string | null; previousWeekdays: number[] | null } };
+export type AssignmentPatch = Partial<AssignmentInput> & {
+  archived?: boolean;
+  endedAs?: EndedAs | null;
+  endedOn?: string | null;
+  history?: { weekdaysFrom: string | null; previousWeekdays: number[] | null };
+  /** S22-03: these children only. When set, an end or ending on the patch is not copied onto everyone. */
+  childEnds?: ChildEndPatch[];
+};
 
 /** Lock one of the family's assignments for update and return it, or null. */
 export async function lockAssignment(tx: Tx, familyId: string, id: string): Promise<AssignmentRow | null> {
@@ -178,18 +193,43 @@ export async function updateAssignment(tx: Tx, familyId: string, id: string, p: 
       endDate: book!.end_date, endedAs: book!.ended_as, endedOn: book!.ended_on,
     });
   }
-  if (p.endDate !== undefined) {
-    await tx.query("UPDATE assignment_child SET end_date = $3 WHERE assignment_id = $1 AND family_id = $2", [id, familyId, p.endDate]);
-  }
-  if (p.endedAs !== undefined || p.endedOn !== undefined) {
-    await tx.query(
-      `UPDATE assignment_child ac SET ended_as = a.ended_as, ended_on = a.ended_on
-         FROM assignment a
-        WHERE ac.assignment_id = a.id AND ac.family_id = a.family_id AND a.id = $1 AND a.family_id = $2`,
-      [id, familyId],
-    );
+  if (p.childEnds?.length) {
+    for (const row of p.childEnds) await writeChildEnd(tx, familyId, id, row);
+  } else {
+    if (p.endDate !== undefined) {
+      await tx.query("UPDATE assignment_child SET end_date = $3 WHERE assignment_id = $1 AND family_id = $2", [id, familyId, p.endDate]);
+    }
+    if (p.endedAs !== undefined || p.endedOn !== undefined) {
+      await tx.query(
+        `UPDATE assignment_child ac SET ended_as = a.ended_as, ended_on = a.ended_on
+           FROM assignment a
+          WHERE ac.assignment_id = a.id AND ac.family_id = a.family_id AND a.id = $1 AND a.family_id = $2`,
+        [id, familyId],
+      );
+    }
   }
   await syncAssignmentSummary(tx, familyId, id);
+}
+
+/** One child's end or ending. A child who is not on the book is left unmatched (the route refuses that first). */
+async function writeChildEnd(tx: Tx, familyId: string, assignmentId: string, row: ChildEndPatch): Promise<void> {
+  const sets: string[] = [];
+  const params: unknown[] = [assignmentId, familyId, row.childId];
+  if (row.endDate !== undefined) {
+    params.push(row.endDate);
+    sets.push(`end_date = $${params.length}`);
+  }
+  if (row.endedAs !== undefined) {
+    params.push(row.endedAs);
+    sets.push(`ended_as = $${params.length}`);
+    params.push(row.endedOn ?? null);
+    sets.push(`ended_on = $${params.length}`);
+  }
+  if (sets.length === 0) return;
+  await tx.query(
+    `UPDATE assignment_child SET ${sets.join(", ")} WHERE assignment_id = $1 AND family_id = $2 AND child_id = $3`,
+    params,
+  );
 }
 
 /** Keep the children who stay, and give a newly added child the book's current end and ending. */

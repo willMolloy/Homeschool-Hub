@@ -224,6 +224,8 @@ export interface Assignment {
   /** S12-01: how the parent said it ended and the day (null while it is open). Older answers and fixtures may leave both out. */
   endedAs?: AssignmentEnding | null;
   endedOn?: string | null;
+  /** S22-01: each child's end and ending. Absent on older answers; then every child uses the book's. */
+  children?: { childId: string; endDate: string; endedAs?: AssignmentEnding | null; endedOn?: string | null }[];
 }
 
 /** S12-01: "finished" only when the parent said so; "stopped" is dropped work and never counts as finished. */
